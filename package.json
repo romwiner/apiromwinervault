@@ -1,0 +1,18 @@
+{
+    "name": "personal-data-vault-api",
+    "version": "2.0.0",
+    "description": "Bóveda de datos personales con cifrado E2E (versión simplificada)",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "express": "^4.18.3",
+        "express-rate-limit": "^7.2.0",
+        "helmet": "^7.1.0",
+        "joi": "^17.12.2",
+        "pino": "^8.19.0"
+    }
+}

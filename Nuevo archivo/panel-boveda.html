@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Mi Bóveda Personal</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #00d9ff;
+        }
+        
+        .header p {
+            color: #aaa;
+            font-size: 0.95rem;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card h3 {
+            color: #00d9ff;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #ddd;
+            font-size: 0.9rem;
+        }
+        
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #00d9ff;
+        }
+        
+        input::placeholder,
+        textarea::placeholder {
+            color: #888;
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #00d9ff 0%, #0099ff 100%);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 217, 255, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: #fff;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
+            color: #fff;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+            color: #fff;
+        }
+        
+        .result {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border-left: 4px solid #00d9ff;
+        }
+        
+        .result.success {
+            border-left-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        
+        .result.error {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+        
+        .status {
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status.connected {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+            border: 1px solid #28a745;
+        }
+        
+        .status.disconnected {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+            border: 1px solid #dc3545;
+        }
+        
+        .status.loading {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid #ffc107;
+        }
+        
+        .items-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .item-info {
+            flex: 1;
+        }
+        
+        .item-title {
+            font-weight: 600;
+            color: #00d9ff;
+        }
+        
+        .item-meta {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+        }
+        
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            width: auto;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.85rem;
+        }
+        
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔐 Mi Bóveda Personal</h1>
+            <p>Guarda y lee tus datos con cifrado AES-256-GCM</p>
+        </div>
+
+        <!-- Conexión -->
+        <div class="card">
+            <h3>🔗 Conexión</h3>
+            <label for="masterKey">🔑 Tu MASTER_KEY:</label>
+            <input type="password" id="masterKey" placeholder="Pega tu clave maestra aquí (64 caracteres)">
+
+            <label for="apiUrl">🌐 URL de la API:</label>
+            <input type="text" id="apiUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+
+            <button class="btn" id="btnConnect" onclick="checkConnection()">
+        <span>🔌</span> Verificar Conexión
+      </button>
+
+            <div id="connectionStatus" class="status disconnected hidden">
+                🔴 Desconectado - Asegúrate que "node index.js" está corriendo
+            </div>
+        </div>
+
+        <!-- Guardar dato -->
+        <div class="card hidden" id="saveCard">
+            <h3>💾 Guardar Nuevo Dato</h3>
+
+            <label for="titulo">📝 Título:</label>
+            <input type="text" id="titulo" placeholder="Ej: Contraseña de email">
+
+            <label for="contenido">🔐 Contenido secreto:</label>
+            <textarea id="contenido" placeholder="Escribe aquí lo que quieras guardar de forma segura..."></textarea>
+
+            <label for="tipo">📁 Tipo:</label>
+            <select id="tipo">
+        <option value="nota">📝 Nota</option>
+        <option value="documento">📄 Documento</option>
+        <option value="credencial">🪪 Credencial</option>
+      </select>
+
+            <button class="btn btn-success" id="btnSave" onclick="saveData()">
+        <span>✨</span> Guardar y Cifrar
+      </button>
+
+            <div id="saveResult" class="result hidden"></div>
+        </div>
+
+        <!-- Listar ítems -->
+        <div class="card hidden" id="listCard">
+            <h3>📋 Mis Datos Guardados</h3>
+            <button class="btn btn-secondary" onclick="listItems()">
+        <span>🔄</span> Actualizar Lista
+      </button>
+
+            <div id="itemsList" class="items-list" style="margin-top: 15px;"></div>
+            <div id="listResult" class="result hidden"></div>
+        </div>
+
+        <!-- Leer ítem específico -->
+        <div class="card hidden" id="readCard">
+            <h3>🔓 Leer Dato (Desencriptado)</h3>
+
+            <label for="readId">🔍 ID del dato:</label>
+            <input type="number" id="readId" placeholder="Ej: 1779167896109" min="1">
+
+            <button class="btn" onclick="readItem()">
+        <span>🔐</span> Leer y Descifrar
+      </button>
+
+            <div id="readResult" class="result hidden"></div>
+        </div>
+
+        <!-- Exportar -->
+        <div class="card hidden" id="exportCard">
+            <h3>📤 Exportar Todos mis Datos</h3>
+            <p style="color: #aaa; margin-bottom: 15px; font-size: 0.9rem;">
+                Descarga una copia de todos tus datos (se desencriptarán para la exportación).
+            </p>
+            <button class="btn btn-secondary" onclick="exportData()">
+        <span>⬇️</span> Descargar Backup
+      </button>
+            <div id="exportResult" class="result hidden"></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>🔐 Tus datos se cifran con AES-256-GCM antes de guardarse</p>
+            <p style="margin-top: 5px;">Nunca compartas tu MASTER_KEY</p>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let isConnected = false;
+
+        // 1️⃣ Verificar conexión con la API
+        async function checkConnection() {
+            const masterKey = document.getElementById('masterKey').value.trim();
+            const apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+            const statusDiv = document.getElementById('connectionStatus');
+            const btn = document.getElementById('btnConnect');
+
+            if (!masterKey) {
+                alert('⚠️ Por favor, ingresa tu MASTER_KEY primero');
+                return;
+            }
+
+            // UI: Loading
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Conectando...';
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '🔄 Verificando conexión...';
+            statusDiv.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${apiUrl}/health`, {
+                    headers: {
+                        'x-api-key': masterKey
+                    }
+                });
+
+                if (!response.ok) throw new Error('Respuesta no válida');
+
+                const data = await response.json();
+
+                if (data.status === 'healthy') {
+                    // ✅ Éxito
+                    isConnected = true;
+                    statusDiv.className = 'status connected';
+                    statusDiv.innerHTML = '✅ ¡Conectado! Tu bóveda está lista.';
+
+                    // Mostrar tarjetas de funciones
+                    document.getElementById('saveCard').classList.remove('hidden');
+                    document.getElementById('listCard').classList.remove('hidden');
+                    document.getElementById('readCard').classList.remove('hidden');
+                    document.getElementById('exportCard').classList.remove('hidden');
+
+                    // Cargar lista inicial
+                    listItems();
+                } else {
+                    throw new Error('Estado no saludable');
+                }
+            } catch (error) {
+                // ❌ Error
+                isConnected = false;
+                statusDiv.className = 'status disconnected';
+                statusDiv.innerHTML = `❌ No se pudo conectar.<br><small style="color:#aaa">${error.message}</small>`;
+
+                // Ocultar tarjetas de funciones
+                document.getElementById('saveCard').classList.add('hidden');
+                document.getElementById('listCard').classList.add('hidden');
+                document.getElementById('readCard').classList.add('hidden');
+                document.getElementById('exportCard').classList.add('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>🔌</span> Verificar Conexión';
+            }
+        }
+
+        // 2️⃣ Guardar nuevo dato cifrado
+        async function saveData() {
+            if (!isConnected) {
+                alert('⚠️ Primero verifica la conexión');
+                return;
+            }
+
+            const masterKey = document.getElementById('masterKey').value.trim();
+            const apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+            const titulo = document.getElementById('titulo').value.trim();
+            const contenido = document.getElementById('contenido').value.trim();
+            const tipo = document.getElementById('tipo').value;
+            const resultDiv = document.getElementById('saveResult');
+            const btn = document.getElementById('btnSave');
+
+            if (!titulo || !contenido) {
+                alert('⚠️ Por favor, completa el título y el contenido');
+                return;
+            }
+
+            // UI: Loading
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Cifrando y guardando...';
+            resultDiv.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${apiUrl}/vault`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': masterKey
+                    },
+                    body: JSON.stringify({
+                        titulo,
+                        contenido,
+                        tipo
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `✅ <strong>¡Guardado!</strong><br>ID: ${data.id}<br><small>${data.mensaje}</small>`;
+
+                    // Limpiar formulario
+                    document.getElementById('titulo').value = '';
+                    document.getElementById('contenido').value = '';
+                    document.getElementById('readId').value = data.id;
+
+                    // Actualizar lista
+                    listItems();
+                } else {
+                    throw new Error(data.error || 'Error desconocido');
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>✨</span> Guardar y Cifrar';
+                resultDiv.classList.remove('hidden');
+            }
+        }
+
+        // 3️⃣ Listar todos los ítems
+        async function listItems() {
+            if (!isConnected) return;
+
+            const masterKey = document.getElementById('masterKey').value.trim();
+            const apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+            const listDiv = document.getElementById('itemsList');
+
+            listDiv.innerHTML = '<div style="text-align:center;color:#aaa">🔄 Cargando...</div>';
+
+            try {
+                const response = await fetch(`${apiUrl}/vault`, {
+                    headers: {
+                        'x-api-key': masterKey
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.items && data.items.length > 0) {
+                    listDiv.innerHTML = data.items.map(item => `
+            <div class="item" onclick="document.getElementById('readId').value='${item.id}'; document.getElementById('readResult').classList.add('hidden');">
+              <div class="item-info">
+                <div class="item-title">${escapeHtml(item.titulo)}</div>
+                <div class="item-meta">
+                  📁 ${item.tipo} • 🆔 ${item.id}<br>
+                  🕐 ${new Date(item.created_at).toLocaleString('es-ES')}
+                </div>
+              </div>
+              <div class="item-actions">
+                <button class="btn btn-sm" onclick="event.stopPropagation(); readItemById('${item.id}')">🔓</button>
+                <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteItem('${item.id}')">🗑️</button>
+              </div>
+            </div>
+          `).join('');
+                } else {
+                    listDiv.innerHTML = '<div style="text-align:center;color:#aaa">📭 Aún no hay datos guardados</div>';
+                }
+            } catch (error) {
+                listDiv.innerHTML = `<div style="color:#dc3545">❌ Error al cargar: ${error.message}</div>`;
+            }
+        }
+
+        // 4️⃣ Leer ítem específico por ID
+        async function readItem() {
+            const id = document.getElementById('readId').value;
+            if (!id) {
+                alert('⚠️ Ingresa un ID válido');
+                return;
+            }
+            await readItemById(id);
+        }
+
+        async function readItemById(id) {
+            if (!isConnected) {
+                alert('⚠️ Primero verifica la conexión');
+                return;
+            }
+
+            const masterKey = document.getElementById('masterKey').value.trim();
+            const apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+            const resultDiv = document.getElementById('readResult');
+
+            resultDiv.className = 'result';
+            resultDiv.innerHTML = '<span>🔄</span> Descifrando...';
+            resultDiv.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${apiUrl}/vault/${id}`, {
+                    headers: {
+                        'x-api-key': masterKey
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+            <strong>🔓 ${escapeHtml(data.data.titulo)}</strong><br><br>
+            <strong>Contenido:</strong><br>
+            ${escapeHtml(data.data.contenido)}<br><br>
+            <small style="color:#888">
+              📁 Tipo: ${data.data.tipo}<br>
+              🕐 Creado: ${new Date(data.data.created_at).toLocaleString('es-ES')}<br>
+              🏷️ Tags: ${data.data.tags?.join(', ') || 'Ninguno'}
+            </small>
+          `;
+                } else {
+                    throw new Error(data.error || 'Dato no encontrado');
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        // 5️⃣ Eliminar ítem
+        async function deleteItem(id) {
+            if (!confirm('⚠️ ¿Estás seguro de eliminar este dato? Esta acción no se puede deshacer.')) return;
+            if (!isConnected) {
+                alert('⚠️ Primero verifica la conexión');
+                return;
+            }
+
+            const masterKey = document.getElementById('masterKey').value.trim();
+            const apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+
+            try {
+                const response = await fetch(`${apiUrl}/vault/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'x-api-key': masterKey
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('✅ Dato eliminado correctamente');
+                    listItems();
+                    if (document.getElementById('readId').value == id) {
+                        document.getElementById('readResult').classList.add('hidden');
+                    }
+                } else {
+                    throw new Error(data.error || 'Error al eliminar');
+                }
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        // 6️⃣ Exportar todos los datos
+        async function exportData() {
+            if (!isConnected) {
+                alert('⚠️ Primero verifica la conexión');
+                return;
+            }
+
+            const masterKey = document.getElementById('masterKey').value.trim();
+            const apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+            const resultDiv = document.getElementById('exportResult');
+
+            resultDiv.className = 'result';
+            resultDiv.innerHTML = '<span>🔄</span> Preparando exportación...';
+            resultDiv.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${apiUrl}/export`, {
+                    headers: {
+                        'x-api-key': masterKey
+                    }
+                });
+
+                if (!response.ok) throw new Error('Error en la respuesta');
+
+                // Obtener nombre del archivo del header Content-Disposition
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = 'vault-export.json';
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    filename = disposition.split('filename=')[1].replace(/['"]/g, '');
+                }
+
+                // Descargar archivo
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `✅ <strong>¡Exportación exitosa!</strong><br><small>Archivo descargado: ${filename}</small>`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        // Utilidad: Escapar HTML para prevenir XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Permitir Enter en los inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('masterKey').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') checkConnection();
+            });
+            document.getElementById('titulo').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') saveData();
+            });
+            document.getElementById('readId').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') readItem();
+            });
+        });
+    </script>
+</body>
+
+</html>
