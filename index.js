@@ -10,6 +10,7 @@ console.log("INICIO: " + k.substring(0, 5));
 console.log("FINAL: " + k.substring(k.length - 5));
 console.log("TIENE ESPACIOS: " + (k.indexOf(" ") > -1));
 const express = require('express');
+app.set('trust proxy', 1);
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -39,7 +40,8 @@ app.use((req, res, next) => {
 });
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const MASTER_KEY = process.env.MASTER_KEY;
-const ENCRYPTION_KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'base64');
+// Usar MASTER_KEY (64 hex = 32 bytes) para encriptación AES-256-GCM
+const ENCRYPTION_KEY = Buffer.from(process.env.MASTER_KEY, 'hex');
 
 // CORS: usar valor por defecto si no existe
 let origins = ['http://localhost:3000'];
