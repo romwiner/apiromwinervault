@@ -77,6 +77,7 @@ function saveDB() {
         fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
     } catch (e) {
         logger.error('❌ Error al guardar BD: ' + e.message);
+        return; // Render Free: no falla si no puede escribir archivo
     }
 }
 
