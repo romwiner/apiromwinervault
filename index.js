@@ -39,7 +39,7 @@ app.use((req, res, next) => {
     next();
 });
 const PORT = parseInt(process.env.PORT, 10) || 3000;
-const MASTER_KEY = process.env.MASTER_KEY;
+const MASTER_KEY = (process.env.MASTER_KEY || '').trim();
 // Usar MASTER_KEY (64 hex = 32 bytes) para encriptación AES-256-GCM
 const ENCRYPTION_KEY = Buffer.from(process.env.MASTER_KEY, 'hex');
 
