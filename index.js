@@ -1,5 +1,5 @@
-// index.js - PERSONAL DATA VAULT API PRO (apiromwiner) - VERSIÓN COMERCIAL ✅
-// ✅ Cifrado AES-256-GCM | ✅ Auditoría empresarial | ✅ Búsqueda avanzada | ✅ Anti-fuerza bruta
+// index.js - PERSONAL DATA VAULT API PRO + 2FA ✅
+// ✅ Cifrado AES-256-GCM | ✅ Anti-bruteforce | ✅ Auditoría | ✅ 2FA Opcional
 
 require('dotenv').config();
 var k = process.env.MASTER_KEY;
@@ -36,12 +36,13 @@ app.set('trust proxy', 1);
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key, x-tfa-code');
     next();
 });
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const MASTER_KEY = (process.env.MASTER_KEY || '').trim();
 const ENCRYPTION_KEY = Buffer.from(process.env.MASTER_KEY, 'hex');
+const TFA_CODE = process.env.TFA_CODE || ''; // ✅ 2FA: si está vacío, no se exige
 
 // CORS
 let origins = ['http://localhost:3000'];
@@ -107,48 +108,46 @@ function decrypt(ivHex, encrypted, authTagHex) {
     return decrypted;
 }
 
-// 🔑 Autenticación CON LÍMITE DE INTENTOS (Función 1/3 ✅)
+// 🔑 Autenticación + 2FA ✅
 const MAX_FAILED_ATTEMPTS = 5;
-const BLOCK_TIME_MS = 15 * 60 * 1000; // 15 minutos
+const BLOCK_TIME_MS = 15 * 60 * 1000;
 
 function authenticate(req, res, next) {
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
     const now = Date.now();
 
-    // Limpiar intentos antiguos
     if (db.failedAttempts[ip] && db.failedAttempts[ip].timestamp < now - BLOCK_TIME_MS) {
         delete db.failedAttempts[ip];
         saveDB();
     }
-
-    // Verificar bloqueo por intentos fallidos
     if (db.failedAttempts[ip] && db.failedAttempts[ip].count >= MAX_FAILED_ATTEMPTS) {
         const remaining = Math.ceil((db.failedAttempts[ip].timestamp + BLOCK_TIME_MS - now) / 1000);
-        logger.warn(`🚫 IP ${ip} bloqueada por ${remaining}s más`);
         return res.status(429).json({ error: 'Demasiados intentos. Intenta en ' + remaining + ' segundos' });
     }
 
     var rawKey = req.headers['x-api-key'] || req.query.key;
     var key = rawKey ? rawKey.trim() : '';
 
-    console.log("🔍 RECIBI:", key ? key.substring(0, 5) + '...' : '(vacío)', "| LONGITUD:", key.length, "| IP:", ip);
+    // ✅ 2FA Check
+    var tfaInput = req.headers['x-tfa-code'] || req.query.tfa || '';
+    if (TFA_CODE && tfaInput.trim() !== TFA_CODE) {
+        logAudit('2fa_failed', ip, { ip, userAgent: req.get('user-agent') });
+        return res.status(401).json({ error: 'Código 2FA incorrecto o faltante' });
+    }
+
+    console.log("🔍 RECIBI:", key ? key.substring(0, 5) + '...' : '(vacío)', "| LONGITUD:", key.length, "| IP:", ip, "| 2FA:", TFA_CODE ? '✅' : '⏸️');
 
     if (!key || key !== MASTER_KEY) {
-        // Registrar intento fallido
         if (!db.failedAttempts[ip]) db.failedAttempts[ip] = { count: 0, timestamp: now };
         db.failedAttempts[ip].count++;
         db.failedAttempts[ip].timestamp = now;
         saveDB();
-
-        logAudit('auth_failed', ip, { reason: 'clave_invalida', ip: ip, userAgent: req.get('user-agent') });
+        logAudit('auth_failed', ip, { reason: 'clave_invalida', ip, userAgent: req.get('user-agent') });
         return res.status(401).json({ error: 'Clave inválida' });
     }
 
-    // Resetear intentos al autenticar correctamente
-    if (db.failedAttempts[ip]) {
-        delete db.failedAttempts[ip];
-        saveDB();
-    }
+    if (db.failedAttempts[ip]) { delete db.failedAttempts[ip];
+        saveDB(); }
 
     req.actor = crypto.createHash('sha256').update(key).digest('hex').slice(0, 16);
     req.clientIP = ip;
@@ -165,18 +164,10 @@ const vaultSchema = Joi.object({
     tags: Joi.array().items(Joi.string()).optional()
 });
 
-// 🪵 Auditoría MEJORADA (Función 2/3 ✅)
+// 🪵 Auditoría mejorada
 function logAudit(action, actor, metadata) {
     if (!metadata) metadata = {};
-    db.audit.push({
-        action: action,
-        actor: actor,
-        timestamp: new Date().toISOString(),
-        ip: metadata.ip || 'unknown',
-        userAgent: metadata.userAgent || 'unknown',
-        metadata: metadata
-    });
-    // Mantener solo últimos 1000 registros para no inflar el archivo
+    db.audit.push({ action, actor, timestamp: new Date().toISOString(), ip: metadata.ip || 'unknown', userAgent: metadata.userAgent || 'unknown', metadata });
     if (db.audit.length > 1000) db.audit = db.audit.slice(-1000);
     saveDB();
 }
@@ -185,9 +176,10 @@ function logAudit(action, actor, metadata) {
 
 app.get('/', function(req, res) {
     res.json({
-        api: "Personal Data Vault API PRO",
-        version: "3.0-commercial",
-        features: ["AES-256-GCM", "Anti-bruteforce", "Audit-logs", "Advanced-search"],
+        api: "Personal Data Vault API PRO + 2FA",
+        version: "3.1-commercial",
+        features: ["AES-256-GCM", "Anti-bruteforce", "Audit-logs", "Advanced-search", "2FA-Optional"],
+        tfa_active: !!TFA_CODE,
         status: "online"
     });
 });
@@ -196,154 +188,73 @@ app.get('/health', function(req, res) {
     res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// 💾 Guardar dato
 app.post('/vault', function(req, res) {
     const validation = vaultSchema.validate(req.body);
-    if (validation.error) {
-        return res.status(400).json({ error: validation.error.details[0].message });
-    }
+    if (validation.error) return res.status(400).json({ error: validation.error.details[0].message });
     const value = validation.value;
-
     const cryptoResult = encrypt(value.contenido);
-    const newItem = {
-        id: Date.now(),
-        titulo: value.titulo,
-        contenido_enc: cryptoResult.encrypted,
-        iv: cryptoResult.iv,
-        auth_tag: cryptoResult.authTag,
-        tipo: value.tipo,
-        tags: value.tags || [],
-        created_at: new Date().toISOString()
-    };
-
+    const newItem = { id: Date.now(), titulo: value.titulo, contenido_enc: cryptoResult.encrypted, iv: cryptoResult.iv, auth_tag: cryptoResult.authTag, tipo: value.tipo, tags: value.tags || [], created_at: new Date().toISOString() };
     db.vault.push(newItem);
     saveDB();
     logAudit('create', req.actor, { id: newItem.id, titulo: value.titulo, ip: req.clientIP, userAgent: req.userAgent });
-
     res.status(201).json({ success: true, id: newItem.id, mensaje: '✅ Guardado y cifrado' });
 });
 
-// 📋 Listar ítems CON BÚSQUEDA (Función 3/3 ✅)
 app.get('/vault', function(req, res) {
     const search = (req.query.search || '').toLowerCase();
     const tagFilter = req.query.tag;
     const typeFilter = req.query.tipo;
-
-    let items = db.vault.map(function(item) {
-        return { id: item.id, titulo: item.titulo, tipo: item.tipo, tags: item.tags, created_at: item.created_at };
-    });
-
-    // Filtrar por búsqueda en título
-    if (search) {
-        items = items.filter(i => i.titulo.toLowerCase().includes(search));
-    }
-    // Filtrar por tag
-    if (tagFilter) {
-        items = items.filter(i => i.tags && i.tags.includes(tagFilter));
-    }
-    // Filtrar por tipo
-    if (typeFilter) {
-        items = items.filter(i => i.tipo === typeFilter);
-    }
-
-    logAudit('list', req.actor, { count: items.length, search: search || null, tag: tagFilter || null, ip: req.clientIP });
-    res.json({ success: true, total: items.length, items: items, filters: { search, tag: tagFilter, tipo: typeFilter } });
+    let items = db.vault.map(function(item) { return { id: item.id, titulo: item.titulo, tipo: item.tipo, tags: item.tags, created_at: item.created_at }; });
+    if (search) items = items.filter(i => i.titulo.toLowerCase().includes(search));
+    if (tagFilter) items = items.filter(i => i.tags && i.tags.includes(tagFilter));
+    if (typeFilter) items = items.filter(i => i.tipo === typeFilter);
+    logAudit('list', req.actor, { count: items.length, search, tag: tagFilter, tipo: typeFilter, ip: req.clientIP });
+    res.json({ success: true, total: items.length, items, filters: { search, tag: tagFilter, tipo: typeFilter } });
 });
 
-// 🔓 Leer ítem específico
 app.get('/vault/:id', function(req, res) {
-    const item = db.vault.find(function(v) { return v.id == req.params.id; });
-    if (!item) {
-        return res.status(404).json({ error: 'No encontrado' });
-    }
-
+    const item = db.vault.find(v => v.id == req.params.id);
+    if (!item) return res.status(404).json({ error: 'No encontrado' });
     try {
         const contenido = decrypt(item.iv, item.contenido_enc, item.auth_tag);
         logAudit('read', req.actor, { id: item.id, ip: req.clientIP, userAgent: req.userAgent });
-
-        const responseData = {
-            id: item.id,
-            titulo: item.titulo,
-            contenido: contenido,
-            tipo: item.tipo,
-            tags: item.tags,
-            created_at: item.created_at
-        };
-        res.json({ success: true, data: responseData });
-    } catch (e) {
-        logger.error('❌ Error al descifrar: ' + e.message);
-        res.status(500).json({ error: 'Error al procesar el contenido' });
-    }
+        res.json({ success: true, data: { id: item.id, titulo: item.titulo, contenido, tipo: item.tipo, tags: item.tags, created_at: item.created_at } });
+    } catch (e) { logger.error('❌ Error al descifrar: ' + e.message);
+        res.status(500).json({ error: 'Error al procesar el contenido' }); }
 });
 
-// 🗑️ Eliminar ítem
 app.delete('/vault/:id', function(req, res) {
-    const index = db.vault.findIndex(function(v) { return v.id == req.params.id; });
-    if (index === -1) {
-        return res.status(404).json({ error: 'No encontrado' });
-    }
+    const index = db.vault.findIndex(v => v.id == req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'No encontrado' });
     const deleted = db.vault.splice(index, 1)[0];
     saveDB();
     logAudit('delete', req.actor, { id: deleted.id, ip: req.clientIP });
     res.json({ success: true, mensaje: '✅ Eliminado' });
 });
 
-// 📤 Exportar datos
 app.get('/export', function(req, res) {
-    const exported = db.vault.map(function(item) {
-        try {
-            return {
-                id: item.id,
-                titulo: item.titulo,
-                contenido: decrypt(item.iv, item.contenido_enc, item.auth_tag),
-                tipo: item.tipo,
-                tags: item.tags,
-                created_at: item.created_at
-            };
-        } catch (e) {
-            return { id: item.id, error: 'desencriptado fallido' };
-        }
-    });
+    const exported = db.vault.map(function(item) { try { return { id: item.id, titulo: item.titulo, contenido: decrypt(item.iv, item.contenido_enc, item.auth_tag), tipo: item.tipo, tags: item.tags, created_at: item.created_at }; } catch (e) { return { id: item.id, error: 'desencriptado fallido' }; } });
     logAudit('export', req.actor, { count: exported.length, ip: req.clientIP });
     res.setHeader('Content-Type', 'application/json');
-    const filename = 'vault-' + new Date().toISOString().slice(0, 10) + '.json';
-    res.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
+    res.setHeader('Content-Disposition', 'attachment; filename="vault-' + new Date().toISOString().slice(0, 10) + '.json"');
     res.json({ exported_at: new Date().toISOString(), items: exported });
 });
 
-// 📊 Nueva ruta: Estadísticas de auditoría (valor empresarial)
 app.get('/audit/stats', function(req, res) {
     const now = new Date();
     const last24h = db.audit.filter(a => new Date(a.timestamp) > new Date(now - 24 * 60 * 60 * 1000));
-
-    const stats = {
-        total_actions: db.audit.length,
-        last_24h: last24h.length,
-        by_action: {},
-        unique_ips: [...new Set(db.audit.map(a => a.ip))].length
-    };
-
-    db.audit.forEach(a => {
-        stats.by_action[a.action] = (stats.by_action[a.action] || 0) + 1;
-    });
-
+    const stats = { total_actions: db.audit.length, last_24h: last24h.length, by_action: {}, unique_ips: [...new Set(db.audit.map(a => a.ip))].length };
+    db.audit.forEach(a => { stats.by_action[a.action] = (stats.by_action[a.action] || 0) + 1; });
     logAudit('view_stats', req.actor, { ip: req.clientIP });
     res.json({ success: true, stats });
 });
 
-// 🚨 Manejo de errores
-app.use(function(err, req, res, next) {
-    logger.error(err);
-    res.status(500).json({ error: 'Error interno' });
-});
+app.use(function(err, req, res, next) { logger.error(err);
+    res.status(500).json({ error: 'Error interno' }); });
+app.use('*', function(req, res) { res.status(404).json({ error: 'No encontrado' }); });
 
-app.use('*', function(req, res) {
-    res.status(404).json({ error: 'No encontrado' });
-});
-
-// 🚀 Iniciar servidor
 app.listen(PORT, '0.0.0.0', function() {
-    logger.info('🚀 API PRO corriendo en puerto ' + PORT);
+    logger.info('🚀 API PRO + 2FA corriendo en puerto ' + PORT);
     logger.info('🗄️ Datos guardados en: ' + DB_FILE);
-    logger.info('🔒 Funciones activas: Anti-bruteforce, Audit-logs, Búsqueda avanzada');
+    logger.info('🔒 2FA: ' + (TFA_CODE ? '✅ ACTIVO' : '⏸️ DESACTIVADO (agrega TFA_CODE en Render para activarlo)'));
 });
