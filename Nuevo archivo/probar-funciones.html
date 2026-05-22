@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Probar Bóveda</title>
+</head>
+
+<body style="font-family:sans-serif;padding:20px;">
+    <h2>🧪 Probar Funciones 🟢</h2>
+    <input type="text" id="key" placeholder="Tu MASTER_KEY" style="width:300px;padding:8px;"><br><br>
+    <button onclick="crear('bancos')">Crear en "bancos"</button>
+    <button onclick="crear('email')">Crear en "email"</button>
+    <button onclick="filtrar('bancos')">Filtrar por "bancos"</button><br><br>
+    <button onclick="verHistorial()">📜 Ver historial</button><br><br>
+    <div id="res" style="margin-top:15px;white-space:pre-wrap;background:#f5f5f5;padding:10px;min-height:50px;"></div>
+    <script>
+        const API = 'http://localhost:3001';
+
+        function res(txt) {
+            document.getElementById('res').textContent = txt;
+        }
+        async function crear(cat) {
+            const k = document.getElementById('key').value.trim();
+            const r = await fetch(`${API}/vault`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': k
+                },
+                body: JSON.stringify({
+                    titulo: 'Prueba ' + Date.now(),
+                    contenido: 'Secreto cifrado',
+                    categoria: cat
+                })
+            });
+            res(await r.text());
+        }
+        async function filtrar(cat) {
+            const r = await fetch(`${API}/vault?categoria=${cat}`);
+            res(JSON.stringify(await r.json(), null, 2));
+        }
+        async function verHistorial() {
+            const k = document.getElementById('key').value.trim();
+            const r = await fetch(`${API}/audit/history?key=${k}`);
+            res(JSON.stringify(await r.json(), null, 2));
+        }
+    </script>
+</body>
+
+</html>
