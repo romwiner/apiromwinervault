@@ -86,18 +86,47 @@ function logAudit(action, actor, meta) {
 async function sendAlert(msg) { if (DISCORD_WEBHOOK) { try { await axios.post(DISCORD_WEBHOOK, { content: msg }); } catch (e) {} } else logger.warn('🚨 ALERTA: ' + msg); }
 
 function checkIPs() {
-    var now = Date.now(),
-        win = ALERT_WINDOW * 60000,
-        counts = {};
-    db.audit.forEach(function(l) { if (new Date(l.timestamp).getTime() > now - win && l.ip && l.ip !== 'unknown') counts[l.ip] = (counts[l.ip] || 0) + 1; });
-    Object.keys(counts).forEach(function(ip) {
-        var c = counts[ip];
-        if (c >= SUSPICIOUS_THRESHOLD && !db.suspiciousAlerts.some(function(a) { return a.ip === ip && new Date(a.timestamp).getTime() > now - win; })) {
-            sendAlert('⚠️ IP SOSPECHOSA: ' + ip + ' -> ' + c + ' acciones en ' + ALERT_WINDOW + 'min');
-            db.suspiciousAlerts.push({ ip: ip, count: c, timestamp: new Date().toISOString() });
+    // ✅ Guard: si db o db.audit no existen, salir sin error
+    if (!db || !db.audit || !Array.isArray(db.audit)) return;
+
+    var now = Date.now();
+    var win = ALERT_WINDOW * 60000;
+    var counts = {};
+
+    db.audit.forEach(function(l) {
+        if (l && l.timestamp && l.ip && l.ip !== 'unknown') {
+            var t = new Date(l.timestamp).getTime();
+            if (t > now - win) {
+                counts[l.ip] = (counts[l.ip] || 0) + 1;
+            }
         }
     });
-    db.suspiciousAlerts = db.suspiciousAlerts.filter(function(a) { return new Date(a.timestamp).getTime() > now - win * 2; });
+
+    Object.keys(counts).forEach(function(ip) {
+        var c = counts[ip];
+        if (c >= SUSPICIOUS_THRESHOLD) {
+            var already = false;
+            if (db.suspiciousAlerts && Array.isArray(db.suspiciousAlerts)) {
+                for (var j = 0; j < db.suspiciousAlerts.length; j++) {
+                    if (db.suspiciousAlerts[j].ip === ip && new Date(db.suspiciousAlerts[j].timestamp).getTime() > now - win) {
+                        already = true;
+                        break;
+                    }
+                }
+            }
+            if (!already) {
+                sendAlert('⚠️ IP SOSPECHOSA: ' + ip + ' -> ' + c + ' acciones en ' + ALERT_WINDOW + 'min');
+                if (!db.suspiciousAlerts) db.suspiciousAlerts = [];
+                db.suspiciousAlerts.push({ ip: ip, count: c, timestamp: new Date().toISOString() });
+            }
+        }
+    });
+
+    if (db.suspiciousAlerts && Array.isArray(db.suspiciousAlerts)) {
+        db.suspiciousAlerts = db.suspiciousAlerts.filter(function(a) {
+            return a && a.timestamp && new Date(a.timestamp).getTime() > now - win * 2;
+        });
+    }
 }
 
 // 🔄 🟢 Rotación automática & Chequeo IP
