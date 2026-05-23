@@ -134,7 +134,13 @@ cron.schedule('*/10 * * * *', function() { checkIPs(); });
 cron.schedule('0 */24 * * *', function() { logAudit('auto_rotate', 'system', { action: 'token_cleanup' }); });
 
 // 🌐 RUTAS PÚBLICAS
-app.get('/', function(req, res) { res.json({ api: "Personal Data Vault API PRO + 2FA", version: "3.2-final", status: "online", tfa: !!TFA_CODE }); });
+// 🟢 Estado de la API (ruta nueva para no chocar con la app)
+app.get('/api/status', function(req, res) { res.json({ api: "Personal Data Vault API PRO + 2FA", version: "3.2-final", status: "online", tfa: !!TFA_CODE }); });
+
+// 📱 Ruta raíz: servir la app móvil (prioridad alta)
+app.get('/', function(req, res) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 app.get('/health', function(req, res) { res.json({ status: 'healthy', time: new Date().toISOString() }); });
 
 // 🔐 ✅ Autenticación + Anti-bruteforce + 2FA
