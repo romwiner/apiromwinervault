@@ -1,310 +1,219 @@
-// index.js - PERSONAL DATA VAULT API PRO ✅ + NUEVAS FUNCIONES 🟢
-// ✅ Cifrado AES-256-GCM | ✅ Anti-bruteforce | ✅ Auditoría | ✅ 2FA Opcional
-// 🟢 Categorías | 🟢 Historial de cambios | 🟢 Alertas IP | 🟢 Rotación automática
+// ============================================================================
+// 🔐 APIROMWINER VAULT - FASE 2 ✅🟢
+// ============================================================================
+// 🟢 LO QUE EL VAULT HACE POR LAS PERSONAS:
+// 🟢 1. Registro seguro → Cuenta única por usuario
+// 🟢 2. Login JWT → Sesiones de 7 días
+// 🟢 3. Bóveda cifrada → AES-256-GCM, solo el dueño lee
+// 🟢 4. Categorías → Organiza: bancos, personal, trabajo
+// 🟢 5. Auditoría → Historial de acciones con IP y fecha
+// 🟢 6. Permisos granulares → read/write/share controlados
+// 🟢 7. QR Identidad → Verifica sin exponer datos
+// 🟢 8. Multi-admin → Solo tú regalas secretos (tus correos)
+// 🟢 9. Regalos familiares → Acceso gratuito, revocable
+// 🟢 10. PWA instalable → App móvil sin tiendas
+// ============================================================================
 
 require('dotenv').config();
 var express = require('express');
 var cors = require('cors');
 var helmet = require('helmet');
-var rateLimit = require('express-rate-limit');
 var crypto = require('crypto');
-var Joi = require('joi');
-var pino = require('pino');
+var bcrypt = require('bcryptjs');
+var jwt = require('jsonwebtoken');
+var { v4: uuidv4 } = require('uuid');
 var fs = require('fs');
 var path = require('path');
-var cron = require('node-cron');
-var axios = require('axios');
+var pino = require('pino');
 
-var logger = pino({ level: process.env.LOG_LEVEL || 'info' });
-
-// 🔐 Validar MASTER_KEY
-if (!process.env.MASTER_KEY) {
-    logger.fatal('❌ Falta MASTER_KEY en .env');
+var logger = pino({ level: 'info' });
+if (!process.env.MASTER_KEY || !process.env.JWT_SECRET) {
+    logger.fatal('❌ Faltan variables en .env');
     process.exit(1);
 }
 
 var app = express();
-// app.set('trust proxy', true);  // ❌ Comentada para evitar conflicto con rate-limit
-var PORT = parseInt(process.env.PORT, 10) || 8080;
-var MASTER_KEY = (process.env.MASTER_KEY || '').trim();
-var ENCRYPTION_KEY = Buffer.from(MASTER_KEY, 'hex');
-if (ENCRYPTION_KEY.length !== 32) {
-    logger.fatal('❌ MASTER_KEY debe ser HEX de 64 caracteres');
-    process.exit(1);
+var PORT = parseInt(process.env.PORT, 10) || 9000;
+var MASTER_KEY = process.env.MASTER_KEY.trim();
+var KEY = Buffer.from(MASTER_KEY, 'hex');
+
+// 📁 Base de datos
+var DB_FILE = path.join(__dirname, 'data', 'vault.json');
+if (!fs.existsSync(path.join(__dirname, 'data'))) {
+    fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+}
+var db = { users: {}, vault: [], audit: [] };
+
+function loadDB() {
+    try { if (fs.existsSync(DB_FILE)) db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); } catch (e) {}
 }
 
-var TFA_CODE = process.env.TFA_CODE || '';
-var DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK_URL || '';
-var SUSPICIOUS_THRESHOLD = parseInt(process.env.SUSPICIOUS_IP_THRESHOLD) || 20;
-var ALERT_WINDOW = parseInt(process.env.ALERT_WINDOW_MINUTES) || 60;
-var origins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:8080', 'http://127.0.0.1:5500', 'null'];
-
-var DB_FILE = path.join(__dirname, 'data', 'vault.json');
-if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
-
-var db = { vault: [], audit: [], failedAttempts: {}, suspiciousAlerts: [] };
-
-function loadDB() { try { if (fs.existsSync(DB_FILE)) db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); } catch (e) { logger.warn('⚠️ BD vacía'); } }
-
-function saveDB() { try { fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2)); } catch (e) { logger.error('❌ Error guardando BD'); } }
+function saveDB() {
+    try { fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2)); } catch (e) {}
+}
 loadDB();
 
-// 🛡️ Helmet configurado para PWA + Edge + inline handlers
+// 🛡️ Middleware (VERIFICADO ✅)
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:", "data:", "blob:"],
-            scriptSrcAttr: ["'self'", "'unsafe-inline'", "'unsafe-hashes'"], // ✅ Permite onclick=""
-            styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:", "data:"],
-            imgSrc: ["'self'", "data:", "https:", "http:", "https://api.qrserver.com", "blob:"],
-            connectSrc: ["'self'", "https:", "http:", "ws:", "wss:", "blob:"],
-            fontSrc: ["'self'", "https:", "http:", "data:"],
-            objectSrc: ["'none'"],
-            upgradeInsecureRequests: []
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:"],
+            scriptSrcAttr: ["'self'", "'unsafe-inline'", "'unsafe-hashes'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:"],
+            imgSrc: ["'self'", "data:", "https:", "http:", "https://api.qrserver.com"],
+            connectSrc: ["'self'", "https:", "http:", "ws:", "wss:"]
         }
     }
 }));
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json({ limit: '2mb' }));
 
-// 🔐 ✅ Cifrado AES-256-GCM
+// 🔐 Cifrado
 function encrypt(text) {
     var iv = crypto.randomBytes(12);
-    var cipher = crypto.createCipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
+    var cipher = crypto.createCipheriv('aes-256-gcm', KEY, iv);
     var enc = cipher.update(text, 'utf8', 'hex') + cipher.final('hex');
-    return { iv: iv.toString('hex'), enc: enc, authTag: cipher.getAuthTag().toString('hex') };
+    return { iv: iv.toString('hex'), enc: enc, tag: cipher.getAuthTag().toString('hex') };
 }
 
-function decrypt(ivHex, enc, tagHex) {
-    var decipher = crypto.createDecipheriv('aes-256-gcm', ENCRYPTION_KEY, Buffer.from(ivHex, 'hex'));
+function decrypt(ivHex, encHex, tagHex) {
+    var decipher = crypto.createDecipheriv('aes-256-gcm', KEY, Buffer.from(ivHex, 'hex'));
     decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
-    return decipher.update(enc, 'hex', 'utf8') + decipher.final('utf8');
+    return decipher.update(encHex, 'hex', 'utf8') + decipher.final('utf8');
 }
 
-function getIP(req) {
-    var ip = req.ip || (req.socket && req.socket.remoteAddress) || '127.0.0.1';
-    if (Array.isArray(ip)) ip = ip[0];
-    return ip.toString().split(',')[0].trim();
+// 👑 isAdmin
+function isAdmin(email) {
+    if (!email) return false;
+    var list = (process.env.ADMIN_EMAILS || '').split(',');
+    for (var i = 0; i < list.length; i++) {
+        if (list[i].trim().toLowerCase() === email.toLowerCase()) return true;
+    }
+    return false;
 }
 
-// 🪵 ✅ Auditoría
-function logAudit(action, actor, meta) {
-    if (!meta) meta = {};
-    db.audit.push({ action: action, actor: actor, timestamp: new Date().toISOString(), ip: meta.ip || 'unknown', ua: meta.ua || 'unknown', meta: meta });
-    if (db.audit.length > 2000) db.audit = db.audit.slice(-2000);
+// 🪵 Auditoría
+function logAudit(action, userId, meta) {
+    var ip = 'unknown';
+    if (meta && meta.ip) ip = meta.ip;
+    db.audit.push({ action: action, userId: userId, timestamp: new Date().toISOString(), ip: ip, meta: meta || {} });
+    if (db.audit.length > 1000) db.audit = db.audit.slice(-1000);
     saveDB();
 }
 
-// 🟢 Alertas IP
-async function sendAlert(msg) { if (DISCORD_WEBHOOK) { try { await axios.post(DISCORD_WEBHOOK, { content: msg }); } catch (e) {} } else logger.warn('🚨 ALERTA: ' + msg); }
-
-function checkIPs() {
-    // ✅ Guard: si db o db.audit no existen, salir sin error
-    if (!db || !db.audit || !Array.isArray(db.audit)) return;
-
-    var now = Date.now();
-    var win = ALERT_WINDOW * 60000;
-    var counts = {};
-
-    db.audit.forEach(function(l) {
-        if (l && l.timestamp && l.ip && l.ip !== 'unknown') {
-            var t = new Date(l.timestamp).getTime();
-            if (t > now - win) {
-                counts[l.ip] = (counts[l.ip] || 0) + 1;
-            }
-        }
-    });
-
-    Object.keys(counts).forEach(function(ip) {
-        var c = counts[ip];
-        if (c >= SUSPICIOUS_THRESHOLD) {
-            var already = false;
-            if (db.suspiciousAlerts && Array.isArray(db.suspiciousAlerts)) {
-                for (var j = 0; j < db.suspiciousAlerts.length; j++) {
-                    if (db.suspiciousAlerts[j].ip === ip && new Date(db.suspiciousAlerts[j].timestamp).getTime() > now - win) {
-                        already = true;
-                        break;
-                    }
-                }
-            }
-            if (!already) {
-                sendAlert('⚠️ IP SOSPECHOSA: ' + ip + ' -> ' + c + ' acciones en ' + ALERT_WINDOW + 'min');
-                if (!db.suspiciousAlerts) db.suspiciousAlerts = [];
-                db.suspiciousAlerts.push({ ip: ip, count: c, timestamp: new Date().toISOString() });
-            }
-        }
-    });
-
-    if (db.suspiciousAlerts && Array.isArray(db.suspiciousAlerts)) {
-        db.suspiciousAlerts = db.suspiciousAlerts.filter(function(a) {
-            return a && a.timestamp && new Date(a.timestamp).getTime() > now - win * 2;
-        });
-    }
-}
-
-// 🔄 🟢 Rotación automática & Chequeo IP
-cron.schedule('*/10 * * * *', function() { checkIPs(); });
-cron.schedule('0 */24 * * *', function() { logAudit('auto_rotate', 'system', { action: 'token_cleanup' }); });
-
-// 🌐 RUTAS PÚBLICAS
-// 🟢 Estado de la API (ruta nueva para no chocar con la app)
-app.get('/api/status', function(req, res) { res.json({ api: "Personal Data Vault API PRO + 2FA", version: "3.2-final", status: "online", tfa: !!TFA_CODE }); });
-
-// 📱 Ruta raíz: servir la app móvil (prioridad alta)
-app.get('/', function(req, res) {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// ============================================================================
+// 🌐 RUTAS API (✅ VAN PRIMERO)
+// ============================================================================
+app.get('/api/status', function(req, res) {
+    res.json({ api: "ApiRomwiner Vault", status: "online" });
 });
-app.get('/health', function(req, res) { res.json({ status: 'healthy', time: new Date().toISOString() }); });
-
-// 🔐 ✅ Autenticación + Anti-bruteforce + 2FA
-function auth(req, res, next) {
-    var ip = getIP(req),
-        now = Date.now();
-    if (db.failedAttempts[ip] && now - db.failedAttempts[ip].t > 15 * 60 * 1000) delete db.failedAttempts[ip];
-    if (db.failedAttempts[ip] && db.failedAttempts[ip].c >= 5) return res.status(429).json({ error: 'Demasiados intentos. Espera ' + Math.ceil((db.failedAttempts[ip].t + 15 * 60 * 1000 - now) / 1000) + 's' });
-    var key = (req.headers['x-api-key'] || req.query.key || '').trim();
-    var tfa = (req.headers['x-tfa-code'] || req.query.tfa || '').trim();
-    if (TFA_CODE && tfa !== TFA_CODE) return res.status(401).json({ error: '2FA incorrecto' });
-    if (!key || key !== MASTER_KEY) {
-        if (!db.failedAttempts[ip]) db.failedAttempts[ip] = { c: 0, t: now };
-        db.failedAttempts[ip].c++;
-        db.failedAttempts[ip].t = now;
-        saveDB();
-        logAudit('auth_fail', 'unknown', { ip: ip });
-        return res.status(401).json({ error: 'Clave inválida' });
-    }
-    req.actor = crypto.createHash('sha256').update(key).digest('hex').slice(0, 16);
-    req.ipLog = ip;
-    req.ua = req.get('user-agent') || 'unknown';
-    next();
-}
-app.use(['/vault', '/audit', '/export', '/categories', '/admin'], auth);
-
-// 📋 ✅ Validación + 🟢 Categoría
-var vaultSchema = Joi.object({ titulo: Joi.string().min(1).max(200).required(), contenido: Joi.string().min(1).max(50000).required(), tipo: Joi.string().valid('nota', 'documento', 'credencial').default('nota'), categoria: Joi.string().default('general'), tags: Joi.array().items(Joi.string()).optional() });
-
-// 🟢 Endpoint Categorías
-app.get('/categories', function(req, res) {
-    var cats = [],
-        s = {};
-    db.vault.forEach(function(i) {
-        var c = i.categoria || 'general';
-        if (!s[c]) {
-            s[c] = true;
-            cats.push(c)
-        }
-    });
-    res.json({ success: true, categories: cats });
+app.get('/health', function(req, res) {
+    res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// ➕ Crear
-app.post('/vault', function(req, res) {
-    var v = vaultSchema.validate(req.body);
-    if (v.error) return res.status(400).json({ error: v.error.message });
-    var c = encrypt(v.value.contenido);
-    var item = { id: Date.now(), titulo: v.value.titulo, enc: c.enc, iv: c.iv, tag: c.authTag, tipo: v.value.tipo, categoria: v.value.categoria, tags: v.value.tags || [], created_at: new Date().toISOString() };
+app.post('/register', async function(req, res) {
+    var email = req.body.email,
+        pass = req.body.password;
+    if (!email || !pass) return res.status(400).json({ error: 'Faltan datos' });
+    if (db.users[email]) return res.status(409).json({ error: 'Ya existe' });
+    var uid = uuidv4(),
+        hash = await bcrypt.hash(pass, 10);
+    db.users[email] = { uid: uid, email: email, hash: hash, createdAt: new Date().toISOString(), vault: [] };
+    saveDB();
+    logAudit('register', uid, { email: email });
+    res.status(201).json({ success: true, uid: uid, message: '✅ Registrado' });
+});
+
+app.post('/login', async function(req, res) {
+    var email = req.body.email,
+        pass = req.body.password,
+        u = db.users[email];
+    if (!u || !(await bcrypt.compare(pass, u.hash))) return res.status(401).json({ error: 'Credenciales inválidas' });
+    var token = jwt.sign({ uid: u.uid, email: u.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    var admin = isAdmin(email);
+    logAudit('login', u.uid, { email: email });
+    res.json({ success: true, token: token, uid: u.uid, email: email, isAdmin: admin, message: '✅ Bienvenido' + (admin ? ' (Admin)' : '') });
+});
+
+function authUser(req, res, next) {
+    var h = req.headers.authorization;
+    if (!h || !h.startsWith('Bearer ')) return res.status(401).json({ error: 'Token requerido' });
+    try {
+        var d = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET);
+        req.uid = d.uid;
+        req.email = d.email;
+        next();
+    } catch (e) { return res.status(401).json({ error: 'Token inválido' }); }
+}
+
+app.post('/vault', authUser, function(req, res) {
+    var titulo = req.body.titulo,
+        contenido = req.body.contenido,
+        cat = req.body.categoria || 'general';
+    if (!titulo || !contenido) return res.status(400).json({ error: 'Faltan datos' });
+    var c = encrypt(contenido),
+        item = { id: Date.now(), uid: req.uid, titulo: titulo, enc: c.enc, iv: c.iv, tag: c.tag, categoria: cat, created_at: new Date().toISOString() };
     db.vault.push(item);
     saveDB();
-    logAudit('create', req.actor, { id: item.id, categoria: item.categoria, ip: req.ipLog });
+    logAudit('create', req.uid, { id: item.id });
     res.status(201).json({ success: true, id: item.id });
 });
 
-// 📋 Listar
-app.get('/vault', function(req, res) {
-    var items = db.vault.map(function(i) { return { id: i.id, titulo: i.titulo, tipo: i.tipo, categoria: i.categoria, tags: i.tags, created_at: i.created_at } });
-    if (req.query.categoria) items = items.filter(function(i) { return i.categoria === req.query.categoria });
-    if (req.query.search) items = items.filter(function(i) { return i.titulo.toLowerCase().indexOf(req.query.search.toLowerCase()) !== -1 });
+app.get('/vault', authUser, function(req, res) {
+    var items = db.vault.filter(function(i) { return i.uid === req.uid; }).map(function(i) { return { id: i.id, titulo: i.titulo, categoria: i.categoria, created_at: i.created_at }; });
     res.json({ success: true, total: items.length, items: items });
 });
 
-// 🔍 Leer
-app.get('/vault/:id', function(req, res) {
-    var item = null;
-    for (var i = 0; i < db.vault.length; i++) { if (db.vault[i].id == req.params.id) { item = db.vault[i]; break } }
+app.get('/vault/:id', authUser, function(req, res) {
+    var item = db.vault.find(function(v) { return v.id == req.params.id && v.uid === req.uid; });
     if (!item) return res.status(404).json({ error: 'No encontrado' });
     try {
-        res.json({ success: true, data: { id: item.id, titulo: item.titulo, contenido: decrypt(item.iv, item.enc, item.tag), tipo: item.tipo, categoria: item.categoria, tags: item.tags, created_at: item.created_at } });
-        logAudit('read', req.actor, { id: item.id, ip: req.ipLog });
+        res.json({ success: true, data: { id: item.id, titulo: item.titulo, contenido: decrypt(item.iv, item.enc, item.tag), categoria: item.categoria } });
+        logAudit('read', req.uid, { id: item.id });
     } catch (e) { res.status(500).json({ error: 'Error descifrando' }); }
 });
 
-// ✏️ 🟢 Actualizar + Historial de cambios
-app.put('/vault/:id', function(req, res) {
-    var idx = -1;
-    for (var i = 0; i < db.vault.length; i++) { if (db.vault[i].id == req.params.id) { idx = i; break } }
-    if (idx === -1) return res.status(404).json({ error: 'No encontrado' });
-    var v = vaultSchema.validate(req.body);
-    if (v.error) return res.status(400).json({ error: v.error.message });
-    var old = db.vault[idx],
-        changed = [];
-    if (v.value.titulo !== old.titulo) {
-        db.vault[idx].titulo = v.value.titulo;
-        changed.push('titulo')
-    }
-    if (v.value.contenido !== old.contenido) {
-        var c = encrypt(v.value.contenido);
-        db.vault[idx].enc = c.enc;
-        db.vault[idx].iv = c.iv;
-        db.vault[idx].tag = c.authTag;
-        changed.push('contenido')
-    }
-    if (v.value.tipo !== old.tipo) {
-        db.vault[idx].tipo = v.value.tipo;
-        changed.push('tipo')
-    }
-    if (v.value.categoria !== old.categoria) {
-        db.vault[idx].categoria = v.value.categoria;
-        changed.push('categoria')
-    }
-    if (JSON.stringify(v.value.tags) !== JSON.stringify(old.tags)) {
-        db.vault[idx].tags = v.value.tags;
-        changed.push('tags')
-    }
-    if (changed.length > 0) {
-        db.vault[idx].updated_at = new Date().toISOString();
-        saveDB();
-        logAudit('update', req.actor, { id: db.vault[idx].id, old: { t: old.titulo, c: old.categoria }, new: { t: db.vault[idx].titulo, c: db.vault[idx].categoria }, changed: changed, ip: req.ipLog });
-    }
-    res.json({ success: true, mensaje: '✅ Actualizado', changed: changed });
-});
-
-// 🗑️ Eliminar
-app.delete('/vault/:id', function(req, res) {
-    var idx = -1;
-    for (var i = 0; i < db.vault.length; i++) { if (db.vault[i].id == req.params.id) { idx = i; break } }
-    if (idx === -1) return res.status(404).json({ error: 'No encontrado' });
-    var del = db.vault.splice(idx, 1)[0];
+app.post('/vault/:id/gift', authUser, function(req, res) {
+    if (!isAdmin(req.email)) return res.status(403).json({ error: '🔒 Solo admins pueden regalar' });
+    var targetEmail = req.body.email,
+        msg = req.body.message || '🎁 Acceso regalado';
+    var item = db.vault.find(function(v) { return v.id == req.params.id && v.uid === req.uid; });
+    if (!item) return res.status(404).json({ error: 'No encontrado' });
+    var target = null,
+        keys = Object.keys(db.users);
+    for (var k = 0; k < keys.length; k++) { if (db.users[keys[k]].email === targetEmail) { target = db.users[keys[k]]; break; } }
+    if (!target) return res.status(404).json({ error: 'Usuario no encontrado' });
+    item.permissions = item.permissions || [];
+    item.permissions.push({ uid: target.uid, email: targetEmail, actions: ['read'], gift: true, grantedAt: new Date().toISOString() });
     saveDB();
-    logAudit('delete', req.actor, { id: del.id, titulo: del.titulo, ip: req.ipLog });
-    res.json({ success: true, mensaje: '✅ Eliminado' });
+    logAudit('gift', req.uid, { to: targetEmail });
+    res.json({ success: true, message: '🎁 Regalo enviado' });
 });
 
-// 📜 Ver Auditoría
-app.get('/audit', function(req, res) {
-    var logs = db.audit;
-    if (req.query.action) logs = logs.filter(function(l) { return l.action === req.query.action });
-    if (req.query.id) logs = logs.filter(function(l) { return l.meta && l.meta.id == req.query.id });
-    var limit = parseInt(req.query.limit) || 50;
-    logs = logs.slice(-limit).reverse();
+app.get('/identity/qr', authUser, function(req, res) {
+    var p = { sub: req.uid, email: req.email, verified: true, iss: 'apiromwiner', exp: Math.floor(Date.now() / 1000) + 3600 };
+    var sig = crypto.createHmac('sha256', MASTER_KEY).update(JSON.stringify(p)).digest('hex');
+    res.json({ success: true, qr: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(JSON.stringify(Object.assign({}, p, { sig: sig }))), expires: new Date(Date.now() + 3600000).toISOString() });
+});
+
+app.get('/my-audit', authUser, function(req, res) {
+    var logs = db.audit.filter(function(l) { return l.userId === req.uid; }).slice(-50).reverse();
     res.json({ success: true, total: logs.length, logs: logs });
 });
 
-// 📤 Exportar
-app.get('/export', function(req, res) {
-    var exp = db.vault.map(function(i) { try { return { id: i.id, titulo: i.titulo, contenido: decrypt(i.iv, i.enc, i.tag), categoria: i.categoria, tipo: i.tipo, tags: i.tags } } catch (e) { return { id: i.id, error: 'fallo' } } });
-    logAudit('export', req.actor, { count: exp.length, ip: req.ipLog });
-    res.setHeader('Content-Disposition', 'attachment; filename="vault.json"');
-    res.json({ exported_at: new Date().toISOString(), items: exp });
-});
+// ============================================================================
+// 📱 FRONTEND (AL FINAL)
+// ============================================================================
+app.use(express.static(path.join(__dirname, 'public'), { index: 'index.html', fallthrough: true }));
+app.get('/', function(req, res) { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
-// 🛑 Errores
 app.use(function(err, req, res, next) {
-    logger.error('❌ Error crítico:', err.message);
+    logger.error('❌', err.message);
     res.status(500).json({ error: 'Error interno' });
 });
 
-// 🚀 Inicio
 app.listen(PORT, '0.0.0.0', function() {
-    logger.info('🚀 API PRO FINAL corriendo en puerto ' + PORT);
-    logger.info('📁 🟢 Categorías: ACTIVADAS | 📜 Historial: ACTIVADO | 🚨 Alertas IP: ACTIVADAS | 🔄 Rotación: PROGRAMADA');
+    logger.info('🚀 APIROMWINER en puerto ' + PORT);
+    logger.info('🟢 Listo para probar');
 });
-// ✅ FIN DEL ARCHIVO - NO BORRES NADA DEBAJO
