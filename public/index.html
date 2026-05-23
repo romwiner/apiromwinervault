@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <meta name="theme-color" content="#0f3460">
+    <link rel="manifest" href="/manifest.json">
+    <title>ApiRomwiner Vault</title>
+    <style>
+        body {
+            font-family: system-ui;
+            background: #0f3460;
+            color: #e6e6e6;
+            margin: 0;
+            padding: 15px
+        }
+        
+        .card {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px
+        }
+        
+        input,
+        button,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            box-sizing: border-box
+        }
+        
+        button {
+            background: #e94560;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer
+        }
+        
+        .hide {
+            display: none
+        }
+        
+        #res {
+            background: #1a1a2e;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow: auto
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card" id="auth">
+        <h2>🔐 ApiRomwiner Vault</h2>
+        <input id="email" type="email" placeholder="Correo">
+        <input id="pass" type="password" placeholder="Contraseña">
+        <button onclick="login()">Iniciar Sesión</button>
+        <button onclick="register()" style="background:#4a4e69">Crear Cuenta</button>
+    </div>
+
+    <div class="card hide" id="main">
+        <h2>📱 Tu Bóveda</h2>
+        <button onclick="logout()" style="background:#4a4e69;margin-bottom:10px">Cerrar Sesión</button>
+        <input id="titulo" placeholder="Título del secreto">
+        <textarea id="contenido" rows="3" placeholder="Contenido cifrado"></textarea>
+        <input id="cat" placeholder="Categoría (ej: bancos)" value="general">
+        <button onclick="crear()">✨ Guardar y Cifrar</button>
+        <div id="lista" style="margin-top:15px"></div>
+        <button onclick="verQR()" style="background:#e94560;margin-top:15px">🔐 Generar QR Identidad</button>
+        <div id="qr-box" style="text-align:center;margin-top:10px"></div>
+        <button onclick="verAudit()" style="background:#4a4e69;margin-top:15px">📜 Ver mi Auditoría</button>
+        <div id="res"></div>
+    </div>
+
+    <script>
+        const API = '';
+        let token = localStorage.getItem('token');
+        if (token) showMain();
+
+        function req(url, method, body) {
+            return fetch(API + url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + token
+                },
+                body: JSON.stringify(body)
+            }).then(r => r.json());
+        }
+        async function register() {
+            var r = await req('/register', 'POST', {
+                email: email.value,
+                password: pass.value
+            });
+            alert(r.message || r.error);
+        }
+        async function login() {
+            var r = await req('/login', 'POST', {
+                email: email.value,
+                password: pass.value
+            });
+            if (r.success) {
+                token = r.token;
+                localStorage.setItem('token', token);
+                showMain();
+            } else alert(r.error);
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            location.reload();
+        }
+
+        function showMain() {
+            document.getElementById('auth').classList.add('hide');
+            document.getElementById('main').classList.remove('hide');
+            cargar();
+        }
+        async function cargar() {
+            var r = await req('/vault?categoria=', 'GET');
+            var h = '';
+            r.items.forEach(function(i) {
+                h += '<div class="card" onclick="leer(' + i.id + ')"><b>' + i.titulo + '</b> <small>' + i.categoria + '</small></div>';
+            });
+            document.getElementById('lista').innerHTML = h || '<p>📭 Sin secretos</p>';
+        }
+        async function crear() {
+            var r = await req('/vault', 'POST', {
+                titulo: titulo.value,
+                contenido: contenido.value,
+                categoria: cat.value || 'general'
+            });
+            if (r.success) {
+                alert('✅ Guardado');
+                titulo.value = '';
+                contenido.value = '';
+                cargar();
+            } else alert(r.error);
+        }
+        async function leer(id) {
+            var r = await req('/vault/' + id, 'GET');
+            if (r.success) alert('🔓 ' + r.data.titulo + '\n' + r.data.contenido);
+            else alert(r.error);
+        }
+        async function verQR() {
+            var r = await req('/identity/qr', 'GET');
+            document.getElementById('qr-box').innerHTML = r.success ? '<img src="' + r.qr + '" width="250"><br><small>Válido hasta: ' + new Date(r.expires).toLocaleTimeString() + '</small>' : r.error;
+        }
+        async function verAudit() {
+            var r = await req('/my-audit', 'GET');
+            var h = '';
+            r.logs.forEach(function(l) {
+                h += '<p>[' + new Date(l.timestamp).toLocaleString() + '] ' + l.action + ' - ' + l.ip + '</p>';
+            });
+            document.getElementById('res').innerHTML = h || '📜 Sin actividad';
+        }
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+        }
+    </script>
+</body>
+
+</html>
