@@ -4,87 +4,434 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-    <meta name="theme-color" content="#0f3460">
+    <meta name="theme-color" content="#6366f1">
     <link rel="manifest" href="/manifest.json">
-    <title>ApiRomwiner Vault</title>
+    <title>ApiRomwiner Vault 🔐</title>
     <style>
-        body {
-            font-family: system-ui;
-            background: #0f3460;
-            color: #e6e6e6;
+         :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #10b981;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --radius: 20px;
+        }
+        
+        * {
             margin: 0;
-            padding: 15px
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1e1b4b 50%, #0f172a 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%), radial-gradient(circle at 70% 70%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        @keyframes float {
+            0%,
+            100% {
+                transform: translate(0, 0)
+            }
+            50% {
+                transform: translate(20px, 20px)
+            }
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 420px;
+            animation: slideUp 0.5s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px)
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .logo-svg {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 15px;
+            filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.5));
+            animation: pulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1)
+            }
+            50% {
+                transform: scale(1.05)
+            }
+        }
+        
+        .logo h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        
+        .logo p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 5px;
         }
         
         .card {
-            background: #16213e;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 15px
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         
-        input,
-        button,
-        textarea {
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .input-group {
+            margin-bottom: 18px;
+        }
+        
+        .input-group label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
             width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border: none;
-            font-size: 16px;
-            box-sizing: border-box
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.2s;
         }
         
-        button {
-            background: #e94560;
-            color: #fff;
-            font-weight: bold;
-            cursor: pointer
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            background: rgba(255, 255, 255, 0.12);
+        }
+        
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #64748b, #475569);
+            box-shadow: 0 4px 14px rgba(100, 116, 139, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(100, 116, 139, 0.5);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent), #059669);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-success:hover {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+        }
+        
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        .btn-row .btn {
+            flex: 1;
         }
         
         .hide {
-            display: none
+            display: none !important;
+        }
+        
+        .secret-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid var(--primary);
+        }
+        
+        .secret-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(3px);
+        }
+        
+        .secret-item b {
+            display: block;
+            color: var(--text);
+            margin-bottom: 3px;
+        }
+        
+        .secret-item small {
+            color: var(--text-muted);
+        }
+        
+        #qr-box img {
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
         
         #res {
-            background: #1a1a2e;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            white-space: pre-wrap;
-            max-height: 300px;
-            overflow: auto
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--bg-card);
+            border-left: 4px solid var(--accent);
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .toast.error {
+            border-left-color: #ef4444;
+        }
+        
+        .footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-top: 20px;
+        }
+        
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        @media (max-width:380px) {
+            .card {
+                padding: 20px;
+            }
+            .logo-svg {
+                width: 80px;
+                height: 80px;
+            }
+            .logo h1 {
+                font-size: 1.4rem;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="card" id="auth">
-        <h2>🔐 ApiRomwiner Vault</h2>
-        <input id="email" type="email" placeholder="Correo">
-        <input id="pass" type="password" placeholder="Contraseña">
-        <button onclick="login()">Iniciar Sesión</button>
-        <button onclick="register()" style="background:#4a4e69">Crear Cuenta</button>
+    <div class="container">
+        <!-- 🔐 LOGO PERSONALIZADO APIROMWINER -->
+        <div class="logo">
+            <svg class="logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#6366f1"/>
+          <stop offset="100%" style="stop-color:#ec4899"/>
+        </linearGradient>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle cx="50" cy="50" r="45" fill="url(#grad1)" opacity="0.2"/>
+      <path d="M50 15 L75 35 L75 65 L50 85 L25 65 L25 35 Z" fill="none" stroke="url(#grad1)" stroke-width="3" filter="url(#glow)"/>
+      <path d="M35 45 L45 55 L65 35" stroke="#10b981" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="50" cy="50" r="8" fill="url(#grad1)"/>
+    </svg>
+            <h1>ApiRomwiner Vault</h1>
+            <p>Tus secretos • Tu identidad • Tu control 🔐</p>
+        </div>
+
+        <!-- 🔐 AUTH CARD -->
+        <div class="card" id="auth">
+            <h2 style="text-align:center;margin-bottom:20px;font-weight:600">🔐 Acceso Seguro</h2>
+            <div class="input-group">
+                <label>Correo electrónico</label>
+                <input id="email" type="email" placeholder="tu@email.com" autocomplete="email">
+            </div>
+            <div class="input-group">
+                <label>Contraseña</label>
+                <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <button class="btn" onclick="login()">✨ Iniciar Sesión</button>
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="register()">🆕 Crear Cuenta</button>
+                <button class="btn btn-success" onclick="demo()">🎯 Modo Demo</button>
+            </div>
+        </div>
+
+        <!-- 📱 MAIN VAULT CARD -->
+        <div class="card hide" id="main">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+                <h2 style="font-weight:600">📱 Mi Bóveda</h2>
+                <button class="btn btn-danger" style="width:auto;padding:8px 16px;font-size:0.9rem" onclick="logout()">🚪 Salir</button>
+            </div>
+
+            <!-- Crear secreto -->
+            <div style="margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid var(--glass-border)">
+                <input id="titulo" placeholder="✨ Título del secreto" style="margin-bottom:10px">
+                <textarea id="contenido" placeholder="🔐 Escribe aquí lo que quieras guardar de forma segura..."></textarea>
+                <div style="display:flex;gap:10px;margin-top:10px">
+                    <input id="cat" placeholder="📁 Categoría (ej: bancos)" value="general" style="flex:1">
+                    <select id="tipo" style="width:100px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid var(--glass-border);color:var(--text)">
+          <option value="nota">📝 Nota</option>
+          <option value="credencial">🔑 Credencial</option>
+          <option value="documento">📄 Documento</option>
+        </select>
+                </div>
+                <button class="btn btn-success" onclick="crear()" style="margin-top:12px">💾 Guardar y Cifrar</button>
+            </div>
+
+            <!-- Lista de secretos -->
+            <h3 style="margin:15px 0 10px;font-size:1.1rem">🗄️ Mis Secretos</h3>
+            <div id="lista"></div>
+            <button class="btn btn-secondary" onclick="cargar()" style="margin-top:10px">🔄 Actualizar</button>
+
+            <!-- Acciones adicionales -->
+            <div style="margin-top:25px;padding-top:15px;border-top:1px solid var(--glass-border)">
+                <button class="btn" onclick="verQR()" style="margin-bottom:10px">🔐 Generar QR de Identidad</button>
+                <div id="qr-box" style="text-align:center;margin:10px 0"></div>
+
+                <button class="btn btn-secondary" onclick="verAudit()" style="margin-bottom:10px">📜 Ver mi Auditoría</button>
+                <div id="res"></div>
+
+                <button class="btn btn-secondary" onclick="exportar()" style="margin-top:10px">📤 Exportar Datos</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            🔐 ApiRomwiner Vault • Cifrado AES-256-GCM • <a href="https://apiromwinervault.onrender.com/api/status" target="_blank">Estado</a>
+        </div>
     </div>
 
-    <div class="card hide" id="main">
-        <h2>📱 Tu Bóveda</h2>
-        <button onclick="logout()" style="background:#4a4e69;margin-bottom:10px">Cerrar Sesión</button>
-        <input id="titulo" placeholder="Título del secreto">
-        <textarea id="contenido" rows="3" placeholder="Contenido cifrado"></textarea>
-        <input id="cat" placeholder="Categoría (ej: bancos)" value="general">
-        <button onclick="crear()">✨ Guardar y Cifrar</button>
-        <div id="lista" style="margin-top:15px"></div>
-        <button onclick="verQR()" style="background:#e94560;margin-top:15px">🔐 Generar QR Identidad</button>
-        <div id="qr-box" style="text-align:center;margin-top:10px"></div>
-        <button onclick="verAudit()" style="background:#4a4e69;margin-top:15px">📜 Ver mi Auditoría</button>
-        <div id="res"></div>
-    </div>
+    <!-- 🔔 Toast notifications -->
+    <div id="toast" class="toast"></div>
 
     <script>
         const API = '';
         let token = localStorage.getItem('token');
         if (token) showMain();
+
+        // 🎨 Funciones UI
+        function toast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast ' + type + ' show';
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
 
         function req(url, method, body) {
             return fetch(API + url, {
@@ -93,18 +440,31 @@
                     'Content-Type': 'application/json',
                     Authorization: 'Bearer ' + token
                 },
-                body: JSON.stringify(body)
-            }).then(r => r.json());
+                body: body ? JSON.stringify(body) : undefined
+            }).then(r => r.json()).catch(e => {
+                toast('❌ Error de conexión', 'error');
+                return {
+                    error: 'Conexión'
+                };
+            });
         }
+
+        // 🔐 Auth
         async function register() {
-            var r = await req('/register', 'POST', {
+            if (!email.value || !pass.value) return toast('⚠️ Ingresa correo y contraseña', 'error');
+            const r = await req('/register', 'POST', {
                 email: email.value,
                 password: pass.value
             });
-            alert(r.message || r.error);
+            toast(r.message || r.error, r.success ? 'success' : 'error');
+            if (r.success) {
+                email.value = '';
+                pass.value = '';
+            }
         }
         async function login() {
-            var r = await req('/login', 'POST', {
+            if (!email.value || !pass.value) return toast('⚠️ Ingresa tus credenciales', 'error');
+            const r = await req('/login', 'POST', {
                 email: email.value,
                 password: pass.value
             });
@@ -112,12 +472,20 @@
                 token = r.token;
                 localStorage.setItem('token', token);
                 showMain();
-            } else alert(r.error);
+                toast('✅ Bienvenido');
+            } else toast(r.error, 'error');
         }
 
         function logout() {
             localStorage.removeItem('token');
+            token = null;
             location.reload();
+        }
+
+        function demo() {
+            email.value = 'demo@apiromwiner.com';
+            pass.value = 'Demo2026!';
+            toast('🎯 Usa estas credenciales de prueba');
         }
 
         function showMain() {
@@ -125,48 +493,95 @@
             document.getElementById('main').classList.remove('hide');
             cargar();
         }
+
+        // 🗄️ Vault
         async function cargar() {
-            var r = await req('/vault?categoria=', 'GET');
-            var h = '';
-            r.items.forEach(function(i) {
-                h += '<div class="card" onclick="leer(' + i.id + ')"><b>' + i.titulo + '</b> <small>' + i.categoria + '</small></div>';
+            const r = await req('/vault?categoria=', 'GET');
+            if (!r.items) return;
+            let h = '';
+            r.items.forEach(i => {
+                h += `<div class="secret-item" onclick="leer('${i.id}')">
+      <b>${i.titulo}</b>
+      <small>📁 ${i.categoria||'general'} • 🕐 ${new Date(i.created_at).toLocaleDateString()}</small>
+    </div>`;
             });
-            document.getElementById('lista').innerHTML = h || '<p>📭 Sin secretos</p>';
+            document.getElementById('lista').innerHTML = h || '<p style="text-align:center;color:var(--text-muted);padding:20px">📭 Aún no hay secretos guardados</p>';
         }
+
         async function crear() {
-            var r = await req('/vault', 'POST', {
+            if (!titulo.value || !contenido.value) return toast('⚠️ Título y contenido son obligatorios', 'error');
+            const r = await req('/vault', 'POST', {
                 titulo: titulo.value,
                 contenido: contenido.value,
-                categoria: cat.value || 'general'
+                categoria: cat.value || 'general',
+                tipo: tipo.value || 'nota'
             });
             if (r.success) {
-                alert('✅ Guardado');
+                toast('✅ Secreto guardado y cifrado');
                 titulo.value = '';
                 contenido.value = '';
                 cargar();
-            } else alert(r.error);
+            } else toast(r.error, 'error');
         }
+
         async function leer(id) {
-            var r = await req('/vault/' + id, 'GET');
-            if (r.success) alert('🔓 ' + r.data.titulo + '\n' + r.data.contenido);
-            else alert(r.error);
+            const r = await req('/vault/' + id, 'GET');
+            if (r.success) {
+                navigator.clipboard ? .writeText(r.data.contenido);
+                toast('🔓 ' + r.data.titulo + '\n\n' + r.data.contenido + '\n\n✅ Copiado al portapapeles');
+            } else toast(r.error, 'error');
         }
+
+        // 🟢 Identidad QR
         async function verQR() {
-            var r = await req('/identity/qr', 'GET');
-            document.getElementById('qr-box').innerHTML = r.success ? '<img src="' + r.qr + '" width="250"><br><small>Válido hasta: ' + new Date(r.expires).toLocaleTimeString() + '</small>' : r.error;
+            const r = await req('/identity/qr', 'GET');
+            if (r.success) {
+                document.getElementById('qr-box').innerHTML = `
+      <img src="${r.qr}" width="200" alt="QR de identidad">
+      <p style="margin-top:10px;font-size:0.85rem;color:var(--text-muted)">
+        🔐 Válido hasta: ${new Date(r.expires).toLocaleTimeString()}<br>
+        Escanea para verificar identidad sin exponer datos
+      </p>`;
+                toast('🔐 QR generado');
+            } else toast(r.error, 'error');
         }
+
+        // 📜 Auditoría
         async function verAudit() {
-            var r = await req('/my-audit', 'GET');
-            var h = '';
-            r.logs.forEach(function(l) {
-                h += '<p>[' + new Date(l.timestamp).toLocaleString() + '] ' + l.action + ' - ' + l.ip + '</p>';
-            });
-            document.getElementById('res').innerHTML = h || '📜 Sin actividad';
+            const r = await req('/my-audit', 'GET');
+            if (r.success && r.logs ? .length) {
+                let h = '';
+                r.logs.slice(0, 10).forEach(l => {
+                    const icon = l.action === 'create' ? '✨' : l.action === 'read' ? '🔓' : l.action === 'shared' ? '🤝' : '📋';
+                    h += `<p style="margin:5px 0"><b>${icon} ${l.action}</b><br><small>${new Date(l.timestamp).toLocaleString()} • ${l.ip||'?'}</small></p>`;
+                });
+                document.getElementById('res').innerHTML = h;
+            } else document.getElementById('res').innerHTML = '<p style="text-align:center">📜 Sin actividad reciente</p>';
         }
-    </script>
-    <script>
+
+        // 📤 Exportar
+        async function exportar() {
+            toast('🔄 Preparando exportación...');
+            const r = await req('/export', 'GET');
+            if (r.success) {
+                const blob = new Blob([JSON.stringify(r, null, 2)], {
+                    type: 'application/json'
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'apiromwiner-export.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                toast('✅ Datos exportados');
+            } else toast(r.error, 'error');
+        }
+
+        // 📱 PWA install prompt
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(console.log);
+            });
         }
     </script>
 </body>

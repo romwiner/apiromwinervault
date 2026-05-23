@@ -49,10 +49,21 @@ function loadDB() { try { if (fs.existsSync(DB_FILE)) db = JSON.parse(fs.readFil
 function saveDB() { try { fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2)); } catch (e) { logger.error('❌ Error guardando BD'); } }
 loadDB();
 
-app.use(helmet());
-app.use(cors({ origin: origins, credentials: true }));
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: { error: 'Demasiadas peticiones' } }));
-app.use(express.json({ limit: '2mb' }));
+// 🛡️ Helmet configurado para permitir tu app móvil PWA
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:"],
+            imgSrc: ["'self'", "data:", "https:", "http:", "https://api.qrserver.com"],
+            connectSrc: ["'self'", "https:", "http:", "ws:", "wss:"],
+            fontSrc: ["'self'", "https:", "http:", "data:"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: []
+        }
+    }
+}));
 
 // 🔐 ✅ Cifrado AES-256-GCM
 function encrypt(text) {
