@@ -426,33 +426,40 @@
         if (token) showMain();
 
         // 🎨 Funciones UI
-        function toast(msg, type = 'success') {
-            const t = document.getElementById('toast');
+        function toast(msg, type) {
+            if (!type) type = 'success';
+            var t = document.getElementById('toast');
             t.textContent = msg;
             t.className = 'toast ' + type + ' show';
-            setTimeout(() => t.classList.remove('show'), 3000);
+            setTimeout(function() {
+                t.classList.remove('show');
+            }, 3000);
         }
 
         function req(url, method, body) {
             return fetch(API + url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: 'Bearer ' + token
-                },
-                body: body ? JSON.stringify(body) : undefined
-            }).then(r => r.json()).catch(e => {
-                toast('❌ Error de conexión', 'error');
-                return {
-                    error: 'Conexión'
-                };
-            });
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: 'Bearer ' + token
+                    },
+                    body: body ? JSON.stringify(body) : undefined
+                })
+                .then(function(r) {
+                    return r.json();
+                })
+                .catch(function(e) {
+                    toast('❌ Error de conexión', 'error');
+                    return {
+                        error: 'Conexión'
+                    };
+                });
         }
 
         // 🔐 Auth
         async function register() {
             if (!email.value || !pass.value) return toast('⚠️ Ingresa correo y contraseña', 'error');
-            const r = await req('/register', 'POST', {
+            var r = await req('/register', 'POST', {
                 email: email.value,
                 password: pass.value
             });
@@ -464,7 +471,7 @@
         }
         async function login() {
             if (!email.value || !pass.value) return toast('⚠️ Ingresa tus credenciales', 'error');
-            const r = await req('/login', 'POST', {
+            var r = await req('/login', 'POST', {
                 email: email.value,
                 password: pass.value
             });
@@ -496,21 +503,21 @@
 
         // 🗄️ Vault
         async function cargar() {
-            const r = await req('/vault?categoria=', 'GET');
+            var r = await req('/vault?categoria=', 'GET');
             if (!r.items) return;
-            let h = '';
-            r.items.forEach(i => {
-                h += `<div class="secret-item" onclick="leer('${i.id}')">
-      <b>${i.titulo}</b>
-      <small>📁 ${i.categoria||'general'} • 🕐 ${new Date(i.created_at).toLocaleDateString()}</small>
-    </div>`;
+            var h = '';
+            r.items.forEach(function(i) {
+                h += '<div class="secret-item" onclick="leer(\'' + i.id + '\')">' +
+                    '<b>' + i.titulo + '</b>' +
+                    '<small>📁 ' + (i.categoria || 'general') + ' • 🕐 ' + new Date(i.created_at).toLocaleDateString() + '</small>' +
+                    '</div>';
             });
             document.getElementById('lista').innerHTML = h || '<p style="text-align:center;color:var(--text-muted);padding:20px">📭 Aún no hay secretos guardados</p>';
         }
 
         async function crear() {
             if (!titulo.value || !contenido.value) return toast('⚠️ Título y contenido son obligatorios', 'error');
-            const r = await req('/vault', 'POST', {
+            var r = await req('/vault', 'POST', {
                 titulo: titulo.value,
                 contenido: contenido.value,
                 categoria: cat.value || 'general',
@@ -525,35 +532,37 @@
         }
 
         async function leer(id) {
-            const r = await req('/vault/' + id, 'GET');
+            var r = await req('/vault/' + id, 'GET');
             if (r.success) {
-                navigator.clipboard ? .writeText(r.data.contenido);
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(r.data.contenido);
+                }
                 toast('🔓 ' + r.data.titulo + '\n\n' + r.data.contenido + '\n\n✅ Copiado al portapapeles');
             } else toast(r.error, 'error');
         }
 
         // 🟢 Identidad QR
         async function verQR() {
-            const r = await req('/identity/qr', 'GET');
+            var r = await req('/identity/qr', 'GET');
             if (r.success) {
-                document.getElementById('qr-box').innerHTML = `
-      <img src="${r.qr}" width="200" alt="QR de identidad">
-      <p style="margin-top:10px;font-size:0.85rem;color:var(--text-muted)">
-        🔐 Válido hasta: ${new Date(r.expires).toLocaleTimeString()}<br>
-        Escanea para verificar identidad sin exponer datos
-      </p>`;
+                document.getElementById('qr-box').innerHTML =
+                    '<img src="' + r.qr + '" width="200" alt="QR de identidad">' +
+                    '<p style="margin-top:10px;font-size:0.85rem;color:var(--text-muted)">' +
+                    '🔐 Válido hasta: ' + new Date(r.expires).toLocaleTimeString() + '<br>' +
+                    'Escanea para verificar identidad sin exponer datos' +
+                    '</p>';
                 toast('🔐 QR generado');
             } else toast(r.error, 'error');
         }
 
         // 📜 Auditoría
         async function verAudit() {
-            const r = await req('/my-audit', 'GET');
-            if (r.success && r.logs ? .length) {
-                let h = '';
-                r.logs.slice(0, 10).forEach(l => {
-                    const icon = l.action === 'create' ? '✨' : l.action === 'read' ? '🔓' : l.action === 'shared' ? '🤝' : '📋';
-                    h += `<p style="margin:5px 0"><b>${icon} ${l.action}</b><br><small>${new Date(l.timestamp).toLocaleString()} • ${l.ip||'?'}</small></p>`;
+            var r = await req('/my-audit', 'GET');
+            if (r.success && r.logs && r.logs.length) {
+                var h = '';
+                r.logs.slice(0, 10).forEach(function(l) {
+                    var icon = l.action === 'create' ? '✨' : l.action === 'read' ? '🔓' : l.action === 'shared' ? '🤝' : '📋';
+                    h += '<p style="margin:5px 0"><b>' + icon + ' ' + l.action + '</b><br><small>' + new Date(l.timestamp).toLocaleString() + ' • ' + (l.ip || '?') + '</small></p>';
                 });
                 document.getElementById('res').innerHTML = h;
             } else document.getElementById('res').innerHTML = '<p style="text-align:center">📜 Sin actividad reciente</p>';
@@ -562,13 +571,13 @@
         // 📤 Exportar
         async function exportar() {
             toast('🔄 Preparando exportación...');
-            const r = await req('/export', 'GET');
+            var r = await req('/export', 'GET');
             if (r.success) {
-                const blob = new Blob([JSON.stringify(r, null, 2)], {
+                var blob = new Blob([JSON.stringify(r, null, 2)], {
                     type: 'application/json'
                 });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
                 a.href = url;
                 a.download = 'apiromwiner-export.json';
                 a.click();
@@ -579,8 +588,10 @@
 
         // 📱 PWA install prompt
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(console.log);
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    console.log('SW error:', err);
+                });
             });
         }
     </script>

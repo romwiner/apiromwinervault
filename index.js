@@ -49,15 +49,16 @@ function loadDB() { try { if (fs.existsSync(DB_FILE)) db = JSON.parse(fs.readFil
 function saveDB() { try { fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2)); } catch (e) { logger.error('❌ Error guardando BD'); } }
 loadDB();
 
-// 🛡️ Helmet configurado para permitir tu app móvil PWA
+// 🛡️ Helmet configurado para PWA + Edge + inline handlers
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:"],
-            imgSrc: ["'self'", "data:", "https:", "http:", "https://api.qrserver.com"],
-            connectSrc: ["'self'", "https:", "http:", "ws:", "wss:"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:", "data:", "blob:"],
+            scriptSrcAttr: ["'self'", "'unsafe-inline'", "'unsafe-hashes'"], // ✅ Permite onclick=""
+            styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:", "data:"],
+            imgSrc: ["'self'", "data:", "https:", "http:", "https://api.qrserver.com", "blob:"],
+            connectSrc: ["'self'", "https:", "http:", "ws:", "wss:", "blob:"],
             fontSrc: ["'self'", "https:", "http:", "data:"],
             objectSrc: ["'none'"],
             upgradeInsecureRequests: []
