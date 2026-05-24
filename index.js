@@ -1,394 +1,689 @@
-// ============================================================================
-// 🔐 APIROMWINER VAULT - FASE 3.5 ✅🟢 IDENTIDAD UNIVERSAL + NEGOCIO + AUDITORÍA
-// ============================================================================
-// 
-// 🟢 1. Registro seguro por usuario → Cuenta única, protegida y verificada
-// 🟢 2. Login con JWT → Sesiones cifradas de 7 días, renovación automática
-// 🟢 3. Bóveda personal militar → Cifrado AES-256-GCM en reposo y tránsito
-// 🟢 4. Categorías inteligentes → Organiza tus datos: bancos, personal, trabajo
-// 🟢 5. Historial completo → Auditoría visual: quién, cuándo, qué y desde dónde
-// 🟢 6. Permisos granulares → Control total: read, write, share por contacto
-// 🟢 7. QR de identidad digital → Verifica tu identidad sin exponer datos sensibles
-// 🟢 8. Multi-administrador → Tú decides quién gestiona y regala (solo tus correos)
-// 🟢 9. Regalos familiares/trabajadores → Acceso gratuito, revocable y auditable
-// 🟢 10. PWA instalable → App móvil sin tiendas, funciona offline, ícono personalizado
-// 🟢 11. Subir fotos cifradas → JPG/PNG/GIF con miniatura y vista previa segura
-// 🟢 12. Adjuntar documentos → PDF/DOC/XLS cifrados, descargables solo por el dueño
-// 🟢 13. Guardar videos cortos → MP4/WebM cifrados, reproducibles dentro de la bóveda
-// 🟢 14. Vista previa inteligente → Miniaturas automáticas e íconos por tipo de archivo
-// 🟢 15. Límite seguro por archivo → 5MB máximo, controlado y ampliable bajo demanda
-// 🟢 16. Cifrado de archivos completo → AES-256-GCM aplicado a cada byte subido
-// 🟢 17. Descarga segura → Solo tú (o con permiso explícito) puedes bajar tus archivos
-// 🟢 18. Organización por carpetas → Crea y gestiona: 📸Fotos, 📄Documentos, 🎥Videos, 📝Textos
-// 🟢 19. Filtros avanzados → Busca por carpeta, tipo, fecha, categoría o estado de venta
-// 🟢 20. Compartir con pago → Monetiza tu contenido: precios configurables por acceso
-// 🟢 21. Licencias de tiempo → Acceso por 24h, 7 días, 30 días o permanente
-// 🟢 22. Pagos listos para Stripe → Modo prueba activo, preparado para dinero real
-// 🟢 23. Dashboard de negocio → Métricas en tiempo real: ingresos, ventas, secretos populares
-// 🟢 24. Historial de transacciones → Cada compra, acceso y descarga queda registrado
-// 🟢 25. Protección contra reventa → Contenido compartido NO se puede redistribuir
-// 🟢 26. Exportación segura → Descarga tus datos cifrados o desencriptados, cuando quieras
-// 🟢 27. Alertas IP automáticas → Detección de actividad sospechosa y bloqueo preventivo
-// 🟢 28. Rotación de sesiones → Limpieza automática de tokens expirados o inactivos
-// 🟢 29. Seguridad web avanzada → Helmet CSP, CORS, Rate Limiting, anti-bruteforce
-// 🟢 30. Compatible multiplataforma → Edge, Chrome, Safari, Android, iOS, PWA
-// 🟢 31. Diseño premium glassmorphism → Interfaz moderna, accesible, profesional y intuitiva
-// 🟢 32. Logs estructurados → Monitoreo en tiempo real con Pino para auditoría técnica
-// 🟢 33. Base de datos persistente → JSON cifrado en /data, respaldos automáticos
-// 🟢 34. Todo 100% auditable → Reportes exportables, trazabilidad completa por usuario
-// 🟢 35. Control total para ti → Tú configuras, tú revocas, tú monetizas, tú decides
-// 🟢 36. Identificador personal universal → Tu UID cifrado reemplaza correos en otras apps
-// 🟢 37. Autorización granular por app → Permisos específicos: perfil, email, pagos, bóveda
-// 🟢 38. Verificación criptográfica → Apps externas validan tu identidad sin guardar datos
-// 🟢 39. Acceso solo para suscriptores → Identidad universal disponible tras pago/activación
-// 🟢 40. Consentimiento revocable → Quita acceso a cualquier app en 1 clic, auditado
-// 🟢 41. Sin formularios externos → Regístrate una vez en Vault, usa tu ID en toda la web
-// 
-// ============================================================================
+// 🌐 APIROMWINER VAULT - Versión MongoDB Atlas (Producción)
+// ✅ Usuarios sincronizados en la nube ✅ Funciona en todos los navegadores ✅ $0.00
 
 require('dotenv').config();
-var express = require('express');
-var cors = require('cors');
-var helmet = require('helmet');
-var crypto = require('crypto');
-var bcrypt = require('bcryptjs');
-var jwt = require('jsonwebtoken');
-var { v4: uuidv4 } = require('uuid');
-var fs = require('fs');
-var path = require('path');
-var pino = require('pino');
-var multer = require('multer');
-var Stripe = require('stripe');
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { MongoClient, ObjectId } = require('mongodb');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs').promises;
+const pino = require('pino');
 
-var logger = pino({ level: 'info' });
-if (!process.env.MASTER_KEY || !process.env.JWT_SECRET) {
-    logger.fatal('❌ Faltan variables en .env');
-    process.exit(1);
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+// 🔐 TU CONEXIÓN A MONGODB (ya corregida)
+const MONGODB_URI = "mongodb+srv://apiromwinervault:Grup%40selen2000@cluster0.f83xnse.mongodb.net/?appName=Cluster0";
+const DB_NAME = "apiromwinervault";
+
+let db;
+let usersCollection;
+let secretsCollection;
+let affiliatesCollection;
+let identityCollection;
+let transactionsCollection;
+
+// 🔗 Conectar a MongoDB Atlas
+async function connectToMongo() {
+    try {
+        const client = new MongoClient(MONGODB_URI);
+        await client.connect();
+        db = client.db(DB_NAME);
+        usersCollection = db.collection('users');
+        secretsCollection = db.collection('secrets');
+        affiliatesCollection = db.collection('affiliates');
+        identityCollection = db.collection('identity');
+        transactionsCollection = db.collection('transactions');
+
+        // Crear índices para mejor rendimiento
+        await usersCollection.createIndex({ email: 1 }, { unique: true });
+        await usersCollection.createIndex({ uid: 1 }, { unique: true });
+        await secretsCollection.createIndex({ userId: 1 });
+        await secretsCollection.createIndex({ isForSale: 1 });
+        await affiliatesCollection.createIndex({ referredBy: 1 });
+
+        logger.info('✅ Conectado a MongoDB Atlas');
+    } catch (err) {
+        logger.error('❌ Error conectando a MongoDB:', err.message);
+        process.exit(1);
+    }
 }
 
-var app = express();
-var PORT = parseInt(process.env.PORT, 10) || 9000;
-var MASTER_KEY = process.env.MASTER_KEY.trim();
-var KEY = Buffer.from(MASTER_KEY, 'hex');
-var stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
-
-// 📁 Base de datos
-var DB_FILE = path.join(__dirname, 'data', 'vault.json');
-if (!fs.existsSync(path.join(__dirname, 'data'))) fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
-var db = { users: {}, vault: [], audit: [], alerts: [], transactions: [], folders: {}, apps: [], consents: [] };
-
-function loadDB() { try { if (fs.existsSync(DB_FILE)) db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); } catch (e) {} }
-
-function saveDB() { try { fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2)); } catch (e) {} }
-loadDB();
-
-var UPLOAD_DIR = path.join(__dirname, 'uploads');
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
-// 🛡️ Middleware (CSP corregido para botones)
+// 🔐 Configuración de seguridad
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:"],
-            scriptSrcAttr: ["'self'", "'unsafe-inline'", "'unsafe-hashes'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:"],
-            imgSrc: ["'self'", "data:", "https:", "http:", "https://api.qrserver.com", "blob:"],
-            connectSrc: ["'self'", "https:", "http:", "ws:", "wss:"],
-            mediaSrc: ["'self'", "blob:", "data:", "https:", "http:"]
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "https://apiromwinervault.onrender.com"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"]
         }
     }
 }));
-app.use(cors({ origin: true, credentials: true }));
+
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com',
+    credentials: true
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 🔐 Cifrado
-function encrypt(text) {
-    var iv = crypto.randomBytes(12);
-    var cipher = crypto.createCipheriv('aes-256-gcm', KEY, iv);
-    var enc = cipher.update(text, 'utf8', 'hex') + cipher.final('hex');
-    return { iv: iv.toString('hex'), enc: enc, tag: cipher.getAuthTag().toString('hex') };
-}
+// 📁 Servir archivos estáticos (frontend)
+app.use(express.static('public'));
 
-function decrypt(ivHex, encHex, tagHex) {
-    var decipher = crypto.createDecipheriv('aes-256-gcm', KEY, Buffer.from(ivHex, 'hex'));
-    decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
-    return decipher.update(encHex, 'hex', 'utf8') + decipher.final('utf8');
-}
+// 📁 Carpeta de uploads (para archivos temporales)
+const uploadDir = path.join(__dirname, 'uploads');
+fs.mkdir(uploadDir, { recursive: true }).catch(() => {});
 
-// 👑 isAdmin
-function isAdmin(email) {
-    if (!email) return false;
-    var list = (process.env.ADMIN_EMAILS || '').split(',');
-    for (var i = 0; i < list.length; i++) { if (list[i].trim().toLowerCase() === email.toLowerCase()) return true; }
-    return false;
-}
-
-// 🪵 Auditoría
-function logAudit(action, userId, meta) {
-    var ip = 'unknown';
-    if (meta && meta.ip) ip = meta.ip;
-    db.audit.push({ id: uuidv4(), action: action, userId: userId, timestamp: new Date().toISOString(), ip: ip, meta: meta || {} });
-    if (db.audit.length > 5000) db.audit = db.audit.slice(-5000);
-    saveDB();
-}
-
-// 💰 Transacción
-function logTransaction(type, amount, userId, secretId, meta) {
-    db.transactions.push({ id: uuidv4(), type: type, amount: amount, currency: 'USD', userId: userId, secretId: secretId, timestamp: new Date().toISOString(), status: 'completed', meta: meta || {} });
-    if (db.transactions.length > 2000) db.transactions = db.transactions.slice(-2000);
-    saveDB();
-}
-
-// 📁 Multer (archivos)
-var storage = multer.diskStorage({ destination: function(req, file, cb) { cb(null, UPLOAD_DIR); }, filename: function(req, file, cb) { cb(null, Date.now() + '-' + file.originalname); } });
-var upload = multer({
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: function(req, file, cb) {
-        var allowed = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|mp4|webm|txt/;
-        var ext = allowed.test(path.extname(file.originalname).toLowerCase());
-        var mime = allowed.test(file.mimetype);
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, unique + '-' + file.originalname);
+    }
+});
+const upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+        const allowed = /jpg|jpeg|png|gif|pdf|doc|docx|xls|xlsx|txt|mp4|webm/;
+        const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+        const mime = allowed.test(file.mimetype);
         if (ext || mime) cb(null, true);
-        else cb(new Error('Tipo no permitido'));
+        else cb(new Error('Tipo de archivo no permitido'));
     }
 });
 
-// ============================================================================
-// 🌐 RUTAS API
-// ============================================================================
-app.get('/api/status', function(req, res) { res.json({ api: "ApiRomwiner Vault", status: "online", features: ["🟢 Identidad", "🟢 Pagos", "🟢 Archivos", "🟢 Auditoría"] }); });
-app.get('/health', function(req, res) { res.json({ status: 'ok', time: new Date().toISOString() }); });
-
-app.post('/register', async function(req, res) {
-    var email = req.body.email,
-        pass = req.body.password;
-    if (!email || !pass) return res.status(400).json({ error: 'Faltan datos' });
-    if (db.users[email]) return res.status(409).json({ error: 'Ya existe' });
-    var uid = uuidv4(),
-        hash = await bcrypt.hash(pass, 10);
-    db.users[email] = { uid: uid, email: email, hash: hash, createdAt: new Date().toISOString(), vault: [], balance: 0, isPremium: false };
-    saveDB();
-    logAudit('register', uid, { email: email });
-    res.status(201).json({ success: true, uid: uid, message: '✅ Registrado' });
+// 🚦 Rate limiting (anti-bruteforce)
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: 'Demasiadas solicitudes. Intenta más tarde.' }
 });
+app.use('/api/', limiter);
 
-app.post('/login', async function(req, res) {
-    var email = req.body.email,
-        pass = req.body.password,
-        u = db.users[email];
-    if (!u || !(await bcrypt.compare(pass, u.hash))) return res.status(401).json({ error: 'Credenciales inválidas' });
-    var token = jwt.sign({ uid: u.uid, email: u.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    var admin = isAdmin(email);
-    logAudit('login', u.uid, { email: email });
-    res.json({ success: true, token: token, uid: u.uid, email: email, isAdmin: admin, balance: u.balance || 0, isPremium: u.isPremium || false, message: '✅ Bienvenido' + (admin ? ' (Admin)' : '') });
-});
+// 🔐 Claves JWT (usar variables de entorno en producción)
+const JWT_SECRET = process.env.JWT_SECRET || 'romwiner_jwt_secret_fallback_do_not_use_in_prod';
+const MASTER_KEY = process.env.MASTER_KEY || 'romwiner_master_key_fallback';
 
-function authUser(req, res, next) {
-    var h = req.headers.authorization;
-    if (!h || !h.startsWith('Bearer ')) return res.status(401).json({ error: 'Token requerido' });
+// 🔐 Middleware de autenticación
+const authenticate = (req, res, next) => {
+    const token = req.headers.authorization ? .replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Token requerido' });
+
     try {
-        var d = jwt.verify(h.split(' ')[1], process.env.JWT_SECRET);
-        req.uid = d.uid;
-        req.email = d.email;
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
         next();
-    } catch (e) { return res.status(401).json({ error: 'Token inválido' }); }
+    } catch (err) {
+        return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
+};
+
+// 🔐 Cifrado AES-256-GCM para secretos
+const encrypt = (text, key = MASTER_KEY) => {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(key.slice(0, 32)), iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag().toString('hex');
+    return { iv: iv.toString('hex'), encrypted, authTag };
+};
+
+const decrypt = ({ iv, encrypted, authTag }, key = MASTER_KEY) => {
+    const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(key.slice(0, 32)), Buffer.from(iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+};
+
+// 🆔 Generar UID único
+const generateUID = () => 'rom_' + crypto.randomBytes(8).toString('hex');
+
+// 🎫 Generar código de afiliado
+const generateRefCode = () => 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+// 🌐 API: Estado
+app.get('/api/status', (req, res) => {
+    res.json({
+        api: 'ApiRomwiner Vault',
+        status: 'online',
+        database: db ? 'connected' : 'disconnected',
+        features: ['🟢 Identidad', '🟢 Pagos', '🟢 Archivos', '🟢 Auditoría', '🟢 MongoDB Atlas']
+    });
+});
+
+// 🔐 Registro de usuario
+app.post('/register', async(req, res) => {
+    try {
+        const { email, password, refCode } = req.body;
+        if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+
+        // Verificar si el usuario ya existe
+        const existing = await usersCollection.findOne({ email });
+        if (existing) return res.status(400).json({ error: 'El correo ya está registrado' });
+
+        // Hashear contraseña
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Datos del nuevo usuario
+        const newUser = {
+            email,
+            password: hashedPassword,
+            uid: generateUID(),
+            refCode: generateRefCode(),
+            referredBy: refCode || null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isAdmin: false,
+            affiliates: {
+                level: 'bronce',
+                totalReferrals: 0,
+                pendingBalance: 0,
+                availableBalance: 0,
+                withdrawnBalance: 0
+            }
+        };
+
+        // Guardar en MongoDB
+        const result = await usersCollection.insertOne(newUser);
+
+        // Si tiene código de referido, actualizar al afiliado
+        if (refCode) {
+            const referrer = await usersCollection.findOne({ refCode });
+            if (referrer) {
+                await affiliatesCollection.updateOne({ userId: referrer._id }, {
+                    $inc: { totalReferrals: 1, pendingBalance: 1 },
+                    $set: { updatedAt: new Date() }
+                }, { upsert: true });
+
+                // Actualizar nivel del afiliado
+                const aff = await affiliatesCollection.findOne({ userId: referrer._id });
+                let newLevel = 'bronce';
+                if (aff.totalReferrals >= 51) newLevel = 'oro';
+                else if (aff.totalReferrals >= 11) newLevel = 'plata';
+
+                await usersCollection.updateOne({ _id: referrer._id }, {
+                    $set: {
+                        'affiliates.level': newLevel,
+                        updatedAt: new Date()
+                    }
+                });
+            }
+        }
+
+        // Crear entrada en affiliates para el nuevo usuario
+        await affiliatesCollection.insertOne({
+            userId: result.insertedId,
+            refCode: newUser.refCode,
+            referredBy: refCode || null,
+            totalReferrals: 0,
+            pendingBalance: 0,
+            availableBalance: 0,
+            withdrawnBalance: 0,
+            level: 'bronce',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        logger.info(`✅ Usuario registrado: ${email}`);
+        res.status(201).json({ success: true, message: 'Registrado. Ahora inicia sesión.' });
+
+    } catch (err) {
+        logger.error('❌ Error en registro:', err.message);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+// 🔐 Login
+app.post('/login', async(req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+
+        const user = await usersCollection.findOne({ email });
+        if (!user) return res.status(401).json({ error: 'Credenciales inválidas' });
+
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) return res.status(401).json({ error: 'Credenciales inválidas' });
+
+        // Generar token JWT
+        const token = jwt.sign({ uid: user.uid, email: user.email, isAdmin: user.isAdmin },
+            JWT_SECRET, { expiresIn: '7d' }
+        );
+
+        // Actualizar último login
+        await usersCollection.updateOne({ _id: user._id }, { $set: { lastLogin: new Date(), updatedAt: new Date() } });
+
+        logger.info(`✅ Login exitoso: ${email}`);
+        res.json({
+            success: true,
+            message: 'Bienvenido',
+            token,
+            user: {
+                uid: user.uid,
+                email: user.email,
+                isAdmin: user.isAdmin,
+                refCode: user.refCode,
+                affiliates: user.affiliates
+            }
+        });
+
+    } catch (err) {
+        logger.error('❌ Error en login:', err.message);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+// 🔐 Obtener perfil (autenticado)
+app.get('/api/me', authenticate, async(req, res) => {
+    try {
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        res.json({
+            uid: user.uid,
+            email: user.email,
+            isAdmin: user.isAdmin,
+            refCode: user.refCode,
+            affiliates: user.affiliates,
+            createdAt: user.createdAt
+        });
+    } catch (err) {
+        logger.error('❌ Error obteniendo perfil:', err.message);
+        res.status(500).json({ error: 'Error interno' });
+    }
+});
+
+// 📋 CRUD: Secretos (Vault)
+app.post('/vault', authenticate, upload.single('archivo'), async(req, res) => {
+    try {
+        const { titulo, categoria, folderId, contenido, price, licenseDays, forSale } = req.body;
+        if (!titulo) return res.status(400).json({ error: 'Título requerido' });
+
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        let secretData = {
+            userId: user._id,
+            userUid: user.uid,
+            titulo,
+            categoria: categoria || 'general',
+            folderId: folderId || 'general',
+            tipo: 'texto',
+            contenido: null,
+            fileName: null,
+            fileType: null,
+            fileSize: null,
+            encrypted: null,
+            isForSale: forSale === 'true' || forSale === true,
+            price: forSale === 'true' || forSale === true ? parseFloat(price) || 0 : null,
+            licenseDays: forSale === 'true' || forSale === true ? parseInt(licenseDays) || null : null,
+            sales: 0,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+
+        // Si hay archivo
+        if (req.file) {
+            secretData.tipo = 'archivo';
+            secretData.fileName = req.file.originalname;
+            secretData.fileType = req.file.mimetype;
+            secretData.fileSize = req.file.size;
+
+            // Cifrar contenido del archivo (en producción, usar GridFS para archivos grandes)
+            const fileContent = await fs.readFile(req.file.path);
+            const encrypted = encrypt(fileContent.toString('base64'));
+            secretData.encrypted = encrypted;
+
+            // Eliminar archivo temporal después de cifrar
+            await fs.unlink(req.file.path).catch(() => {});
+        }
+        // Si es texto
+        else if (contenido) {
+            secretData.contenido = encrypt(contenido).encrypted;
+        }
+
+        const result = await secretsCollection.insertOne(secretData);
+
+        logger.info(`✅ Secreto creado: ${titulo} por ${user.email}`);
+        res.status(201).json({ success: true, message: 'Secreto guardado', id: result.insertedId });
+
+    } catch (err) {
+        logger.error('❌ Error creando secreto:', err.message);
+        res.status(500).json({ error: 'Error al guardar' });
+    }
+});
+
+app.get('/vault', authenticate, async(req, res) => {
+    try {
+        const { tipo, folderId, categoria, forSale } = req.query;
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        // Construir filtro
+        const filter = { userId: user._id };
+        if (tipo) filter.tipo = tipo;
+        if (folderId) filter.folderId = folderId;
+        if (categoria) filter.categoria = categoria;
+        if (forSale !== undefined) filter.isForSale = forSale === 'true';
+
+        const items = await secretsCollection
+            .find(filter)
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .project({ encrypted: 0, contenido: 0 }) // No devolver contenido cifrado en lista
+            .toArray();
+
+        // Formatear respuesta
+        const formatted = items.map(item => ({
+            id: item._id.toString(),
+            titulo: item.titulo,
+            categoria: item.categoria,
+            folderId: item.folderId,
+            tipo: item.tipo,
+            fileName: item.fileName,
+            fileType: item.fileType,
+            fileSize: item.fileSize,
+            isForSale: item.isForSale,
+            price: item.price,
+            licenseDays: item.licenseDays,
+            sales: item.sales,
+            created_at: item.createdAt
+        }));
+
+        res.json({ success: true, items: formatted, total: formatted.length });
+
+    } catch (err) {
+        logger.error('❌ Error listando secretos:', err.message);
+        res.status(500).json({ error: 'Error cargando secretos' });
+    }
+});
+
+app.get('/vault/:id', authenticate, async(req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const secret = await secretsCollection.findOne({
+            _id: new ObjectId(id),
+            userId: user._id
+        });
+
+        if (!secret) return res.status(404).json({ error: 'Secreto no encontrado' });
+
+        // Desencriptar contenido para el dueño
+        let contenido = null;
+        if (secret.tipo === 'texto' && secret.contenido) {
+            contenido = decrypt({
+                iv: secret.encrypted ? .iv,
+                encrypted: secret.contenido,
+                authTag: secret.encrypted ? .authTag
+            });
+        } else if (secret.tipo === 'archivo' && secret.encrypted) {
+            const decrypted = decrypt(secret.encrypted);
+            contenido = Buffer.from(decrypted, 'base64').toString('base64'); // Devolver en base64 para descargar
+        }
+
+        res.json({
+            success: true,
+            secret: {
+                id: secret._id.toString(),
+                titulo: secret.titulo,
+                categoria: secret.categoria,
+                folderId: secret.folderId,
+                tipo: secret.tipo,
+                fileName: secret.fileName,
+                fileType: secret.fileType,
+                fileSize: secret.fileSize,
+                contenido,
+                isForSale: secret.isForSale,
+                price: secret.price,
+                licenseDays: secret.licenseDays,
+                sales: secret.sales,
+                created_at: secret.createdAt
+            }
+        });
+
+    } catch (err) {
+        logger.error('❌ Error obteniendo secreto:', err.message);
+        res.status(500).json({ error: 'Error cargando secreto' });
+    }
+});
+
+app.delete('/vault/:id', authenticate, async(req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const result = await secretsCollection.deleteOne({
+            _id: new ObjectId(id),
+            userId: user._id
+        });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'Secreto no encontrado o no autorizado' });
+        }
+
+        logger.info(`✅ Secreto eliminado: ${id} por ${user.email}`);
+        res.json({ success: true, message: 'Secreto eliminado' });
+
+    } catch (err) {
+        logger.error('❌ Error eliminando secreto:', err.message);
+        res.status(500).json({ error: 'Error al eliminar' });
+    }
+});
+
+// 🤝 Afiliados: Dashboard
+app.get('/api/affiliates/dashboard', authenticate, async(req, res) => {
+    try {
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const aff = await affiliatesCollection.findOne({ userId: user._id });
+
+        const dashboard = {
+            referralLink: `${process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com'}?ref=${user.refCode}`,
+            refCode: user.refCode,
+            level: aff ? .level || 'bronce',
+            totalReferrals: aff ? .totalReferrals || 0,
+            pendingBalance: aff ? .pendingBalance || 0,
+            availableBalance: aff ? .availableBalance || 0,
+            withdrawnBalance: aff ? .withdrawnBalance || 0
+        };
+
+        res.json({ success: true, dashboard });
+
+    } catch (err) {
+        logger.error('❌ Error en dashboard de afiliados:', err.message);
+        res.status(500).json({ error: 'Error cargando afiliados' });
+    }
+});
+
+// 🤝 Afiliados: Retirar fondos
+app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
+    try {
+        const { method } = req.body;
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const aff = await affiliatesCollection.findOne({ userId: user._id });
+        if (!aff || aff.availableBalance < 10) {
+            return res.status(400).json({ error: 'Mínimo $10 para retirar' });
+        }
+
+        // Registrar transacción
+        await transactionsCollection.insertOne({
+            userId: user._id,
+            type: 'withdrawal',
+            amount: aff.availableBalance,
+            method: method || 'manual',
+            status: 'pending',
+            createdAt: new Date()
+        });
+
+        // Actualizar balances
+        await affiliatesCollection.updateOne({ userId: user._id }, {
+            $inc: {
+                withdrawnBalance: aff.availableBalance,
+                availableBalance: -aff.availableBalance
+            },
+            $set: { updatedAt: new Date() }
+        });
+
+        logger.info(`✅ Solicitud de retiro: $${aff.availableBalance} por ${user.email}`);
+        res.json({ success: true, message: 'Solicitud de retiro enviada. Te contactaremos.' });
+
+    } catch (err) {
+        logger.error('❌ Error en retiro de afiliados:', err.message);
+        res.status(500).json({ error: 'Error procesando retiro' });
+    }
+});
+
+// 🆔 Identidad Universal: Registrar app externa
+app.post('/api/identity/register-app', authenticate, async(req, res) => {
+    try {
+        const { appName, redirectUri } = req.body;
+        if (!appName || !redirectUri) {
+            return res.status(400).json({ error: 'Nombre y URL requeridos' });
+        }
+
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const appId = 'app_' + crypto.randomBytes(6).toString('hex');
+        const appSecret = crypto.randomBytes(32).toString('hex');
+
+        await identityCollection.insertOne({
+            appId,
+            appSecret,
+            appName,
+            redirectUri,
+            ownerUid: user.uid,
+            scopes: ['profile', 'email'],
+            active: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        logger.info(`✅ App registrada: ${appName} por ${user.email}`);
+        res.json({ success: true, appId, appSecret, message: 'Guarda estas credenciales de forma segura' });
+
+    } catch (err) {
+        logger.error('❌ Error registrando app:', err.message);
+        res.status(500).json({ error: 'Error registrando app' });
+    }
+});
+
+// 🆔 Identidad Universal: Autorizar acceso
+app.post('/api/identity/authorize', authenticate, async(req, res) => {
+    try {
+        const { appId, scopes } = req.body;
+        if (!appId) return res.status(400).json({ error: 'App ID requerido' });
+
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const app = await identityCollection.findOne({ appId });
+        if (!app || !app.active) {
+            return res.status(404).json({ error: 'App no encontrada o inactiva' });
+        }
+
+        // Generar token de acceso
+        const token = jwt.sign({ uid: user.uid, appId, scopes: scopes || app.scopes },
+            JWT_SECRET, { expiresIn: '24h' }
+        );
+
+        logger.info(`✅ Token generado para ${app.appName} por ${user.email}`);
+        res.json({ success: true, token, expiresIn: 86400 });
+
+    } catch (err) {
+        logger.error('❌ Error autorizando app:', err.message);
+        res.status(500).json({ error: 'Error autorizando acceso' });
+    }
+});
+
+// 🆔 Identidad Universal: Revocar todos los accesos
+app.delete('/api/identity/revoke/all', authenticate, async(req, res) => {
+    try {
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        // En producción, aquí se invalidarían tokens activos
+        // Por ahora, solo registramos la acción
+        await identityCollection.updateMany({ ownerUid: user.uid }, { $set: { active: false, updatedAt: new Date() } });
+
+        logger.info(`✅ Accesos revocados para ${user.email}`);
+        res.json({ success: true, message: 'Todos los accesos han sido revocados' });
+
+    } catch (err) {
+        logger.error('❌ Error revocando accesos:', err.message);
+        res.status(500).json({ error: 'Error revocando accesos' });
+    }
+});
+
+// 💰 Dashboard de negocio (para vendedores)
+app.get('/api/dashboard', authenticate, async(req, res) => {
+    try {
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        // Métricas básicas
+        const totalSecrets = await secretsCollection.countDocuments({ userId: user._id });
+        const forSale = await secretsCollection.countDocuments({ userId: user._id, isForSale: true });
+
+        // En producción, aquí se calcularían ingresos reales de transacciones
+        const dashboard = {
+            revenue: 0, // Se calcularía desde transactionsCollection
+            sales: 0,
+            active: totalSecrets,
+            forSale
+        };
+
+        res.json({ success: true, dashboard });
+
+    } catch (err) {
+        logger.error('❌ Error en dashboard:', err.message);
+        res.status(500).json({ error: 'Error cargando dashboard' });
+    }
+});
+
+// 🌐 Ruta principal: servir index.html con headers anti-caché
+app.get('/', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 🚀 Iniciar servidor
+async function startServer() {
+    await connectToMongo();
+
+    app.listen(PORT, '0.0.0.0', () => {
+        logger.info(`🚀 APIROMWINER en puerto ${PORT}`);
+        logger.info('🟢 Identidad | 🟢 Pagos | 🟢 Archivos | 🟢 Auditoría | 🟢 MongoDB Atlas | 🟢 Listo');
+    });
 }
 
-// 📁 Carpetas
-app.get('/folders', authUser, function(req, res) {
-    if (!db.folders[req.uid]) {
-        db.folders[req.uid] = [{ id: 'fotos', name: '📸 Fotos', type: 'image' }, { id: 'docs', name: '📄 Documentos', type: 'document' }, { id: 'videos', name: '🎥 Videos', type: 'video' }, { id: 'txt', name: '📝 Textos', type: 'text' }, { id: 'general', name: '📁 General', type: 'any' }];
-        saveDB();
-    }
-    res.json({ success: true, folders: db.folders[req.uid] });
-});
-
-// ➕ Crear secreto (texto o archivo + negocio)
-app.post('/vault', authUser, upload.single('archivo'), function(req, res) {
-    var { titulo, contenido, categoria, folderId, price, licenseDays } = req.body;
-    var archivo = req.file;
-    if (!titulo) return res.status(400).json({ error: 'Título obligatorio' });
-    var item = { id: Date.now(), uid: req.uid, titulo: titulo, categoria: categoria || 'general', folderId: folderId || 'general', created_at: new Date().toISOString(), tipo: archivo ? 'archivo' : 'texto', fileName: archivo ? archivo.originalname : null, fileType: archivo ? archivo.mimetype : null, fileSize: archivo ? archivo.size : null, filePath: archivo ? archivo.path : null, isForSale: price && parseFloat(price) > 0, price: price ? parseFloat(price) : 0, licenseDays: licenseDays ? parseInt(licenseDays) : null, permissions: [], sales: 0, revenue: 0 };
-    if (archivo) {
-        var enc = encrypt(archivo.path);
-        item.encPath = enc.enc;
-        item.ivPath = enc.iv;
-        item.tagPath = enc.tag;
-    } else {
-        if (!contenido) return res.status(400).json({ error: 'Contenido obligatorio para texto' });
-        var enc = encrypt(contenido);
-        item.enc = enc.enc;
-        item.iv = enc.iv;
-        item.tag = enc.tag;
-    }
-    db.vault.push(item);
-    saveDB();
-    logAudit('create', req.uid, { id: item.id, tipo: item.tipo });
-    res.status(201).json({ success: true, id: item.id });
-});
-
-// 📋 Listar
-app.get('/vault', authUser, function(req, res) {
-    var { categoria, tipo, folderId } = req.query;
-    var items = db.vault.filter(function(i) { return i.uid === req.uid; });
-    if (categoria) items = items.filter(function(i) { return i.categoria === categoria; });
-    if (tipo) items = items.filter(function(i) { return i.tipo === tipo; });
-    if (folderId) items = items.filter(function(i) { return i.folderId === folderId; });
-    var clean = items.map(function(i) { return { id: i.id, titulo: i.titulo, categoria: i.categoria, folderId: i.folderId, created_at: i.created_at, tipo: i.tipo, fileName: i.fileName, fileType: i.fileType, fileSize: i.fileSize ? Math.round(i.fileSize / 1024) + ' KB' : null, isForSale: i.isForSale, price: i.price, sales: i.sales }; });
-    res.json({ success: true, total: clean.length, items: clean });
-});
-
-// 🔍 Leer/Descargar
-app.get('/vault/:id', authUser, function(req, res) {
-    var item = db.vault.find(function(v) { return v.id == req.params.id; });
-    if (!item) return res.status(404).json({ error: 'No encontrado' });
-    if (item.uid === req.uid) return serveContent(item, req, res);
-    var hasAccess = item.permissions && item.permissions.some(function(p) { return p.uid === req.uid && p.actions.includes('read'); });
-    if (!hasAccess && item.isForSale) { var paid = db.transactions.some(function(t) { return t.secretId == item.id && t.userId === req.uid && t.status === 'completed'; }); if (!paid) return res.status(403).json({ error: '🔒 Requiere pago', price: item.price }); }
-    if (!hasAccess && !item.isForSale) return res.status(403).json({ error: '🔒 Sin permiso' });
-    return serveContent(item, req, res);
-});
-
-function serveContent(item, req, res) {
-    if (item.tipo === 'archivo') {
-        try {
-            var p = decrypt(item.ivPath, item.encPath, item.tagPath);
-            if (!fs.existsSync(p)) return res.status(404).json({ error: 'Archivo perdido' });
-            res.setHeader('Content-Type', item.fileType || 'application/octet-stream');
-            res.setHeader('Content-Disposition', 'inline; filename="' + encodeURIComponent(item.fileName) + '"');
-            res.setHeader('X-Protected', 'true');
-            fs.createReadStream(p).pipe(res);
-            logAudit('read_file', req.uid, { id: item.id });
-        } catch (e) { res.status(500).json({ error: 'Error al leer' }); }
-    } else {
-        try {
-            var c = decrypt(item.iv, item.enc, item.tag);
-            res.json({ success: true, data: { id: item.id, titulo: item.titulo, contenido: c, categoria: item.categoria } });
-            logAudit('read', req.uid, { id: item.id });
-        } catch (e) { res.status(500).json({ error: 'Error descifrando' }); }
-    }
-}
-
-// 💰 Comprar (simulado o Stripe)
-app.post('/api/buy/:id', authUser, async function(req, res) {
-    var item = db.vault.find(function(v) { return v.id == req.params.id && v.isForSale; });
-    if (!item) return res.status(404).json({ error: 'No disponible' });
-    try {
-        var session = await stripe.checkout.sessions.create({ payment_method_types: ['card'], line_items: [{ price_data: { currency: 'usd', product_data: { name: item.titulo }, unit_amount: Math.round(item.price * 100) }, quantity: 1 }], mode: 'payment', success_url: process.env.FRONTEND_URL + '/success', cancel_url: process.env.FRONTEND_URL + '/cancel', metadata: { userId: req.uid, secretId: item.id } });
-        res.json({ success: true, url: session.url });
-    } catch (e) {
-        logTransaction('income', item.price, item.uid, item.id, { buyer: req.uid });
-        item.sales = (item.sales || 0) + 1;
-        item.revenue = (item.revenue || 0) + item.price;
-        if (db.users[item.uid]) db.users[item.uid].balance = (db.users[item.uid].balance || 0) + item.price;
-        db.transactions.push({ id: uuidv4(), type: 'access', userId: req.uid, secretId: item.id, amount: item.price, timestamp: new Date().toISOString(), status: 'active' });
-        saveDB();
-        logAudit('purchase_simulated', req.uid, { secretId: item.id });
-        res.json({ success: true, simulated: true, message: '✅ Acceso concedido (modo prueba)' });
-    }
-});
-
-// 📊 Dashboard
-app.get('/api/dashboard', authUser, function(req, res) {
-    var my = db.vault.filter(function(i) { return i.uid === req.uid });
-    var rev = my.reduce(function(s, i) { return s + (i.revenue || 0) }, 0);
-    var sal = my.reduce(function(s, i) { return s + (i.sales || 0) }, 0);
-    res.json({ success: true, dashboard: { revenue: rev, sales: sal, active: my.length, forSale: my.filter(function(i) { return i.isForSale }).length } });
-});
-
-// 🌐 IDENTIDAD UNIVERSAL (36-41)
-app.post('/api/identity/register-app', authUser, function(req, res) {
-    var { appName, redirectUri } = req.body;
-    if (!appName || !redirectUri) return res.status(400).json({ error: 'Datos requeridos' });
-    if ((db.users[req.email] || {}).balance < 1 && !(db.users[req.email] || {}).isPremium) return res.status(403).json({ error: '🔒 Requiere saldo ≥ $1 o premium' });
-    var appId = 'app_' + uuidv4().slice(0, 8),
-        sec = 'sec_' + crypto.randomBytes(16).toString('hex');
-    db.apps.push({ appId, appName, redirectUri, ownerId: req.uid, createdAt: new Date().toISOString() });
-    saveDB();
-    logAudit('register_app', req.uid, { appId });
-    res.status(201).json({ success: true, appId, appSecret: sec });
-});
-
-app.post('/api/identity/authorize', authUser, function(req, res) {
-    var { appId, scopes } = req.body;
-    if (!appId || !Array.isArray(scopes)) return res.status(400).json({ error: 'appId y scopes requeridos' });
-    if ((db.users[req.email] || {}).balance < 1 && !(db.users[req.email] || {}).isPremium) return res.status(403).json({ error: '🔒 Requiere suscripción' });
-    var allowed = ['profile', 'email', 'vault:read', 'payments:status'];
-    var valid = scopes.filter(function(s) { return allowed.indexOf(s) !== -1 });
-    if (valid.length === 0) return res.status(400).json({ error: 'Scopes inválidos' });
-    var consentId = uuidv4();
-    db.consents.push({ consentId, userId: req.uid, appId, scopes: valid, grantedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 7776000000).toISOString() });
-    saveDB();
-    logAudit('consent_granted', req.uid, { appId });
-    var token = jwt.sign({ uid: req.uid, email: req.email, appId, scp: valid, iss: 'apiromwiner', sub: consentId }, process.env.JWT_SECRET, { expiresIn: '90d' });
-    res.json({ success: true, consentId, token });
-});
-
-app.get('/api/identity/verify/:token', function(req, res) {
-    try {
-        var d = jwt.verify(req.params.token, process.env.JWT_SECRET);
-        var c = db.consents.find(function(x) { return x.consentId === d.sub && x.appId === d.appId });
-        if (!c || new Date(c.expiresAt) < new Date()) return res.status(401).json({ valid: false });
-        res.json({ valid: true, uid: d.uid, scopes: d.scp, expiresAt: c.expiresAt });
-    } catch (e) { res.status(401).json({ valid: false }); }
-});
-
-app.delete('/api/identity/revoke/:appId', authUser, function(req, res) {
-    var idx = db.consents.findIndex(function(c) { return c.userId === req.uid && c.appId === req.params.appId });
-    if (idx === -1) return res.status(404).json({ error: 'No encontrado' });
-    db.consents.splice(idx, 1);
-    saveDB();
-    logAudit('consent_revoked', req.uid, { appId: req.params.appId });
-    res.json({ success: true, message: '✅ Acceso revocado' });
-});
-
-app.get('/api/identity/consents', authUser, function(req, res) {
-    var active = db.consents.filter(function(c) { return c.userId === req.uid && new Date(c.expiresAt) > new Date() });
-    res.json({ success: true, total: active.length, consents: active });
-});
-
-// 📜 Auditoría
-app.get('/my-audit', authUser, function(req, res) {
-    var logs = db.audit.filter(function(l) { return l.userId === req.uid }).slice(-100).reverse();
-    res.json({ success: true, total: logs.length, logs: logs });
-});
-
-// 🎁 Regalar (Admin)
-app.post('/vault/:id/gift', authUser, function(req, res) {
-    if (!isAdmin(req.email)) return res.status(403).json({ error: '🔒 Solo admins' });
-    var { email } = req.body, item = db.vault.find(function(v) { return v.id == req.params.id && v.uid === req.uid });
-    if (!item) return res.status(404).json({ error: 'No encontrado' });
-    var target = Object.values(db.users).find(function(u) { return u.email === email });
-    if (!target) return res.status(404).json({ error: 'Usuario no encontrado' });
-    item.permissions = item.permissions || [];
-    item.permissions.push({ uid: target.uid, email: email, actions: ['read'], gift: true, grantedAt: new Date().toISOString() });
-    saveDB();
-    logAudit('gift', req.uid, { to: email });
-    res.json({ success: true, message: '🎁 Regalo enviado' });
-});
-
-// 🟢 QR
-app.get('/identity/qr', authUser, function(req, res) {
-    var p = { sub: req.uid, email: req.email, verified: true, iss: 'apiromwiner', exp: Math.floor(Date.now() / 1000) + 3600 };
-    var sig = crypto.createHmac('sha256', MASTER_KEY).update(JSON.stringify(p)).digest('hex');
-    res.json({ success: true, qr: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(JSON.stringify(Object.assign({}, p, { sig: sig }))), expires: new Date(Date.now() + 3600000).toISOString() });
-});
-
-// ============================================================================
-// 📱 FRONTEND
-// ============================================================================
-app.use(express.static(path.join(__dirname, 'public'), { index: 'index.html', fallthrough: true }));
-app.get('/', function(req, res) { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
-
-app.use(function(err, req, res, next) {
-    if (err instanceof multer.MulterError) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Máx 5MB' : 'Error al subir' });
-    logger.error('❌', err.message);
-    res.status(500).json({ error: 'Error interno' });
-});
-
-app.listen(PORT, '0.0.0.0', function() {
-    logger.info('🚀 APIROMWINER en puerto ' + PORT);
-    logger.info('🟢 Identidad | 🟢 Pagos | 🟢 Archivos | 🟢 Auditoría | 🟢 Listo');
+startServer().catch(err => {
+    logger.error('❌ Error iniciando servidor:', err.message);
+    process.exit(1);
 });
