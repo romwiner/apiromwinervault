@@ -1,31 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 
-
 <head>
-    <!-- 📱 PWA: Instalable sin tiendas -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                console.log('SW error:', err);
-            });
-        }
-        window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            var btn = document.createElement('button');
-            btn.innerHTML = '📲 Instalar App';
-            btn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 24px;background:#6366f1;color:white;border:none;border-radius:50px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
-            btn.onclick = function() {
-                e.prompt();
-            };
-            document.body.appendChild(btn);
-        });
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
     <meta name="theme-color" content="#6366f1">
     <link rel="manifest" href="/manifest.json">
-    <title>ApiRomwiner Vault 🔐</title>
+    <title>ApiRomwiner Vault 🔐 | Tu Identidad Digital Universal</title>
+    <meta name="description" content="Bóveda segura con identidad universal, monetización y control total. Sin tiendas, sin comisiones, bajo tu control.">
     <style>
          :root {
             --primary: #6366f1;
@@ -40,158 +22,129 @@
             --glass-border: rgba(255, 255, 255, 0.1);
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             --radius: 20px;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
         }
         
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, sans-serif;
         }
         
         body {
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #1e1b4b 50%, #0f172a 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark), #1e293b);
             color: var(--text);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 15px;
-            position: relative;
-            overflow-x: hidden;
-        }
-        
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%), radial-gradient(circle at 70% 70%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
-            animation: float 20s ease-in-out infinite;
-            pointer-events: none;
-            z-index: -1;
-        }
-        
-        @keyframes float {
-            0%,
-            100% {
-                transform: translate(0, 0)
-            }
-            50% {
-                transform: translate(20px, 20px)
-            }
+            padding: 16px;
+            line-height: 1.5;
         }
         
         .container {
-            width: 100%;
-            max-width: 420px;
-            animation: slideUp 0.5s ease;
-        }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px)
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0)
-            }
-        }
-        
-        .logo {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        
-        .logo-svg {
-            width: 100px;
-            height: 100px;
-            margin: 0 auto 15px;
-            filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.5));
-            animation: pulse 3s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%,
-            100% {
-                transform: scale(1)
-            }
-            50% {
-                transform: scale(1.05)
-            }
-        }
-        
-        .logo h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
-        }
-        
-        .logo p {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-top: 5px;
+            max-width: 600px;
+            margin: 0 auto;
         }
         
         .card {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
+            background: var(--bg-card);
             border: 1px solid var(--glass-border);
             border-radius: var(--radius);
-            padding: 25px;
+            padding: 24px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(12px);
             box-shadow: var(--shadow);
-            margin-bottom: 20px;
-            transition: transform 0.2s, box-shadow 0.2s;
         }
         
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        .header {
+            text-align: center;
+            padding: 24px 0;
         }
         
-        .input-group {
-            margin-bottom: 18px;
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         
-        .input-group label {
-            display: block;
+        .header p {
             color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        /* 🟢 ÍNDICE DE FUNCIONALIDADES (para vender mejor) */
+        
+        .features-index {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(34, 197, 94, 0.1));
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .features-index h3 {
+            color: var(--success);
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .features-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
             font-size: 0.85rem;
+            color: var(--text);
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        
+        .feature-item::before {
+            content: "🟢";
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
             margin-bottom: 6px;
             font-weight: 500;
+            color: var(--text);
         }
         
-        .input-group input,
-        .input-group textarea,
-        .input-group select {
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
             width: 100%;
-            padding: 14px 16px;
-            background: rgba(255, 255, 255, 0.08);
+            padding: 12px;
             border: 1px solid var(--glass-border);
             border-radius: 12px;
+            background: var(--glass);
             color: var(--text);
             font-size: 1rem;
-            transition: all 0.2s;
-        }
-        
-        .input-group input:focus,
-        .input-group textarea:focus,
-        .input-group select:focus {
             outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-            background: rgba(255, 255, 255, 0.12);
+            transition: border-color 0.2s;
         }
         
-        .input-group textarea {
-            resize: vertical;
-            min-height: 80px;
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary);
         }
         
         .btn {
@@ -199,420 +152,908 @@
             padding: 14px;
             border: none;
             border-radius: 12px;
-            font-size: 1rem;
             font-weight: 600;
+            font-size: 1rem;
             cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            transition: transform 0.1s, box-shadow 0.2s;
+            margin-bottom: 8px;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-primary {
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
         }
         
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
-        }
-        
         .btn-secondary {
-            background: linear-gradient(135deg, #64748b, #475569);
-            box-shadow: 0 4px 14px rgba(100, 116, 139, 0.3);
+            background: var(--glass);
+            color: var(--text);
+            border: 1px solid var(--glass-border);
         }
         
-        .btn-secondary:hover {
-            box-shadow: 0 6px 20px rgba(100, 116, 139, 0.5);
-        }
-        
-        .btn-success {
+        .btn-accent {
             background: linear-gradient(135deg, var(--accent), #059669);
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+            color: white;
         }
         
-        .btn-success:hover {
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
         }
         
         .btn-danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
         }
         
-        .btn-row {
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #16a34a);
+            color: white;
+        }
+        
+        .nav {
             display: flex;
-            gap: 12px;
-            margin-top: 15px;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
         }
         
-        .btn-row .btn {
+        .nav-btn {
             flex: 1;
-        }
-        
-        .hide {
-            display: none !important;
+            min-width: 100px;
+            padding: 10px;
+            font-size: 0.8rem;
         }
         
         .secret-item {
-            background: rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border: 1px solid var(--glass-border);
             border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border-left: 3px solid var(--primary);
+            margin-bottom: 12px;
+            background: var(--glass);
         }
         
-        .secret-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateX(3px);
+        .secret-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
-        .secret-item b {
-            display: block;
-            color: var(--text);
-            margin-bottom: 3px;
-        }
-        
-        .secret-item small {
+        .secret-meta {
+            font-size: 0.8rem;
             color: var(--text-muted);
         }
         
-        #qr-box img {
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
         
-        #res {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 12px;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            max-height: 200px;
-            overflow-y: auto;
+        .badge-primary {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+        }
+        
+        .badge-accent {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+        
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+        
+        .badge-success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+        
+        .hidden {
+            display: none !important;
         }
         
         .toast {
             position: fixed;
-            top: 20px;
+            bottom: 20px;
             left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            background: var(--bg-card);
-            border-left: 4px solid var(--accent);
-            padding: 12px 20px;
-            border-radius: 12px;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideUp 0.3s ease;
             box-shadow: var(--shadow);
-            z-index: 1000;
-            transition: transform 0.3s ease;
-            max-width: 90%;
-            text-align: center;
         }
         
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
+        .toast.success {
+            background: linear-gradient(135deg, var(--accent), #059669);
+            color: white;
         }
         
         .toast.error {
-            border-left-color: #ef4444;
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
         }
         
-        .footer {
+        .toast.info {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .file-preview {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .file-preview img {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 8px;
+        }
+        
+        .pricing-options,
+        .identity-panel,
+        .affiliates-panel,
+        .business-panel {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        /* Sección de marketing / venta */
+        
+        .marketing-section {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(236, 72, 153, 0.1));
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
             text-align: center;
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            margin-top: 20px;
         }
         
-        .footer a {
+        .marketing-section h2 {
             color: var(--primary);
-            text-decoration: none;
+            margin-bottom: 12px;
+            font-size: 1.2rem;
         }
         
-        @media (max-width:380px) {
-            .card {
-                padding: 20px;
+        .marketing-section p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
+        
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+        }
+        
+        @media (max-width: 480px) {
+            .nav {
+                flex-direction: column;
             }
-            .logo-svg {
-                width: 80px;
-                height: 80px;
+            .nav-btn {
+                width: 100%;
             }
-            .logo h1 {
-                font-size: 1.4rem;
+            .features-index {
+                max-height: 250px;
             }
+        }
+        /* Scrollbar personalizado para el índice */
+        
+        .features-index::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .features-index::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+        
+        .features-index::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
         }
     </style>
+    <!-- 📱 PWA: Instalable sin tiendas -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                console.log('SW error:', err);
+            });
+        }
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            var btn = document.createElement('button');
+            btn.innerHTML = '📲 Instalar App';
+            btn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 24px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;border:none;border-radius:50px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+            btn.onclick = function() {
+                e.prompt();
+            };
+            document.body.appendChild(btn);
+        });
+    </script>
 </head>
 
 <body>
     <div class="container">
-        <!-- 🔐 LOGO PERSONALIZADO APIROMWINER -->
-        <div class="logo">
-            <svg class="logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#6366f1"/>
-          <stop offset="100%" style="stop-color:#ec4899"/>
-        </linearGradient>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-      <circle cx="50" cy="50" r="45" fill="url(#grad1)" opacity="0.2"/>
-      <path d="M50 15 L75 35 L75 65 L50 85 L25 65 L25 35 Z" fill="none" stroke="url(#grad1)" stroke-width="3" filter="url(#glow)"/>
-      <path d="M35 45 L45 55 L65 35" stroke="#10b981" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="50" cy="50" r="8" fill="url(#grad1)"/>
-    </svg>
-            <h1>ApiRomwiner Vault</h1>
-            <p>Tus secretos • Tu identidad • Tu control 🔐</p>
+        <div class="header">
+            <h1>🔐 ApiRomwiner Vault</h1>
+            <p>Tu identidad digital universal • Monetiza tu contenido • Control total</p>
         </div>
 
-        <!-- 🔐 AUTH CARD -->
-        <div class="card" id="auth">
-            <h2 style="text-align:center;margin-bottom:20px;font-weight:600">🔐 Acceso Seguro</h2>
-            <div class="input-group">
-                <label>Correo electrónico</label>
-                <input id="email" type="email" placeholder="tu@email.com" autocomplete="email">
-            </div>
-            <div class="input-group">
-                <label>Contraseña</label>
-                <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password">
-            </div>
-            <button class="btn" onclick="login()">✨ Iniciar Sesión</button>
-            <div class="btn-row">
-                <button class="btn btn-secondary" onclick="register()">🆕 Crear Cuenta</button>
-                <button class="btn btn-success" onclick="demo()">🎯 Modo Demo</button>
+        <!-- 🟢 ÍNDICE COMPLETO: TODO LO QUE HACE POR LAS PERSONAS (para vender mejor) -->
+        <div class="card features-index">
+            <h3>🟢 TODO LO QUE APIROMWINER HACE POR TI</h3>
+            <div class="features-list">
+                <div class="feature-item">Registro seguro por usuario → Cuenta única, protegida y verificada</div>
+                <div class="feature-item">Login con JWT → Sesiones cifradas de 7 días, renovación automática</div>
+                <div class="feature-item">Bóveda personal militar → Cifrado AES-256-GCM en reposo y tránsito</div>
+                <div class="feature-item">Categorías inteligentes → Organiza: bancos, personal, trabajo</div>
+                <div class="feature-item">Historial completo → Auditoría visual: quién, cuándo, qué, desde dónde</div>
+                <div class="feature-item">Permisos granulares → Control total: read, write, share por contacto</div>
+                <div class="feature-item">QR de identidad digital → Verifica sin exponer datos sensibles</div>
+                <div class="feature-item">Multi-administrador → Tú decides quién gestiona y regala</div>
+                <div class="feature-item">Regalos familiares → Acceso gratuito, revocable y auditable</div>
+                <div class="feature-item">PWA instalable → App móvil sin tiendas, funciona offline</div>
+                <div class="feature-item">Subir fotos cifradas → JPG/PNG/GIF con miniatura y vista previa</div>
+                <div class="feature-item">Adjuntar documentos → PDF/DOC/XLS cifrados, descargables solo por dueño</div>
+                <div class="feature-item">Guardar videos cortos → MP4/WebM cifrados, reproducibles en bóveda</div>
+                <div class="feature-item">Vista previa inteligente → Miniaturas e íconos por tipo de archivo</div>
+                <div class="feature-item">Límite seguro por archivo → 5MB máximo, controlado y ampliable</div>
+                <div class="feature-item">Cifrado de archivos completo → AES-256-GCM aplicado a cada byte</div>
+                <div class="feature-item">Descarga segura → Solo tú (o con permiso) puedes bajar tus archivos</div>
+                <div class="feature-item">Organización por carpetas → 📸Fotos, 📄Documentos, 🎥Videos, 📝Textos</div>
+                <div class="feature-item">Filtros avanzados → Busca por carpeta, tipo, fecha, categoría o venta</div>
+                <div class="feature-item">Compartir con pago → Monetiza: precios configurables por acceso</div>
+                <div class="feature-item">Licencias de tiempo → Acceso por 24h, 7 días, 30 días o permanente</div>
+                <div class="feature-item">Pagos listos para Stripe → Modo prueba activo, preparado para dinero real</div>
+                <div class="feature-item">Dashboard de negocio → Métricas en tiempo real: ingresos, ventas, populares</div>
+                <div class="feature-item">Historial de transacciones → Cada compra, acceso y descarga registrado</div>
+                <div class="feature-item">Protección contra reventa → Contenido compartido NO se puede redistribuir</div>
+                <div class="feature-item">Exportación segura → Descarga tus datos cifrados o desencriptados</div>
+                <div class="feature-item">Alertas IP automáticas → Detección de actividad sospechosa y bloqueo</div>
+                <div class="feature-item">Rotación de sesiones → Limpieza automática de tokens expirados</div>
+                <div class="feature-item">Seguridad web avanzada → Helmet CSP, CORS, Rate Limiting, anti-bruteforce</div>
+                <div class="feature-item">Compatible multiplataforma → Edge, Chrome, Safari, Android, iOS, PWA</div>
+                <div class="feature-item">Diseño premium glassmorphism → Interfaz moderna, accesible, profesional</div>
+                <div class="feature-item">Logs estructurados → Monitoreo en tiempo real con Pino para auditoría</div>
+                <div class="feature-item">Base de datos persistente → JSON cifrado en /data, respaldos automáticos</div>
+                <div class="feature-item">Todo 100% auditable → Reportes exportables, trazabilidad completa</div>
+                <div class="feature-item">Control total para ti → Tú configuras, revocas, monetizas, decides</div>
+                <div class="feature-item">Identificador personal universal → Tu UID cifrado reemplaza correos en otras apps</div>
+                <div class="feature-item">Autorización granular por app → Permisos: perfil, email, pagos, bóveda</div>
+                <div class="feature-item">Verificación criptográfica → Apps externas validan tu identidad sin guardar datos</div>
+                <div class="feature-item">Acceso solo para suscriptores → Identidad universal tras pago/activación</div>
+                <div class="feature-item">Consentimiento revocable → Quita acceso a cualquier app en 1 clic, auditado</div>
+                <div class="feature-item">Sin formularios externos → Regístrate una vez, usa tu ID en toda la web</div>
+                <div class="feature-item">PWA instalable sin tiendas → Los usuarios tocan "Agregar a inicio" y listo</div>
+                <div class="feature-item">Enlace de afiliado único → Cada usuario tiene su link: ?ref=SU_CODIGO</div>
+                <div class="feature-item">Comisión por referido → Gana $1 por cada usuario que se registre con tu link</div>
+                <div class="feature-item">Dashboard de afiliados → Ve cuántos recomendó, cuánto ganó, cuándo cobra</div>
+                <div class="feature-item">QR de invitación → Genera código QR con tu link para compartir en persona</div>
+                <div class="feature-item">Retiro de ganancias → Solicita pago a tu cuenta cuando acumules $10+</div>
+                <div class="feature-item">Niveles de afiliado → Bronce (1-10), Plata (11-50), Oro (51+)</div>
+                <div class="feature-item">Bonos por nivel → Oro gana 20% extra en cada referido</div>
+                <div class="feature-item">Protección anti-fraude → Detecta registros falsos y bloquea comisiones inválidas</div>
             </div>
         </div>
 
-        <!-- 📱 MAIN VAULT CARD -->
-        <div class="card hide" id="main">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                <h2 style="font-weight:600">📱 Mi Bóveda</h2>
-                <button class="btn btn-danger" style="width:auto;padding:8px 16px;font-size:0.9rem" onclick="logout()">🚪 Salir</button>
-            </div>
+        <!-- 💰 SECCIÓN DE MARKETING / VENTA -->
+        <div class="marketing-section">
+            <h2>🚀 ¿Por qué elegir ApiRomwiner Vault?</h2>
+            <p>La única plataforma que combina seguridad militar, identidad universal y monetización directa. Sin intermediarios, sin comisiones ocultas, 100% bajo tu control.</p>
+            <a href="#registerCard" onclick="toggleRegister(); return false;" class="cta-button">✨ Comenzar Gratis Ahora</a>
+        </div>
 
-            <!-- Crear secreto -->
-            <div style="margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid var(--glass-border)">
-                <input id="titulo" placeholder="✨ Título del secreto" style="margin-bottom:10px">
-                <textarea id="contenido" placeholder="🔐 Escribe aquí lo que quieras guardar de forma segura..."></textarea>
-                <div style="display:flex;gap:10px;margin-top:10px">
-                    <input id="cat" placeholder="📁 Categoría (ej: bancos)" value="general" style="flex:1">
-                    <select id="tipo" style="width:100px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid var(--glass-border);color:var(--text)">
-          <option value="nota">📝 Nota</option>
-          <option value="credencial">🔑 Credencial</option>
-          <option value="documento">📄 Documento</option>
-        </select>
+        <!-- 🔐 Login / Registro -->
+        <div class="card" id="authCard">
+            <form id="loginForm" autocomplete="off">
+                <div class="form-group">
+                    <label>Correo electrónico</label>
+                    <input type="email" id="loginEmail" placeholder="tu@email.com" autocomplete="new-email" required>
                 </div>
-                <button class="btn btn-success" onclick="crear()" style="margin-top:12px">💾 Guardar y Cifrar</button>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="loginPass" placeholder="••••••••" autocomplete="new-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">✨ Iniciar Sesión</button>
+            </form>
+            <button onclick="toggleRegister()" class="btn btn-secondary">🆕 Crear Cuenta</button>
+            <button onclick="demoMode()" class="btn btn-secondary">🎯 Modo Demo</button>
+        </div>
+
+        <div class="card hidden" id="registerCard">
+            <form id="registerForm" autocomplete="off">
+                <div class="form-group">
+                    <label>Correo electrónico</label>
+                    <input type="email" id="regEmail" placeholder="tu@email.com" autocomplete="new-email" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="regPass" placeholder="••••••••" autocomplete="new-password" required>
+                </div>
+                <div class="form-group">
+                    <label>Código de afiliado (opcional)</label>
+                    <input type="text" id="refCode" placeholder="Ej: ROMABC12" autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-primary">✅ Registrarse</button>
+            </form>
+            <button onclick="toggleRegister()" class="btn btn-secondary">← Volver al login</button>
+        </div>
+
+        <!-- 🏠 Dashboard Principal -->
+        <div class="card hidden" id="dashboardCard">
+            <div class="nav">
+                <button onclick="showSection('vault')" class="btn nav-btn btn-primary">📋 Mis Secretos</button>
+                <button onclick="showSection('new')" class="btn nav-btn btn-secondary">➕ Nuevo</button>
+                <button onclick="showDashboard()" class="btn nav-btn btn-warning">💰 Dashboard</button>
+                <button onclick="showAffiliates()" class="btn nav-btn btn-accent">🤝 Afiliados</button>
+                <button onclick="showIdentity()" class="btn nav-btn btn-success">🆔 Identidad</button>
+                <button onclick="logout()" class="btn nav-btn btn-danger">🚪 Salir</button>
             </div>
 
-            <!-- Lista de secretos -->
-            <h3 style="margin:15px 0 10px;font-size:1.1rem">🗄️ Mis Secretos</h3>
-            <div id="lista"></div>
-            <button class="btn btn-secondary" onclick="cargar()" style="margin-top:10px">🔄 Actualizar</button>
+            <!-- 📋 Lista de secretos -->
+            <div id="vaultSection">
+                <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                    <select id="filterType" onchange="loadVault()" style="padding:8px;border-radius:8px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);">
+                        <option value="">Todos los tipos</option>
+                        <option value="texto">📝 Textos</option>
+                        <option value="archivo">📎 Archivos</option>
+                    </select>
+                    <select id="filterFolder" onchange="loadVault()" style="padding:8px;border-radius:8px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);">
+                        <option value="">Todas las carpetas</option>
+                        <option value="fotos">📸 Fotos</option>
+                        <option value="docs">📄 Documentos</option>
+                        <option value="videos">🎥 Videos</option>
+                        <option value="txt">📝 Textos</option>
+                        <option value="general">📁 General</option>
+                    </select>
+                </div>
+                <div id="vaultList"></div>
+            </div>
 
-            <!-- Acciones adicionales -->
-            <div style="margin-top:25px;padding-top:15px;border-top:1px solid var(--glass-border)">
-                <button class="btn" onclick="verQR()" style="margin-bottom:10px">🔐 Generar QR de Identidad</button>
-                <div id="qr-box" style="text-align:center;margin:10px 0"></div>
-
-                <button class="btn btn-secondary" onclick="verAudit()" style="margin-bottom:10px">📜 Ver mi Auditoría</button>
-                <div id="res"></div>
-
-                <button class="btn btn-secondary" onclick="exportar()" style="margin-top:10px">📤 Exportar Datos</button>
+            <!-- ➕ Nuevo secreto -->
+            <div id="newSection" class="hidden">
+                <form id="newSecretForm">
+                    <div class="form-group">
+                        <label>Título *</label>
+                        <input type="text" id="secretTitle" placeholder="Ej: Contraseña de banco" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select id="secretCategory">
+                            <option value="general">📁 General</option>
+                            <option value="bancos">🏦 Bancos</option>
+                            <option value="personal">👤 Personal</option>
+                            <option value="trabajo">💼 Trabajo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📁 Carpeta</label>
+                        <select id="secretFolder">
+                            <option value="general">📁 General</option>
+                            <option value="fotos">📸 Fotos</option>
+                            <option value="docs">📄 Documentos</option>
+                            <option value="videos">🎥 Videos</option>
+                            <option value="txt">📝 Textos</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Contenido (texto)</label>
+                        <textarea id="secretContent" rows="4" placeholder="Escribe tu secreto aquí..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>📎 O adjunta un archivo (JPG, PNG, PDF, DOC, MP4 - máx 5MB)</label>
+                        <input type="file" id="secretFile" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,video/mp4,video/webm">
+                        <div id="filePreview" class="file-preview hidden"></div>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                            <input type="checkbox" id="forSale"> 💰 Vender este secreto
+                        </label>
+                        <div id="pricingOptions" class="pricing-options hidden">
+                            <div style="margin-bottom:10px;">
+                                <label style="color:var(--text-muted);font-size:0.9rem;">Precio (USD)</label>
+                                <input type="number" id="priceInput" min="0.5" step="0.5" placeholder="Ej: 2.50" style="margin-top:5px;">
+                            </div>
+                            <div>
+                                <label style="color:var(--text-muted);font-size:0.9rem;">Duración del acceso</label>
+                                <select id="licenseDays" style="margin-top:5px;">
+                                    <option value="">♾️ Permanente</option>
+                                    <option value="1">⏱️ 24 horas</option>
+                                    <option value="7">📅 7 días</option>
+                                    <option value="30">🗓️ 30 días</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">💾 Guardar Secreto</button>
+                </form>
             </div>
         </div>
 
-        <div class="footer">
-            🔐 ApiRomwiner Vault • Cifrado AES-256-GCM • <a href="https://apiromwinervault.onrender.com/api/status" target="_blank">Estado</a>
+        <!-- 🆔 Identidad Universal Panel -->
+        <div class="card hidden" id="identityCard">
+            <h3 style="margin-bottom:16px;">🆔 Gestionar Identidad Universal</h3>
+            <div class="identity-panel">
+                <input type="text" id="appName" placeholder="Nombre de la App externa" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);">
+                <input type="text" id="redirectUri" placeholder="URL de la App (https://...)" style="width:100%;padding:10px;margin-bottom:10px;border-radius:8px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);">
+                <button onclick="registerApp()" class="btn btn-primary" style="margin-bottom:10px;">📝 Registrar App</button>
+                <button onclick="authorizeApp()" class="btn btn-accent" style="margin-bottom:10px;">🤝 Generar Token de Acceso</button>
+                <button onclick="revokeAll()" class="btn btn-danger">🗑️ Revocar Todos los Accesos</button>
+            </div>
+            <button onclick="showSection('vault')" class="btn btn-secondary" style="margin-top:16px;">← Volver</button>
+        </div>
+
+        <!-- 🤝 Afiliados Panel -->
+        <div class="card hidden" id="affiliatesCard">
+            <h3 style="margin-bottom:16px;">🤝 Tu Programa de Afiliados</h3>
+            <div class="affiliates-panel" id="affiliatesContent">Cargando...</div>
+            <button onclick="showSection('vault')" class="btn btn-secondary" style="margin-top:16px;">← Volver</button>
+        </div>
+
+        <!-- 💰 Dashboard Panel -->
+        <div class="card hidden" id="businessCard">
+            <h3 style="margin-bottom:16px;">💰 Dashboard de Negocio</h3>
+            <div id="businessContent" style="text-align:center;padding:20px;">Cargando métricas...</div>
+            <button onclick="showSection('vault')" class="btn btn-secondary" style="margin-top:16px;">← Volver</button>
+        </div>
+
+        <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.8rem;">
+            🔐 ApiRomwiner Vault • Cifrado AES-256-GCM • Estado: <span id="status">Online</span>
         </div>
     </div>
 
-    <!-- 🔔 Toast notifications -->
-    <div id="toast" class="toast"></div>
-
     <script>
         const API = '';
-        let token = localStorage.getItem('token');
-        if (token) showMain();
+        let token = localStorage.getItem('token'),
+            currentUser = null;
 
-        // 🎨 Funciones UI
-        function toast(msg, type) {
-            if (!type) type = 'success';
-            var t = document.getElementById('toast');
+        function toast(msg, type = 'success') {
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
             t.textContent = msg;
-            t.className = 'toast ' + type + ' show';
-            setTimeout(function() {
-                t.classList.remove('show');
-            }, 3000);
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
         }
 
-        function req(url, method, body) {
-            return fetch(API + url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: 'Bearer ' + token
-                    },
-                    body: body ? JSON.stringify(body) : undefined
-                })
-                .then(function(r) {
-                    return r.json();
-                })
-                .catch(function(e) {
-                    toast('❌ Error de conexión', 'error');
-                    return {
-                        error: 'Conexión'
-                    };
-                });
+        function toggleRegister() {
+            document.getElementById('authCard').classList.toggle('hidden');
+            document.getElementById('registerCard').classList.toggle('hidden');
         }
 
-        // 🔐 Auth
-        async function register() {
-            if (!email.value || !pass.value) return toast('⚠️ Ingresa correo y contraseña', 'error');
-            var r = await req('/register', 'POST', {
-                email: email.value,
-                password: pass.value
-            });
-            toast(r.message || r.error, r.success ? 'success' : 'error');
-            if (r.success) {
-                email.value = '';
-                pass.value = '';
+        function demoMode() {
+            token = 'demo_token_' + Date.now();
+            currentUser = {
+                email: 'demo@romwiner.com',
+                isAdmin: true,
+                uid: 'demo_uid'
+            };
+            localStorage.setItem('token', token);
+            showDashboardUI();
+            toast('🎯 Modo Demo activado');
+        }
+
+        function showDashboardUI() {
+            document.getElementById('authCard').classList.add('hidden');
+            document.getElementById('registerCard').classList.add('hidden');
+            document.getElementById('dashboardCard').classList.remove('hidden');
+            loadVault();
+        }
+
+        function showSection(section) {
+            document.getElementById('vaultSection').classList.add('hidden');
+            document.getElementById('newSection').classList.add('hidden');
+            document.getElementById('identityCard').classList.add('hidden');
+            document.getElementById('affiliatesCard').classList.add('hidden');
+            document.getElementById('businessCard').classList.add('hidden');
+
+            if (section === 'vault') document.getElementById('vaultSection').classList.remove('hidden');
+            if (section === 'new') document.getElementById('newSection').classList.remove('hidden');
+            if (section === 'identity') {
+                document.getElementById('identityCard').classList.remove('hidden');
+                loadIdentity();
             }
-        }
-        async function login() {
-            if (!email.value || !pass.value) return toast('⚠️ Ingresa tus credenciales', 'error');
-            var r = await req('/login', 'POST', {
-                email: email.value,
-                password: pass.value
-            });
-            if (r.success) {
-                token = r.token;
-                localStorage.setItem('token', token);
-                showMain();
-                toast('✅ Bienvenido');
-            } else toast(r.error, 'error');
+            if (section === 'affiliates') {
+                document.getElementById('affiliatesCard').classList.remove('hidden');
+                loadAffiliates();
+            }
+            if (section === 'business') {
+                document.getElementById('businessCard').classList.remove('hidden');
+                loadBusiness();
+            }
         }
 
         function logout() {
             localStorage.removeItem('token');
             token = null;
-            location.reload();
+            currentUser = null;
+            document.getElementById('dashboardCard').classList.add('hidden');
+            document.getElementById('authCard').classList.remove('hidden');
+            toast('🚪 Sesión cerrada');
         }
 
-        function demo() {
-            email.value = 'demo@apiromwiner.com';
-            pass.value = 'Demo2026!';
-            toast('🎯 Usa estas credenciales de prueba');
-        }
-
-        function showMain() {
-            document.getElementById('auth').classList.add('hide');
-            document.getElementById('main').classList.remove('hide');
-            cargar();
-        }
-
-        // 🗄️ Vault
-        async function cargar() {
-            var r = await req('/vault?categoria=', 'GET');
-            if (!r.items) return;
-            var h = '';
-            r.items.forEach(function(i) {
-                h += '<div class="secret-item" onclick="leer(\'' + i.id + '\')">' +
-                    '<b>' + i.titulo + '</b>' +
-                    '<small>📁 ' + (i.categoria || 'general') + ' • 🕐 ' + new Date(i.created_at).toLocaleDateString() + '</small>' +
-                    '</div>';
-            });
-            document.getElementById('lista').innerHTML = h || '<p style="text-align:center;color:var(--text-muted);padding:20px">📭 Aún no hay secretos guardados</p>';
-        }
-
-        async function crear() {
-            if (!titulo.value || !contenido.value) return toast('⚠️ Título y contenido son obligatorios', 'error');
-            var r = await req('/vault', 'POST', {
-                titulo: titulo.value,
-                contenido: contenido.value,
-                categoria: cat.value || 'general',
-                tipo: tipo.value || 'nota'
-            });
-            if (r.success) {
-                toast('✅ Secreto guardado y cifrado');
-                titulo.value = '';
-                contenido.value = '';
-                cargar();
-            } else toast(r.error, 'error');
-        }
-
-        async function leer(id) {
-            var r = await req('/vault/' + id, 'GET');
-            if (r.success) {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(r.data.contenido);
+        // Preview de archivo
+        document.getElementById('secretFile') ? .addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('filePreview');
+            if (file) {
+                preview.classList.remove('hidden');
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    preview.innerHTML = '';
+                    preview.appendChild(img);
+                } else {
+                    preview.innerHTML = `<strong>📎 ${file.name}</strong><br><small>${Math.round(file.size/1024)} KB</small>`;
                 }
-                toast('🔓 ' + r.data.titulo + '\n\n' + r.data.contenido + '\n\n✅ Copiado al portapapeles');
-            } else toast(r.error, 'error');
-        }
+            } else {
+                preview.classList.add('hidden');
+            }
+        });
 
-        // 🟢 Identidad QR
-        async function verQR() {
-            var r = await req('/identity/qr', 'GET');
-            if (r.success) {
-                document.getElementById('qr-box').innerHTML =
-                    '<img src="' + r.qr + '" width="200" alt="QR de identidad">' +
-                    '<p style="margin-top:10px;font-size:0.85rem;color:var(--text-muted)">' +
-                    '🔐 Válido hasta: ' + new Date(r.expires).toLocaleTimeString() + '<br>' +
-                    'Escanea para verificar identidad sin exponer datos' +
-                    '</p>';
-                toast('🔐 QR generado');
-            } else toast(r.error, 'error');
-        }
+        // Toggle de opciones de precio
+        document.getElementById('forSale') ? .addEventListener('change', function(e) {
+            document.getElementById('pricingOptions').style.display = e.target.checked ? 'block' : 'none';
+        });
 
-        // 📜 Auditoría
-        async function verAudit() {
-            var r = await req('/my-audit', 'GET');
-            if (r.success && r.logs && r.logs.length) {
-                var h = '';
-                r.logs.slice(0, 10).forEach(function(l) {
-                    var icon = l.action === 'create' ? '✨' : l.action === 'read' ? '🔓' : l.action === 'shared' ? '🤝' : '📋';
-                    h += '<p style="margin:5px 0"><b>' + icon + ' ' + l.action + '</b><br><small>' + new Date(l.timestamp).toLocaleString() + ' • ' + (l.ip || '?') + '</small></p>';
+        // Login
+        document.getElementById('loginForm') ? .addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPass').value;
+
+            try {
+                const res = await fetch(API + '/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password
+                    })
                 });
-                document.getElementById('res').innerHTML = h;
-            } else document.getElementById('res').innerHTML = '<p style="text-align:center">📜 Sin actividad reciente</p>';
-        }
+                const data = await res.json();
+                if (data.success) {
+                    token = data.token;
+                    currentUser = data;
+                    localStorage.setItem('token', token);
+                    showDashboardUI();
+                    toast(data.message || '✅ Bienvenido');
+                } else {
+                    toast(data.error || '❌ Error al iniciar sesión', 'error');
+                }
+            } catch (err) {
+                toast('❌ Error de conexión', 'error');
+            }
+        });
 
-        // 📤 Exportar
-        async function exportar() {
-            toast('🔄 Preparando exportación...');
-            var r = await req('/export', 'GET');
-            if (r.success) {
-                var blob = new Blob([JSON.stringify(r, null, 2)], {
-                    type: 'application/json'
-                });
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = 'apiromwiner-export.json';
-                a.click();
-                URL.revokeObjectURL(url);
-                toast('✅ Datos exportados');
-            } else toast(r.error, 'error');
-        }
+        // Registro
+        document.getElementById('registerForm') ? .addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPass').value;
+            const refCode = document.getElementById('refCode').value;
 
-        // 📱 PWA install prompt
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                    console.log('SW error:', err);
+            try {
+                const res = await fetch(API + '/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        refCode
+                    })
                 });
+                const data = await res.json();
+                if (data.success) {
+                    toast('✅ Registrado. Ahora inicia sesión.');
+                    toggleRegister();
+                } else {
+                    toast(data.error || '❌ Error al registrar', 'error');
+                }
+            } catch (err) {
+                toast('❌ Error de conexión', 'error');
+            }
+        });
+
+        // Cargar vault
+        async function loadVault() {
+            const tipo = document.getElementById('filterType').value;
+            const folder = document.getElementById('filterFolder').value;
+            let url = API + '/vault?';
+            if (tipo) url += `tipo=${tipo}&`;
+            if (folder) url += `folderId=${folder}`;
+
+            try {
+                const res = await fetch(url, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                const data = await res.json();
+                const list = document.getElementById('vaultList');
+                list.innerHTML = '';
+
+                if (data.items && data.items.length > 0) {
+                    data.items.forEach(item => {
+                                const div = document.createElement('div');
+                                div.className = 'secret-item';
+                                div.innerHTML = `
+                        <div class="secret-title">
+                            <span>${item.titulo}</span>
+                            ${item.isForSale ? `<span class="badge badge-warning">💰 $${item.price}</span>` : ''}
+                        </div>
+                        <div class="secret-meta">
+                            ${item.tipo === 'archivo' ? '📎 ' + (item.fileName || 'Archivo') : '📝 Texto'} 
+                            • 📁 ${item.folderId || 'General'} 
+                            • 🕐 ${new Date(item.created_at).toLocaleDateString()}
+                            ${item.sales > 0 ? `• 🛒 ${item.sales} ventas` : ''}
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+            } else {
+                list.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">📭 Aún no tienes secretos. ¡Crea el primero!</p>';
+            }
+        } catch(err) {
+            toast('❌ Error cargando secretos', 'error');
+        }
+    }
+    
+    // Guardar secreto
+    document.getElementById('newSecretForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('titulo', document.getElementById('secretTitle').value);
+        formData.append('categoria', document.getElementById('secretCategory').value);
+        formData.append('folderId', document.getElementById('secretFolder').value);
+        
+        const file = document.getElementById('secretFile').files[0];
+        if(file) {
+            formData.append('archivo', file);
+        } else {
+            formData.append('contenido', document.getElementById('secretContent').value);
+        }
+        
+        if(document.getElementById('forSale').checked) {
+            formData.append('price', document.getElementById('priceInput').value);
+            formData.append('licenseDays', document.getElementById('licenseDays').value);
+        }
+        
+        try {
+            const res = await fetch(API + '/vault', {
+                method: 'POST',
+                headers: {'Authorization': 'Bearer ' + token},
+                body: formData
             });
+            const data = await res.json();
+            if(data.success) {
+                toast('✅ Secreto guardado');
+                document.getElementById('newSecretForm').reset();
+                document.getElementById('filePreview').classList.add('hidden');
+                document.getElementById('pricingOptions').style.display = 'none';
+                showSection('vault');
+                loadVault();
+            } else {
+                toast(data.error || '❌ Error al guardar', 'error');
+            }
+        } catch(err) {
+            toast('❌ Error de conexión', 'error');
         }
+    });
+    
+    // Identidad Universal
+    async function loadIdentity() {
+        document.getElementById('affiliatesContent').innerHTML = 'Cargando...';
+    }
+    
+    async function registerApp() {
+        const appName = document.getElementById('appName').value;
+        const redirectUri = document.getElementById('redirectUri').value;
+        if(!appName || !redirectUri) return toast('⚠️ Completa nombre y URL', 'error');
+        
+        try {
+            const res = await fetch(API + '/api/identity/register-app', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+                body: JSON.stringify({appName, redirectUri})
+            });
+            const d = await res.json();
+            alert(d.success ? '✅ App ID: '+d.appId+'\nSecreto: '+d.appSecret : d.error);
+        } catch(e) { toast('❌ Error', 'error'); }
+    }
+    
+    async function authorizeApp() {
+        const appId = prompt('Ingresa el App ID de la app externa:');
+        if(!appId) return;
+        const scopes = ['profile','email','vault:read'];
+        
+        try {
+            const res = await fetch(API + '/api/identity/authorize', {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+                body: JSON.stringify({appId, scopes})
+            });
+            const d = await res.json();
+            if(d.success) {
+                navigator.clipboard.writeText(d.token);
+                alert('✅ Token generado y copiado:\n\n'+d.token+'\n\nCompártelo con la app externa.');
+            } else { alert(d.error); }
+        } catch(e) { toast('❌ Error', 'error'); }
+    }
+    
+    async function revokeAll() {
+        if(!confirm('¿Revocar TODOS los accesos de identidad?')) return;
+        try {
+            const res = await fetch(API + '/api/identity/revoke/all', {
+                method:'DELETE',
+                headers:{'Authorization':'Bearer '+token}
+            });
+            const d = await res.json();
+            alert(d.message || 'Error');
+        } catch(e) { toast('❌ Error', 'error'); }
+    }
+    
+    // Afiliados
+    async function loadAffiliates() {
+        const content = document.getElementById('affiliatesContent');
+        content.innerHTML = 'Cargando...';
+        
+        try {
+            // Activar comisiones pendientes primero
+            await fetch(API + '/api/affiliates/activate-pending', { 
+                headers: { 'Authorization': 'Bearer ' + token } 
+            });
+            
+            const r = await fetch(API + '/api/affiliates/dashboard', { 
+                headers: { 'Authorization': 'Bearer ' + token } 
+            });
+            const data = await r.json();
+            const d = data.dashboard;
+            
+            content.innerHTML = `
+                <div style="text-align:left;">
+                    <p><strong>🔗 Tu enlace:</strong><br><code style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:4px;display:block;margin:8px 0;word-break:break-all;">${d.referralLink}</code></p>
+                    <p><strong>📊 Nivel:</strong> ${d.level.toUpperCase()}</p>
+                    <p><strong>👥 Referidos:</strong> ${d.totalReferrals}</p>
+                    <p><strong>⏳ Pendiente:</strong> $${d.pendingBalance}</p>
+                    <p><strong>💰 Disponible:</strong> $${d.availableBalance}</p>
+                    ${d.availableBalance >= 10 ? `<button onclick="withdrawFunds()" class="btn btn-success" style="margin-top:10px;">💸 Solicitar Retiro ($${d.availableBalance})</button>` : `<p style="color:var(--text-muted);font-size:0.85rem;">⏰ Mínimo para retiro: $10</p>`}
+                </div>
+                <button onclick="copyReferralLink()" class="btn btn-secondary" style="margin-top:10px;">📋 Copiar Enlace de Afiliado</button>
+            `;
+        } catch(e) {
+            content.innerHTML = '<p style="color:var(--danger);">❌ Error cargando afiliados</p>';
+        }
+    }
+    
+    function copyReferralLink() {
+        fetch(API + '/api/affiliates/dashboard', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(r => r.json())
+            .then(d => {
+                navigator.clipboard.writeText(d.dashboard.referralLink);
+                toast('✅ Enlace copiado: ' + d.dashboard.referralLink);
+            });
+    }
+    
+    async function withdrawFunds() {
+        if(!confirm('¿Solicitar retiro de tus ganancias disponibles?')) return;
+        try {
+            const res = await fetch(API + '/api/affiliates/withdraw', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+                body: JSON.stringify({method: 'manual'})
+            });
+            const d = await res.json();
+            alert(d.success ? '✅ ' + d.message : d.error);
+            loadAffiliates();
+        } catch(e) { toast('❌ Error', 'error'); }
+    }
+    
+    // Dashboard de negocio
+    async function loadBusiness() {
+        const content = document.getElementById('businessContent');
+        content.innerHTML = 'Cargando métricas...';
+        
+        try {
+            const r = await fetch(API + '/api/dashboard', { headers: { 'Authorization': 'Bearer ' + token } });
+            const data = await r.json();
+            const d = data.dashboard;
+            
+            content.innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;">
+                    <div style="background:rgba(16,185,129,0.15);padding:16px;border-radius:12px;">
+                        <div style="font-size:1.5rem;font-weight:700;color:var(--success);">$${d.revenue?.toFixed(2) || '0.00'}</div>
+                        <div style="font-size:0.85rem;color:var(--text-muted);">Ingresos totales</div>
+                    </div>
+                    <div style="background:rgba(245,158,11,0.15);padding:16px;border-radius:12px;">
+                        <div style="font-size:1.5rem;font-weight:700;color:var(--warning);">${d.sales || 0}</div>
+                        <div style="font-size:0.85rem;color:var(--text-muted);">Ventas realizadas</div>
+                    </div>
+                    <div style="background:rgba(99,102,241,0.15);padding:16px;border-radius:12px;">
+                        <div style="font-size:1.5rem;font-weight:700;color:var(--primary);">${d.active || 0}</div>
+                        <div style="font-size:0.85rem;color:var(--text-muted);">Secretos activos</div>
+                    </div>
+                    <div style="background:rgba(236,72,153,0.15);padding:16px;border-radius:12px;">
+                        <div style="font-size:1.5rem;font-weight:700;color:var(--secondary);">${d.forSale || 0}</div>
+                        <div style="font-size:0.85rem;color:var(--text-muted);">A la venta</div>
+                    </div>
+                </div>
+                <p style="margin-top:16px;color:var(--text-muted);font-size:0.85rem;">
+                    💡 Tip: Comparte tus secretos con precio para generar ingresos pasivos.
+                </p>
+            `;
+        } catch(e) {
+            content.innerHTML = '<p style="color:var(--danger);">❌ Error cargando dashboard</p>';
+        }
+    }
+    
+    function showDashboard() { showSection('business'); loadBusiness(); }
+    function showAffiliates() { showSection('affiliates'); loadAffiliates(); }
+    function showIdentity() { showSection('identity'); loadIdentity(); }
+    
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Forzar campos vacíos para evitar autofill
+        document.querySelectorAll('input[type="password"], input[type="email"]').forEach(input => {
+            input.value = '';
+            input.setAttribute('autocomplete', 'new-password');
+        });
+        document.querySelectorAll('form').forEach(form => {
+            form.setAttribute('autocomplete', 'off');
+        });
+        
+        // Si hay token, mostrar dashboard
+        if(token) {
+            showDashboardUI();
+        }
+        
+        // Verificar estado de la API
+        fetch(API + '/api/status')
+            .then(r => r.json())
+            .then(d => {
+                document.getElementById('status').textContent = d.status || 'Online';
+            })
+            .catch(() => {
+                document.getElementById('status').textContent = 'Verificando...';
+            });
+    });
     </script>
 </body>
 
