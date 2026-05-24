@@ -63,8 +63,15 @@ app.use(express.static('public'));
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdir(uploadDir, { recursive: true }).catch(function() {});
 const storage = multer.diskStorage({ destination: function(req, file, cb) { cb(null, uploadDir); }, filename: function(req, file, cb) { cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + file.originalname); } });
-const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: function(req, file, cb) { const allowed = /jpg|jpeg|png|gif|pdf|doc|docx|xls|xlsx|txt|mp4|webm/; if (allowed.test(path.extname(file.originalname).toLowerCase()) || allowed.test(file.mimetype)) cb(null, true);
-        else cb(new Error('Archivo no permitido')); } });
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: function(req, file, cb) {
+        const allowed = /jpg|jpeg|png|gif|pdf|doc|docx|xls|xlsx|txt|mp4|webm/;
+        if (allowed.test(path.extname(file.originalname).toLowerCase()) || allowed.test(file.mimetype)) cb(null, true);
+        else cb(new Error('Archivo no permitido'));
+    }
+});
 
 // 🚦 RATE LIMIT + SEGURIDAD WEB
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Demasiadas solicitudes' } }));
@@ -77,15 +84,15 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'turraygoza67@gmail.com,nubisl
 const APP_URL = process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com';
 
 // 🔐 AUTH + ADMIN
+
 const authenticate = function(req, res, next) {
     const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'Token requerido' });
+    if (!authHeader) { return res.status(401).json({ error: 'Token requerido' }); }
     const token = authHeader.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Token requerido' });
+    if (!token) { return res.status(401).json({ error: 'Token requerido' }); }
     try { req.user = jwt.verify(token, JWT_SECRET);
         next(); } catch (err) { return res.status(401).json({ error: 'Token inválido' }); }
 };
-
 const requireAdmin = async function(req, res, next) {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
@@ -139,8 +146,10 @@ app.post('/register', async function(req, res) {
         logAudit('register', { email });
         logger.info('✅ Registrado: ' + email);
         res.status(201).json({ success: true, message: 'Registrado. Inicia sesión.' });
-    } catch (err) { logger.error('❌ Registro: ' + err.message);
-        res.status(500).json({ error: 'Error interno' }); }
+    } catch (err) {
+        logger.error('❌ Registro: ' + err.message);
+        res.status(500).json({ error: 'Error interno' });
+    }
 });
 
 app.post('/login', async function(req, res) {
@@ -162,143 +171,298 @@ app.post('/login', async function(req, res) {
 
 // 👤 PERFIL
 app.get('/api/profile', authenticate, async function(req, res) {
-    try { if (!mongoReady || !profilesCollection) return res.json({ success: true, profile: { displayName: 'Demo', bio: '' }, demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const p = await profilesCollection.findOne({ userId: user._id });
-        res.json({ success: true, profile: p || { displayName: '', bio: '', isPublic: false } }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+    try {
+        if (!mongoReady || !profilesCollection) return res.json({ success: true, profile: { displayName: 'Demo', bio: '' }, demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const p = await profilesCollection.findOne({ userId: user._id });
+        res.json({ success: true, profile: p || { displayName: '', bio: '', isPublic: false } });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 app.post('/api/profile', authenticate, upload.single('avatar'), async function(req, res) {
-    try { const { displayName, bio, isPublic } = req.body; if (!mongoReady || !profilesCollection) return res.json({ success: true, message: 'Actualizado (demo)', demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const up = {}; if (displayName) up.displayName = displayName; if (bio) up.bio = bio; if (isPublic !== undefined) up.isPublic = isPublic === 'true'; if (req.file) up.avatarUrl = '/uploads/' + req.file.filename;
+    try {
+        const { displayName, bio, isPublic } = req.body;
+        if (!mongoReady || !profilesCollection) return res.json({ success: true, message: 'Actualizado (demo)', demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const up = {};
+        if (displayName) up.displayName = displayName;
+        if (bio) up.bio = bio;
+        if (isPublic !== undefined) up.isPublic = isPublic === 'true';
+        if (req.file) up.avatarUrl = '/uploads/' + req.file.filename;
         await profilesCollection.updateOne({ userId: user._id }, { $set: up, updatedAt: new Date() }, { upsert: true });
-        res.json({ success: true, message: 'Perfil actualizado' }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+        res.json({ success: true, message: 'Perfil actualizado' });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 
 // 💰 WALLET + PAGOS
 app.get('/api/wallet', authenticate, async function(req, res) {
-    try { if (!mongoReady || !walletCollection) return res.json({ success: true, wallet: { balance: 0, currency: 'USD', history: [] }, demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const w = await walletCollection.findOne({ userId: user._id });
-        res.json({ success: true, wallet: w || { balance: 0, currency: 'USD', history: [] } }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+    try {
+        if (!mongoReady || !walletCollection) return res.json({ success: true, wallet: { balance: 0, currency: 'USD', history: [] }, demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const w = await walletCollection.findOne({ userId: user._id });
+        res.json({ success: true, wallet: w || { balance: 0, currency: 'USD', history: [] } });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 app.post('/api/wallet/deposit', authenticate, async function(req, res) {
-    try { const amount = parseFloat(req.body.amount); if (!amount || amount < 5) return res.status(400).json({ error: 'Mínimo $5 USD' }); if (STRIPE_SECRET_KEY.includes('placeholder')) return res.json({ success: true, message: 'Modo demo: agrega STRIPE_SECRET_KEY', demo: true, clientSecret: 'demo' }); const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', { method: 'POST', headers: { 'Authorization': 'Bearer ' + STRIPE_SECRET_KEY, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ amount: Math.round(amount * 100), currency: 'usd', metadata: JSON.stringify({ uid: req.user.uid, type: 'deposit' }) }) }); const data = await stripeRes.json(); if (!data.client_secret) return res.status(500).json({ error: 'Stripe error' });
-        res.json({ success: true, clientSecret: data.client_secret, paymentId: data.id }); } catch (err) { res.status(500).json({ error: 'Error procesando pago' }); }
+    try {
+        const amount = parseFloat(req.body.amount);
+        if (!amount || amount < 5) return res.status(400).json({ error: 'Mínimo $5 USD' });
+        if (STRIPE_SECRET_KEY.includes('placeholder')) return res.json({ success: true, message: 'Modo demo: agrega STRIPE_SECRET_KEY', demo: true, clientSecret: 'demo' });
+        const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', { method: 'POST', headers: { 'Authorization': 'Bearer ' + STRIPE_SECRET_KEY, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ amount: Math.round(amount * 100), currency: 'usd', metadata: JSON.stringify({ uid: req.user.uid, type: 'deposit' }) }) });
+        const data = await stripeRes.json();
+        if (!data.client_secret) return res.status(500).json({ error: 'Stripe error' });
+        res.json({ success: true, clientSecret: data.client_secret, paymentId: data.id });
+    } catch (err) { res.status(500).json({ error: 'Error procesando pago' }); }
 });
 app.post('/api/wallet/withdraw', authenticate, async function(req, res) {
-    try { const amount = parseFloat(req.body.amount),
-            method = req.body.method || 'bank'; if (!mongoReady || !walletCollection) return res.json({ success: true, message: 'Retiro demo', demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const w = await walletCollection.findOne({ userId: user._id }); if (!w || w.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente' });
+    try {
+        const amount = parseFloat(req.body.amount),
+            method = req.body.method || 'bank';
+        if (!mongoReady || !walletCollection) return res.json({ success: true, message: 'Retiro demo', demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const w = await walletCollection.findOne({ userId: user._id });
+        if (!w || w.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente' });
         await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -amount }, $push: { history: { type: 'withdraw', amount, method, date: new Date() } } });
         await transactionsCollection.insertOne({ userId: user._id, type: 'withdrawal', amount, method, status: 'pending', createdAt: new Date() });
-        res.json({ success: true, message: 'Solicitud enviada' }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+        res.json({ success: true, message: 'Solicitud enviada' });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 
 // 👑 DUEÑO: REGALAR + MULTIAMIN
 app.post('/api/admin/gift-account', authenticate, requireAdmin, async function(req, res) {
-    try { const { recipientEmail, initialBalance, note } = req.body; if (!recipientEmail) return res.status(400).json({ error: 'Email requerido' }); if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo regalo', demo: true }); let user = await usersCollection.findOne({ email: recipientEmail }); let tempPassword = null; if (!user) { tempPassword = generateTempPass(); const hashed = await bcrypt.hash(tempPassword, 10); const newUser = { email: recipientEmail, password: hashed, uid: generateUID(), refCode: generateRefCode(), isAdmin: false, isGifted: true, giftedBy: req.admin.uid, giftedAt: new Date(), giftedNote: note || '', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } }; const r = await usersCollection.insertOne(newUser);
+    try {
+        const { recipientEmail, initialBalance, note } = req.body;
+        if (!recipientEmail) return res.status(400).json({ error: 'Email requerido' });
+        if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo regalo', demo: true });
+        let user = await usersCollection.findOne({ email: recipientEmail });
+        let tempPassword = null;
+        if (!user) {
+            tempPassword = generateTempPass();
+            const hashed = await bcrypt.hash(tempPassword, 10);
+            const newUser = { email: recipientEmail, password: hashed, uid: generateUID(), refCode: generateRefCode(), isAdmin: false, isGifted: true, giftedBy: req.admin.uid, giftedAt: new Date(), giftedNote: note || '', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
+            const r = await usersCollection.insertOne(newUser);
             await profilesCollection.insertOne({ userId: r.insertedId, uid: newUser.uid, displayName: 'Usuario Regalado', bio: note || '', isPublic: false, createdAt: new Date() });
             await affiliatesCollection.insertOne({ userId: r.insertedId, refCode: newUser.refCode, level: 'bronce', createdAt: new Date() });
-            user = newUser; } const bal = parseFloat(initialBalance) || 0;
+            user = newUser;
+        }
+        const bal = parseFloat(initialBalance) || 0;
         await walletCollection.updateOne({ userId: user._id }, { $setOnInsert: { balance: bal, currency: 'USD', history: [] }, $inc: { balance: bal }, $push: { history: { type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() } } }, { upsert: true });
         await transactionsCollection.insertOne({ type: 'admin_gift', amount, admin: req.admin.uid, recipient: user.email, note: note || '', createdAt: new Date() });
         logAudit('gift', { recipientEmail, bal });
-        res.json({ success: true, recipientEmail: user.email, uid: user.uid, tempPassword, balance: bal }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+        res.json({ success: true, recipientEmail: user.email, uid: user.uid, tempPassword, balance: bal });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 
 // 📦 VAULT + COMPRAS
 app.post('/vault', authenticate, upload.single('archivo'), async function(req, res) {
-    try { const titulo = req.body.titulo,
+    try {
+        const titulo = req.body.titulo,
             categoria = req.body.categoria || 'general',
             folderId = req.body.folderId || 'general',
             contenido = req.body.contenido,
             price = parseFloat(req.body.price) || 0,
             forSale = req.body.forSale === 'true' || req.body.forSale === true,
-            licenseDays = parseInt(req.body.licenseDays) || null; if (!titulo) return res.status(400).json({ error: 'Título requerido' }); if (!mongoReady || !secretsCollection) return res.status(201).json({ success: true, message: 'Guardado demo', id: 'demo', demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const data = { userId: user._id, userUid: user.uid, titulo, categoria, folderId, tipo: req.file ? 'archivo' : 'texto', contenido: null, fileName: null, fileType: null, fileSize: null, encrypted: null, isForSale: forSale, price: forSale ? price : 0, licenseDays, sales: 0, buyers: [], createdAt: new Date() }; if (req.file) { data.fileName = req.file.originalname;
+            licenseDays = parseInt(req.body.licenseDays) || null;
+        if (!titulo) return res.status(400).json({ error: 'Título requerido' });
+        if (!mongoReady || !secretsCollection) return res.status(201).json({ success: true, message: 'Guardado demo', id: 'demo', demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const data = { userId: user._id, userUid: user.uid, titulo, categoria, folderId, tipo: req.file ? 'archivo' : 'texto', contenido: null, fileName: null, fileType: null, fileSize: null, encrypted: null, isForSale: forSale, price: forSale ? price : 0, licenseDays, sales: 0, buyers: [], createdAt: new Date() };
+        if (req.file) {
+            data.fileName = req.file.originalname;
             data.fileType = req.file.mimetype;
             data.fileSize = req.file.size;
             data.encrypted = encrypt((await fs.readFile(req.file.path)).toString('base64'));
-            await fs.unlink(req.file.path).catch(function() {}); } else if (contenido) { data.contenido = encrypt(contenido).encrypted; } const result = await secretsCollection.insertOne(data);
+            await fs.unlink(req.file.path).catch(function() {});
+        } else if (contenido) { data.contenido = encrypt(contenido).encrypted; }
+        const result = await secretsCollection.insertOne(data);
         logAudit('vault_create', { titulo, userId: user.uid });
-        res.status(201).json({ success: true, message: 'Guardado', id: result.insertedId }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+        res.status(201).json({ success: true, message: 'Guardado', id: result.insertedId });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 app.get('/vault', authenticate, async function(req, res) {
-    try { if (!mongoReady || !secretsCollection) return res.json({ success: true, items: [], total: 0 }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const items = await secretsCollection.find({ $or: [{ userId: user._id }, { isForSale: true }] }).sort({ createdAt: -1 }).limit(50).project({ encrypted: 0, contenido: 0 }).toArray();
-        res.json({ success: true, items, total: items.length }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+    try {
+        if (!mongoReady || !secretsCollection) return res.json({ success: true, items: [], total: 0 });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const items = await secretsCollection.find({ $or: [{ userId: user._id }, { isForSale: true }] }).sort({ createdAt: -1 }).limit(50).project({ encrypted: 0, contenido: 0 }).toArray();
+        res.json({ success: true, items, total: items.length });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 app.get('/vault/:id', authenticate, async function(req, res) {
-    try { if (!mongoReady || !secretsCollection) return res.json({ success: true, secret: { id: req.params.id, titulo: 'Demo' }, demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) }); if (!secret) return res.status(404).json({ error: 'No encontrado' }); if (secret.userId.toString() !== user._id.toString() && secret.buyers.indexOf(user.uid) === -1 && !secret.isForSale) return res.status(403).json({ error: 'Sin acceso' }); let contenido = null; if (secret.tipo === 'texto' && secret.contenido) contenido = decrypt({ iv: secret.encrypted.iv, encrypted: secret.contenido, authTag: secret.encrypted.authTag });
+    try {
+        if (!mongoReady || !secretsCollection) return res.json({ success: true, secret: { id: req.params.id, titulo: 'Demo' }, demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
+        if (!secret) return res.status(404).json({ error: 'No encontrado' });
+        if (secret.userId.toString() !== user._id.toString() && secret.buyers.indexOf(user.uid) === -1 && !secret.isForSale) return res.status(403).json({ error: 'Sin acceso' });
+        let contenido = null;
+        if (secret.tipo === 'texto' && secret.contenido) contenido = decrypt({ iv: secret.encrypted.iv, encrypted: secret.contenido, authTag: secret.encrypted.authTag });
         else if (secret.tipo === 'archivo' && secret.encrypted) contenido = Buffer.from(decrypt(secret.encrypted), 'base64').toString('base64');
-        res.json({ success: true, secret: { id: secret._id.toString(), titulo: secret.titulo, contenido, isForSale: secret.isForSale, price: secret.price, sales: secret.sales, licenseDays: secret.licenseDays } }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+        res.json({ success: true, secret: { id: secret._id.toString(), titulo: secret.titulo, contenido, isForSale: secret.isForSale, price: secret.price, sales: secret.sales, licenseDays: secret.licenseDays } });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 app.delete('/vault/:id', authenticate, async function(req, res) {
-    try { if (!mongoReady || !secretsCollection) return res.json({ success: true, message: 'Eliminado demo', demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const result = await secretsCollection.deleteOne({ _id: new ObjectId(req.params.id), userId: user._id }); if (result.deletedCount === 0) return res.status(404).json({ error: 'No autorizado' });
+    try {
+        if (!mongoReady || !secretsCollection) return res.json({ success: true, message: 'Eliminado demo', demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const result = await secretsCollection.deleteOne({ _id: new ObjectId(req.params.id), userId: user._id });
+        if (result.deletedCount === 0) return res.status(404).json({ error: 'No autorizado' });
         logAudit('vault_delete', { id: req.params.id, userId: user.uid });
-        res.json({ success: true, message: 'Eliminado' }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+        res.json({ success: true, message: 'Eliminado' });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 
 app.post('/api/buy/:id', authenticate, async function(req, res) {
-    try { if (!mongoReady || !secretsCollection || !walletCollection) return res.json({ success: true, message: 'Compra demo', demo: true }); const buyer = await usersCollection.findOne({ uid: req.user.uid }); if (!buyer) return res.status(404).json({ error: 'No encontrado' }); const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), isForSale: true }); if (!secret) return res.status(404).json({ error: 'No disponible' }); if (secret.buyers.indexOf(buyer.uid) !== -1) return res.status(400).json({ error: 'Ya comprado' }); const price = secret.price || 10; const bWallet = await walletCollection.findOne({ userId: buyer._id }); if (!bWallet || bWallet.balance < price) return res.status(400).json({ error: 'Saldo insuficiente' }); const seller = await usersCollection.findOne({ _id: secret.userId }); const sWallet = await walletCollection.findOne({ userId: seller._id }); let affCommission = 0; if (buyer.referredBy) { const referrer = await usersCollection.findOne({ refCode: buyer.referredBy }); if (referrer && referrer._id.toString() !== secret.userId.toString()) affCommission = price * 0.15; } const sellerAmount = price - affCommission;
-        await walletCollection.updateOne({ userId: buyer._id }, { $inc: { balance: -price }, $push: { history: { type: 'purchase', amount: -price, item: secret.titulo, date: new Date() } } }); if (sWallet) await walletCollection.updateOne({ _id: sWallet._id }, { $inc: { balance: sellerAmount }, $push: { history: { type: 'sale', amount: sellerAmount, item: secret.titulo, date: new Date() } } }); if (affCommission > 0) { const ref = await usersCollection.findOne({ refCode: buyer.referredBy }); if (ref) { const rWallet = await walletCollection.findOne({ userId: ref._id }); if (rWallet) await walletCollection.updateOne({ _id: rWallet._id }, { $inc: { balance: affCommission }, $push: { history: { type: 'affiliate', amount: affCommission, item: 'Ref: ' + secret.titulo, date: new Date() } } }); } }
+    try {
+        if (!mongoReady || !secretsCollection || !walletCollection) return res.json({ success: true, message: 'Compra demo', demo: true });
+        const buyer = await usersCollection.findOne({ uid: req.user.uid });
+        if (!buyer) return res.status(404).json({ error: 'No encontrado' });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), isForSale: true });
+        if (!secret) return res.status(404).json({ error: 'No disponible' });
+        if (secret.buyers.indexOf(buyer.uid) !== -1) return res.status(400).json({ error: 'Ya comprado' });
+        const price = secret.price || 10;
+        const bWallet = await walletCollection.findOne({ userId: buyer._id });
+        if (!bWallet || bWallet.balance < price) return res.status(400).json({ error: 'Saldo insuficiente' });
+        const seller = await usersCollection.findOne({ _id: secret.userId });
+        const sWallet = await walletCollection.findOne({ userId: seller._id });
+        let affCommission = 0;
+        if (buyer.referredBy) { const referrer = await usersCollection.findOne({ refCode: buyer.referredBy }); if (referrer && referrer._id.toString() !== secret.userId.toString()) affCommission = price * 0.15; }
+        const sellerAmount = price - affCommission;
+        await walletCollection.updateOne({ userId: buyer._id }, { $inc: { balance: -price }, $push: { history: { type: 'purchase', amount: -price, item: secret.titulo, date: new Date() } } });
+        if (sWallet) await walletCollection.updateOne({ _id: sWallet._id }, { $inc: { balance: sellerAmount }, $push: { history: { type: 'sale', amount: sellerAmount, item: secret.titulo, date: new Date() } } });
+        if (affCommission > 0) { const ref = await usersCollection.findOne({ refCode: buyer.referredBy }); if (ref) { const rWallet = await walletCollection.findOne({ userId: ref._id }); if (rWallet) await walletCollection.updateOne({ _id: rWallet._id }, { $inc: { balance: affCommission }, $push: { history: { type: 'affiliate', amount: affCommission, item: 'Ref: ' + secret.titulo, date: new Date() } } }); } }
         await secretsCollection.updateOne({ _id: secret._id }, { $inc: { sales: 1 }, $push: { buyers: buyer.uid } });
         await transactionsCollection.insertOne({ type: 'sale', amount: price, seller: secret.userUid, buyer: buyer.uid, item: secret.titulo, createdAt: new Date() });
         logAudit('purchase', { buyer: buyer.uid, item: secret.titulo, price });
-        res.json({ success: true, message: 'Compra exitosa. Contenido desbloqueado.' }); } catch (err) { res.status(500).json({ error: 'Error procesando compra' }); }
+        res.json({ success: true, message: 'Compra exitosa. Contenido desbloqueado.' });
+    } catch (err) { res.status(500).json({ error: 'Error procesando compra' }); }
 });
 
 // 🤝 AFILIADOS + NIVELES + RETIROS
 app.get('/api/affiliates/dashboard', authenticate, async function(req, res) {
-    try { if (!mongoReady || !affiliatesCollection) return res.json({ success: true, dashboard: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0, referralLink: APP_URL + '?ref=DEMO', refCode: 'DEMO' }, demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const aff = await affiliatesCollection.findOne({ userId: user._id }) || {};
-        res.json({ success: true, dashboard: { level: aff.level || 'bronce', totalReferrals: aff.totalReferrals || 0, pendingBalance: aff.pendingBalance || 0, availableBalance: aff.availableBalance || 0, withdrawnBalance: aff.withdrawnBalance || 0, referralLink: APP_URL + '?ref=' + user.refCode, refCode: user.refCode } }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+    try {
+        if (!mongoReady || !affiliatesCollection) return res.json({ success: true, dashboard: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0, referralLink: APP_URL + '?ref=DEMO', refCode: 'DEMO' }, demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const aff = await affiliatesCollection.findOne({ userId: user._id }) || {};
+        res.json({ success: true, dashboard: { level: aff.level || 'bronce', totalReferrals: aff.totalReferrals || 0, pendingBalance: aff.pendingBalance || 0, availableBalance: aff.availableBalance || 0, withdrawnBalance: aff.withdrawnBalance || 0, referralLink: APP_URL + '?ref=' + user.refCode, refCode: user.refCode } });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 app.post('/api/affiliates/withdraw', authenticate, async function(req, res) {
-    try { const method = req.body.method || 'bank'; if (!mongoReady || !affiliatesCollection || !walletCollection) return res.json({ success: true, message: 'Retiro demo', demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const aff = await affiliatesCollection.findOne({ userId: user._id }); if (!aff || aff.availableBalance < 10) return res.status(400).json({ error: 'Mínimo $10' }); const w = await walletCollection.findOne({ userId: user._id }); if (w) await walletCollection.updateOne({ _id: w._id }, { $inc: { availableBalance: -aff.availableBalance, withdrawnBalance: aff.availableBalance }, $push: { history: { type: 'affiliate_withdraw', amount: aff.availableBalance, method, date: new Date() } } });
+    try {
+        const method = req.body.method || 'bank';
+        if (!mongoReady || !affiliatesCollection || !walletCollection) return res.json({ success: true, message: 'Retiro demo', demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const aff = await affiliatesCollection.findOne({ userId: user._id });
+        if (!aff || aff.availableBalance < 10) return res.status(400).json({ error: 'Mínimo $10' });
+        const w = await walletCollection.findOne({ userId: user._id });
+        if (w) await walletCollection.updateOne({ _id: w._id }, { $inc: { availableBalance: -aff.availableBalance, withdrawnBalance: aff.availableBalance }, $push: { history: { type: 'affiliate_withdraw', amount: aff.availableBalance, method, date: new Date() } } });
         await transactionsCollection.insertOne({ userId: user._id, type: 'affiliate_payout', amount: aff.availableBalance, method, status: 'pending', createdAt: new Date() });
-        res.json({ success: true, message: 'Retiro solicitado' }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+        res.json({ success: true, message: 'Retiro solicitado' });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 
 // 🆔 IDENTIDAD + OAUTH
 app.post('/api/identity/register-app', authenticate, async function(req, res) {
-    try { const appName = req.body.appName,
-            redirectUri = req.body.redirectUri; if (!appName || !redirectUri) return res.status(400).json({ error: 'Nombre y URL requeridos' }); if (!mongoReady || !identityCollection) return res.json({ success: true, appId: 'demo', appSecret: 'demo', demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const appId = 'app_' + crypto.randomBytes(6).toString('hex'); const appSecret = crypto.randomBytes(32).toString('hex');
+    try {
+        const appName = req.body.appName,
+            redirectUri = req.body.redirectUri;
+        if (!appName || !redirectUri) return res.status(400).json({ error: 'Nombre y URL requeridos' });
+        if (!mongoReady || !identityCollection) return res.json({ success: true, appId: 'demo', appSecret: 'demo', demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const appId = 'app_' + crypto.randomBytes(6).toString('hex');
+        const appSecret = crypto.randomBytes(32).toString('hex');
         await identityCollection.insertOne({ appId, appSecret, appName, redirectUri, ownerUid: user.uid, scopes: ['profile', 'email'], active: true, createdAt: new Date() });
-        res.json({ success: true, appId, appSecret }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+        res.json({ success: true, appId, appSecret });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 app.post('/api/identity/authorize', authenticate, async function(req, res) {
-    try { const appId = req.body.appId,
-            scopes = req.body.scopes; if (!appId) return res.status(400).json({ error: 'App ID requerido' }); if (!mongoReady || !identityCollection) return res.json({ success: true, token: 'demo_token', demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const app = await identityCollection.findOne({ appId }); if (!app || !app.active) return res.status(404).json({ error: 'App inactiva' }); const token = jwt.sign({ uid: user.uid, appId, scopes: scopes || app.scopes }, JWT_SECRET, { expiresIn: '24h' });
-        res.json({ success: true, token, expiresIn: 86400 }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+    try {
+        const appId = req.body.appId,
+            scopes = req.body.scopes;
+        if (!appId) return res.status(400).json({ error: 'App ID requerido' });
+        if (!mongoReady || !identityCollection) return res.json({ success: true, token: 'demo_token', demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const app = await identityCollection.findOne({ appId });
+        if (!app || !app.active) return res.status(404).json({ error: 'App inactiva' });
+        const token = jwt.sign({ uid: user.uid, appId, scopes: scopes || app.scopes }, JWT_SECRET, { expiresIn: '24h' });
+        res.json({ success: true, token, expiresIn: 86400 });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 app.delete('/api/identity/revoke/all', authenticate, async function(req, res) {
-    try { if (!mongoReady || !identityCollection) return res.json({ success: true, message: 'Revocado demo', demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' });
+    try {
+        if (!mongoReady || !identityCollection) return res.json({ success: true, message: 'Revocado demo', demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
         await identityCollection.updateMany({ ownerUid: user.uid }, { $set: { active: false, updatedAt: new Date() } });
-        res.json({ success: true, message: 'Todos los accesos revocados' }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+        res.json({ success: true, message: 'Todos los accesos revocados' });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 app.get('/api/identity/qr', authenticate, async function(req, res) {
-    try { const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const qrData = JSON.stringify({ uid: user.uid, email: user.email, ref: user.refCode });
-        res.json({ success: true, qrPayload: qrData, qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(qrData) }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+    try {
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const qrData = JSON.stringify({ uid: user.uid, email: user.email, ref: user.refCode });
+        res.json({ success: true, qrPayload: qrData, qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(qrData) });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 
 // 📊 DASHBOARD + AUDITORÍA + EXPORT
 app.get('/api/dashboard', authenticate, async function(req, res) {
-    try { if (!mongoReady || !secretsCollection) return res.json({ success: true, dashboard: { revenue: 0, sales: 0, active: 0, forSale: 0 }, demo: true }); const user = await usersCollection.findOne({ uid: req.user.uid }); if (!user) return res.status(404).json({ error: 'No encontrado' }); const totalSecrets = await secretsCollection.countDocuments({ userId: user._id }); const forSale = await secretsCollection.countDocuments({ userId: user._id, isForSale: true }); const totalSales = await transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' });
-        res.json({ success: true, dashboard: { revenue: 0, sales: totalSales, active: totalSecrets, forSale } }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+    try {
+        if (!mongoReady || !secretsCollection) return res.json({ success: true, dashboard: { revenue: 0, sales: 0, active: 0, forSale: 0 }, demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'No encontrado' });
+        const totalSecrets = await secretsCollection.countDocuments({ userId: user._id });
+        const forSale = await secretsCollection.countDocuments({ userId: user._id, isForSale: true });
+        const totalSales = await transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' });
+        res.json({ success: true, dashboard: { revenue: 0, sales: totalSales, active: totalSecrets, forSale } });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 app.get('/api/audit/export', authenticate, async function(req, res) {
-    try { if (!mongoReady || !auditCollection) return res.json({ success: true, logs: [], demo: true }); const logs = await auditCollection.find({}).sort({ createdAt: -1 }).limit(100).toArray();
-        res.json({ success: true, logs }); } catch (err) { res.status(500).json({ error: 'Error' }); }
+    try {
+        if (!mongoReady || !auditCollection) return res.json({ success: true, logs: [], demo: true });
+        const logs = await auditCollection.find({}).sort({ createdAt: -1 }).limit(100).toArray();
+        res.json({ success: true, logs });
+    } catch (err) { res.status(500).json({ error: 'Error' }); }
 });
 
 // 🌐 WEBHOOK STRIPE
 app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async function(req, res) {
-    try { const event = JSON.parse(req.body.toString()); if (event.type === 'payment_intent.succeeded') { const meta = JSON.parse(event.data.object.metadata || '{}'); const amount = event.data.object.amount_received / 100; if (meta.type === 'deposit' && meta.uid && mongoReady && walletCollection) { const user = await usersCollection.findOne({ uid: meta.uid }); if (user) await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: amount }, $push: { history: { type: 'deposit_stripe', amount, stripeId: event.data.object.id, date: new Date() } } }); } }
-        res.json({ received: true }); } catch (err) { res.status(400).send('Webhook Error'); }
+    try {
+        const event = JSON.parse(req.body.toString());
+        if (event.type === 'payment_intent.succeeded') { const meta = JSON.parse(event.data.object.metadata || '{}'); const amount = event.data.object.amount_received / 100; if (meta.type === 'deposit' && meta.uid && mongoReady && walletCollection) { const user = await usersCollection.findOne({ uid: meta.uid }); if (user) await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: amount }, $push: { history: { type: 'deposit_stripe', amount, stripeId: event.data.object.id, date: new Date() } } }); } }
+        res.json({ received: true });
+    } catch (err) { res.status(400).send('Webhook Error'); }
 });
 
 // 🌐 SERVIR FRONTEND
-app.get('/', function(req, res) { res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+app.get('/', function(req, res) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    res.sendFile(path.join(__dirname, 'public', 'index.html')); });
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // 🚀 INICIAR
-async function startServer() { await connectToMongo();
-    app.listen(PORT, '0.0.0.0', function() { logger.info('🚀 APIROMWINER en puerto ' + PORT);
-        logger.info('🟢 60 Funciones | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault | ✅ Listo para vender HOY'); }); }
-startServer().catch(function(err) { logger.error('❌ Error: ' + err.message);
-    process.exit(1); });
+async function startServer() {
+    await connectToMongo();
+    app.listen(PORT, '0.0.0.0', function() {
+        logger.info('🚀 APIROMWINER en puerto ' + PORT);
+        logger.info('🟢 60 Funciones | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault | ✅ Listo para vender HOY');
+    });
+}
+startServer().catch(function(err) {
+    logger.error('❌ Error: ' + err.message);
+    process.exit(1);
+});
 // === FIN: index.js ===
