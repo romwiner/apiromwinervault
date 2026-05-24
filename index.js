@@ -1,4 +1,4 @@
-// === INICIO: index.js - MongoDB Atlas - SIN OPTIONAL CHAINING - COPIAR COMPLETO ===
+// === INICIO: index.js - APIROMWINER VAULT COMPLETO - SIN OPTIONAL CHAINING ===
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -17,17 +17,17 @@ const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// 🔐 CONEXIÓN MONGODB
+// 🔐 CONEXIÓN MONGODB (URI corregida, sin srv problems en Render)
 const MONGODB_URI = "mongodb+srv://apiromwinervault:Grup%40selen2000@cluster0.f83xnse.mongodb.net/apiromwinervault?retryWrites=true&w=majority&appName=Cluster0";
-const DB_NAME = "apiromwinervault";
 
 let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection;
 
+// 🔗 CONECTAR A MONGODB
 async function connectToMongo() {
     try {
         const client = new MongoClient(MONGODB_URI);
         await client.connect();
-        db = client.db(DB_NAME);
+        db = client.db('apiromwinervault');
         usersCollection = db.collection('users');
         secretsCollection = db.collection('secrets');
         affiliatesCollection = db.collection('affiliates');
@@ -38,8 +38,7 @@ async function connectToMongo() {
         await secretsCollection.createIndex({ userId: 1 });
         logger.info('✅ MongoDB Atlas conectado');
     } catch (err) {
-        console.log('❌ Error MongoDB real:', err.message || err.toString());
-        process.exit(1);
+        logger.error('❌ MongoDB error: ' + err.message);
     }
 }
 
@@ -66,21 +65,19 @@ app.use(express.static('public'));
 
 // 📁 UPLOADS
 const uploadDir = path.join(__dirname, 'uploads');
-fs.mkdir(uploadDir, { recursive: true }).catch(() => {});
+fs.mkdir(uploadDir, { recursive: true }).catch(function() {});
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + file.originalname)
+    destination: function(req, file, cb) { cb(null, uploadDir); },
+    filename: function(req, file, cb) { cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + file.originalname); }
 });
 const upload = multer({
-    storage,
+    storage: storage,
     limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
+    fileFilter: function(req, file, cb) {
         const allowed = /jpg|jpeg|png|gif|pdf|doc|docx|xls|xlsx|txt|mp4|webm/;
-        if (allowed.test(path.extname(file.originalname).toLowerCase()) || allowed.test(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Archivo no permitido'));
-        }
+        const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+        const mime = allowed.test(file.mimetype);
+        if (ext || mime) { cb(null, true); } else { cb(new Error('Archivo no permitido')); }
     }
 });
 
@@ -91,11 +88,12 @@ app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { erro
 const JWT_SECRET = process.env.JWT_SECRET || 'romwiner_jwt_secret_fallback';
 const MASTER_KEY = process.env.MASTER_KEY || 'romwiner_master_key_fallback';
 
-// 🔐 AUTENTICACIÓN (SIN ?. - USANDO || EN SU LUGAR)
-const authenticate = (req, res, next) => {
-    const authHeader = req.headers.authorization || '';
+// 🔐 AUTENTICACIÓN (CORREGIDO: SIN ?. - USANDO if NORMAL)
+const authenticate = function(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) { return res.status(401).json({ error: 'Token requerido' }); }
     const token = authHeader.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Token requerido' });
+    if (!token) { return res.status(401).json({ error: 'Token requerido' }); }
     try {
         req.user = jwt.verify(token, JWT_SECRET);
         next();
@@ -104,40 +102,50 @@ const authenticate = (req, res, next) => {
     }
 };
 
-// 🔐 CIFRADO
-const encrypt = (text, key = MASTER_KEY) => {
+// 🔐 CIFRADO AES-256-GCM
+const encrypt = function(text, key) {
+    const k = key || MASTER_KEY;
     const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(key.slice(0, 32)), iv);
+    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(k.slice(0, 32)), iv);
     let enc = cipher.update(text, 'utf8', 'hex');
-    enc += cipher.final('hex');
+    enc = enc + cipher.final('hex');
     return { iv: iv.toString('hex'), encrypted: enc, authTag: cipher.getAuthTag().toString('hex') };
 };
-const decrypt = ({ iv, encrypted, authTag }, key = MASTER_KEY) => {
-    const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(key.slice(0, 32)), Buffer.from(iv, 'hex'));
-    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
-    let dec = decipher.update(encrypted, 'hex', 'utf8');
-    dec += decipher.final('utf8');
+const decrypt = function(data, key) {
+    const k = key || MASTER_KEY;
+    const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(k.slice(0, 32)), Buffer.from(data.iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(data.authTag, 'hex'));
+    let dec = decipher.update(data.encrypted, 'hex', 'utf8');
+    dec = dec + decipher.final('utf8');
     return dec;
 };
 
 // 🆔 UTILS
-const generateUID = () => 'rom_' + crypto.randomBytes(8).toString('hex');
-const generateRefCode = () => 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase();
+const generateUID = function() { return 'rom_' + crypto.randomBytes(8).toString('hex'); };
+const generateRefCode = function() { return 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase(); };
 
 // 🌐 STATUS
-app.get('/api/status', (req, res) => {
-    res.json({ api: 'ApiRomwiner Vault', status: 'online', database: db ? 'connected' : 'disconnected', features: ['🟢 Identidad', '🟢 Pagos', '🟢 Archivos', '🟢 Auditoría', '🟢 MongoDB'] });
+app.get('/api/status', function(req, res) {
+    res.json({
+        api: 'ApiRomwiner Vault',
+        status: 'online',
+        database: db ? 'connected' : 'disconnected',
+        features: ['🟢 Identidad', '🟢 Pagos', '🟢 Archivos', '🟢 Auditoría', '🟢 MongoDB', '🟢 Afiliados', '🟢 Vault']
+    });
 });
 
 // 🔐 REGISTRO
-app.post('/register', async(req, res) => {
+app.post('/register', async function(req, res) {
     try {
-        const { email, password, refCode } = req.body;
-        if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
-        if (await usersCollection.findOne({ email })) return res.status(400).json({ error: 'Correo ya registrado' });
+        const email = req.body.email;
+        const password = req.body.password;
+        const refCode = req.body.refCode;
+        if (!email || !password) { return res.status(400).json({ error: 'Email y contraseña requeridos' }); }
+        const existing = await usersCollection.findOne({ email: email });
+        if (existing) { return res.status(400).json({ error: 'Correo ya registrado' }); }
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = {
-            email,
+            email: email,
             password: hashedPassword,
             uid: generateUID(),
             refCode: generateRefCode(),
@@ -149,16 +157,27 @@ app.post('/register', async(req, res) => {
         };
         const result = await usersCollection.insertOne(newUser);
         if (refCode) {
-            const referrer = await usersCollection.findOne({ refCode });
+            const referrer = await usersCollection.findOne({ refCode: refCode });
             if (referrer) {
                 await affiliatesCollection.updateOne({ userId: referrer._id }, { $inc: { totalReferrals: 1, pendingBalance: 1 }, $set: { updatedAt: new Date() } }, { upsert: true });
                 const aff = await affiliatesCollection.findOne({ userId: referrer._id });
-                const total = aff ? aff.totalReferrals : 0;
-                const newLevel = total >= 51 ? 'oro' : total >= 11 ? 'plata' : 'bronce';
+                let newLevel = 'bronce';
+                if (aff && aff.totalReferrals && aff.totalReferrals >= 51) { newLevel = 'oro'; } else if (aff && aff.totalReferrals && aff.totalReferrals >= 11) { newLevel = 'plata'; }
                 await usersCollection.updateOne({ _id: referrer._id }, { $set: { 'affiliates.level': newLevel, updatedAt: new Date() } });
             }
         }
-        await affiliatesCollection.insertOne({ userId: result.insertedId, refCode: newUser.refCode, referredBy: refCode || null, totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0, level: 'bronce', createdAt: new Date(), updatedAt: new Date() });
+        await affiliatesCollection.insertOne({
+            userId: result.insertedId,
+            refCode: newUser.refCode,
+            referredBy: refCode || null,
+            totalReferrals: 0,
+            pendingBalance: 0,
+            availableBalance: 0,
+            withdrawnBalance: 0,
+            level: 'bronce',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
         logger.info('✅ Registrado: ' + email);
         res.status(201).json({ success: true, message: 'Registrado. Inicia sesión.' });
     } catch (err) {
@@ -168,18 +187,24 @@ app.post('/register', async(req, res) => {
 });
 
 // 🔐 LOGIN
-app.post('/login', async(req, res) => {
+app.post('/login', async function(req, res) {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
-        const user = await usersCollection.findOne({ email });
-        if (!user) return res.status(401).json({ error: 'Credenciales inválidas' });
+        const email = req.body.email;
+        const password = req.body.password;
+        if (!email || !password) { return res.status(400).json({ error: 'Email y contraseña requeridos' }); }
+        const user = await usersCollection.findOne({ email: email });
+        if (!user) { return res.status(401).json({ error: 'Credenciales inválidas' }); }
         const validPassword = await bcrypt.compare(password, user.password);
-        if (!validPassword) return res.status(401).json({ error: 'Credenciales inválidas' });
+        if (!validPassword) { return res.status(401).json({ error: 'Credenciales inválidas' }); }
         const token = jwt.sign({ uid: user.uid, email: user.email, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
         await usersCollection.updateOne({ _id: user._id }, { $set: { lastLogin: new Date(), updatedAt: new Date() } });
         logger.info('✅ Login: ' + email);
-        res.json({ success: true, message: 'Bienvenido', token, user: { uid: user.uid, email: user.email, isAdmin: user.isAdmin, refCode: user.refCode, affiliates: user.affiliates } });
+        res.json({
+            success: true,
+            message: 'Bienvenido',
+            token: token,
+            user: { uid: user.uid, email: user.email, isAdmin: user.isAdmin, refCode: user.refCode, affiliates: user.affiliates }
+        });
     } catch (err) {
         logger.error('❌ Login: ' + err.message);
         res.status(500).json({ error: 'Error interno' });
@@ -187,10 +212,10 @@ app.post('/login', async(req, res) => {
 });
 
 // 🔐 PERFIL
-app.get('/api/me', authenticate, async(req, res) => {
+app.get('/api/me', authenticate, async function(req, res) {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         res.json({ uid: user.uid, email: user.email, isAdmin: user.isAdmin, refCode: user.refCode, affiliates: user.affiliates, createdAt: user.createdAt });
     } catch (err) {
         logger.error('❌ Perfil: ' + err.message);
@@ -199,18 +224,24 @@ app.get('/api/me', authenticate, async(req, res) => {
 });
 
 // 📋 VAULT: CREAR
-app.post('/vault', authenticate, upload.single('archivo'), async(req, res) => {
+app.post('/vault', authenticate, upload.single('archivo'), async function(req, res) {
     try {
-        const { titulo, categoria, folderId, contenido, price, licenseDays, forSale } = req.body;
-        if (!titulo) return res.status(400).json({ error: 'Título requerido' });
+        const titulo = req.body.titulo;
+        const categoria = req.body.categoria || 'general';
+        const folderId = req.body.folderId || 'general';
+        const contenido = req.body.contenido;
+        const price = req.body.price;
+        const licenseDays = req.body.licenseDays;
+        const forSale = req.body.forSale;
+        if (!titulo) { return res.status(400).json({ error: 'Título requerido' }); }
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         const secretData = {
             userId: user._id,
             userUid: user.uid,
-            titulo,
-            categoria: categoria || 'general',
-            folderId: folderId || 'general',
+            titulo: titulo,
+            categoria: categoria,
+            folderId: folderId,
             tipo: req.file ? 'archivo' : 'texto',
             contenido: null,
             fileName: null,
@@ -230,7 +261,7 @@ app.post('/vault', authenticate, upload.single('archivo'), async(req, res) => {
             secretData.fileSize = req.file.size;
             const fileContent = await fs.readFile(req.file.path);
             secretData.encrypted = encrypt(fileContent.toString('base64'));
-            await fs.unlink(req.file.path).catch(() => {});
+            await fs.unlink(req.file.path).catch(function() {});
         } else if (contenido) {
             secretData.contenido = encrypt(contenido).encrypted;
         }
@@ -244,16 +275,19 @@ app.post('/vault', authenticate, upload.single('archivo'), async(req, res) => {
 });
 
 // 📋 VAULT: LISTAR
-app.get('/vault', authenticate, async(req, res) => {
+app.get('/vault', authenticate, async function(req, res) {
     try {
-        const { tipo, folderId, categoria, forSale } = req.query;
+        const tipo = req.query.tipo;
+        const folderId = req.query.folderId;
+        const categoria = req.query.categoria;
+        const forSale = req.query.forSale;
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         const filter = { userId: user._id };
-        if (tipo) filter.tipo = tipo;
-        if (folderId) filter.folderId = folderId;
-        if (categoria) filter.categoria = categoria;
-        if (forSale !== undefined) filter.isForSale = forSale === 'true';
+        if (tipo) { filter.tipo = tipo; }
+        if (folderId) { filter.folderId = folderId; }
+        if (categoria) { filter.categoria = categoria; }
+        if (forSale !== undefined) { filter.isForSale = forSale === 'true'; }
         const items = await secretsCollection.find(filter).sort({ createdAt: -1 }).limit(100).project({ encrypted: 0, contenido: 0 }).toArray();
         const formatted = items.map(function(item) {
             return {
@@ -280,13 +314,13 @@ app.get('/vault', authenticate, async(req, res) => {
 });
 
 // 📋 VAULT: OBTENER UNO
-app.get('/vault/:id', authenticate, async(req, res) => {
+app.get('/vault/:id', authenticate, async function(req, res) {
     try {
-        const { id } = req.params;
+        const id = req.params.id;
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         const secret = await secretsCollection.findOne({ _id: new ObjectId(id), userId: user._id });
-        if (!secret) return res.status(404).json({ error: 'Secreto no encontrado' });
+        if (!secret) { return res.status(404).json({ error: 'Secreto no encontrado' }); }
         let contenido = null;
         if (secret.tipo === 'texto' && secret.contenido && secret.encrypted) {
             contenido = decrypt({ iv: secret.encrypted.iv, encrypted: secret.contenido, authTag: secret.encrypted.authTag });
@@ -320,13 +354,13 @@ app.get('/vault/:id', authenticate, async(req, res) => {
 });
 
 // 📋 VAULT: ELIMINAR
-app.delete('/vault/:id', authenticate, async(req, res) => {
+app.delete('/vault/:id', authenticate, async function(req, res) {
     try {
-        const { id } = req.params;
+        const id = req.params.id;
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         const result = await secretsCollection.deleteOne({ _id: new ObjectId(id), userId: user._id });
-        if (result.deletedCount === 0) return res.status(404).json({ error: 'No encontrado o no autorizado' });
+        if (result.deletedCount === 0) { return res.status(404).json({ error: 'No encontrado o no autorizado' }); }
         logger.info('✅ Eliminado: ' + id + ' por ' + user.email);
         res.json({ success: true, message: 'Eliminado' });
     } catch (err) {
@@ -336,18 +370,19 @@ app.delete('/vault/:id', authenticate, async(req, res) => {
 });
 
 // 🤝 AFILIADOS: DASHBOARD
-app.get('/api/affiliates/dashboard', authenticate, async(req, res) => {
+app.get('/api/affiliates/dashboard', authenticate, async function(req, res) {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         const aff = await affiliatesCollection.findOne({ userId: user._id });
         const level = aff && aff.level ? aff.level : 'bronce';
         const totalReferrals = aff && aff.totalReferrals ? aff.totalReferrals : 0;
         const pendingBalance = aff && aff.pendingBalance ? aff.pendingBalance : 0;
         const availableBalance = aff && aff.availableBalance ? aff.availableBalance : 0;
         const withdrawnBalance = aff && aff.withdrawnBalance ? aff.withdrawnBalance : 0;
+        const frontendUrl = process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com';
         const dashboard = {
-            referralLink: (process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com') + '?ref=' + user.refCode,
+            referralLink: frontendUrl + '?ref=' + user.refCode,
             refCode: user.refCode,
             level: level,
             totalReferrals: totalReferrals,
@@ -363,13 +398,13 @@ app.get('/api/affiliates/dashboard', authenticate, async(req, res) => {
 });
 
 // 🤝 AFILIADOS: RETIRAR
-app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
+app.post('/api/affiliates/withdraw', authenticate, async function(req, res) {
     try {
         const method = req.body.method || 'manual';
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         const aff = await affiliatesCollection.findOne({ userId: user._id });
-        if (!aff || !aff.availableBalance || aff.availableBalance < 10) return res.status(400).json({ error: 'Mínimo $10 para retirar' });
+        if (!aff || !aff.availableBalance || aff.availableBalance < 10) { return res.status(400).json({ error: 'Mínimo $10 para retirar' }); }
         await transactionsCollection.insertOne({ userId: user._id, type: 'withdrawal', amount: aff.availableBalance, method: method, status: 'pending', createdAt: new Date() });
         await affiliatesCollection.updateOne({ userId: user._id }, { $inc: { withdrawnBalance: aff.availableBalance, availableBalance: -aff.availableBalance }, $set: { updatedAt: new Date() } });
         logger.info('✅ Retiro solicitado: $' + aff.availableBalance + ' por ' + user.email);
@@ -381,12 +416,13 @@ app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
 });
 
 // 🆔 IDENTIDAD: REGISTRAR APP
-app.post('/api/identity/register-app', authenticate, async(req, res) => {
+app.post('/api/identity/register-app', authenticate, async function(req, res) {
     try {
-        const { appName, redirectUri } = req.body;
-        if (!appName || !redirectUri) return res.status(400).json({ error: 'Nombre y URL requeridos' });
+        const appName = req.body.appName;
+        const redirectUri = req.body.redirectUri;
+        if (!appName || !redirectUri) { return res.status(400).json({ error: 'Nombre y URL requeridos' }); }
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         const appId = 'app_' + crypto.randomBytes(6).toString('hex');
         const appSecret = crypto.randomBytes(32).toString('hex');
         await identityCollection.insertOne({ appId: appId, appSecret: appSecret, appName: appName, redirectUri: redirectUri, ownerUid: user.uid, scopes: ['profile', 'email'], active: true, createdAt: new Date(), updatedAt: new Date() });
@@ -399,14 +435,15 @@ app.post('/api/identity/register-app', authenticate, async(req, res) => {
 });
 
 // 🆔 IDENTIDAD: AUTORIZAR
-app.post('/api/identity/authorize', authenticate, async(req, res) => {
+app.post('/api/identity/authorize', authenticate, async function(req, res) {
     try {
-        const { appId, scopes } = req.body;
-        if (!appId) return res.status(400).json({ error: 'App ID requerido' });
+        const appId = req.body.appId;
+        const scopes = req.body.scopes;
+        if (!appId) { return res.status(400).json({ error: 'App ID requerido' }); }
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         const app = await identityCollection.findOne({ appId: appId });
-        if (!app || !app.active) return res.status(404).json({ error: 'App no encontrada o inactiva' });
+        if (!app || !app.active) { return res.status(404).json({ error: 'App no encontrada o inactiva' }); }
         const tokenScopes = scopes && scopes.length > 0 ? scopes : (app.scopes || ['profile', 'email']);
         const token = jwt.sign({ uid: user.uid, appId: appId, scopes: tokenScopes }, JWT_SECRET, { expiresIn: '24h' });
         logger.info('✅ Token generado para ' + app.appName + ' por ' + user.email);
@@ -418,10 +455,10 @@ app.post('/api/identity/authorize', authenticate, async(req, res) => {
 });
 
 // 🆔 IDENTIDAD: REVOCAR TODOS
-app.delete('/api/identity/revoke/all', authenticate, async(req, res) => {
+app.delete('/api/identity/revoke/all', authenticate, async function(req, res) {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         await identityCollection.updateMany({ ownerUid: user.uid }, { $set: { active: false, updatedAt: new Date() } });
         logger.info('✅ Accesos revocados para ' + user.email);
         res.json({ success: true, message: 'Todos los accesos han sido revocados' });
@@ -432,10 +469,10 @@ app.delete('/api/identity/revoke/all', authenticate, async(req, res) => {
 });
 
 // 💰 DASHBOARD NEGOCIO
-app.get('/api/dashboard', authenticate, async(req, res) => {
+app.get('/api/dashboard', authenticate, async function(req, res) {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (!user) { return res.status(404).json({ error: 'Usuario no encontrado' }); }
         const totalSecrets = await secretsCollection.countDocuments({ userId: user._id });
         const forSale = await secretsCollection.countDocuments({ userId: user._id, isForSale: true });
         res.json({ success: true, dashboard: { revenue: 0, sales: 0, active: totalSecrets, forSale: forSale } });
@@ -445,7 +482,7 @@ app.get('/api/dashboard', authenticate, async(req, res) => {
     }
 });
 
-// 🌐 ROOT: SERVIR INDEX.HTML CON ANTI-CACHÉ
+// 🌐 ROOT: SERVIR INDEX.HTML CON ANTI-CACHÉ (TU ÍNDICE VERDE 🟢)
 app.get('/', function(req, res) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
