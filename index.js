@@ -52,29 +52,35 @@ async function connectToMongo() {
     }
 }
 
-// 🔐 SEGURIDAD (CSP corregido para QR + inline scripts + frame-src válido)
+// 🔐 SEGURIDAD (CSP corregido y definitivo para inline scripts + QR + Stripe)
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
-            defaultSrc: ["'self'"],
+            defaultSrc: ["'self'", "https:", "http:"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrcAttr: ["'self'", "'unsafe-inline'"], // ✅ Permite onclick="..."
-            imgSrc: ["'self'", "data:", "https:", "http:"], // ✅ QR externo permitido
-            connectSrc: [
-                "'self'",
-                "https://apiromwinervault.onrender.com",
-                "https://checkout.stripe.com",
-                "https://api.qrserver.com" // ✅ QR generator permitido
-            ],
+            scriptSrcAttr: ["'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:", "http:"],
+            connectSrc: ["'self'", "https://apiromwinervault.onrender.com", "https://checkout.stripe.com", "https://api.qrserver.com"],
             fontSrc: ["'self'", "https:", "data:"],
             objectSrc: ["'none'"],
-            mediaSrc: ["'self'", "https:"],
-            frameSrc: ["https://checkout.stripe.com"], // ✅ SIN 'none', solo Stripe
+            mediaSrc: ["'self'"],
+            frameSrc: ["https://checkout.stripe.com"],
+            workerSrc: ["'self'", "blob:"],
             upgradeInsecureRequests: []
         }
-    }
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false
 }));
+
+// ✅ NUEVO: Body parsers para POST/PUT (CRÍTICO para login, registro, vault, etc.)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ✅ NUEVO: Servir archivos estáticos desde public/ (CRÍTICO para manifest.json, sw.js, iconos, QR)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // 📁 UPLOADS
 const uploadDir = path.join(__dirname, 'uploads');
@@ -101,7 +107,6 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'turraygoza67@gmail.com,nubisl
 const APP_URL = process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com';
 
 // 🔐 AUTH + ADMIN
-
 const authenticate = function(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) { return res.status(401).json({ error: 'Token requerido' }); }
@@ -165,10 +170,8 @@ app.post('/register', async function(req, res) {
         logAudit('register', { email });
         logger.info('✅ Registrado: ' + email);
         res.status(201).json({ success: true, message: 'Registrado. Inicia sesión.' });
-    } catch (err) {
-        logger.error('❌ Registro: ' + err.message);
-        res.status(500).json({ error: 'Error interno' });
-    }
+    } catch (err) { logger.error('❌ Registro: ' + err.message);
+        res.status(500).json({ error: 'Error interno' }); }
 });
 
 app.post('/login', async function(req, res) {
