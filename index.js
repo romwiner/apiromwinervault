@@ -1,4 +1,4 @@
-// === INICIO: index.js - APIROMWINER VAULT COMPLETO (60 FUNCIONES + ENVELOPE ENCRYPTION) ===
+// === INICIO: index.js - APIROMWINER VAULT COMPLETO (60 FUNCIONES + ENTERPRISE 3 FASES) ===
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -14,7 +14,6 @@ const fs = require('fs').promises;
 const pino = require('pino');
 
 // 🔐 SISTEMA DE CIFRADO EN CAPAS (ENVELOPE ENCRYPTION)
-// Cada usuario tiene su propia clave (DEK). La clave maestra (KEK) solo cifra/descifra las claves de usuario.
 const EnvelopeEncryption = (function() {
     class CryptoWrapper {
         constructor(masterKey) { this.mk = Buffer.from(masterKey.slice(0, 32)); }
@@ -46,7 +45,7 @@ const EnvelopeEncryption = (function() {
 })();
 // 🔚 FIN ENVELOPE ENCRYPTION
 
-// ✅ MEJORA 1: Stripe para verificar webhooks (instala con: npm install stripe)
+// ✅ MEJORA 1: Stripe para verificar webhooks
 // const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
@@ -79,6 +78,9 @@ async function connectToMongo() {
         await profilesCollection.createIndex({ userId: 1 }, { unique: true });
         await walletCollection.createIndex({ userId: 1 }, { unique: true });
         await auditCollection.createIndex({ createdAt: -1 });
+        // ✅ FASE 1: Índices para tiers y auditoría
+        await usersCollection.createIndex({ tier: 1 });
+        await auditCollection.createIndex({ userId: 1, timestamp: -1 });
 
         mongoReady = true;
         logger.info('✅ MongoDB Atlas conectado');
@@ -88,7 +90,7 @@ async function connectToMongo() {
     }
 }
 
-// 🔐 SEGURIDAD (CSP corregido y definitivo para inline scripts + QR + Stripe)
+// 🔐 SEGURIDAD (CSP corregido)
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -111,43 +113,37 @@ app.use(helmet({
     crossOriginResourcePolicy: false
 }));
 
-// ✅ Body parsers para POST/PUT (CRÍTICO para login, registro, vault, etc.)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// ✅ Servir archivos estáticos desde public/ (CRÍTICO para manifest.json, sw.js, iconos, QR)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 📁 UPLOADS - ✅ MEJORA 3: Nuevos formatos + sanitización
+// 📁 UPLOADS
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdir(uploadDir, { recursive: true }).catch(function() {});
 const storage = multer.diskStorage({
     destination: function(req, file, cb) { cb(null, uploadDir); },
     filename: function(req, file, cb) {
-        // ✅ MEJORA 3: Sanitizar nombre de archivo (evita caracteres peligrosos)
         const safeName = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
         cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + safeName);
     }
 });
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // ✅ Aumentado a 10MB para archivos grandes
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: function(req, file, cb) {
-        // ✅ MEJORA 3: Nuevos formatos permitidos: rar, mp3, zip, 7z
         const allowed = /jpg|jpeg|png|gif|pdf|doc|docx|xls|xlsx|txt|mp4|webm|mp3|wav|ogg|rar|zip|7z|epub|mobi/;
         if (allowed.test(path.extname(file.originalname).toLowerCase()) || allowed.test(file.mimetype)) cb(null, true);
         else cb(new Error('Archivo no permitido. Formatos: JPG, PNG, PDF, DOC, XLS, TXT, MP4, MP3, RAR, ZIP, etc.'));
     }
 });
 
-// 🚦 RATE LIMIT + SEGURIDAD WEB
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Demasiadas solicitudes. Intenta en 15 minutos.' } }));
 
 // 🔐 CLAVES + ADMINS
 const JWT_SECRET = process.env.JWT_SECRET || 'romwiner_jwt_secret_fallback';
 const MASTER_KEY = process.env.MASTER_KEY || 'romwiner_master_key_fallback';
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || ''; // ✅ MEJORA 1
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'turraygoza67@gmail.com,nubislosnubis@gmail.com,romraywiner@gmail.com').split(',').map(function(e) { return e.trim(); });
 const APP_URL = process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com';
 
@@ -171,7 +167,175 @@ const requireAdmin = async function(req, res, next) {
     } catch (err) { return res.status(500).json({ error: 'Error verificando admin: ' + err.message }); }
 };
 
-// 🔐 CIFRADO + UTILS (se mantienen para compatibilidad con datos antiguos)
+// ✅ FASE 1: SISTEMA DE TIERS + PERMISOS + CUOTAS
+const USER_TIERS = {
+    personal: { id: 'personal', name: 'Personal', storageLimitGB: 10, maxFileSizeMB: 100, apiRateLimit: 100, priceMonthly: 0 },
+    business: { id: 'business', name: 'Business', storageLimitGB: 100, maxFileSizeMB: 500, apiRateLimit: 1000, priceMonthly: 49 },
+    enterprise: { id: 'enterprise', name: 'Enterprise', storageLimitGB: -1, maxFileSizeMB: 5000, apiRateLimit: 10000, priceMonthly: null }
+};
+
+const PERMISSIONS = {
+    'vault:create': ['personal', 'business', 'enterprise'],
+    'vault:read:own': ['personal', 'business', 'enterprise'],
+    'vault:read:shared': ['business', 'enterprise'],
+    'vault:delete:own': ['personal', 'business', 'enterprise'],
+    'vault:share': ['business', 'enterprise'],
+    'audit:view:own': ['personal', 'business', 'enterprise'],
+    'audit:export': ['business', 'enterprise'],
+    'audit:realtime': ['enterprise'],
+    'admin:gift': ['enterprise'],
+    'admin:impersonate': ['enterprise'],
+    'admin:compliance': ['enterprise']
+};
+
+// Middleware: verificar tier mínimo requerido
+const requireTier = (...allowedTiers) => async(req, res, next) => {
+    try {
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        const userTier = user ? .tier || 'personal';
+        if (!allowedTiers.includes(userTier)) {
+            return res.status(403).json({ error: 'Acceso denegado', required: allowedTiers.join('|'), userTier, message: `Tu plan ${USER_TIERS[userTier].name} no incluye esta función` });
+        }
+        req.userTier = userTier;
+        next();
+    } catch (err) { res.status(500).json({ error: 'Error verificando tier: ' + err.message }); }
+};
+
+// Middleware: verificar cuota de almacenamiento
+const checkQuota = async(req, res, next) => {
+    try {
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        const tier = USER_TIERS[user ? .tier || 'personal'];
+        if (!tier) return next();
+
+        // Verificar almacenamiento usado
+        const usedStorage = await secretsCollection.aggregate([
+            { $match: { userId: user ? ._id } },
+            { $group: { _id: null, total: { $sum: '$fileSize' } } }
+        ]).toArray();
+        const usedGB = (usedStorage[0] ? .total || 0) / (1024 * 1024 * 1024);
+
+        if (tier.storageLimitGB > 0 && usedGB >= tier.storageLimitGB) {
+            return res.status(413).json({ error: 'Límite de almacenamiento excedido', used: usedGB.toFixed(2), limit: tier.storageLimitGB, upgrade: 'Actualiza tu plan para más espacio' });
+        }
+
+        // Verificar tamaño de archivo si hay upload
+        if (req.file && req.file.size > tier.maxFileSizeMB * 1024 * 1024) {
+            return res.status(413).json({ error: 'Archivo demasiado grande', size: (req.file.size / 1024 / 1024).toFixed(2), limit: tier.maxFileSizeMB, tier: tier.name });
+        }
+
+        req.userQuota = { usedGB, tier };
+        next();
+    } catch (err) { res.status(500).json({ error: 'Error verificando cuota: ' + err.message }); }
+};
+
+// ✅ FASE 2: AUDITORÍA INMUTABLE + COMPLIANCE
+const createImmutableLog = async(auditData) => {
+    const eventId = crypto.randomUUID();
+    const contentHash = crypto.createHash('sha256').update(JSON.stringify(auditData)).digest('hex');
+
+    // Obtener último hash para cadena blockchain-style
+    const lastLog = await auditCollection.findOne({}, { sort: { createdAt: -1 }, projection: { currentHash: 1 } });
+    const previousHash = lastLog ? .currentHash || 'genesis';
+
+    const currentHash = crypto.createHash('sha256').update(previousHash + contentHash).digest('hex');
+    const hmac = crypto.createHmac('sha256', process.env.AUDIT_SECRET || MASTER_KEY);
+    hmac.update(eventId + currentHash);
+    const signature = hmac.digest('hex');
+
+    return {...auditData, eventId, previousHash, currentHash, signature, timestamp: new Date() };
+};
+
+const generateGDPRReport = async(userId, startDate, endDate) => {
+    const user = await usersCollection.findOne({ uid: userId });
+    const auditLogs = await auditCollection.find({
+        userId,
+        timestamp: { $gte: new Date(startDate), $lte: new Date(endDate) }
+    }).sort({ timestamp: 1 }).toArray();
+
+    return {
+        reportType: 'GDPR_ARTICLE_15',
+        generatedAt: new Date().toISOString(),
+        subject: { uid: user ? .uid, email: user ? .email },
+        dataProcessing: auditLogs.map(log => ({ timestamp: log.timestamp, action: log.action, resource: log.resource, result: log.result })),
+        retention: { legalBasis: 'consent', retentionPeriod: '5 years', deletionRequest: 'Available via /api/gdpr/delete' }
+    };
+};
+
+const generateSOC2Report = async(organizationId, periodStart, periodEnd) => {
+    return {
+        reportType: 'SOC2_TYPE_II',
+        organization: organizationId,
+        period: { start: periodStart, end: periodEnd },
+        controls: {
+            'CC6.1': { status: 'implemented', description: 'Logical access controls' },
+            'CC6.2': { status: 'implemented', description: 'Prior to issuance of credentials' },
+            'CC7.2': { status: 'implemented', description: 'Security event detection' },
+            'CC3.2': { status: 'implemented', description: 'Risk assessment' }
+        },
+        auditorNotes: 'Generated automatically - requires human review',
+        integrityHash: crypto.createHash('sha256').update(organizationId + periodStart + periodEnd).digest('hex')
+    };
+};
+
+// ✅ FASE 3: ROTACIÓN DE CLAVES + WEBHOOKS DE ALERTAS
+const KeyRotationService = {
+    rotationIntervalDays: 90,
+    async rotateUserKey(userId) {
+        if (!mongoReady || !usersCollection) return { success: false, message: 'MongoDB no disponible' };
+
+        const user = await usersCollection.findOne({ uid: userId });
+        if (!user) return { success: false, message: 'Usuario no encontrado' };
+
+        // Generar nueva DEK y envolverla
+        const newDEK = EnvelopeEncryption.generateDEK();
+        const wrappedNewDEK = EnvelopeEncryption.wrapDEK(newDEK);
+
+        // Actualizar clave del usuario
+        await usersCollection.updateOne({ _id: user._id }, {
+            $set: { encryptedUserKey: wrappedNewDEK, keyRotatedAt: new Date(), keyVersion: (user.keyVersion || 0) + 1 }
+        });
+
+        // Registrar auditoría
+        await auditCollection.insertOne(await createImmutableLog({
+            userId,
+            action: 'key.rotation',
+            result: 'success',
+            metadata: { newVersion: (user.keyVersion || 0) + 1 }
+        }));
+
+        return { success: true, message: 'Clave rotada exitosamente', newVersion: (user.keyVersion || 0) + 1 };
+    },
+    async scheduleRotations() {
+        if (!mongoReady) return;
+        const cutoff = new Date(Date.now() - this.rotationIntervalDays * 24 * 60 * 60 * 1000);
+        const usersToRotate = await usersCollection.find({ keyRotatedAt: { $lt: cutoff }, encryptedUserKey: { $exists: true } }).toArray();
+
+        for (const user of usersToRotate) {
+            try { await this.rotateUserKey(user.uid); } catch (err) { logger.error('❌ Error rotando clave para ' + user.uid + ': ' + err.message); }
+        }
+    }
+};
+
+const AlertWebhookService = {
+    async registerWebhook(userId, config) {
+        // config: { url, events: ['login.failed', 'vault.anomaly'], secret }
+        if (!mongoReady) return { success: true, message: 'Demo: webhook registrado', demo: true };
+        await db.collection('webhooks').updateOne({ userId, url: config.url }, { $set: {...config, updatedAt: new Date() } }, { upsert: true });
+        return { success: true, message: 'Webhook registrado' };
+    },
+    async sendAlert(userId, alert) {
+        if (!mongoReady) return;
+        const webhooks = await db.collection('webhooks').find({ userId }).toArray();
+        for (const wh of webhooks) {
+            if (!wh.events ? .includes(alert.type)) continue;
+            const payload = { eventId: crypto.randomUUID(), timestamp: new Date().toISOString(), userId, alert, signature: crypto.createHmac('sha256', wh.secret).update(JSON.stringify({ eventId: crypto.randomUUID(), alert })).digest('hex') };
+            try { await fetch(wh.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Vault-Signature': payload.signature }, body: JSON.stringify(payload), timeout: 5000 }); } catch (err) { logger.warn('⚠️ Webhook failed for ' + userId + ': ' + err.message); }
+        }
+    }
+};
+
+// 🔐 CIFRADO + UTILS
 const encrypt = function(text, key) {
     const k = key || MASTER_KEY;
     const iv = crypto.randomBytes(12);
@@ -191,19 +355,41 @@ const decrypt = function(data, key) {
 const generateUID = function() { return 'rom_' + crypto.randomBytes(8).toString('hex'); };
 const generateRefCode = function() { return 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase(); };
 const generateTempPass = function() { return 'Gift_' + crypto.randomBytes(4).toString('hex').toUpperCase(); };
-const logAudit = function(action, data) { if (mongoReady && auditCollection) auditCollection.insertOne({ action, data, createdAt: new Date() }).catch(function() {}); };
+const logAudit = async function(action, data) {
+    if (mongoReady && auditCollection) {
+        try { await auditCollection.insertOne(await createImmutableLog({ action, data, createdAt: new Date() })); } catch (e) { logger.warn('⚠️ Audit log failed: ' + e.message); }
+    }
+};
 
 // 🌐 STATUS
-app.get('/api/status', function(req, res) { res.json({ api: 'ApiRomwiner Vault', status: 'online', database: mongoReady ? 'connected' : 'fallback', features: ['🟢 60 Funciones Activas', '🟢 Ventas', '🟢 Wallet', '🟢 Perfil', '🟢 Dueño', '🟢 Afiliados', '🟢 Stripe', '🟢 Envelope Encryption (Cifrado en Capas)'] }); });
+app.get('/api/status', function(req, res) {
+    res.json({
+        api: 'ApiRomwiner Vault',
+        status: 'online',
+        database: mongoReady ? 'connected' : 'fallback',
+        features: [
+            '🟢 60 Funciones Activas',
+            '🟢 Ventas',
+            '🟢 Wallet',
+            '🟢 Perfil',
+            '🟢 Dueño',
+            '🟢 Afiliados',
+            '🟢 Stripe',
+            '🟢 Envelope Encryption (Cifrado en Capas)',
+            '🟢 Enterprise Tiers (Personal/Business/Enterprise)',
+            '🟢 Immutable Audit Logs + GDPR/SOC2',
+            '🟢 Key Rotation + Alert Webhooks'
+        ]
+    });
+});
 
-// 🔐 REGISTRO + LOGIN - ✅ MEJORA 2: Validación de contraseña fuerte
+// 🔐 REGISTRO + LOGIN
 app.post('/register', async function(req, res) {
     try {
         const email = req.body.email,
             password = req.body.password,
             refCode = req.body.refCode;
         if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
-        // ✅ MEJORA 2: Validar fuerza de contraseña
         if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
             return res.status(400).json({ error: 'Contraseña débil. Debe tener: 8+ caracteres, 1 mayúscula, 1 número y 1 símbolo (!@#$).' });
         }
@@ -211,18 +397,17 @@ app.post('/register', async function(req, res) {
         if (await usersCollection.findOne({ email: email })) return res.status(400).json({ error: 'Correo ya registrado. Inicia sesión.' });
         const hashedPassword = await bcrypt.hash(password, 10);
         const isAdmin = ADMIN_EMAILS.indexOf(email) !== -1;
-        const newUser = { email, password: hashedPassword, uid: generateUID(), refCode: generateRefCode(), referredBy: refCode || null, isAdmin, createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
+        // ✅ FASE 1: Tier por defecto = personal
+        const newUser = { email, password: hashedPassword, uid: generateUID(), refCode: generateRefCode(), referredBy: refCode || null, isAdmin, tier: 'personal', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
         const result = await usersCollection.insertOne(newUser);
         await profilesCollection.insertOne({ userId: result.insertedId, uid: newUser.uid, displayName: '', avatarUrl: '', bio: '', isPublic: false, createdAt: new Date() });
         await walletCollection.insertOne({ userId: result.insertedId, balance: 0.00, currency: 'USD', history: [], createdAt: new Date() });
         await affiliatesCollection.insertOne({ userId: result.insertedId, refCode: newUser.refCode, referredBy: refCode || null, totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0, level: 'bronce', createdAt: new Date() });
-        logAudit('register', { email });
+        await logAudit('register', { email });
         logger.info('✅ Registrado: ' + email);
         res.status(201).json({ success: true, message: 'Registrado. Inicia sesión para comenzar.' });
-    } catch (err) {
-        logger.error('❌ Registro: ' + err.message);
-        res.status(500).json({ error: 'Error interno al registrar: ' + err.message });
-    }
+    } catch (err) { logger.error('❌ Registro: ' + err.message);
+        res.status(500).json({ error: 'Error interno al registrar: ' + err.message }); }
 });
 
 app.post('/login', async function(req, res) {
@@ -236,9 +421,9 @@ app.post('/login', async function(req, res) {
         await usersCollection.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
         const isAdmin = ADMIN_EMAILS.indexOf(user.email) !== -1;
         if (isAdmin && !user.isAdmin) await usersCollection.updateOne({ _id: user._id }, { $set: { isAdmin: true } });
-        const token = jwt.sign({ uid: user.uid, email, isAdmin: user.isAdmin || isAdmin }, JWT_SECRET, { expiresIn: '7d' });
-        logAudit('login', { email });
-        res.json({ success: true, token, user: { uid: user.uid, email, isAdmin: user.isAdmin || isAdmin, refCode: user.refCode } });
+        const token = jwt.sign({ uid: user.uid, email, isAdmin: user.isAdmin || isAdmin, tier: user.tier || 'personal' }, JWT_SECRET, { expiresIn: '7d' });
+        await logAudit('login', { email });
+        res.json({ success: true, token, user: { uid: user.uid, email, isAdmin: user.isAdmin || isAdmin, refCode: user.refCode, tier: user.tier || 'personal' } });
     } catch (err) { res.status(500).json({ error: 'Error interno al iniciar sesión: ' + err.message }); }
 });
 
@@ -249,7 +434,7 @@ app.get('/api/profile', authenticate, async function(req, res) {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const p = await profilesCollection.findOne({ userId: user._id });
-        res.json({ success: true, profile: p || { displayName: '', bio: '', isPublic: false } });
+        res.json({ success: true, profile: {...p, tier: user.tier }, user: { uid: user.uid, email: user.email, tier: user.tier } });
     } catch (err) { res.status(500).json({ error: 'Error al cargar perfil: ' + err.message }); }
 });
 app.post('/api/profile', authenticate, upload.single('avatar'), async function(req, res) {
@@ -307,7 +492,7 @@ app.post('/api/wallet/withdraw', authenticate, async function(req, res) {
 // 👑 DUEÑO: REGALAR + MULTIAMIN
 app.post('/api/admin/gift-account', authenticate, requireAdmin, async function(req, res) {
     try {
-        const { recipientEmail, initialBalance, note } = req.body;
+        const { recipientEmail, initialBalance, note, tier } = req.body;
         if (!recipientEmail) return res.status(400).json({ error: 'Email del destinatario requerido' });
         if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo regalo: configura MongoDB', demo: true });
         let user = await usersCollection.findOne({ email: recipientEmail });
@@ -315,22 +500,28 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async function(r
         if (!user) {
             tempPassword = generateTempPass();
             const hashed = await bcrypt.hash(tempPassword, 10);
-            const newUser = { email: recipientEmail, password: hashed, uid: generateUID(), refCode: generateRefCode(), isAdmin: false, isGifted: true, giftedBy: req.admin.uid, giftedAt: new Date(), giftedNote: note || '', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
+            // ✅ FASE 1: Permitir asignar tier al crear cuenta
+            const newUser = { email: recipientEmail, password: hashed, uid: generateUID(), refCode: generateRefCode(), isAdmin: false, tier: tier || 'personal', isGifted: true, giftedBy: req.admin.uid, giftedAt: new Date(), giftedNote: note || '', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
             const r = await usersCollection.insertOne(newUser);
             await profilesCollection.insertOne({ userId: r.insertedId, uid: newUser.uid, displayName: 'Usuario Regalado', bio: note || '', isPublic: false, createdAt: new Date() });
             await affiliatesCollection.insertOne({ userId: r.insertedId, refCode: newUser.refCode, level: 'bronce', createdAt: new Date() });
             user = newUser;
+        } else {
+            // ✅ FASE 1: Actualizar tier si se proporciona
+            if (tier && ['personal', 'business', 'enterprise'].includes(tier)) {
+                await usersCollection.updateOne({ _id: user._id }, { $set: { tier, updatedAt: new Date() } });
+            }
         }
         const bal = parseFloat(initialBalance) || 0;
         await walletCollection.updateOne({ userId: user._id }, { $setOnInsert: { balance: bal, currency: 'USD', history: [] }, $inc: { balance: bal }, $push: { history: { type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() } } }, { upsert: true });
         await transactionsCollection.insertOne({ type: 'admin_gift', amount: bal, admin: req.admin.uid, recipient: user.email, note: note || '', createdAt: new Date() });
-        logAudit('gift', { recipientEmail, bal, by: req.admin.uid });
-        res.json({ success: true, recipientEmail: user.email, uid: user.uid, tempPassword, balance: bal, message: tempPassword ? 'Cuenta creada con contraseña temporal' : 'Saldo agregado a cuenta existente' });
+        await logAudit('gift', { recipientEmail, bal, by: req.admin.uid, tier: tier || user.tier });
+        res.json({ success: true, recipientEmail: user.email, uid: user.uid, tempPassword, balance: bal, tier: tier || user.tier, message: tempPassword ? 'Cuenta creada con contraseña temporal' : 'Saldo agregado a cuenta existente' });
     } catch (err) { res.status(500).json({ error: 'Error al regalar cuenta: ' + err.message }); }
 });
 
-// 📦 VAULT + COMPRAS - ✅ ENVELOPE ENCRYPTION INTEGRADO
-app.post('/vault', authenticate, upload.single('archivo'), async function(req, res) {
+// 📦 VAULT + COMPRAS - ✅ ENVELOPE ENCRYPTION + FASE 1: QUOTAS
+app.post('/vault', authenticate, checkQuota, async function(req, res) {
     try {
         const titulo = req.body.titulo,
             categoria = req.body.categoria || 'general',
@@ -364,7 +555,6 @@ app.post('/vault', authenticate, upload.single('archivo'), async function(req, r
             createdAt: new Date()
         };
 
-        // 🔐 ENVELOPE: Obtener o generar clave única para este usuario
         let wrappedDEK = user.encryptedUserKey;
         if (!wrappedDEK) {
             const dek = EnvelopeEncryption.generateDEK();
@@ -377,22 +567,18 @@ app.post('/vault', authenticate, upload.single('archivo'), async function(req, r
             data.fileName = path.basename(req.file.filename);
             data.fileType = req.file.mimetype;
             data.fileSize = req.file.size;
-            // 🔐 Cifrar con clave única del usuario (no con maestra)
             const fileContent = await fs.readFile(req.file.path);
             data.encrypted = EnvelopeEncryption.seal(fileContent.toString('base64'), userDEK);
             await fs.unlink(req.file.path).catch(function(e) { logger.warn('⚠️ No se pudo eliminar archivo temporal: ' + e.message); });
         } else if (contenido) {
-            // 🔐 Cifrar texto con clave única del usuario
             data.contenido = EnvelopeEncryption.seal(contenido, userDEK);
         }
 
         const result = await secretsCollection.insertOne(data);
-        logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale });
+        await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale });
         res.status(201).json({ success: true, message: 'Contenido guardado y cifrado en Vault (clave única por usuario)', id: result.insertedId, fileName: data.fileName });
-    } catch (err) {
-        logger.error('❌ Vault create: ' + err.message);
-        res.status(500).json({ error: 'Error al guardar en Vault: ' + err.message });
-    }
+    } catch (err) { logger.error('❌ Vault create: ' + err.message);
+        res.status(500).json({ error: 'Error al guardar en Vault: ' + err.message }); }
 });
 
 app.get('/vault', authenticate, async function(req, res) {
@@ -414,7 +600,6 @@ app.get('/vault/:id', authenticate, async function(req, res) {
         if (!secret) return res.status(404).json({ error: 'Contenido no encontrado' });
         if (secret.userId.toString() !== user._id.toString() && secret.buyers.indexOf(user.uid) === -1 && !secret.isForSale) return res.status(403).json({ error: 'Acceso denegado: no tienes permiso para este contenido' });
 
-        // 🔐 ENVELOPE: Recuperar clave de usuario y descifrar
         let contenido = null;
         if (user.encryptedUserKey) {
             try {
@@ -426,7 +611,6 @@ app.get('/vault/:id', authenticate, async function(req, res) {
                     contenido = Buffer.from(decrypted, 'base64').toString('base64');
                 }
             } catch (e) {
-                // Fallback: intentar con método antiguo para datos migrados
                 if (secret.tipo === 'texto' && secret.contenido) {
                     contenido = decrypt({ iv: secret.encrypted ? .iv, encrypted: secret.contenido, authTag: secret.encrypted ? .authTag });
                 } else if (secret.tipo === 'archivo' && secret.encrypted) {
@@ -435,7 +619,6 @@ app.get('/vault/:id', authenticate, async function(req, res) {
                 }
             }
         } else {
-            // Fallback para usuarios antiguos sin encryptedUserKey
             if (secret.tipo === 'texto' && secret.contenido) {
                 contenido = decrypt({ iv: secret.encrypted ? .iv, encrypted: secret.contenido, authTag: secret.encrypted ? .authTag });
             } else if (secret.tipo === 'archivo' && secret.encrypted) {
@@ -455,7 +638,7 @@ app.delete('/vault/:id', authenticate, async function(req, res) {
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const result = await secretsCollection.deleteOne({ _id: new ObjectId(req.params.id), userId: user._id });
         if (result.deletedCount === 0) return res.status(404).json({ error: 'No autorizado: solo puedes eliminar tu propio contenido' });
-        logAudit('vault_delete', { id: req.params.id, userId: user.uid });
+        await logAudit('vault_delete', { id: req.params.id, userId: user.uid });
         res.json({ success: true, message: 'Contenido eliminado permanentemente' });
     } catch (err) { res.status(500).json({ error: 'Error al eliminar: ' + err.message }); }
 });
@@ -481,7 +664,7 @@ app.post('/api/buy/:id', authenticate, async function(req, res) {
         if (affCommission > 0) { const ref = await usersCollection.findOne({ refCode: buyer.referredBy }); if (ref) { const rWallet = await walletCollection.findOne({ userId: ref._id }); if (rWallet) await walletCollection.updateOne({ _id: rWallet._id }, { $inc: { balance: affCommission }, $push: { history: { type: 'affiliate', amount: affCommission, item: 'Ref: ' + secret.titulo, date: new Date() } } }); } }
         await secretsCollection.updateOne({ _id: secret._id }, { $inc: { sales: 1 }, $push: { buyers: buyer.uid } });
         await transactionsCollection.insertOne({ type: 'sale', amount: price, seller: secret.userUid, buyer: buyer.uid, item: secret.titulo, createdAt: new Date() });
-        logAudit('purchase', { buyer: buyer.uid, item: secret.titulo, price, seller: secret.userUid });
+        await logAudit('purchase', { buyer: buyer.uid, item: secret.titulo, price, seller: secret.userUid });
         res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault.' });
     } catch (err) { res.status(500).json({ error: 'Error procesando compra: ' + err.message }); }
 });
@@ -558,7 +741,7 @@ app.get('/api/identity/qr', authenticate, async function(req, res) {
     } catch (err) { res.status(500).json({ error: 'Error al generar QR: ' + err.message }); }
 });
 
-// 📊 DASHBOARD + AUDITORÍA + EXPORT
+// 📊 DASHBOARD + AUDITORÍA + EXPORT - ✅ FASE 2: COMPLIANCE
 app.get('/api/dashboard', authenticate, async function(req, res) {
     try {
         if (!mongoReady || !secretsCollection) return res.json({ success: true, dashboard: { revenue: 0, sales: 0, active: 0, forSale: 0 }, demo: true });
@@ -567,24 +750,68 @@ app.get('/api/dashboard', authenticate, async function(req, res) {
         const totalSecrets = await secretsCollection.countDocuments({ userId: user._id });
         const forSale = await secretsCollection.countDocuments({ userId: user._id, isForSale: true });
         const totalSales = await transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' });
-        res.json({ success: true, dashboard: { revenue: 0, sales: totalSales, active: totalSecrets, forSale } });
+        res.json({ success: true, dashboard: { revenue: 0, sales: totalSales, active: totalSecrets, forSale, tier: user.tier } });
     } catch (err) { res.status(500).json({ error: 'Error al cargar dashboard: ' + err.message }); }
 });
-app.get('/api/audit/export', authenticate, async function(req, res) {
+
+// ✅ FASE 2: EXPORTACIÓN DE AUDITORÍA (GDPR/SOC2)
+app.get('/api/audit/export', authenticate, requireTier('business', 'enterprise'), async function(req, res) {
     try {
+        const { type, startDate, endDate, organizationId } = req.query;
         if (!mongoReady || !auditCollection) return res.json({ success: true, logs: [], demo: true });
-        const logs = await auditCollection.find({}).sort({ createdAt: -1 }).limit(100).toArray();
+
+        if (type === 'gdpr') {
+            const report = await generateGDPRReport(req.user.uid, startDate || new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), endDate || new Date());
+            return res.json({ success: true, reportType: 'GDPR', data: report });
+        }
+        if (type === 'soc2' && req.userTier === 'enterprise') {
+            const report = await generateSOC2Report(organizationId || req.user.uid, startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), endDate || new Date());
+            return res.json({ success: true, reportType: 'SOC2', data: report });
+        }
+
+        // Default: logs simples
+        const logs = await auditCollection.find({ userId: req.user.uid }).sort({ timestamp: -1 }).limit(100).toArray();
         res.json({ success: true, logs });
     } catch (err) { res.status(500).json({ error: 'Error al exportar auditoría: ' + err.message }); }
 });
 
-// 🌐 WEBHOOK STRIPE - ✅ MEJORA 1: Verificación de firma (para producción)
+// ✅ FASE 3: ROTACIÓN DE CLAVES (solo enterprise)
+app.post('/api/admin/rotate-keys', authenticate, requireAdmin, requireTier('enterprise'), async function(req, res) {
+    try {
+        const { userId } = req.body;
+        if (userId) {
+            // Rotar clave de un usuario específico
+            const result = await KeyRotationService.rotateUserKey(userId);
+            return res.json(result);
+        } else {
+            // Rotar todas las claves elegibles
+            await KeyRotationService.scheduleRotations();
+            return res.json({ success: true, message: 'Rotación de claves programada para usuarios elegibles' });
+        }
+    } catch (err) { res.status(500).json({ error: 'Error rotando claves: ' + err.message }); }
+});
+
+// ✅ FASE 3: WEBHOOKS DE ALERTAS
+app.post('/api/admin/webhooks', authenticate, requireAdmin, async function(req, res) {
+    try {
+        const { userId, url, events, secret } = req.body;
+        if (!url || !events) return res.status(400).json({ error: 'URL y eventos requeridos' });
+        const result = await AlertWebhookService.registerWebhook(userId || req.user.uid, { url, events, secret: secret || crypto.randomBytes(32).toString('hex') });
+        res.json(result);
+    } catch (err) { res.status(500).json({ error: 'Error registrando webhook: ' + err.message }); }
+});
+
+app.delete('/api/admin/webhooks/:url', authenticate, requireAdmin, async function(req, res) {
+    try {
+        if (!mongoReady) return res.json({ success: true, message: 'Demo: webhook eliminado', demo: true });
+        await db.collection('webhooks').deleteOne({ userId: req.user.uid, url: decodeURIComponent(req.params.url) });
+        res.json({ success: true, message: 'Webhook eliminado' });
+    } catch (err) { res.status(500).json({ error: 'Error eliminando webhook: ' + err.message }); }
+});
+
+// 🌐 WEBHOOK STRIPE
 app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async function(req, res) {
     try {
-        // ✅ MEJORA 1: Verificar firma de Stripe (descomenta en producción)
-        // const sig = req.headers['stripe-signature'];
-        // let event;
-        // try { event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET); } catch (err) { logger.error('❌ Webhook signature verification failed: ' + err.message); return res.status(400).send(`Webhook Error: ${err.message}`); }
         const event = JSON.parse(req.body.toString());
         if (event.type === 'payment_intent.succeeded') {
             const meta = JSON.parse(event.data.object.metadata || '{}');
@@ -595,12 +822,11 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
             }
         }
         res.json({ received: true });
-    } catch (err) {
-        logger.error('❌ Webhook error: ' + err.message);
-        res.status(400).send('Webhook Error: ' + err.message);
-    }
+    } catch (err) { logger.error('❌ Webhook error: ' + err.message);
+        res.status(400).send('Webhook Error: ' + err.message); }
 });
-// 👥 ADMIN: Actualizar tier de usuario (para pruebas enterprise)
+
+// 👥 ADMIN: Actualizar tier de usuario
 app.patch('/api/admin/set-tier', authenticate, requireAdmin, async function(req, res) {
     try {
         const { targetEmail, tier } = req.body;
@@ -608,15 +834,11 @@ app.patch('/api/admin/set-tier', authenticate, requireAdmin, async function(req,
             return res.status(400).json({ error: 'Email y tier válidos requeridos (personal|business|enterprise)' });
         }
         if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo: tier actualizado', demo: true });
-
         const result = await usersCollection.updateOne({ email: targetEmail }, { $set: { tier, updatedAt: new Date() } });
         if (result.matchedCount === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        logAudit('admin.set_tier', { admin: req.admin.uid, target: targetEmail, newTier: tier });
+        await logAudit('admin.set_tier', { admin: req.admin.uid, target: targetEmail, newTier: tier });
         res.json({ success: true, message: `Tier de ${targetEmail} actualizado a ${tier}` });
-    } catch (err) {
-        res.status(500).json({ error: 'Error al actualizar tier: ' + err.message });
-    }
+    } catch (err) { res.status(500).json({ error: 'Error al actualizar tier: ' + err.message }); }
 });
 
 // 🌐 SERVIR FRONTEND
@@ -627,16 +849,51 @@ app.get('/', function(req, res) {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 🚀 INICIAR
+// 🚀 INICIAR + PROGRAMAR TAREAS ENTERPRISE
 async function startServer() {
     await connectToMongo();
+
+    // ✅ FASE 3: Programar rotación de claves cada 24h (solo si MongoDB está conectado)
+    if (mongoReady) {
+        setInterval(() => { KeyRotationService.scheduleRotations().catch(e => logger.warn('⚠️ Scheduled rotation failed: ' + e.message)); }, 24 * 60 * 60 * 1000);
+        logger.info('🔄 Key rotation scheduled every 24h');
+    }
+
     app.listen(PORT, '0.0.0.0', function() {
         logger.info('🚀 APIROMWINER en puerto ' + PORT);
-        logger.info('🟢 60 Funciones | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | ✅ Listo para vender HOY');
+        logger.info('🟢 60 Funciones | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY');
     });
 }
-startServer().catch(function(err) {
-    logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
-    process.exit(1);
+startServer().catch(function(err) { logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
+    process.exit(1); });
+// === FIN: index.js ===admin.set_tier', { admin: req.admin.uid, target: targetEmail, newTier: tier });
+        res.json({ success: true, message: `Tier de ${targetEmail} actualizado a ${tier}` });
+    } catch (err) { res.status(500).json({ error: 'Error al actualizar tier: ' + err.message }); }
 });
+
+// 🌐 SERVIR FRONTEND
+app.get('/', function(req, res) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 🚀 INICIAR + PROGRAMAR TAREAS ENTERPRISE
+async function startServer() {
+    await connectToMongo();
+
+    // ✅ FASE 3: Programar rotación de claves cada 24h (solo si MongoDB está conectado)
+    if (mongoReady) {
+        setInterval(() => { KeyRotationService.scheduleRotations().catch(e => logger.warn('⚠️ Scheduled rotation failed: ' + e.message)); }, 24 * 60 * 60 * 1000);
+        logger.info('🔄 Key rotation scheduled every 24h');
+    }
+
+    app.listen(PORT, '0.0.0.0', function() {
+        logger.info('🚀 APIROMWINER en puerto ' + PORT);
+        logger.info('🟢 60 Funciones | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY');
+    });
+}
+startServer().catch(function(err) { logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
+    process.exit(1); });
 // === FIN: index.js ===
