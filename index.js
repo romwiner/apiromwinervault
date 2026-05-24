@@ -52,12 +52,29 @@ async function connectToMongo() {
     }
 }
 
-// 🔐 SEGURIDAD
-app.use(helmet({ contentSecurityPolicy: { directives: { defaultSrc: ["'self'"], styleSrc: ["'self'", "'unsafe-inline'"], scriptSrc: ["'self'"], imgSrc: ["'self'", "data:", "https:"], connectSrc: ["'self'", "https://apiromwinervault.onrender.com", "https://checkout.stripe.com"], fontSrc: ["'self'"], objectSrc: ["'none'"], mediaSrc: ["'self'"], frameSrc: ["'none'", "https://checkout.stripe.com"] } } }));
-app.use(cors({ origin: process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com', credentials: true }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static('public'));
+// 🔐 SEGURIDAD (CSP corregido para QR + inline scripts + frame-src válido)
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrcAttr: ["'self'", "'unsafe-inline'"], // ✅ Permite onclick="..."
+            imgSrc: ["'self'", "data:", "https:", "http:"], // ✅ QR externo permitido
+            connectSrc: [
+                "'self'",
+                "https://apiromwinervault.onrender.com",
+                "https://checkout.stripe.com",
+                "https://api.qrserver.com" // ✅ QR generator permitido
+            ],
+            fontSrc: ["'self'", "https:", "data:"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'", "https:"],
+            frameSrc: ["https://checkout.stripe.com"], // ✅ SIN 'none', solo Stripe
+            upgradeInsecureRequests: []
+        }
+    }
+}));
 
 // 📁 UPLOADS
 const uploadDir = path.join(__dirname, 'uploads');
@@ -90,9 +107,11 @@ const authenticate = function(req, res, next) {
     if (!authHeader) { return res.status(401).json({ error: 'Token requerido' }); }
     const token = authHeader.replace('Bearer ', '');
     if (!token) { return res.status(401).json({ error: 'Token requerido' }); }
-    try { req.user = jwt.verify(token, JWT_SECRET);
-        next(); } catch (err) { return res.status(401).json({ error: 'Token inválido' }); }
-};
+    try {
+        req.user = jwt.verify(token, JWT_SECRET);
+        next();
+    } catch (err) { return res.status(401).json({ error: 'Token inválido' }); }
+}
 const requireAdmin = async function(req, res, next) {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
