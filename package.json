@@ -1,27 +1,28 @@
 {
-    "name": "personal-data-vault-api",
-    "version": "2.0.0",
-    "description": "Bóveda de datos personales con cifrado E2E (versión simplificada)",
+    "name": "apiromwinervault",
+    "version": "1.0.0",
+    "description": "ApiRomwiner Vault - Bóveda segura con identidad universal y monetización",
     "main": "index.js",
     "scripts": {
-        "start": "node index.js"
+        "start": "node index.js",
+        "dev": "nodemon index.js"
     },
     "dependencies": {
-        "express"
+        "express": "^4.18.2",
         "mongodb": "^6.3.0",
-        "axios": "^1.16.1",
-        "bcryptjs": "^3.0.3",
         "cors": "^2.8.5",
-        "dotenv": "^16.4.5",
-        "express": "^4.18.3",
-        "express-rate-limit": "^7.2.0",
         "helmet": "^7.1.0",
-        "joi": "^17.12.2",
-        "jsonwebtoken": "^9.0.3",
-        "multer": "^2.1.1",
-        "node-cron": "^4.2.1",
-        "pino": "^8.19.0",
-        "stripe": "^22.1.1",
-        "uuid": "^14.0.0"
+        "express-rate-limit": "^7.1.5",
+        "bcryptjs": "^2.4.3",
+        "jsonwebtoken": "^9.0.2",
+        "multer": "^1.4.5-lts.1",
+        "pino": "^8.17.2",
+        "dotenv": "^16.3.1"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.2"
+    },
+    "engines": {
+        "node": "24.x"
     }
 }
