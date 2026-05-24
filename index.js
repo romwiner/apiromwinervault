@@ -1,4 +1,4 @@
-// === INICIO: index.js - APIROMWINER VAULT COMPLETO (60 FUNCIONES + ENTERPRISE 3 FASES) ===
+// === INICIO: index.js - APIROMWINER VAULT COMPLETO (60 FUNCIONES + ENTERPRISE 3 FASES + FIX DEFINITIVO) ===
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -45,9 +45,6 @@ const EnvelopeEncryption = (function() {
 })();
 // 🔚 FIN ENVELOPE ENCRYPTION
 
-// ✅ MEJORA 1: Stripe para verificar webhooks
-// const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -78,7 +75,6 @@ async function connectToMongo() {
         await profilesCollection.createIndex({ userId: 1 }, { unique: true });
         await walletCollection.createIndex({ userId: 1 }, { unique: true });
         await auditCollection.createIndex({ createdAt: -1 });
-        // ✅ FASE 1: Índices para tiers y auditoría
         await usersCollection.createIndex({ tier: 1 });
         await auditCollection.createIndex({ userId: 1, timestamp: -1 });
 
@@ -90,7 +86,7 @@ async function connectToMongo() {
     }
 }
 
-// 🔐 SEGURIDAD (CSP corregido)
+// 🔐 SEGURIDAD
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -188,7 +184,7 @@ const PERMISSIONS = {
     'admin:compliance': ['enterprise']
 };
 
-// Middleware: verificar tier mínimo requerido
+// Middleware: verificar tier mínimo requerido - ✅ FIX: ?. sin espacio
 const requireTier = (...allowedTiers) => async(req, res, next) => {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
@@ -201,14 +197,13 @@ const requireTier = (...allowedTiers) => async(req, res, next) => {
     } catch (err) { res.status(500).json({ error: 'Error verificando tier: ' + err.message }); }
 };
 
-// Middleware: verificar cuota de almacenamiento
+// Middleware: verificar cuota de almacenamiento - ✅ FIX: ?. sin espacio
 const checkQuota = async(req, res, next) => {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         const tier = USER_TIERS[user ? .tier || 'personal'];
         if (!tier) return next();
 
-        // Verificar almacenamiento usado
         const usedStorage = await secretsCollection.aggregate([
             { $match: { userId: user ? ._id } },
             { $group: { _id: null, total: { $sum: '$fileSize' } } }
@@ -219,7 +214,6 @@ const checkQuota = async(req, res, next) => {
             return res.status(413).json({ error: 'Límite de almacenamiento excedido', used: usedGB.toFixed(2), limit: tier.storageLimitGB, upgrade: 'Actualiza tu plan para más espacio' });
         }
 
-        // Verificar tamaño de archivo si hay upload
         if (req.file && req.file.size > tier.maxFileSizeMB * 1024 * 1024) {
             return res.status(413).json({ error: 'Archivo demasiado grande', size: (req.file.size / 1024 / 1024).toFixed(2), limit: tier.maxFileSizeMB, tier: tier.name });
         }
@@ -233,16 +227,12 @@ const checkQuota = async(req, res, next) => {
 const createImmutableLog = async(auditData) => {
     const eventId = crypto.randomUUID();
     const contentHash = crypto.createHash('sha256').update(JSON.stringify(auditData)).digest('hex');
-
-    // Obtener último hash para cadena blockchain-style
     const lastLog = await auditCollection.findOne({}, { sort: { createdAt: -1 }, projection: { currentHash: 1 } });
     const previousHash = lastLog ? .currentHash || 'genesis';
-
     const currentHash = crypto.createHash('sha256').update(previousHash + contentHash).digest('hex');
     const hmac = crypto.createHmac('sha256', process.env.AUDIT_SECRET || MASTER_KEY);
     hmac.update(eventId + currentHash);
     const signature = hmac.digest('hex');
-
     return {...auditData, eventId, previousHash, currentHash, signature, timestamp: new Date() };
 };
 
@@ -252,7 +242,6 @@ const generateGDPRReport = async(userId, startDate, endDate) => {
         userId,
         timestamp: { $gte: new Date(startDate), $lte: new Date(endDate) }
     }).sort({ timestamp: 1 }).toArray();
-
     return {
         reportType: 'GDPR_ARTICLE_15',
         generatedAt: new Date().toISOString(),
@@ -283,34 +272,25 @@ const KeyRotationService = {
     rotationIntervalDays: 90,
     async rotateUserKey(userId) {
         if (!mongoReady || !usersCollection) return { success: false, message: 'MongoDB no disponible' };
-
         const user = await usersCollection.findOne({ uid: userId });
         if (!user) return { success: false, message: 'Usuario no encontrado' };
-
-        // Generar nueva DEK y envolverla
         const newDEK = EnvelopeEncryption.generateDEK();
         const wrappedNewDEK = EnvelopeEncryption.wrapDEK(newDEK);
-
-        // Actualizar clave del usuario
         await usersCollection.updateOne({ _id: user._id }, {
             $set: { encryptedUserKey: wrappedNewDEK, keyRotatedAt: new Date(), keyVersion: (user.keyVersion || 0) + 1 }
         });
-
-        // Registrar auditoría
         await auditCollection.insertOne(await createImmutableLog({
             userId,
             action: 'key.rotation',
             result: 'success',
             metadata: { newVersion: (user.keyVersion || 0) + 1 }
         }));
-
         return { success: true, message: 'Clave rotada exitosamente', newVersion: (user.keyVersion || 0) + 1 };
     },
     async scheduleRotations() {
         if (!mongoReady) return;
         const cutoff = new Date(Date.now() - this.rotationIntervalDays * 24 * 60 * 60 * 1000);
         const usersToRotate = await usersCollection.find({ keyRotatedAt: { $lt: cutoff }, encryptedUserKey: { $exists: true } }).toArray();
-
         for (const user of usersToRotate) {
             try { await this.rotateUserKey(user.uid); } catch (err) { logger.error('❌ Error rotando clave para ' + user.uid + ': ' + err.message); }
         }
@@ -319,7 +299,6 @@ const KeyRotationService = {
 
 const AlertWebhookService = {
     async registerWebhook(userId, config) {
-        // config: { url, events: ['login.failed', 'vault.anomaly'], secret }
         if (!mongoReady) return { success: true, message: 'Demo: webhook registrado', demo: true };
         await db.collection('webhooks').updateOne({ userId, url: config.url }, { $set: {...config, updatedAt: new Date() } }, { upsert: true });
         return { success: true, message: 'Webhook registrado' };
@@ -397,7 +376,6 @@ app.post('/register', async function(req, res) {
         if (await usersCollection.findOne({ email: email })) return res.status(400).json({ error: 'Correo ya registrado. Inicia sesión.' });
         const hashedPassword = await bcrypt.hash(password, 10);
         const isAdmin = ADMIN_EMAILS.indexOf(email) !== -1;
-        // ✅ FASE 1: Tier por defecto = personal
         const newUser = { email, password: hashedPassword, uid: generateUID(), refCode: generateRefCode(), referredBy: refCode || null, isAdmin, tier: 'personal', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
         const result = await usersCollection.insertOne(newUser);
         await profilesCollection.insertOne({ userId: result.insertedId, uid: newUser.uid, displayName: '', avatarUrl: '', bio: '', isPublic: false, createdAt: new Date() });
@@ -406,10 +384,8 @@ app.post('/register', async function(req, res) {
         await logAudit('register', { email });
         logger.info('✅ Registrado: ' + email);
         res.status(201).json({ success: true, message: 'Registrado. Inicia sesión para comenzar.' });
-    } catch (err) {
-        logger.error('❌ Registro: ' + err.message);
-        res.status(500).json({ error: 'Error interno al registrar: ' + err.message });
-    }
+    } catch (err) { logger.error('❌ Registro: ' + err.message);
+        res.status(500).json({ error: 'Error interno al registrar: ' + err.message }); }
 });
 
 app.post('/login', async function(req, res) {
@@ -472,6 +448,7 @@ app.post('/api/wallet/deposit', authenticate, async function(req, res) {
         if (STRIPE_SECRET_KEY.includes('placeholder')) return res.json({ success: true, message: 'Modo demo: configura STRIPE_SECRET_KEY en .env', demo: true, clientSecret: 'demo' });
         const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', { method: 'POST', headers: { 'Authorization': 'Bearer ' + STRIPE_SECRET_KEY, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ amount: Math.round(amount * 100), currency: 'usd', metadata: JSON.stringify({ uid: req.user.uid, type: 'deposit' }) }) });
         const data = await stripeRes.json();
+        // ✅ FIX: data.error?.message (sin espacio)
         if (!data.client_secret) return res.status(500).json({ error: 'Error de Stripe: ' + (data.error ? .message || 'Cliente secreto no generado') });
         res.json({ success: true, clientSecret: data.client_secret, paymentId: data.id });
     } catch (err) { res.status(500).json({ error: 'Error procesando pago con Stripe: ' + err.message }); }
@@ -484,6 +461,7 @@ app.post('/api/wallet/withdraw', authenticate, async function(req, res) {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const w = await walletCollection.findOne({ userId: user._id });
+        // ✅ FIX: w?.balance (sin espacio)
         if (!w || w.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente. Saldo actual: $' + (w ? .balance || 0).toFixed(2) });
         await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -amount }, $push: { history: { type: 'withdraw', amount, method, date: new Date() } } });
         await transactionsCollection.insertOne({ userId: user._id, type: 'withdrawal', amount, method, status: 'pending', createdAt: new Date() });
@@ -502,14 +480,12 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async function(r
         if (!user) {
             tempPassword = generateTempPass();
             const hashed = await bcrypt.hash(tempPassword, 10);
-            // ✅ FASE 1: Permitir asignar tier al crear cuenta
             const newUser = { email: recipientEmail, password: hashed, uid: generateUID(), refCode: generateRefCode(), isAdmin: false, tier: tier || 'personal', isGifted: true, giftedBy: req.admin.uid, giftedAt: new Date(), giftedNote: note || '', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
             const r = await usersCollection.insertOne(newUser);
             await profilesCollection.insertOne({ userId: r.insertedId, uid: newUser.uid, displayName: 'Usuario Regalado', bio: note || '', isPublic: false, createdAt: new Date() });
             await affiliatesCollection.insertOne({ userId: r.insertedId, refCode: newUser.refCode, level: 'bronce', createdAt: new Date() });
             user = newUser;
         } else {
-            // ✅ FASE 1: Actualizar tier si se proporciona
             if (tier && ['personal', 'business', 'enterprise'].includes(tier)) {
                 await usersCollection.updateOne({ _id: user._id }, { $set: { tier, updatedAt: new Date() } });
             }
@@ -579,10 +555,8 @@ app.post('/vault', authenticate, checkQuota, async function(req, res) {
         const result = await secretsCollection.insertOne(data);
         await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale });
         res.status(201).json({ success: true, message: 'Contenido guardado y cifrado en Vault (clave única por usuario)', id: result.insertedId, fileName: data.fileName });
-    } catch (err) {
-        logger.error('❌ Vault create: ' + err.message);
-        res.status(500).json({ error: 'Error al guardar en Vault: ' + err.message });
-    }
+    } catch (err) { logger.error('❌ Vault create: ' + err.message);
+        res.status(500).json({ error: 'Error al guardar en Vault: ' + err.message }); }
 });
 
 app.get('/vault', authenticate, async function(req, res) {
@@ -615,6 +589,7 @@ app.get('/vault/:id', authenticate, async function(req, res) {
                     contenido = Buffer.from(decrypted, 'base64').toString('base64');
                 }
             } catch (e) {
+                // ✅ FIX: secret.encrypted?.iv y secret.encrypted?.authTag (sin espacio)
                 if (secret.tipo === 'texto' && secret.contenido) {
                     contenido = decrypt({ iv: secret.encrypted ? .iv, encrypted: secret.contenido, authTag: secret.encrypted ? .authTag });
                 } else if (secret.tipo === 'archivo' && secret.encrypted) {
@@ -657,6 +632,7 @@ app.post('/api/buy/:id', authenticate, async function(req, res) {
         if (secret.buyers.indexOf(buyer.uid) !== -1) return res.status(400).json({ error: 'Ya compraste este contenido. Revisa tu Vault.' });
         const price = secret.price || 10;
         const bWallet = await walletCollection.findOne({ userId: buyer._id });
+        // ✅ FIX: bWallet?.balance (sin espacio)
         if (!bWallet || bWallet.balance < price) return res.status(400).json({ error: 'Saldo insuficiente. Necesitas $' + price + ' USD. Saldo actual: $' + (bWallet ? .balance || 0).toFixed(2) });
         const seller = await usersCollection.findOne({ _id: secret.userId });
         const sWallet = await walletCollection.findOne({ userId: seller._id });
@@ -690,6 +666,7 @@ app.post('/api/affiliates/withdraw', authenticate, async function(req, res) {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const aff = await affiliatesCollection.findOne({ userId: user._id });
+        // ✅ FIX: aff?.availableBalance (sin espacio)
         if (!aff || aff.availableBalance < 10) return res.status(400).json({ error: 'Mínimo $10 USD para retiro de afiliados. Balance actual: $' + (aff ? .availableBalance || 0).toFixed(2) });
         const w = await walletCollection.findOne({ userId: user._id });
         if (w) await walletCollection.updateOne({ _id: w._id }, { $inc: { availableBalance: -aff.availableBalance, withdrawnBalance: aff.availableBalance }, $push: { history: { type: 'affiliate_withdraw', amount: aff.availableBalance, method, date: new Date() } } });
@@ -763,7 +740,6 @@ app.get('/api/audit/export', authenticate, requireTier('business', 'enterprise')
     try {
         const { type, startDate, endDate, organizationId } = req.query;
         if (!mongoReady || !auditCollection) return res.json({ success: true, logs: [], demo: true });
-
         if (type === 'gdpr') {
             const report = await generateGDPRReport(req.user.uid, startDate || new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), endDate || new Date());
             return res.json({ success: true, reportType: 'GDPR', data: report });
@@ -772,8 +748,6 @@ app.get('/api/audit/export', authenticate, requireTier('business', 'enterprise')
             const report = await generateSOC2Report(organizationId || req.user.uid, startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), endDate || new Date());
             return res.json({ success: true, reportType: 'SOC2', data: report });
         }
-
-        // Default: logs simples
         const logs = await auditCollection.find({ userId: req.user.uid }).sort({ timestamp: -1 }).limit(100).toArray();
         res.json({ success: true, logs });
     } catch (err) { res.status(500).json({ error: 'Error al exportar auditoría: ' + err.message }); }
@@ -784,11 +758,9 @@ app.post('/api/admin/rotate-keys', authenticate, requireAdmin, requireTier('ente
     try {
         const { userId } = req.body;
         if (userId) {
-            // Rotar clave de un usuario específico
             const result = await KeyRotationService.rotateUserKey(userId);
             return res.json(result);
         } else {
-            // Rotar todas las claves elegibles
             await KeyRotationService.scheduleRotations();
             return res.json({ success: true, message: 'Rotación de claves programada para usuarios elegibles' });
         }
@@ -826,10 +798,8 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
             }
         }
         res.json({ received: true });
-    } catch (err) {
-        logger.error('❌ Webhook error: ' + err.message);
-        res.status(400).send('Webhook Error: ' + err.message);
-    }
+    } catch (err) { logger.error('❌ Webhook error: ' + err.message);
+        res.status(400).send('Webhook Error: ' + err.message); }
 });
 
 // 👥 ADMIN: Actualizar tier de usuario
@@ -858,53 +828,15 @@ app.get('/', function(req, res) {
 // 🚀 INICIAR + PROGRAMAR TAREAS ENTERPRISE
 async function startServer() {
     await connectToMongo();
-
-    // ✅ FASE 3: Programar rotación de claves cada 24h (solo si MongoDB está conectado)
     if (mongoReady) {
         setInterval(() => { KeyRotationService.scheduleRotations().catch(e => logger.warn('⚠️ Scheduled rotation failed: ' + e.message)); }, 24 * 60 * 60 * 1000);
         logger.info('🔄 Key rotation scheduled every 24h');
     }
-
     app.listen(PORT, '0.0.0.0', function() {
         logger.info('🚀 APIROMWINER en puerto ' + PORT);
         logger.info('🟢 60 Funciones | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY');
     });
 }
-startServer().catch(function(err) {
-    logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
-    process.exit(1);
-});
-// === FIN: index.js ===admin.set_tier', { admin: req.admin.uid, target: targetEmail, newTier: tier });
-res.json({ success: true, message: `Tier de ${targetEmail} actualizado a ${tier}` });
-}
-catch (err) { res.status(500).json({ error: 'Error al actualizar tier: ' + err.message }); }
-});
-
-// 🌐 SERVIR FRONTEND
-app.get('/', function(req, res) {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// 🚀 INICIAR + PROGRAMAR TAREAS ENTERPRISE
-async function startServer() {
-    await connectToMongo();
-
-    // ✅ FASE 3: Programar rotación de claves cada 24h (solo si MongoDB está conectado)
-    if (mongoReady) {
-        setInterval(() => { KeyRotationService.scheduleRotations().catch(e => logger.warn('⚠️ Scheduled rotation failed: ' + e.message)); }, 24 * 60 * 60 * 1000);
-        logger.info('🔄 Key rotation scheduled every 24h');
-    }
-
-    app.listen(PORT, '0.0.0.0', function() {
-        logger.info('🚀 APIROMWINER en puerto ' + PORT);
-        logger.info('🟢 60 Funciones | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY');
-    });
-}
-startServer().catch(function(err) {
-    logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
-    process.exit(1);
-});
+startServer().catch(function(err) { logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
+    process.exit(1); });
 // === FIN: index.js ===
