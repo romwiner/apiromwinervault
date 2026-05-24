@@ -219,8 +219,10 @@ app.post('/register', async function(req, res) {
         logAudit('register', { email });
         logger.info('✅ Registrado: ' + email);
         res.status(201).json({ success: true, message: 'Registrado. Inicia sesión para comenzar.' });
-    } catch (err) { logger.error('❌ Registro: ' + err.message);
-        res.status(500).json({ error: 'Error interno al registrar: ' + err.message }); }
+    } catch (err) {
+        logger.error('❌ Registro: ' + err.message);
+        res.status(500).json({ error: 'Error interno al registrar: ' + err.message });
+    }
 });
 
 app.post('/login', async function(req, res) {
@@ -387,8 +389,10 @@ app.post('/vault', authenticate, upload.single('archivo'), async function(req, r
         const result = await secretsCollection.insertOne(data);
         logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale });
         res.status(201).json({ success: true, message: 'Contenido guardado y cifrado en Vault (clave única por usuario)', id: result.insertedId, fileName: data.fileName });
-    } catch (err) { logger.error('❌ Vault create: ' + err.message);
-        res.status(500).json({ error: 'Error al guardar en Vault: ' + err.message }); }
+    } catch (err) {
+        logger.error('❌ Vault create: ' + err.message);
+        res.status(500).json({ error: 'Error al guardar en Vault: ' + err.message });
+    }
 });
 
 app.get('/vault', authenticate, async function(req, res) {
@@ -591,8 +595,28 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
             }
         }
         res.json({ received: true });
-    } catch (err) { logger.error('❌ Webhook error: ' + err.message);
-        res.status(400).send('Webhook Error: ' + err.message); }
+    } catch (err) {
+        logger.error('❌ Webhook error: ' + err.message);
+        res.status(400).send('Webhook Error: ' + err.message);
+    }
+});
+// 👥 ADMIN: Actualizar tier de usuario (para pruebas enterprise)
+app.patch('/api/admin/set-tier', authenticate, requireAdmin, async function(req, res) {
+    try {
+        const { targetEmail, tier } = req.body;
+        if (!targetEmail || !['personal', 'business', 'enterprise'].includes(tier)) {
+            return res.status(400).json({ error: 'Email y tier válidos requeridos (personal|business|enterprise)' });
+        }
+        if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo: tier actualizado', demo: true });
+
+        const result = await usersCollection.updateOne({ email: targetEmail }, { $set: { tier, updatedAt: new Date() } });
+        if (result.matchedCount === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        logAudit('admin.set_tier', { admin: req.admin.uid, target: targetEmail, newTier: tier });
+        res.json({ success: true, message: `Tier de ${targetEmail} actualizado a ${tier}` });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al actualizar tier: ' + err.message });
+    }
 });
 
 // 🌐 SERVIR FRONTEND
@@ -611,6 +635,8 @@ async function startServer() {
         logger.info('🟢 60 Funciones | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | ✅ Listo para vender HOY');
     });
 }
-startServer().catch(function(err) { logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
-    process.exit(1); });
+startServer().catch(function(err) {
+    logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
+    process.exit(1);
+});
 // === FIN: index.js ===
