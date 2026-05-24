@@ -197,7 +197,6 @@
             <button onclick="openPromo()">✨ Unirme por $25 USD</button>
             <button class="btn-sec" onclick="scrollToAuth()">🔓 Crear Cuenta Gratis</button>
         </div>
-
         <div class="glass">
             <h2>💰 Cómo Ganas Dinero</h2>
             <div class="grid">
@@ -219,14 +218,12 @@
                 </div>
             </div>
         </div>
-
         <div class="glass qr-box">
             <h2>📱 Instala la App en tu Celular</h2>
             <p>Escanea para abrir, instalar y empezar a ganar desde cualquier dispositivo.</p>
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://apiromwinervault.onrender.com&color=00e676&bgcolor=0b0c10" class="qr-img" alt="QR Instalar App">
             <button id="installBtn" class="btn-sec" onclick="installApp()" style="display:none; max-width:200px; margin:8px auto;">📲 Instalar App</button>
         </div>
-
         <div id="authSection" class="glass">
             <h2>🔐 Acceso a tu Bóveda</h2>
             <input id="email" type="email" placeholder="Correo electrónico">
@@ -260,7 +257,6 @@
                 </div>
             </div>
         </div>
-
         <div class="glass">
             <h2>🚀 Acciones Rápidas</h2>
             <button onclick="refresh()">🔄 Actualizar Métricas</button>
@@ -269,7 +265,6 @@
             <button onclick="withdraw()">💸 Solicitar Retiro a Cuenta</button>
             <button class="btn-danger" onclick="logout()">🚪 Cerrar Sesión</button>
         </div>
-
         <div class="glass qr-box">
             <h2>📲 App Instalada</h2>
             <p>Comparte este QR para que otros instalen y usen tu enlace de referido.</p>
@@ -304,6 +299,7 @@
     </div>
     <footer>© 2026 ApiRomwiner Vault. Todos los derechos reservados. Monetiza tu conocimiento de forma segura.</footer>
 
+    <!-- ✅ JAVASCRIPT LIMPIO, SIN DUPLICADOS, CON FIX DE EMAIL -->
     <script>
         const API = 'https://apiromwinervault.onrender.com';
         let token = localStorage.getItem('token') || '';
@@ -326,18 +322,19 @@
                 body: body ? JSON.stringify(body) : null
             });
             const j = await r.json();
-            if (!r.ok) throw new Error(j.error || 'Error de conexión');
+            if (!r.ok) throw new Error(j.error || 'Error API');
             return j;
         }
 
-        // 🌐 INIT
         async function init() {
             try {
                 const s = await req('/api/status');
-                log('✅ Sistema en línea • ' + s.database);
+                document.getElementById('status').textContent = `✅ Online • ${s.database}`;
+                log('🟢 API responde');
                 checkPromo();
             } catch (e) {
-                log('⚠️ Modo offline: verifica conexión');
+                document.getElementById('status').textContent = '❌ Sin conexión';
+                log('❌ API no responde');
             }
             if (token) {
                 await loadUser();
@@ -345,7 +342,6 @@
             }
         }
 
-        // 🔐 AUTH
         async function login() {
             try {
                 const e = document.getElementById('email').value,
@@ -357,11 +353,12 @@
                 });
                 token = r.token;
                 localStorage.setItem('token', token);
+                localStorage.setItem('userEmail', e); // ✅ FIX: guarda el correo para mostrarlo en dashboard
                 await loadUser();
                 showDashboard();
                 log('✅ Acceso concedido');
             } catch (e) {
-                log('❌ Credenciales inválidas');
+                log('❌ ' + e.message);
             }
         }
 
@@ -384,7 +381,11 @@
             try {
                 const p = await req('/api/profile');
                 currentUser = p.profile;
-                document.getElementById('uEmail').textContent = p.profile.displayName || 'Usuario';
+                // ✅ Si MongoDB dice "Demo" por fallback, usa el correo guardado
+                const nombre = (p.profile.displayName === 'Demo') ?
+                    (localStorage.getItem('userEmail') || 'Usuario') :
+                    p.profile.displayName;
+                document.getElementById('uEmail').textContent = nombre;
             } catch (e) { /* fallback */ }
         }
 
@@ -410,7 +411,6 @@
             });
         }
 
-        // 🟢 DASHBOARD
         async function refresh() {
             if (!token) return;
             try {
@@ -427,7 +427,6 @@
             }
         }
 
-        // 📦 VAULT
         function openCreate() {
             document.getElementById('createModal').classList.remove('hidden');
         }
@@ -435,6 +434,7 @@
         function closeCreate() {
             document.getElementById('createModal').classList.add('hidden');
         }
+
         async function publish() {
             try {
                 const titulo = document.getElementById('itemTitle').value;
@@ -456,12 +456,10 @@
             }
         }
 
-        // 💸 RETIROS
         async function withdraw() {
             log('💸 Solicitud enviada. Te contactaremos para el pago seguro.');
         }
 
-        // 🆔 QR IDENTIDAD
         function showIdentityQR() {
             if (!currentUser) return log('⚠️ Sesión no válida');
             const data = JSON.stringify({
@@ -479,13 +477,13 @@
             document.getElementById('idModal').classList.add('hidden');
         }
 
-        // 🎁 PROMO
         async function checkPromo() {
             try {
                 const s = await req('/api/promo/status');
                 if (s.active) log('🎁 ' + s.message);
             } catch (e) { /* silent */ }
         }
+
         async function openPromo() {
             if (!token) {
                 scrollToAuth();
@@ -519,9 +517,16 @@
                     deferredPrompt = null;
                     document.getElementById('installBtn').style.display = 'none';
                 });
-            } else log('ℹ️ Usa el menú del navegador → "Agregar a pantalla de inicio"');
+            } else {
+                log('ℹ️ Usa el menú del navegador → "Agregar a pantalla de inicio"');
+            }
         }
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').then(() => log('🛡️ Sistema seguro activo')).catch(e => log('⚠️ SW: ' + e.message));
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(() => log('🛡️ Sistema seguro activo'))
+                .catch(e => log('⚠️ SW: ' + e.message));
+        }
 
         // 🌐 START
         init();
