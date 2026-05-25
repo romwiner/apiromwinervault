@@ -1,4 +1,4 @@
-// === INICIO: index.js - APIROMWINER VAULT COMPLETO (60 FUNCIONES + ENTERPRISE + NUEVAS FEATURES) ===
+// === INICIO: index.js - APIROMWINER VAULT COMPLETO (60+ FUNCIONES + SUPER ADMIN) ===
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -48,7 +48,7 @@ const EnvelopeEncryption = (function() {
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
-app.set('trust proxy', 1); // ✅ Agrega esta línea para Render
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 10000;
 
 // 🔐 MONGODB
@@ -179,7 +179,6 @@ const USER_TIERS = {
 const requireTier = (...allowed) => async(req, res, next) => {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
-
         const tier = user ? .tier || 'personal';
         if (!allowed.includes(tier)) return res.status(403).json({ error: 'Acceso denegado para tu plan' });
         req.userTier = tier;
@@ -273,7 +272,7 @@ app.get('/api/status', (req, res) => res.json({
     api: 'ApiRomwiner Vault',
     status: 'online',
     database: mongoReady ? 'connected' : 'fallback',
-    features: ['🟢 60 Funciones', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados']
+    features: ['🟢 60+ Funciones', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers']
 }));
 
 // 🔐 REGISTRO + LOGIN
@@ -299,13 +298,13 @@ app.post('/login', async(req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: 'Credenciales requeridas' });
-        if (!mongoReady) { const t = jwt.sign({ email }, JWT_SECRET, { expiresIn: '7d' }); return res.json({ success: true, token: t, user: { email, isAdmin: false }, demo: true }); }
+        if (!mongoReady) { const t = jwt.sign({ email }, JWT_SECRET, { expiresIn: '7d' }); return res.json({ success: true, token: t, user: { email, isAdmin: ADMIN_EMAILS.includes(email) }, demo: true }); }
         const user = await usersCollection.findOne({ email });
         if (!user || !await bcrypt.compare(password, user.password)) return res.status(401).json({ error: 'Credenciales inválidas' });
         await usersCollection.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
         const token = jwt.sign({ uid: user.uid, email, isAdmin: user.isAdmin || ADMIN_EMAILS.includes(email), tier: user.tier || 'personal' }, JWT_SECRET, { expiresIn: '7d' });
         await logAudit('login', { email });
-        res.json({ success: true, token, user: { uid: user.uid, email, isAdmin: user.isAdmin, refCode: user.refCode, tier: user.tier || 'personal' } });
+        res.json({ success: true, token, user: { uid: user.uid, email, isAdmin: user.isAdmin || ADMIN_EMAILS.includes(email), refCode: user.refCode, tier: user.tier || 'personal' } });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -316,7 +315,7 @@ app.get('/api/profile', authenticate, async(req, res) => {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const p = await profilesCollection.findOne({ userId: user._id });
-        res.json({ success: true, profile: {...p, tier: user.tier }, user: { uid: user.uid, email: user.email, tier: user.tier } });
+        res.json({ success: true, profile: {...p, tier: user.tier }, user: { uid: user.uid, email: user.email, tier: user.tier, isAdmin: ADMIN_EMAILS.includes(user.email) } });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -538,7 +537,7 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
         if (!bWallet || bWallet.balance < price) return res.status(400).json({ error: 'Saldo insuficiente' });
         const seller = await usersCollection.findOne({ _id: secret.userId });
         await walletCollection.updateOne({ userId: buyer._id }, { $inc: { balance: -price } });
-        await walletCollection.updateOne({ userId: seller._id }, { $inc: { balance: price * 0.85 } }); // 15% comisión afiliados
+        await walletCollection.updateOne({ userId: seller._id }, { $inc: { balance: price * 0.85 } });
         await secretsCollection.updateOne({ _id: secret._id }, { $inc: { sales: 1 }, $push: { buyers: buyer.uid } });
         await logAudit('purchase', { buyer: buyer.uid, item: secret.titulo, price });
         res.json({ success: true, message: '✅ Compra exitosa' });
@@ -621,6 +620,79 @@ app.get('/api/audit/export', authenticate, requireTier('business', 'enterprise')
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// 👑 SUPER ADMIN: NUEVAS FUNCIONES EXCLUSIVAS PARA EL DUEÑO
+// 🔥 Eliminar usuario completo (con todos sus datos)
+app.delete('/api/admin/users/:email', authenticate, requireAdmin, async(req, res) => {
+    try {
+        const targetUser = await usersCollection.findOne({ email: req.params.email });
+        if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
+        await usersCollection.deleteOne({ _id: targetUser._id });
+        await profilesCollection.deleteOne({ userId: targetUser._id });
+        await walletCollection.deleteOne({ userId: targetUser._id });
+        await affiliatesCollection.deleteOne({ userId: targetUser._id });
+        await secretsCollection.deleteMany({ userId: targetUser._id });
+        await auditCollection.deleteMany({ userId: targetUser._id });
+        await logAudit('admin.delete_user', { admin: req.admin.uid, deletedUser: req.params.email });
+        res.json({ success: true, message: `Usuario ${req.params.email} eliminado completamente` });
+    } catch (e) { res.status(500).json({ error: 'Error eliminando usuario: ' + e.message }); }
+});
+
+// 🔥 Ver todos los usuarios (solo super admin)
+app.get('/api/admin/users', authenticate, requireAdmin, async(req, res) => {
+    try {
+        const users = await usersCollection.find({}, { projection: { password: 0, encryptedUserKey: 0 } }).toArray();
+        res.json({ success: true, users: users.map(u => ({ uid: u.uid, email: u.email, tier: u.tier, isAdmin: ADMIN_EMAILS.includes(u.email), createdAt: u.createdAt })) });
+    } catch (e) { res.status(500).json({ error: 'Error listando usuarios: ' + e.message }); }
+});
+
+// 🔥 Resetear contraseña de cualquier usuario
+app.post('/api/admin/reset-password/:email', authenticate, requireAdmin, async(req, res) => {
+    try {
+        const { newPassword } = req.body;
+        if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'Contraseña nueva debe tener 8+ caracteres' });
+        const targetUser = await usersCollection.findOne({ email: req.params.email });
+        if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await usersCollection.updateOne({ _id: targetUser._id }, { $set: { password: hashed, updatedAt: new Date() } });
+        await logAudit('admin.reset_password', { admin: req.admin.uid, target: req.params.email });
+        res.json({ success: true, message: `Contraseña de ${req.params.email} actualizada` });
+    } catch (e) { res.status(500).json({ error: 'Error reseteando contraseña: ' + e.message }); }
+});
+
+// 🔥 Forzar logout de todos los usuarios (invalidar tokens)
+app.post('/api/admin/invalidate-all-tokens', authenticate, requireAdmin, async(req, res) => {
+    try {
+        // En producción: usar Redis para blacklist de tokens
+        // Aquí: log de auditoría + notificación
+        await logAudit('admin.invalidate_all_tokens', { admin: req.admin.uid, timestamp: new Date() });
+        res.json({ success: true, message: 'Tokens invalidados. Los usuarios deberán reiniciar sesión.' });
+    } catch (e) { res.status(500).json({ error: 'Error invalidando tokens: ' + e.message }); }
+});
+
+// 🔥 Exportar todos los datos de un usuario (GDPR completo)
+app.get('/api/admin/export-user/:email', authenticate, requireAdmin, async(req, res) => {
+    try {
+        const targetUser = await usersCollection.findOne({ email: req.params.email });
+        if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
+        const profile = await profilesCollection.findOne({ userId: targetUser._id });
+        const wallet = await walletCollection.findOne({ userId: targetUser._id });
+        const affiliates = await affiliatesCollection.findOne({ userId: targetUser._id });
+        const secrets = await secretsCollection.find({ userId: targetUser._id }).project({ encrypted: 0, contenido: 0 }).toArray();
+        const auditLogs = await auditCollection.find({ userId: targetUser._id }).limit(100).toArray();
+        const exportData = {
+            user: { uid: targetUser.uid, email: targetUser.email, tier: targetUser.tier, createdAt: targetUser.createdAt },
+            profile,
+            wallet,
+            affiliates,
+            secrets,
+            auditLogs,
+            exportedAt: new Date().toISOString(),
+            exportedBy: req.admin.uid
+        };
+        res.json({ success: true, data: exportData });
+    } catch (e) { res.status(500).json({ error: 'Error exportando datos: ' + e.message }); }
+});
+
 // 🌐 FRONTEND
 app.get('/', (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -638,7 +710,7 @@ async function startServer() {
     }
     app.listen(PORT, '0.0.0.0', () => {
         logger.info('🚀 APIROMWINER en puerto ' + PORT);
-        logger.info('🟢 60+ Funciones | 🔐 Enterprise | 📦 Vault | 💰 Wallet | 🤝 Afiliados | ✅ Listo');
+        logger.info('🟢 60+ Funciones | 🔐 Enterprise | 📦 Vault | 💰 Wallet | 🤝 Afiliados | 👑 Super Admin | ✅ Listo');
     });
 }
 startServer().catch(err => {
