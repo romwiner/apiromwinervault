@@ -179,6 +179,7 @@ const USER_TIERS = {
 const requireTier = (...allowed) => async(req, res, next) => {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
+
         const tier = user ? .tier || 'personal';
         if (!allowed.includes(tier)) return res.status(403).json({ error: 'Acceso denegado para tu plan' });
         req.userTier = tier;
