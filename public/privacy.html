@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidad | ApiRomwiner Vault</title>
+    <style>
+        body {
+            background: #0b0c10;
+            color: #e8eaed;
+            font-family: system-ui, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #00e676;
+            border-bottom: 2px solid #00e676;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #8ab4f8;
+            margin-top: 24px;
+        }
+        
+        a {
+            color: #00e676;
+        }
+        
+        .updated {
+            color: #8b95a5;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔐 Política de Privacidad</h1>
+    <p class="updated">Última actualización: <span id="date"></span></p>
+    <script>
+        document.getElementById('date').textContent = new Date().toLocaleDateString('es-MX', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })
+    </script>
+
+    <h2>1. Responsable del Tratamiento</h2>
+    <p>ApiRomwiner Vault, con domicilio en [Tu Dirección], es el responsable del tratamiento de tus datos personales.</p>
+
+    <h2>2. Datos que Recopilamos</h2>
+    <ul>
+        <li><strong>De registro:</strong> correo electrónico, contraseña (cifrada), nombre de usuario opcional.</li>
+        <li><strong>De uso:</strong> dirección IP, tipo de dispositivo, logs de acceso (para seguridad).</li>
+        <li><strong>De contenido:</strong> archivos y textos que subes a tu Vault <strong>cifrados con Envelope Encryption</strong>. <em>Ni siquiera nosotros podemos acceder a su contenido sin tu clave.</em></li>
+        <li><strong>De pago:</strong> procesados exclusivamente por Stripe. No almacenamos números de tarjeta.</li>
+    </ul>
+
+    <h2>3. Finalidad del Tratamiento</h2>
+    <ul>
+        <li>Proporcionar y mejorar el servicio de bóveda digital.</li>
+        <li>Garantizar la seguridad de tu cuenta (detección de accesos sospechosos).</li>
+        <li>Cumplir con obligaciones legales (facturación, auditoría).</li>
+        <li>Comunicarte actualizaciones del servicio (puedes darte de baja en cualquier momento).</li>
+    </ul>
+
+    <h2>4. Base Legal</h2>
+    <ul>
+        <li><strong>Ejecución de contrato:</strong> para prestarte el servicio que solicitaste.</li>
+        <li><strong>Consentimiento:</strong> para comunicaciones comerciales (revocable en cualquier momento).</li>
+        <li><strong>Interés legítimo:</strong> para seguridad y prevención de fraudes.</li>
+        <li><strong>Obligación legal:</strong> para facturación y cumplimiento fiscal.</li>
+    </ul>
+
+    <h2>5. Transferencias Internacionales</h2>
+    <p>Tus datos pueden ser procesados en servidores ubicados en [Países, ej: Estados Unidos, Alemania]. Garantizamos que los proveedores cumplen con estándares de protección adecuados (Cláusulas Contractuales Tipo de la UE, Privacy Shield, etc.).</p>
+
+    <h2>6. Derechos ARCO + GDPR</h2>
+    <p>Puedes ejercer tus derechos de Acceso, Rectificación, Cancelación, Oposición (ARCO) y los derechos GDPR (portabilidad, olvido) contactando a: <a href="mailto:privacy@apiromwiner.com">privacy@apiromwiner.com</a>. Respondemos en máximo 30 días.</p>
+
+    <h2>7. Conservación de Datos</h2>
+    <p>Conservamos tus datos mientras tu cuenta esté activa. Puedes solicitar la eliminación en cualquier momento desde tu panel o vía email. Los datos de auditoría se conservan 5 años por obligaciones legales.</p>
+
+    <h2>8. Seguridad</h2>
+    <p>Implementamos medidas técnicas y organizativas: cifrado AES-256-GCM por usuario (Envelope Encryption), autenticación JWT, rate limiting, auditoría inmutable con hashing, y revisiones periódicas de seguridad.</p>
+
+    <h2>9. Menores de Edad</h2>
+    <p>No dirigimos nuestro servicio a menores de 16 años. Si detectamos datos de un menor, los eliminaremos inmediatamente.</p>
+
+    <h2>10. Cambios a esta Política</h2>
+    <p>Podemos actualizar esta política. Te notificaremos cambios materiales por email o mediante aviso en la plataforma. El uso continuado implica aceptación.</p>
+
+    <h2>11. Contacto</h2>
+    <p>Para dudas sobre privacidad: <a href="mailto:privacy@apiromwiner.com">privacy@apiromwiner.com</a><br> Para ejercer derechos: <a href="mailto:derechos@apiromwiner.com">derechos@apiromwiner.com</a></p>
+
+    <p style="margin-top:40px; padding-top:20px; border-top:1px solid #2a2f3a; color:#8b95a5; font-size:0.85rem;">
+        Esta política cumple con: GDPR (UE), CCPA/CPRA (California), LGPD (Brasil), LFPDPPP (México).<br>
+        <em>Nota: Este documento es una plantilla basada en mejores prácticas. Para cumplimiento total, consulta con un abogado especializado en tu jurisdicción.</em>
+    </p>
+</body>
+
+</html>

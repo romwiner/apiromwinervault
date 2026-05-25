@@ -376,6 +376,21 @@
             color: #ff5252;
             font-size: 0.8rem;
         }
+        
+        .legal-links {
+            margin-top: 8px;
+            font-size: 0.75rem;
+        }
+        
+        .legal-links a {
+            color: #8b95a5;
+            margin: 0 6px;
+            text-decoration: none;
+        }
+        
+        .legal-links a:hover {
+            color: #00e676;
+        }
     </style>
 </head>
 
@@ -426,6 +441,16 @@
             <input id="pass" type="password" placeholder="Contraseña (8+ chars, 1 mayúscula, 1 número, 1 símbolo)">
             <button onclick="login()">🔓 Iniciar Sesión</button>
             <button class="btn-sec" onclick="register()">✨ Registrar Cuenta Nueva</button>
+            <!-- ✅ CHECKBOX DE CONSENTIMIENTO (LUGAR CORRECTO) -->
+            <label style="display:block; margin:12px 0; font-size:0.8rem; color:#8b95a5;">
+                <input type="checkbox" id="acceptTerms" required> 
+                Acepto los <a href="/terms.html" target="_blank" style="color:#00e676;">Términos</a> y 
+                <a href="/privacy.html" target="_blank" style="color:#00e676;">Privacidad</a>
+            </label>
+            <div class="legal-links">
+                <a href="/privacy.html" target="_blank">🔐 Privacidad</a> |
+                <a href="/terms.html" target="_blank">📜 Términos</a>
+            </div>
         </div>
     </div>
 
@@ -608,7 +633,11 @@
     </div>
     <footer>
         © 2026 ApiRomwiner Vault. Todos los derechos reservados.<br>
-        <span style="color:#8b95a5;">Monetiza tu conocimiento con cifrado enterprise-grade.</span>
+        <span style="color:#8b95a5;">
+            <a href="/privacy.html" target="_blank" style="color:#8b95a5; margin:0 8px;">🔐 Privacidad</a> | 
+            <a href="/terms.html" target="_blank" style="color:#8b95a5; margin:0 8px;">📜 Términos</a> | 
+            <a href="mailto:privacy@apiromwiner.com" style="color:#8b95a5; margin:0 8px;">✉️ Contacto</a>
+        </span>
     </footer>
 
     <!-- ✅ JAVASCRIPT COMPLETO Y CORREGIDO -->
@@ -623,7 +652,6 @@
             const el = document.getElementById('log');
             const time = new Date().toLocaleTimeString();
             el.innerHTML = `[${time}] ${m}<br>` + el.innerHTML;
-            // Mantener solo últimas 20 líneas
             const lines = el.innerHTML.split('<br>').filter(l => l.trim());
             if (lines.length > 20) el.innerHTML = lines.slice(0, 20).join('<br>');
         }
@@ -632,7 +660,6 @@
             const headers = {};
             if (!isFormData) headers['Content-Type'] = 'application/json';
             if (token) headers['Authorization'] = `Bearer ${token}`;
-
             const config = {
                 method,
                 headers
@@ -641,7 +668,6 @@
                 if (isFormData) config.body = body;
                 else config.body = JSON.stringify(body);
             }
-
             const r = await fetch(API + path, config);
             const j = await r.json ? .() || {};
             if (!r.ok) throw new Error(j.error || `Error ${r.status}`);
@@ -678,14 +704,12 @@
             const email = document.getElementById('email').value ? .trim();
             const pass = document.getElementById('pass').value;
             if (!email || !pass) return log('⚠️ Ingresa correo y contraseña');
-
             try {
                 const btn = event ? .target;
                 if (btn) {
                     btn.disabled = true;
                     btn.textContent = '🔐 Conectando...';
                 }
-
                 const r = await req('/login', 'POST', {
                     email,
                     password: pass
@@ -693,11 +717,8 @@
                 token = r.token;
                 localStorage.setItem('token', token);
                 localStorage.setItem('userEmail', email);
-
-                // ✅ Guardar tier del usuario
                 userTier = r.user ? .tier || 'personal';
                 localStorage.setItem('userTier', userTier);
-
                 await loadUser();
                 showDashboard();
                 log('✅ Acceso concedido • Tier: ' + userTier);
@@ -715,20 +736,18 @@
         async function register() {
             const email = document.getElementById('email').value ? .trim();
             const pass = document.getElementById('pass').value;
+            const acceptTerms = document.getElementById('acceptTerms') ? .checked;
             if (!email || !pass) return log('⚠️ Ingresa correo y contraseña');
-
-            // ✅ Validación de contraseña fuerte (igual que backend)
+            if (!acceptTerms) return log('⚠️ Debes aceptar los Términos y Política de Privacidad');
             if (pass.length < 8 || !/[A-Z]/.test(pass) || !/[0-9]/.test(pass) || !/[^a-zA-Z0-9]/.test(pass)) {
                 return log('⚠️ Contraseña débil. Usa 8+ chars, 1 mayúscula, 1 número, 1 símbolo');
             }
-
             try {
                 const btn = event ? .target;
                 if (btn) {
                     btn.disabled = true;
                     btn.textContent = '✨ Creando...';
                 }
-
                 await req('/register', 'POST', {
                     email,
                     password: pass
@@ -751,19 +770,13 @@
                 const p = await req('/api/profile');
                 currentUser = p.user || p.profile;
                 userTier = currentUser ? .tier || localStorage.getItem('userTier') || 'personal';
-
                 const nombre = (p.profile ? .displayName === 'Demo' || !p.profile ? .displayName) ?
                     (localStorage.getItem('userEmail') ? .split('@') ? .[0] || 'Usuario') :
                     p.profile.displayName;
-
                 document.getElementById('uEmail').textContent = nombre;
-
-                // ✅ Actualizar badge de tier
                 const tierBadge = document.getElementById('userTierBadge');
                 tierBadge.textContent = userTier ? .charAt(0).toUpperCase() + userTier ? .slice(1);
                 tierBadge.className = `tier-badge tier-${userTier}`;
-
-                // ✅ Mostrar/ocultar features enterprise
                 const dashboard = document.getElementById('dashboardView');
                 if (userTier === 'enterprise') {
                     dashboard.classList.add('enterprise');
@@ -772,18 +785,11 @@
                     dashboard.classList.remove('enterprise');
                     document.getElementById('enterpriseFeatures').classList.add('hidden');
                 }
-
-                // ✅ Actualizar QR de referido
                 const refCode = currentUser ? .refCode || localStorage.getItem('refCode') || 'ROM000';
-                document.getElementById('refQr').src =
-                    `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(API + '?ref=' + refCode)}&color=00e676&bgcolor=0b0c10`;
-
-                // ✅ Cargar cuota si está disponible
+                document.getElementById('refQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(API + '?ref=' + refCode)}&color=00e676&bgcolor=0b0c10`;
                 if (p.quota) userQuota = p.quota;
-
             } catch (e) {
                 log('⚠️ Perfil: ' + e.message);
-                // Fallback: usar email guardado
                 const email = localStorage.getItem('userEmail');
                 if (email) document.getElementById('uEmail').textContent = email.split('@')[0];
             }
@@ -821,25 +827,16 @@
                 btn.disabled = true;
                 btn.textContent = '🔄 Actualizando...';
             }
-
             try {
-                const [w, d, a] = await Promise.all([
-                    req('/api/wallet'),
-                    req('/api/dashboard'),
-                    req('/api/affiliates/dashboard')
-                ]);
-
+                const [w, d, a] = await Promise.all([req('/api/wallet'), req('/api/dashboard'), req('/api/affiliates/dashboard')]);
                 document.getElementById('saldo').textContent = '$' + (w.wallet ? .balance || 0).toFixed(2);
                 document.getElementById('activos').textContent = d.dashboard ? .active || 0;
                 document.getElementById('ventas').textContent = d.dashboard ? .sales || 0;
                 document.getElementById('afiliados').textContent = '$' + (a.dashboard ? .availableBalance || 0).toFixed(2);
-
-                // ✅ Actualizar cuota si está disponible
                 if (d.dashboard ? .quota) {
                     userQuota = d.dashboard.quota;
                     updateQuotaDisplay();
                 }
-
                 log('🟢 Métricas actualizadas');
             } catch (e) {
                 log('⚠️ Sincronizando...');
@@ -853,40 +850,32 @@
 
         function updateQuotaDisplay() {
             if (!userQuota) return;
-            const display = document.getElementById('quotaDisplay');
-            const fill = document.getElementById('quotaFill');
-            const text = document.getElementById('quotaText');
-
-            const used = userQuota.usedGB || 0;
-            const limit = userQuota.tier ? .storageLimitGB;
-
+            const display = document.getElementById('quotaDisplay'),
+                fill = document.getElementById('quotaFill'),
+                text = document.getElementById('quotaText');
+            const used = userQuota.usedGB || 0,
+                limit = userQuota.tier ? .storageLimitGB;
             if (limit && limit > 0) {
                 const percent = Math.min(100, (used / limit) * 100);
                 fill.style.width = percent + '%';
                 text.textContent = `${used.toFixed(2)} GB / ${limit} GB`;
-
                 if (percent >= 90) {
                     text.className = 'quota-critical';
                     text.textContent += ' ⚠️ Casi lleno';
                 } else if (percent >= 75) {
                     text.className = 'quota-warning';
                     text.textContent += ' ⚠️ Considera limpiar';
-                } else {
-                    text.className = '';
-                }
+                } else text.className = '';
                 display.classList.remove('hidden');
             } else if (limit === -1) {
-                // Enterprise: ilimitado
                 text.textContent = '📦 Almacenamiento ilimitado';
                 text.className = '';
                 fill.style.width = '100%';
                 display.classList.remove('hidden');
-            } else {
-                display.classList.add('hidden');
-            }
+            } else display.classList.add('hidden');
         }
 
-        // 📦 VAULT FUNCTIONS
+        // 📦 VAULT
         function openCreate() {
             document.getElementById('createModal').classList.remove('hidden');
         }
@@ -897,22 +886,18 @@
             document.getElementById('itemPrice').value = '';
             document.getElementById('itemForSale').checked = false;
         }
-
         async function publish() {
             const titulo = document.getElementById('itemTitle').value ? .trim();
             const price = parseFloat(document.getElementById('itemPrice').value) || 0;
             const categoria = document.getElementById('itemCat').value;
             const forSale = document.getElementById('itemForSale').checked;
-
             if (!titulo) return log('⚠️ Agrega un título');
-
             try {
                 const btn = event ? .target;
                 if (btn) {
                     btn.disabled = true;
                     btn.textContent = '📤 Publicando...';
                 }
-
                 await req('/vault', 'POST', {
                     titulo,
                     price,
@@ -920,7 +905,6 @@
                     forSale,
                     contenido: 'Contenido cifrado con Envelope Encryption'
                 });
-
                 log('📦 Activo publicado y cifrado');
                 closeCreate();
                 refresh();
@@ -935,7 +919,7 @@
             }
         }
 
-        // 📤 UPLOAD FUNCTIONS
+        // 📤 UPLOAD
         function openUpload() {
             document.getElementById('uploadModal').classList.remove('hidden');
             document.getElementById('uploadPrice').style.display = 'none';
@@ -951,49 +935,35 @@
             document.getElementById('uploadTitle').value = '';
             document.getElementById('uploadStatus').textContent = '';
         }
-
-        // Mostrar precio si marca "vender"
         document.getElementById('uploadForSale') ? .addEventListener('change', function(e) {
             document.getElementById('uploadPrice').style.display = e.target.checked ? 'block' : 'none';
         });
-
-        // ✅ Upload con progreso y validación de cuota
         async function doUpload() {
             const title = document.getElementById('uploadTitle').value ? .trim();
             const cat = document.getElementById('uploadCat').value;
             const file = document.getElementById('uploadFile').files ? .[0];
             const forSale = document.getElementById('uploadForSale').checked;
             const price = parseFloat(document.getElementById('uploadPrice').value) || 0;
-
             if (!title) return log('⚠️ Agrega un título');
             if (!file) return log('⚠️ Selecciona un archivo');
-
-            // ✅ Validar tamaño según tier
             const maxSizeMB = {
                 personal: 100,
                 business: 500,
                 enterprise: 5000
             }[userTier] || 100;
             const fileMB = file.size / (1024 * 1024);
-            if (fileMB > maxSizeMB) {
-                return log(`⚠️ Archivo muy grande. Tu plan permite hasta ${maxSizeMB}MB`);
-            }
-
-            const progress = document.getElementById('uploadProgress');
-            const progressFill = document.getElementById('uploadProgressFill');
-            const status = document.getElementById('uploadStatus');
-            const btn = document.getElementById('uploadBtn');
-
+            if (fileMB > maxSizeMB) return log(`⚠️ Archivo muy grande. Tu plan permite hasta ${maxSizeMB}MB`);
+            const progress = document.getElementById('uploadProgress'),
+                progressFill = document.getElementById('uploadProgressFill');
+            const status = document.getElementById('uploadStatus'),
+                btn = document.getElementById('uploadBtn');
             progress.classList.remove('hidden');
             btn.disabled = true;
-
-            // Simular progreso (el backend cifra en servidor)
             let prog = 0;
             const interval = setInterval(() => {
                 prog = Math.min(90, prog + 10);
                 progressFill.style.width = prog + '%';
             }, 200);
-
             try {
                 const formData = new FormData();
                 formData.append('titulo', title);
@@ -1001,26 +971,20 @@
                 formData.append('forSale', forSale);
                 if (forSale) formData.append('price', price);
                 formData.append('archivo', file);
-
                 const headers = {};
                 if (token) headers['Authorization'] = `Bearer ${token}`;
-
                 const r = await fetch(API + '/vault', {
                     method: 'POST',
                     headers,
                     body: formData
                 });
-
                 clearInterval(interval);
                 progressFill.style.width = '100%';
-
                 const j = await r.json ? .() || {};
                 if (!r.ok) throw new Error(j.error || 'Error al subir');
-
                 status.textContent = '✅ Archivo subido y cifrado con clave única';
                 status.style.color = '#00e676';
                 log(`📦 ${title} guardado en Vault • ${fileMB.toFixed(1)}MB`);
-
                 setTimeout(() => {
                     closeUpload();
                     refresh();
@@ -1039,19 +1003,16 @@
         // 🗄️ VER VAULT
         async function showVault() {
             try {
-                const modal = document.getElementById('vaultModal');
-                const list = document.getElementById('vaultList');
+                const modal = document.getElementById('vaultModal'),
+                    list = document.getElementById('vaultList');
                 modal.classList.remove('hidden');
                 list.innerHTML = '<p style="text-align:center; color:#8b95a5;">🔄 Cargando...</p>';
-
-                const res = await req('/vault');
-                const items = res.items || [];
-
+                const res = await req('/vault'),
+                    items = res.items || [];
                 if (items.length === 0) {
                     list.innerHTML = '<p style="text-align:center; color:#8b95a5;">📭 Tu vault está vacío</p>';
                     return;
                 }
-
                 list.innerHTML = items.map(item => `
                     <div class="vault-item">
                         <div class="vault-item-header">
@@ -1059,206 +1020,160 @@
                             ${item.isForSale ? `<span class="encryption-badge">💰 $${item.price}</span>` : ''}
                         </div>
                         <div class="vault-item-meta">
-                            ${item.tipo === 'archivo' ? `📁 ${item.fileName}` : '📝 Texto'} • 
-                            ${item.categoria} • 
+                            ${item.tipo === 'archivo' ? `📁 ${item.fileName}` : '📝 Texto'} • ${item.categoria} • 
                             <span class="encryption-badge">🔐 Cifrado</span>
+                        </div>
+                        <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:4px;">
+                            <button onclick="shareFile('${item._id}')" style="width:auto; padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #29b6f6; color:#29b6f6;">🔗 Compartir</button>
+                            <button onclick="genThumb('${item._id}')" style="width:auto; padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #66bb6a; color:#66bb6a;">🖼️ Thumb</button>
+                            <button onclick="showVersions('${item._id}')" style="width:auto; padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #ffa726; color:#ffa726;">📜 Historial</button>
+                            <button onclick="addComment('${item._id}')" style="width:auto; padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #ab47bc; color:#ab47bc;">💬 Comentar</button>
+                            <button onclick="loadComments('${item._id}')" style="width:auto; padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #8b95a5; color:#8b95a5;">👁️ Ver</button>
                         </div>
                         ${item.sales > 0 ? `<div class="vault-item-meta">📈 ${item.sales} ventas</div>` : ''}
                     </div>
                 `).join('');
-                
                 log(`🗄️ Vault: ${items.length} activos`);
-            } catch (e) {
-                log('❌ Vault: ' + e.message);
-                document.getElementById('vaultList').innerHTML = `<p style="color:#ff5252;">Error: ${e.message}</p>`;
-            }
+            } catch (e) { log('❌ Vault: ' + e.message); document.getElementById('vaultList').innerHTML = `<p style="color:#ff5252;">Error: ${e.message}</p>`; }
         }
-        function closeVault() {
-            document.getElementById('vaultModal').classList.add('hidden');
+        function closeVault() { document.getElementById('vaultModal').classList.add('hidden'); }
+
+        // 🔗 ENLACES COMPARTIDOS
+        async function shareFile(fileId) {
+            try {
+                const pass = prompt('🔒 Contraseña opcional (Enter para sin contraseña):');
+                const hours = prompt('⏱️ Expirar en horas (default 24):', '24') || 24;
+                const res = await req(`/api/vault/${fileId}/share`, 'POST', { password: pass || null, expiresInHours: parseInt(hours) });
+                if (navigator.clipboard) await navigator.clipboard.writeText(res.link);
+                log(`🔗 Enlace: ${res.link}`); alert('✅ Copiado al portapapeles');
+            } catch (e) { log('❌ Share: ' + e.message); }
+        }
+
+        // 🖼️ THUMBNAIL
+        async function genThumb(fileId) {
+            try { log('🖼️ Generando thumbnail...'); await req(`/api/vault/${fileId}/thumbnail`, 'POST'); log('✅ Thumbnail listo'); showVault(); }
+            catch (e) { log('❌ Thumb: ' + e.message); }
+        }
+
+        // 📜 VERSIONES
+        async function showVersions(fileId) {
+            try {
+                const res = await req(`/api/vault/${fileId}/versions`);
+                const list = res.versions.map(v => `v${v.v} • ${new Date(v.date).toLocaleString()}`).join('\n');
+                alert('📜 Historial:\n' + (list || '(vacío)'));
+            } catch (e) { log('❌ Versiones: ' + e.message); }
+        }
+
+        // 💬 COMENTARIOS
+        async function addComment(fileId) {
+            const txt = prompt('💬 Comentario:'); if (!txt?.trim()) return;
+            try { await req(`/api/vault/${fileId}/comments`, 'POST', { content: txt }); log('✅ Comentario cifrado'); }
+            catch (e) { log('❌ ' + e.message); }
+        }
+        async function loadComments(fileId) {
+            try {
+                const res = await req(`/api/vault/${fileId}/comments`);
+                const txt = res.comments.map(c => `[${new Date(c.date).toLocaleTimeString()}] ${c.text}`).join('\n');
+                alert('💬 Comentarios:\n' + (txt || '(vacío)'));
+            } catch (e) { log('❌ ' + e.message); }
         }
 
         // 📋 AUDITORÍA
         async function showAuditLog() {
             try {
-                const modal = document.getElementById('auditModal');
-                const logEl = document.getElementById('auditLog');
-                modal.classList.remove('hidden');
-                logEl.innerHTML = '<p style="text-align:center; color:#8b95a5;">🔄 Cargando auditoría...</p>';
-                
-                const res = await req('/api/audit/export');
-                const logs = res.logs || [];
-                
-                if (logs.length === 0) {
-                    logEl.innerHTML = '<p style="text-align:center; color:#8b95a5;">📭 Sin actividad reciente</p>';
-                    return;
-                }
-                
+                const modal = document.getElementById('auditModal'), logEl = document.getElementById('auditLog');
+                modal.classList.remove('hidden'); logEl.innerHTML = '<p style="text-align:center; color:#8b95a5;">🔄 Cargando auditoría...</p>';
+                const res = await req('/api/audit/export'), logs = res.logs || [];
+                if (logs.length === 0) { logEl.innerHTML = '<p style="text-align:center; color:#8b95a5;">📭 Sin actividad reciente</p>'; return; }
                 logEl.innerHTML = logs.slice(0, 20).map(l => {
                     const time = new Date(l.timestamp || l.createdAt).toLocaleString();
                     return `<div class="audit-entry"><b>${l.action}</b><br><small>${time}</small><br><span style="color:#8b95a5">${JSON.stringify(l.data || l.metadata || {}).slice(0, 80)}${JSON.stringify(l.data || l.metadata || {}).length > 80 ? '...' : ''}</span></div>`;
-                }).join('');
-                
-                log('📋 Auditoría cargada');
-            } catch (e) {
-                log('❌ Auditoría: ' + e.message);
-                document.getElementById('auditLog').innerHTML = `<p style="color:#ff5252;">Error: ${e.message}</p>`;
-            }
+                }).join(''); log('📋 Auditoría cargada');
+            } catch (e) { log('❌ Auditoría: ' + e.message); document.getElementById('auditLog').innerHTML = `<p style="color:#ff5252;">Error: ${e.message}</p>`; }
         }
-        function closeAudit() {
-            document.getElementById('auditModal').classList.add('hidden');
-        }
+        function closeAudit() { document.getElementById('auditModal').classList.add('hidden'); }
 
-        // ✅ EXPORTAR GDPR/SOC2 (solo business/enterprise)
+        // ✅ EXPORTAR GDPR/SOC2
         async function exportAudit(type) {
-            if (!['business', 'enterprise'].includes(userTier)) {
-                return log('⚠️ Esta función requiere plan Business o Enterprise');
-            }
-            
+            if (!['business', 'enterprise'].includes(userTier)) return log('⚠️ Esta función requiere plan Business o Enterprise');
             try {
                 log(`📄 Generando reporte ${type.toUpperCase()}...`);
                 const res = await req(`/api/audit/export?type=${type}`);
-                
-                // Crear descarga
                 const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `apiromwiner-${type}-${new Date().toISOString().slice(0,10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                
-                log(`✅ Reporte ${type} descargado`);
-            } catch (e) {
-                log('❌ Export: ' + e.message);
-            }
+                const url = URL.createObjectURL(blob), a = document.createElement('a');
+                a.href = url; a.download = `apiromwiner-${type}-${new Date().toISOString().slice(0,10)}.json`; a.click();
+                URL.revokeObjectURL(url); log(`✅ Reporte ${type} descargado`);
+            } catch (e) { log('❌ Export: ' + e.message); }
         }
 
         // 🔗 WEBHOOKS
         function showWebhooks() {
-            if (userTier !== 'enterprise') {
-                return log('⚠️ Webhooks exclusivos para plan Enterprise');
-            }
-            document.getElementById('webhookModal').classList.remove('hidden');
-            loadWebhooks();
+            if (userTier !== 'enterprise') return log('⚠️ Webhooks exclusivos para plan Enterprise');
+            document.getElementById('webhookModal').classList.remove('hidden'); loadWebhooks();
         }
-        function closeWebhooks() {
-            document.getElementById('webhookModal').classList.add('hidden');
-        }
-        
+        function closeWebhooks() { document.getElementById('webhookModal').classList.add('hidden'); }
         async function loadWebhooks() {
-            // Nota: El backend no tiene endpoint GET para webhooks aún
-            // Mostramos placeholder
             const list = document.getElementById('webhookList');
             list.innerHTML = '<p style="font-size:0.8rem; color:#8b95a5;">ℹ️ Webhooks se gestionan vía API admin</p>';
         }
-        
         async function registerWebhook() {
             const url = document.getElementById('webhookUrl').value?.trim();
             const events = document.getElementById('webhookEvents').value;
             const secret = document.getElementById('webhookSecret').value || crypto?.randomUUID?.() || 'auto-secret-' + Date.now();
-            
             if (!url) return log('⚠️ Ingresa una URL válida');
-            
-            try {
-                await req('/api/admin/webhooks', 'POST', { url, events: [events], secret });
-                log('✅ Webhook registrado');
-                closeWebhooks();
-            } catch (e) {
-                log('❌ Webhook: ' + e.message);
-            }
+            try { await req('/api/admin/webhooks', 'POST', { url, events: [events], secret }); log('✅ Webhook registrado'); closeWebhooks(); }
+            catch (e) { log('❌ Webhook: ' + e.message); }
         }
 
-        // 🔄 ROTAR CLAVES (enterprise)
+        // 🔄 ROTAR CLAVES
         async function rotateKeys() {
-            if (userTier !== 'enterprise') {
-                return log('⚠️ Rotación de claves exclusiva para Enterprise');
-            }
-            
-            try {
-                log('🔄 Iniciando rotación de claves...');
-                const res = await req('/api/admin/rotate-keys', 'POST', {});
-                log('✅ ' + (res.message || 'Rotación programada'));
-            } catch (e) {
-                log('❌ Rotación: ' + e.message);
-            }
+            if (userTier !== 'enterprise') return log('⚠️ Rotación de claves exclusiva para Enterprise');
+            try { log('🔄 Iniciando rotación de claves...'); const res = await req('/api/admin/rotate-keys', 'POST', {}); log('✅ ' + (res.message || 'Rotación programada')); }
+            catch (e) { log('❌ Rotación: ' + e.message); }
         }
 
         // 💸 RETIRO
-        async function withdraw() {
-            log('💸 Solicitud enviada. Te contactaremos para el pago seguro.');
-            // Aquí podrías abrir un modal con opciones de retiro
-        }
+        async function withdraw() { log('💸 Solicitud enviada. Te contactaremos para el pago seguro.'); }
 
         // 🆔 QR IDENTIDAD
         function showIdentityQR() {
             if (!currentUser) return log('⚠️ Sesión no válida');
-            const data = JSON.stringify({
-                uid: currentUser.uid || 'demo',
-                email: document.getElementById('uEmail').textContent,
-                ref: currentUser.refCode || localStorage.getItem('refCode') || 'ROM000',
-                tier: userTier
-            });
-            document.getElementById('idQrImg').src = 
-                'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(data) + '&color=00e676&bgcolor=0b0c10';
+            const data = JSON.stringify({ uid: currentUser.uid || 'demo', email: document.getElementById('uEmail').textContent, ref: currentUser.refCode || localStorage.getItem('refCode') || 'ROM000', tier: userTier });
+            document.getElementById('idQrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(data) + '&color=00e676&bgcolor=0b0c10';
             document.getElementById('idQrData').textContent = data;
-            document.getElementById('idModal').classList.remove('hidden');
-            log('🆔 QR de identidad generado');
+            document.getElementById('idModal').classList.remove('hidden'); log('🆔 QR de identidad generado');
         }
-        function closeIdModal() {
-            document.getElementById('idModal').classList.add('hidden');
-        }
+        function closeIdModal() { document.getElementById('idModal').classList.add('hidden'); }
 
         // 🎁 PROMO
-        async function checkPromo() {
-            try {
-                const s = await req('/api/promo/status');
-                if (s?.active) log('🎁 ' + s.message);
-            } catch (e) { /* silent */ }
-        }
+        async function checkPromo() { try { const s = await req('/api/promo/status'); if (s?.active) log('🎁 ' + s.message); } catch (e) { /* silent */ } }
         async function openPromo() {
-            if (!token) {
-                scrollToAuth();
-                log('⚠️ Inicia sesión para acceder a la promo');
-                return;
-            }
+            if (!token) { scrollToAuth(); log('⚠️ Inicia sesión para acceder a la promo'); return; }
             try {
                 const r = await req('/api/promo/checkout', 'POST');
-                if (r?.demo) {
-                    log('✅ Pago promocional activado ($25)');
-                    refresh();
-                } else if (r?.url) {
-                    window.location.href = r.url;
-                }
-            } catch (e) {
-                log('❌ ' + e.message);
-            }
+                if (r?.demo) { log('✅ Pago promocional activado ($25)'); refresh(); }
+                else if (r?.url) window.location.href = r.url;
+            } catch (e) { log('❌ ' + e.message); }
         }
 
         // 📲 PWA INSTALL
         window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBtn').style.display = 'inline-block';
-            log('📲 App lista para instalar');
+            e.preventDefault(); deferredPrompt = e;
+            document.getElementById('installBtn').style.display = 'inline-block'; log('📲 App lista para instalar');
         });
         function installApp() {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice?.then(function(res) {
                     if (res?.outcome === 'accepted') log('✅ App instalada');
-                    deferredPrompt = null;
-                    document.getElementById('installBtn').style.display = 'none';
+                    deferredPrompt = null; document.getElementById('installBtn').style.display = 'none';
                 });
-            } else {
-                log('ℹ️ Usa el menú del navegador → "Agregar a pantalla de inicio"');
-            }
+            } else log('ℹ️ Usa el menú del navegador → "Agregar a pantalla de inicio"');
         }
 
         // 🔐 SERVICE WORKER
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(() => log('🛡️ Sistema seguro activo'))
-                .catch(e => log('⚠️ SW: ' + e.message));
+            navigator.serviceWorker.register('/sw.js').then(() => log('🛡️ Sistema seguro activo')).catch(e => log('⚠️ SW: ' + e.message));
         }
 
         // 🌐 START

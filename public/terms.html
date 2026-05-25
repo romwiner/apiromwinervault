@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Términos de Servicio | ApiRomwiner Vault</title>
+    <style>
+        body {
+            background: #0b0c10;
+            color: #e8eaed;
+            font-family: system-ui, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #00e676;
+            border-bottom: 2px solid #00e676;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #8ab4f8;
+            margin-top: 24px;
+        }
+        
+        .warning {
+            background: rgba(255, 82, 82, 0.1);
+            border-left: 4px solid #ff5252;
+            padding: 12px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        a {
+            color: #00e676;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📜 Términos de Servicio</h1>
+    <p class="updated">Última actualización: <span id="date"></span></p>
+    <script>
+        document.getElementById('date').textContent = new Date().toLocaleDateString('es-MX', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })
+    </script>
+
+    <h2>1. Aceptación</h2>
+    <p>Al registrarte o usar ApiRomwiner Vault ("el Servicio"), aceptas estos Términos. Si no estás de acuerdo, no uses el Servicio.</p>
+
+    <h2>2. Descripción del Servicio</h2>
+    <p>ApiRomwiner Vault es una plataforma de bóveda digital que permite: almacenar archivos y textos cifrados, monetizar contenido, gestionar afiliados, y controlar tu identidad digital. <strong>No somos un banco ni una entidad financiera.</strong></p>
+
+    <h2>3. Tu Cuenta</h2>
+    <ul>
+        <li>Eres responsable de mantener la confidencialidad de tu contraseña.</li>
+        <li>Debes notificarnos inmediatamente cualquier uso no autorizado.</li>
+        <li>Podemos suspender cuentas por violación de estos Términos o actividad sospechosa.</li>
+    </ul>
+
+    <h2>4. Contenido del Usuario</h2>
+    <ul>
+        <li>Tú eres el único responsable del contenido que subes.</li>
+        <li><strong>No subas contenido ilegal, infractor de derechos de autor, malicioso o que viole derechos de terceros.</strong></li>
+        <li>Nos reservamos el derecho de eliminar contenido que viole estos Términos, previa notificación cuando sea posible.</li>
+        <li>Al subir contenido para venta, garantizas que tienes los derechos necesarios para comercializarlo.</li>
+    </ul>
+
+    <h2>5. Cifrado y Responsabilidad</h2>
+    <div class="warning">
+        ⚠️ <strong>Importante:</strong> ApiRomwiner Vault utiliza Envelope Encryption: tus datos se cifran con una clave única que solo tú posees. <strong>Si pierdes tu contraseña, no podemos recuperar tus datos cifrados.</strong> Te recomendamos guardar
+        tu frase de recuperación en un lugar seguro.
+    </div>
+
+    <h2>6. Pagos y Reembolsos</h2>
+    <ul>
+        <li>Los pagos se procesan mediante Stripe. No almacenamos datos de tarjeta.</li>
+        <li>Las suscripciones se renuevan automáticamente. Puedes cancelar en cualquier momento desde tu panel.</li>
+        <li>Reembolsos: solicitúalos dentro de los 7 días posteriores al cargo. Evaluamos caso por caso.</li>
+    </ul>
+
+    <h2>7. Propiedad Intelectual</h2>
+    <p>El Servicio (código, diseño, marcas) es propiedad de ApiRomwiner. Tu contenido sigue siendo tuyo. Nos otorgas una licencia limitada para alojar, cifrar y transmitir tu contenido únicamente para prestar el Servicio.</p>
+
+    <h2>8. Limitación de Responsabilidad</h2>
+    <p>El Servicio se proporciona "TAL CUAL". No garantizamos disponibilidad 100%, ni que el Servicio sea libre de errores. En la medida permitida por la ley, no seremos responsables por daños indirectos, pérdida de datos o beneficios.</p>
+
+    <h2>9. Ley Aplicable y Jurisdicción</h2>
+    <p>Estos Términos se rigen por las leyes de [Tu País, ej: México]. Cualquier disputa se resolverá en los tribunales de [Ciudad, ej: Ciudad de México], salvo que la ley aplicable exija otra cosa.</p>
+
+    <h2>10. Modificaciones</h2>
+    <p>Podemos actualizar estos Términos. Te notificaremos cambios materiales con 30 días de anticipación. El uso continuado implica aceptación.</p>
+
+    <h2>11. Contacto</h2>
+    <p>Para dudas legales: <a href="mailto:legal@apiromwiner.com">legal@apiromwiner.com</a></p>
+
+    <p style="margin-top:40px; padding-top:20px; border-top:1px solid #2a2f3a; color:#8b95a5; font-size:0.85rem;">
+        <em>Nota: Este documento es una plantilla. Para cumplimiento total, consulta con un abogado especializado en tu jurisdicción.</em>
+    </p>
+</body>
+
+</html>
