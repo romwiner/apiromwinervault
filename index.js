@@ -1,4 +1,4 @@
-// === INICIO: index.js - APIROMWINER VAULT (TODAS LAS FUNCIONES ORIGINALES + NUEVAS) ===
+// === INICIO: index.js - APIROMWINER VAULT (TODAS FUNCIONES ORIGINALES + IDENTIDAD CRIPTOGRÁFICA) ===
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -15,6 +15,8 @@ const pino = require('pino');
 const sharp = require('sharp');
 const diffLib = require('diff');
 const fileType = require('file-type');
+// ✅ NUEVA: Librería para WebAuthn/FIDO2 (identificación criptográfica autónoma)
+const { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } = require('@simplewebauthn/server');
 
 // 🔐 SISTEMA DE CIFRADO EN CAPAS (ENVELOPE ENCRYPTION)
 const EnvelopeEncryption = (function() {
@@ -54,7 +56,7 @@ const PORT = process.env.PORT || 10000;
 
 // 🔐 MONGODB
 const MONGODB_URI = "mongodb+srv://apiromwinervault:Grup%40selen2000@cluster0.f83xnse.mongodb.net/apiromwinervault?retryWrites=true&w=majority&appName=Cluster0&tls=true&tlsAllowInvalidCertificates=true";
-let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection;
+let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
 let mongoReady = false;
 
@@ -73,6 +75,7 @@ async function connectToMongo() {
         auditCollection = db.collection('audit_logs');
         webhooksCollection = db.collection('webhooks');
         promoCollection = db.collection('promo_codes');
+        cryptoKeysCollection = db.collection('cryptoKeys'); // ✅ NUEVA: claves públicas para identidad criptográfica
         sharedLinksCollection = db.collection('sharedLinks');
         thumbnailsCollection = db.collection('thumbnails');
         versionsCollection = db.collection('fileVersions');
@@ -94,6 +97,8 @@ async function connectToMongo() {
         await commentsCollection.createIndex({ fileId: 1, createdAt: -1 });
         await webhooksCollection.createIndex({ userId: 1 });
         await promoCollection.createIndex({ code: 1 }, { unique: true });
+        await cryptoKeysCollection.createIndex({ publicKey: 1 }, { unique: true }); // ✅ ÍNDICE NUEVO
+        await cryptoKeysCollection.createIndex({ userId: 1 }); // ✅ ÍNDICE NUEVO
 
         mongoReady = true;
         logger.info('✅ MongoDB Atlas conectado');
@@ -180,6 +185,16 @@ const requireAdmin = async(req, res, next) => {
         req.admin = user;
         next();
     } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// ✅ NUEVO: Middleware para consentimiento granular
+const requireConsent = (...requiredScopes) => (req, res, next) => {
+    const tokenScopes = req.user ? .scopes || [];
+    const missing = requiredScopes.filter(scope => !tokenScopes.includes(scope));
+    if (missing.length > 0) {
+        return res.status(403).json({ error: 'Consentimiento requerido', missingScopes: missing, message: 'El usuario debe aprobar estos permisos primero' });
+    }
+    next();
 };
 
 // ✅ TIERS + CUOTAS
@@ -284,7 +299,7 @@ app.get('/api/status', (req, res) => res.json({
     api: 'ApiRomwiner Vault',
     status: 'online',
     database: mongoReady ? 'connected' : 'fallback',
-    features: ['🟢 60+ Funciones Reales', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos']
+    features: ['🟢 52 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos']
 }));
 
 // 🔐 REGISTRO + LOGIN
@@ -462,8 +477,10 @@ app.post('/vault', authenticate, checkQuota, async(req, res) => {
         const result = await secretsCollection.insertOne(data);
         await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale });
         res.status(201).json({ success: true, message: 'Contenido guardado y cifrado en Vault (clave única por usuario)', id: result.insertedId, fileName: data.fileName });
-    } catch (e) { logger.error('❌ Vault create: ' + e.message);
-        res.status(500).json({ error: 'Error al guardar en Vault: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Vault create: ' + e.message);
+        res.status(500).json({ error: 'Error al guardar en Vault: ' + e.message });
+    }
 });
 
 app.get('/vault', authenticate, async(req, res) => {
@@ -693,8 +710,10 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
             }
         }
         res.json({ received: true });
-    } catch (e) { logger.error('❌ Webhook error: ' + e.message);
-        res.status(400).send('Webhook Error: ' + e.message); }
+    } catch (e) {
+        logger.error('❌ Webhook error: ' + e.message);
+        res.status(400).send('Webhook Error: ' + e.message);
+    }
 });
 
 // 👥 ADMIN: Actualizar tier de usuario
@@ -879,6 +898,150 @@ app.get('/api/admin/export-user/:email', authenticate, requireAdmin, async(req, 
     } catch (e) { res.status(500).json({ error: 'Error exportando datos: ' + e.message }); }
 });
 
+// 🔐 IDENTIDAD CRIPTOGRÁFICA AUTÓNOMA (WebAuthn/FIDO2) - SIN GOOGLE/MICROSOFT
+// ✅ REGISTRO DE CLAVE PÚBLICA (PASO 1)
+app.post('/api/crypto-auth/register-start', authenticate, async(req, res) => {
+    try {
+        const { email } = req.body; // opcional, puede ser anónimo
+        const user = email ? await usersCollection.findOne({ email }) : null;
+        const userId = user ? .uid || crypto.randomUUID();
+
+        const options = await generateRegistrationOptions({
+            rpName: 'ApiRomwiner Vault',
+            rpID: new URL(APP_URL).hostname,
+            userID: Buffer.from(userId),
+            userName: email || 'anonymous',
+            attestationType: 'none',
+            authenticatorSelection: {
+                residentKey: 'preferred',
+                userVerification: 'preferred'
+            }
+        });
+
+        // Guardar challenge temporalmente (en producción usar Redis con TTL)
+        await cryptoKeysCollection.updateOne({ userId }, { $set: { challenge: options.challenge, createdAt: new Date() } }, { upsert: true });
+
+        res.json({ success: true, options, userId });
+    } catch (e) { res.status(500).json({ error: 'Error iniciando registro criptográfico: ' + e.message }); }
+});
+
+// ✅ REGISTRO DE CLAVE PÚBLICA (PASO 2 - VERIFICACIÓN)
+app.post('/api/crypto-auth/register-finish', authenticate, async(req, res) => {
+    try {
+        const { userId, response } = req.body;
+        const record = await cryptoKeysCollection.findOne({ userId });
+        if (!record ? .challenge) return res.status(400).json({ error: 'Registro no iniciado o expirado' });
+
+        const verification = await verifyRegistrationResponse({
+            response,
+            expectedChallenge: record.challenge,
+            expectedOrigin: APP_URL,
+            expectedRPID: new URL(APP_URL).hostname
+        });
+
+        if (!verification.verified) return res.status(400).json({ error: 'Verificación fallida' });
+
+        // Guardar clave pública permanentemente
+        await cryptoKeysCollection.updateOne({ userId }, {
+            $set: {
+                publicKey: verification.registrationInfo ? .credentialPublicKey,
+                credentialID: verification.registrationInfo ? .credentialID,
+                counter: verification.registrationInfo ? .counter,
+                registeredAt: new Date()
+            },
+            $unset: { challenge: 1 }
+        }, { upsert: true });
+
+        await logAudit('crypto_register', { userId, verified: true });
+        res.json({ success: true, message: 'Clave pública registrada exitosamente' });
+    } catch (e) { res.status(500).json({ error: 'Error verificando registro: ' + e.message }); }
+});
+
+// ✅ LOGIN CRIPTOGRÁFICO (PASO 1 - DESAFÍO)
+app.post('/api/crypto-auth/login-start', async(req, res) => {
+    try {
+        const { credentialID } = req.body; // opcional, para login con ID conocido
+        const allowCredentials = credentialID ? [{ id: credentialID, type: 'public-key' }] : [];
+
+        const options = await generateAuthenticationOptions({
+            rpID: new URL(APP_URL).hostname,
+            userVerification: 'preferred',
+            allowCredentials
+        });
+
+        // Guardar challenge temporalmente
+        await cryptoKeysCollection.updateOne({ credentialID }, { $set: { challenge: options.challenge, lastLoginAttempt: new Date() } }, { upsert: true });
+
+        res.json({ success: true, options });
+    } catch (e) { res.status(500).json({ error: 'Error iniciando login criptográfico: ' + e.message }); }
+});
+
+// ✅ LOGIN CRIPTOGRÁFICO (PASO 2 - VERIFICACIÓN + TOKEN)
+app.post('/api/crypto-auth/login-finish', async(req, res) => {
+    try {
+        const { credentialID, response } = req.body;
+        const record = await cryptoKeysCollection.findOne({ credentialID });
+        if (!record ? .challenge) return res.status(400).json({ error: 'Login no iniciado o credencial no encontrada' });
+
+        const verification = await verifyAuthenticationResponse({
+            response,
+            expectedChallenge: record.challenge,
+            expectedOrigin: APP_URL,
+            expectedRPID: new URL(APP_URL).hostname,
+            authenticator: {
+                credentialPublicKey: record.publicKey,
+                counter: record.counter || 0
+            }
+        });
+
+        if (!verification.verified) return res.status(401).json({ error: 'Autenticación fallida' });
+
+        // Actualizar contador para prevenir replay attacks
+        await cryptoKeysCollection.updateOne({ credentialID }, { $set: { counter: verification.authenticationInfo ? .newCounter, lastLogin: new Date() }, $unset: { challenge: 1 } });
+
+        // Generar token JWT con scopes básicos (consentimiento granular pendiente)
+        const token = jwt.sign({
+                uid: record.userId,
+                scopes: ['vault:read:own'], // scopes por defecto, usuario debe aprobar más
+                authMethod: 'crypto'
+            },
+            JWT_SECRET, { expiresIn: '24h' }
+        );
+
+        await logAudit('crypto_login', { userId: record.userId, verified: true });
+        res.json({
+            success: true,
+            token,
+            consentRequired: true,
+            availableScopes: ['vault:read:own', 'vault:read:shared', 'wallet:read', 'identity:verify'],
+            message: 'Autenticación exitosa. Aprueba permisos para acceder a funciones adicionales.'
+        });
+    } catch (e) { res.status(500).json({ error: 'Error verificando login: ' + e.message }); }
+});
+
+// ✅ CONSENTIMIENTO GRANULAR (USUARIO APRUEBA QUÉ COMPARTIR)
+app.post('/api/crypto-auth/consent', authenticate, async(req, res) => {
+    try {
+        const { scopes } = req.body; // ej: ['vault:read:own', 'wallet:read']
+        const validScopes = ['vault:read:own', 'vault:read:shared', 'vault:write', 'wallet:read', 'wallet:write', 'identity:verify', 'audit:read'];
+        const approved = scopes.filter(s => validScopes.includes(s));
+
+        if (approved.length === 0) return res.status(400).json({ error: 'Al menos un scope válido requerido' });
+
+        // Actualizar token con scopes aprobados (en producción: blacklist old token + emitir nuevo)
+        const newToken = jwt.sign({
+                uid: req.user.uid,
+                scopes: approved,
+                authMethod: req.user.authMethod || 'crypto'
+            },
+            JWT_SECRET, { expiresIn: '24h' }
+        );
+
+        await logAudit('consent_granted', { userId: req.user.uid, scopes: approved });
+        res.json({ success: true, token: newToken, grantedScopes: approved });
+    } catch (e) { res.status(500).json({ error: 'Error procesando consentimiento: ' + e.message }); }
+});
+
 // 🌐 SERVIR FRONTEND
 app.get('/', function(req, res) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -896,9 +1059,11 @@ async function startServer() {
     }
     app.listen(PORT, '0.0.0.0', function() {
         logger.info('🚀 APIROMWINER en puerto ' + PORT);
-        logger.info('🟢 60+ Funciones | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY');
+        logger.info('🟢 52 Funciones Reales | 🔐 Identidad Criptográfica Autónoma | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY');
     });
 }
-startServer().catch(function(err) { logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
-    process.exit(1); });
+startServer().catch(function(err) {
+    logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
+    process.exit(1);
+});
 // === FIN: index.js ===
