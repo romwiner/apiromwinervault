@@ -1,4 +1,4 @@
-// === INICIO: index.js - APIROMWINER VAULT (TODAS FUNCIONES ORIGINALES + IDENTIDAD CRIPTOGRÁFICA) ===
+// === INICIO: index.js - APIROMWINER VAULT (TODAS FUNCIONES ORIGINALES + IDENTIDAD CRIPTOGRÁFICA + IDENTIDAD VERIFICADA) ===
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -15,7 +15,7 @@ const pino = require('pino');
 const sharp = require('sharp');
 const diffLib = require('diff');
 const fileType = require('file-type');
-// ✅ NUEVA: Librería para WebAuthn/FIDO2 (identificación criptográfica autónoma)
+// ✅ Librería para WebAuthn/FIDO2 (identificación criptográfica autónoma)
 const { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } = require('@simplewebauthn/server');
 
 // 🔐 SISTEMA DE CIFRADO EN CAPAS (ENVELOPE ENCRYPTION)
@@ -49,6 +49,19 @@ const EnvelopeEncryption = (function() {
     return new CryptoWrapper(MASTER_KEY);
 })();
 
+// 🔐 CIFRADO PARA DATOS PERSONALES (PII) - IDENTIDAD VERIFICADA
+const encryptPII = (plaintext) => {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(MASTER_KEY.slice(0, 32)), iv);
+    let encrypted = cipher.update(plaintext, 'utf8', 'hex') + cipher.final('hex');
+    return { iv: iv.toString('hex'), data: encrypted, tag: cipher.getAuthTag().toString('hex') };
+};
+const decryptPII = (encrypted) => {
+    const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(MASTER_KEY.slice(0, 32)), Buffer.from(encrypted.iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(encrypted.tag, 'hex'));
+    return decipher.update(encrypted.data, 'hex', 'utf8') + decipher.final('utf8');
+};
+
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
 app.set('trust proxy', 1); // ✅ Crítico para Render
@@ -56,7 +69,7 @@ const PORT = process.env.PORT || 10000;
 
 // 🔐 MONGODB
 const MONGODB_URI = "mongodb+srv://apiromwinervault:Grup%40selen2000@cluster0.f83xnse.mongodb.net/apiromwinervault?retryWrites=true&w=majority&appName=Cluster0&tls=true&tlsAllowInvalidCertificates=true";
-let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection;
+let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
 let mongoReady = false;
 
@@ -75,7 +88,8 @@ async function connectToMongo() {
         auditCollection = db.collection('audit_logs');
         webhooksCollection = db.collection('webhooks');
         promoCollection = db.collection('promo_codes');
-        cryptoKeysCollection = db.collection('cryptoKeys'); // ✅ NUEVA: claves públicas para identidad criptográfica
+        cryptoKeysCollection = db.collection('cryptoKeys');
+        verifiedIdentitiesCollection = db.collection('verifiedIdentities'); // ✅ NUEVA: identidades legales verificadas
         sharedLinksCollection = db.collection('sharedLinks');
         thumbnailsCollection = db.collection('thumbnails');
         versionsCollection = db.collection('fileVersions');
@@ -97,8 +111,11 @@ async function connectToMongo() {
         await commentsCollection.createIndex({ fileId: 1, createdAt: -1 });
         await webhooksCollection.createIndex({ userId: 1 });
         await promoCollection.createIndex({ code: 1 }, { unique: true });
-        await cryptoKeysCollection.createIndex({ publicKey: 1 }, { unique: true }); // ✅ ÍNDICE NUEVO
-        await cryptoKeysCollection.createIndex({ userId: 1 }); // ✅ ÍNDICE NUEVO
+        await cryptoKeysCollection.createIndex({ publicKey: 1 }, { unique: true });
+        await cryptoKeysCollection.createIndex({ userId: 1 });
+        await verifiedIdentitiesCollection.createIndex({ userId: 1 }, { unique: true }); // ✅ ÍNDICE NUEVO
+        await verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, sparse: true }); // ✅ ÍNDICE NUEVO
+        await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true }); // ✅ ÍNDICE NUEVO
 
         mongoReady = true;
         logger.info('✅ MongoDB Atlas conectado');
@@ -187,7 +204,7 @@ const requireAdmin = async(req, res, next) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// ✅ NUEVO: Middleware para consentimiento granular
+// ✅ Middleware para consentimiento granular
 const requireConsent = (...requiredScopes) => (req, res, next) => {
     const tokenScopes = req.user ? .scopes || [];
     const missing = requiredScopes.filter(scope => !tokenScopes.includes(scope));
@@ -299,7 +316,7 @@ app.get('/api/status', (req, res) => res.json({
     api: 'ApiRomwiner Vault',
     status: 'online',
     database: mongoReady ? 'connected' : 'fallback',
-    features: ['🟢 52 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos']
+    features: ['🟢 52 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos']
 }));
 
 // 🔐 REGISTRO + LOGIN
@@ -902,25 +919,18 @@ app.get('/api/admin/export-user/:email', authenticate, requireAdmin, async(req, 
 // ✅ REGISTRO DE CLAVE PÚBLICA (PASO 1)
 app.post('/api/crypto-auth/register-start', authenticate, async(req, res) => {
     try {
-        const { email } = req.body; // opcional, puede ser anónimo
+        const { email } = req.body;
         const user = email ? await usersCollection.findOne({ email }) : null;
         const userId = user ? .uid || crypto.randomUUID();
-
         const options = await generateRegistrationOptions({
             rpName: 'ApiRomwiner Vault',
             rpID: new URL(APP_URL).hostname,
             userID: Buffer.from(userId),
             userName: email || 'anonymous',
             attestationType: 'none',
-            authenticatorSelection: {
-                residentKey: 'preferred',
-                userVerification: 'preferred'
-            }
+            authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' }
         });
-
-        // Guardar challenge temporalmente (en producción usar Redis con TTL)
         await cryptoKeysCollection.updateOne({ userId }, { $set: { challenge: options.challenge, createdAt: new Date() } }, { upsert: true });
-
         res.json({ success: true, options, userId });
     } catch (e) { res.status(500).json({ error: 'Error iniciando registro criptográfico: ' + e.message }); }
 });
@@ -931,17 +941,13 @@ app.post('/api/crypto-auth/register-finish', authenticate, async(req, res) => {
         const { userId, response } = req.body;
         const record = await cryptoKeysCollection.findOne({ userId });
         if (!record ? .challenge) return res.status(400).json({ error: 'Registro no iniciado o expirado' });
-
         const verification = await verifyRegistrationResponse({
             response,
             expectedChallenge: record.challenge,
             expectedOrigin: APP_URL,
             expectedRPID: new URL(APP_URL).hostname
         });
-
         if (!verification.verified) return res.status(400).json({ error: 'Verificación fallida' });
-
-        // Guardar clave pública permanentemente
         await cryptoKeysCollection.updateOne({ userId }, {
             $set: {
                 publicKey: verification.registrationInfo ? .credentialPublicKey,
@@ -951,7 +957,6 @@ app.post('/api/crypto-auth/register-finish', authenticate, async(req, res) => {
             },
             $unset: { challenge: 1 }
         }, { upsert: true });
-
         await logAudit('crypto_register', { userId, verified: true });
         res.json({ success: true, message: 'Clave pública registrada exitosamente' });
     } catch (e) { res.status(500).json({ error: 'Error verificando registro: ' + e.message }); }
@@ -960,18 +965,14 @@ app.post('/api/crypto-auth/register-finish', authenticate, async(req, res) => {
 // ✅ LOGIN CRIPTOGRÁFICO (PASO 1 - DESAFÍO)
 app.post('/api/crypto-auth/login-start', async(req, res) => {
     try {
-        const { credentialID } = req.body; // opcional, para login con ID conocido
+        const { credentialID } = req.body;
         const allowCredentials = credentialID ? [{ id: credentialID, type: 'public-key' }] : [];
-
         const options = await generateAuthenticationOptions({
             rpID: new URL(APP_URL).hostname,
             userVerification: 'preferred',
             allowCredentials
         });
-
-        // Guardar challenge temporalmente
         await cryptoKeysCollection.updateOne({ credentialID }, { $set: { challenge: options.challenge, lastLoginAttempt: new Date() } }, { upsert: true });
-
         res.json({ success: true, options });
     } catch (e) { res.status(500).json({ error: 'Error iniciando login criptográfico: ' + e.message }); }
 });
@@ -982,64 +983,126 @@ app.post('/api/crypto-auth/login-finish', async(req, res) => {
         const { credentialID, response } = req.body;
         const record = await cryptoKeysCollection.findOne({ credentialID });
         if (!record ? .challenge) return res.status(400).json({ error: 'Login no iniciado o credencial no encontrada' });
-
         const verification = await verifyAuthenticationResponse({
             response,
             expectedChallenge: record.challenge,
             expectedOrigin: APP_URL,
             expectedRPID: new URL(APP_URL).hostname,
-            authenticator: {
-                credentialPublicKey: record.publicKey,
-                counter: record.counter || 0
-            }
+            authenticator: { credentialPublicKey: record.publicKey, counter: record.counter || 0 }
         });
-
         if (!verification.verified) return res.status(401).json({ error: 'Autenticación fallida' });
-
-        // Actualizar contador para prevenir replay attacks
         await cryptoKeysCollection.updateOne({ credentialID }, { $set: { counter: verification.authenticationInfo ? .newCounter, lastLogin: new Date() }, $unset: { challenge: 1 } });
-
-        // Generar token JWT con scopes básicos (consentimiento granular pendiente)
-        const token = jwt.sign({
-                uid: record.userId,
-                scopes: ['vault:read:own'], // scopes por defecto, usuario debe aprobar más
-                authMethod: 'crypto'
-            },
-            JWT_SECRET, { expiresIn: '24h' }
-        );
-
+        const token = jwt.sign({ uid: record.userId, scopes: ['vault:read:own'], authMethod: 'crypto' }, JWT_SECRET, { expiresIn: '24h' });
         await logAudit('crypto_login', { userId: record.userId, verified: true });
-        res.json({
-            success: true,
-            token,
-            consentRequired: true,
-            availableScopes: ['vault:read:own', 'vault:read:shared', 'wallet:read', 'identity:verify'],
-            message: 'Autenticación exitosa. Aprueba permisos para acceder a funciones adicionales.'
-        });
+        res.json({ success: true, token, consentRequired: true, availableScopes: ['vault:read:own', 'vault:read:shared', 'wallet:read', 'identity:verify'], message: 'Autenticación exitosa. Aprueba permisos para acceder a funciones adicionales.' });
     } catch (e) { res.status(500).json({ error: 'Error verificando login: ' + e.message }); }
 });
 
-// ✅ CONSENTIMIENTO GRANULAR (USUARIO APRUEBA QUÉ COMPARTIR)
+// ✅ CONSENTIMIENTO GRANULAR
 app.post('/api/crypto-auth/consent', authenticate, async(req, res) => {
     try {
-        const { scopes } = req.body; // ej: ['vault:read:own', 'wallet:read']
+        const { scopes } = req.body;
         const validScopes = ['vault:read:own', 'vault:read:shared', 'vault:write', 'wallet:read', 'wallet:write', 'identity:verify', 'audit:read'];
         const approved = scopes.filter(s => validScopes.includes(s));
-
         if (approved.length === 0) return res.status(400).json({ error: 'Al menos un scope válido requerido' });
-
-        // Actualizar token con scopes aprobados (en producción: blacklist old token + emitir nuevo)
-        const newToken = jwt.sign({
-                uid: req.user.uid,
-                scopes: approved,
-                authMethod: req.user.authMethod || 'crypto'
-            },
-            JWT_SECRET, { expiresIn: '24h' }
-        );
-
+        const newToken = jwt.sign({ uid: req.user.uid, scopes: approved, authMethod: req.user.authMethod || 'crypto' }, JWT_SECRET, { expiresIn: '24h' });
         await logAudit('consent_granted', { userId: req.user.uid, scopes: approved });
         res.json({ success: true, token: newToken, grantedScopes: approved });
     } catch (e) { res.status(500).json({ error: 'Error procesando consentimiento: ' + e.message }); }
+});
+
+// 📋 IDENTIDAD LEGAL VERIFICADA (ADMIN + USER) - CIFRADO PII
+// ✅ ADMIN: Registrar/Actualizar identidad verificada
+app.post('/api/admin/verify-identity', authenticate, requireAdmin, async(req, res) => {
+    try {
+        const { targetUserId, fullName, address, legalId, entityType = 'person', documents, verifiedBy } = req.body;
+        if (!targetUserId || !fullName || !address) return res.status(400).json({ error: 'userId, fullName y address son requeridos' });
+        const encryptedAddress = encryptPII(address);
+        const encryptedLegalId = legalId ? encryptPII(legalId) : null;
+        const encryptedDocuments = documents ? documents.map(d => ({...d, content: encryptPII(d.content) })) : [];
+        const identityData = {
+            userId: targetUserId,
+            fullName,
+            address: encryptedAddress,
+            legalId: encryptedLegalId,
+            entityType,
+            documents: encryptedDocuments,
+            verifiedBy: verifiedBy || req.admin.uid,
+            verifiedAt: new Date(),
+            status: 'verified',
+            metadata: req.body.metadata || {}
+        };
+        await verifiedIdentitiesCollection.updateOne({ userId: targetUserId }, { $set: identityData }, { upsert: true });
+        await logAudit('admin.verify_identity', { admin: req.admin.uid, targetUser: targetUserId, entityType, verified: true });
+        res.json({ success: true, message: `Identidad de ${targetUserId} verificada exitosamente`, userId: targetUserId, entityType, verifiedAt: identityData.verifiedAt });
+    } catch (e) {
+        logger.error('❌ Error verificando identidad: ' + e.message);
+        res.status(500).json({ error: 'Error al verificar identidad: ' + e.message });
+    }
+});
+
+// ✅ ADMIN: Obtener identidad verificada (con desencriptación)
+app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async(req, res) => {
+    try {
+        const identity = await verifiedIdentitiesCollection.findOne({ userId: req.params.userId });
+        if (!identity) return res.status(404).json({ error: 'Identidad verificada no encontrada para este usuario' });
+        const decrypted = {
+            ...identity,
+            address: decryptPII(identity.address),
+            legalId: identity.legalId ? decryptPII(identity.legalId) : null,
+            documents: identity.documents ? identity.documents.map(d => ({...d, content: decryptPII(d.content) })) : []
+        };
+        delete decrypted.address.iv;
+        delete decrypted.address.data;
+        delete decrypted.address.tag;
+        if (decrypted.legalId) { delete decrypted.legalId.iv;
+            delete decrypted.legalId.data;
+            delete decrypted.legalId.tag; }
+        res.json({ success: true, identity: decrypted });
+    } catch (e) { res.status(500).json({ error: 'Error obteniendo identidad: ' + e.message }); }
+});
+
+// ✅ ADMIN: Buscar identidades por correo o nombre
+app.get('/api/admin/search-identities', authenticate, requireAdmin, async(req, res) => {
+    try {
+        const { query, entityType } = req.query;
+        if (!query || query.length < 2) return res.status(400).json({ error: 'Búsqueda requiere al menos 2 caracteres' });
+        const filter = { $or: [{ fullName: { $regex: query, $options: 'i' } }, { 'metadata.email': { $regex: query, $options: 'i' } }] };
+        if (entityType) filter.entityType = entityType;
+        const results = await verifiedIdentitiesCollection.find(filter).project({ userId: 1, fullName: 1, entityType: 1, verifiedAt: 1, status: 1, 'metadata.email': 1 }).limit(50).toArray();
+        res.json({ success: true, count: results.length, results });
+    } catch (e) { res.status(500).json({ error: 'Error en búsqueda: ' + e.message }); }
+});
+
+// ✅ USER: Solicitar verificación de identidad
+app.post('/api/identity/verify-request', authenticate, async(req, res) => {
+    try {
+        const { fullName, address, legalId, entityType = 'person', documents } = req.body;
+        if (!fullName || !address) return res.status(400).json({ error: 'Nombre completo y dirección son requeridos' });
+        const request = {
+            userId: req.user.uid,
+            fullName,
+            address: encryptPII(address),
+            legalId: legalId ? encryptPII(legalId) : null,
+            entityType,
+            documents: documents ? documents.map(d => ({...d, content: encryptPII(d.content) })) : [],
+            status: 'pending',
+            requestedAt: new Date(),
+            metadata: { submittedVia: 'api', userAgent: req.headers['user-agent'] }
+        };
+        await verifiedIdentitiesCollection.updateOne({ userId: req.user.uid }, { $set: request }, { upsert: true });
+        await logAudit('identity_verification_requested', { userId: req.user.uid, entityType, requested: true });
+        res.json({ success: true, message: 'Solicitud de verificación enviada. Un administrador la revisará en 24-48h.', status: 'pending', referenceId: req.user.uid });
+    } catch (e) { res.status(500).json({ error: 'Error al enviar solicitud: ' + e.message }); }
+});
+
+// ✅ USER: Consultar estado de verificación
+app.get('/api/identity/verification-status', authenticate, async(req, res) => {
+    try {
+        const identity = await verifiedIdentitiesCollection.findOne({ userId: req.user.uid }, { projection: { userId: 1, fullName: 1, entityType: 1, status: 1, verifiedAt: 1, rejectedReason: 1, 'metadata.email': 1 } });
+        if (!identity) return res.json({ success: true, status: 'not_submitted', message: 'No has enviado una solicitud de verificación aún' });
+        res.json({ success: true, status: identity.status, fullName: identity.fullName, entityType: identity.entityType, verifiedAt: identity.verifiedAt, rejectedReason: identity.status === 'rejected' ? identity.rejectedReason : null, message: identity.status === 'verified' ? '✅ Tu identidad ha sido verificada exitosamente' : identity.status === 'rejected' ? '❌ Solicitud rechazada: ' + identity.rejectedReason : '⏳ Tu solicitud está en revisión' });
+    } catch (e) { res.status(500).json({ error: 'Error consultando estado: ' + e.message }); }
 });
 
 // 🌐 SERVIR FRONTEND
@@ -1059,7 +1122,7 @@ async function startServer() {
     }
     app.listen(PORT, '0.0.0.0', function() {
         logger.info('🚀 APIROMWINER en puerto ' + PORT);
-        logger.info('🟢 52 Funciones Reales | 🔐 Identidad Criptográfica Autónoma | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY');
+        logger.info('🟢 57 Funciones Reales | 🔐 Identidad Criptográfica Autónoma | 📋 Identidad Legal Verificada | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY');
     });
 }
 startServer().catch(function(err) {
