@@ -48,6 +48,7 @@ const EnvelopeEncryption = (function() {
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
+app.set('trust proxy', 1); // ✅ Agrega esta línea para Render
 const PORT = process.env.PORT || 10000;
 
 // 🔐 MONGODB
@@ -155,8 +156,10 @@ const authenticate = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'Token requerido' });
     const token = authHeader.replace('Bearer ', '');
-    try { req.user = jwt.verify(token, JWT_SECRET);
-        next(); } catch (err) { return res.status(401).json({ error: 'Token inválido' }); }
+    try {
+        req.user = jwt.verify(token, JWT_SECRET);
+        next();
+    } catch (err) { return res.status(401).json({ error: 'Token inválido' }); }
 };
 const requireAdmin = async(req, res, next) => {
     try {
@@ -337,9 +340,11 @@ app.post('/vault', authenticate, checkQuota, async(req, res) => {
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const data = { userId: user._id, userUid: user.uid, titulo, categoria, folderId, tipo: req.file ? 'archivo' : 'texto', contenido: null, fileName: req.file ? path.basename(req.file.filename) : null, fileType: req.file ? req.file.mimetype : null, fileSize: req.file ? req.file.size : null, encrypted: null, isForSale: forSale, price: forSale ? price : 0, licenseDays, sales: 0, buyers: [], createdAt: new Date() };
         let wrappedDEK = user.encryptedUserKey;
-        if (!wrappedDEK) { const dek = EnvelopeEncryption.generateDEK();
+        if (!wrappedDEK) {
+            const dek = EnvelopeEncryption.generateDEK();
             wrappedDEK = EnvelopeEncryption.wrapDEK(dek);
-            await usersCollection.updateOne({ _id: user._id }, { $set: { encryptedUserKey: wrappedDEK } }); }
+            await usersCollection.updateOne({ _id: user._id }, { $set: { encryptedUserKey: wrappedDEK } });
+        }
         const userDEK = EnvelopeEncryption.unwrapDEK(wrappedDEK);
         if (req.file) {
             const content = await fs.readFile(req.file.path);
@@ -635,6 +640,8 @@ async function startServer() {
         logger.info('🟢 60+ Funciones | 🔐 Enterprise | 📦 Vault | 💰 Wallet | 🤝 Afiliados | ✅ Listo');
     });
 }
-startServer().catch(err => { logger.error('❌ Error crítico: ' + err.message);
-    process.exit(1); });
+startServer().catch(err => {
+    logger.error('❌ Error crítico: ' + err.message);
+    process.exit(1);
+});
 // === FIN: index.js ===
