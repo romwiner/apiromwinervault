@@ -206,7 +206,7 @@ const requireAdmin = async(req, res, next) => {
 
 // ✅ Middleware para consentimiento granular
 const requireConsent = (...requiredScopes) => (req, res, next) => {
-    const tokenScopes = req.user ? .scopes || [];
+    const tokenScopes = req.user ?.scopes || [];
     const missing = requiredScopes.filter(scope => !tokenScopes.includes(scope));
     if (missing.length > 0) {
         return res.status(403).json({ error: 'Consentimiento requerido', missingScopes: missing, message: 'El usuario debe aprobar estos permisos primero' });
@@ -223,7 +223,7 @@ const USER_TIERS = {
 const requireTier = (...allowed) => async(req, res, next) => {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        const tier = user ? .tier || 'personal';
+        const tier = user ?.tier || 'personal';
         if (!allowed.includes(tier)) return res.status(403).json({ error: 'Acceso denegado para tu plan' });
         req.userTier = tier;
         next();
@@ -232,10 +232,10 @@ const requireTier = (...allowed) => async(req, res, next) => {
 const checkQuota = async(req, res, next) => {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        const tier = USER_TIERS[user ? .tier || 'personal'];
+        const tier = USER_TIERS[user ?.tier || 'personal'];
         if (!tier) return next();
-        const used = await secretsCollection.aggregate([{ $match: { userId: user ? ._id } }, { $group: { _id: null, total: { $sum: '$fileSize' } } }]).toArray();
-        const usedGB = (used[0] ? .total || 0) / (1024 ** 3);
+        const used = await secretsCollection.aggregate([{ $match: { userId: user ?._id } }, { $group: { _id: null, total: { $sum: '$fileSize' } } }]).toArray();
+        const usedGB = (used[0] ?.total || 0) / (1024 ** 3);
         if (tier.storageLimitGB > 0 && usedGB >= tier.storageLimitGB) return res.status(413).json({ error: 'Límite excedido' });
         if (req.file && req.file.size > tier.maxFileSizeMB * 1024 * 1024) return res.status(413).json({ error: 'Archivo muy grande' });
         next();
@@ -247,7 +247,7 @@ const createImmutableLog = async(data) => {
     const eventId = crypto.randomUUID();
     const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
     const last = await auditCollection.findOne({}, { sort: { createdAt: -1 }, projection: { currentHash: 1 } });
-    const prev = last ? .currentHash || 'genesis';
+    const prev = last ?.currentHash || 'genesis';
     const current = crypto.createHash('sha256').update(prev + hash).digest('hex');
     const sig = crypto.createHmac('sha256', process.env.AUDIT_SECRET || MASTER_KEY).update(eventId + current).digest('hex');
     return {...data, eventId, previousHash: prev, currentHash: current, signature: sig, timestamp: new Date() };
@@ -262,7 +262,7 @@ const logAudit = async(action, data) => {
 const generateGDPRReport = async(userId, start, end) => {
     const user = await usersCollection.findOne({ uid: userId });
     const logs = await auditCollection.find({ userId, timestamp: { $gte: new Date(start), $lte: new Date(end) } }).sort({ timestamp: 1 }).toArray();
-    return { reportType: 'GDPR_ARTICLE_15', generatedAt: new Date().toISOString(), subject: { uid: user ? .uid, email: user ? .email }, data: logs };
+    return { reportType: 'GDPR_ARTICLE_15', generatedAt: new Date().toISOString(), subject: { uid: user ?.uid, email: user ?.email }, data: logs };
 };
 const generateSOC2Report = async(orgId, start, end) => ({
     reportType: 'SOC2_TYPE_II',
@@ -304,7 +304,7 @@ const AlertWebhookService = {
         if (!mongoReady) return;
         const hooks = await webhooksCollection.find({ userId }).toArray();
         for (const h of hooks) {
-            if (!h.events ? .includes(alert.type)) continue;
+            if (!h.events ?.includes(alert.type)) continue;
             const payload = { eventId: crypto.randomUUID(), timestamp: new Date().toISOString(), alert, signature: crypto.createHmac('sha256', h.secret).update(JSON.stringify(alert)).digest('hex') };
             try { await fetch(h.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Vault-Sig': payload.signature }, body: JSON.stringify(payload), timeout: 5000 }); } catch (e) { logger.warn('⚠️ Webhook failed: ' + e.message); }
         }
@@ -395,7 +395,7 @@ app.post('/api/wallet/deposit', authenticate, async(req, res) => {
         if (STRIPE_SECRET_KEY.includes('placeholder')) return res.json({ success: true, message: 'Modo demo: configura STRIPE_SECRET_KEY en .env', demo: true, clientSecret: 'demo' });
         const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', { method: 'POST', headers: { 'Authorization': 'Bearer ' + STRIPE_SECRET_KEY, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ amount: Math.round(amount * 100), currency: 'usd', metadata: JSON.stringify({ uid: req.user.uid, type: 'deposit' }) }) });
         const data = await stripeRes.json();
-        if (!data.client_secret) return res.status(500).json({ error: 'Error de Stripe: ' + (data.error ? .message || 'Cliente secreto no generado') });
+        if (!data.client_secret) return res.status(500).json({ error: 'Error de Stripe: ' + (data.error ?.message || 'Cliente secreto no generado') });
         res.json({ success: true, clientSecret: data.client_secret, paymentId: data.id });
     } catch (e) { res.status(500).json({ error: 'Error procesando pago con Stripe: ' + e.message }); }
 });
@@ -407,7 +407,7 @@ app.post('/api/wallet/withdraw', authenticate, async(req, res) => {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const w = await walletCollection.findOne({ userId: user._id });
-        if (!w || w.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente. Saldo actual: $' + (w ? .balance || 0).toFixed(2) });
+        if (!w || w.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente. Saldo actual: $' + (w ?.balance || 0).toFixed(2) });
         await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -amount }, $push: { history: { type: 'withdraw', amount, method, date: new Date() } } });
         await transactionsCollection.insertOne({ userId: user._id, type: 'withdrawal', amount, method, status: 'pending', createdAt: new Date() });
         res.json({ success: true, message: 'Solicitud de retiro enviada. Te contactaremos para confirmar.' });
@@ -531,7 +531,7 @@ app.get('/vault/:id', authenticate, async(req, res) => {
                 }
             } catch (fallback) {
                 if (secret.tipo === 'texto' && secret.contenido) {
-                    contenido = decrypt({ iv: secret.encrypted ? .iv, encrypted: secret.contenido, authTag: secret.encrypted ? .authTag });
+                    contenido = decrypt({ iv: secret.encrypted ?.iv, encrypted: secret.contenido, authTag: secret.encrypted ?.authTag });
                 } else if (secret.tipo === 'archivo' && secret.encrypted) {
                     const decrypted = decrypt(secret.encrypted);
                     contenido = Buffer.from(decrypted, 'base64').toString('base64');
@@ -539,7 +539,7 @@ app.get('/vault/:id', authenticate, async(req, res) => {
             }
         } else {
             if (secret.tipo === 'texto' && secret.contenido) {
-                contenido = decrypt({ iv: secret.encrypted ? .iv, encrypted: secret.contenido, authTag: secret.encrypted ? .authTag });
+                contenido = decrypt({ iv: secret.encrypted ?.iv, encrypted: secret.contenido, authTag: secret.encrypted ?.authTag });
             } else if (secret.tipo === 'archivo' && secret.encrypted) {
                 const decrypted = decrypt(secret.encrypted);
                 contenido = Buffer.from(decrypted, 'base64').toString('base64');
@@ -572,7 +572,7 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
         if (secret.buyers.indexOf(buyer.uid) !== -1) return res.status(400).json({ error: 'Ya compraste este contenido. Revisa tu Vault.' });
         const price = secret.price || 10;
         const bWallet = await walletCollection.findOne({ userId: buyer._id });
-        if (!bWallet || bWallet.balance < price) return res.status(400).json({ error: 'Saldo insuficiente. Necesitas $' + price + ' USD. Saldo actual: $' + (bWallet ? .balance || 0).toFixed(2) });
+        if (!bWallet || bWallet.balance < price) return res.status(400).json({ error: 'Saldo insuficiente. Necesitas $' + price + ' USD. Saldo actual: $' + (bWallet ?.balance || 0).toFixed(2) });
         const seller = await usersCollection.findOne({ _id: secret.userId });
         const sWallet = await walletCollection.findOne({ userId: seller._id });
         let affCommission = 0;
@@ -605,7 +605,7 @@ app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const aff = await affiliatesCollection.findOne({ userId: user._id });
-        if (!aff || aff.availableBalance < 10) return res.status(400).json({ error: 'Mínimo $10 USD para retiro de afiliados. Balance actual: $' + (aff ? .availableBalance || 0).toFixed(2) });
+        if (!aff || aff.availableBalance < 10) return res.status(400).json({ error: 'Mínimo $10 USD para retiro de afiliados. Balance actual: $' + (aff ?.availableBalance || 0).toFixed(2) });
         const w = await walletCollection.findOne({ userId: user._id });
         if (w) await walletCollection.updateOne({ _id: w._id }, { $inc: { availableBalance: -aff.availableBalance, withdrawnBalance: aff.availableBalance }, $push: { history: { type: 'affiliate_withdraw', amount: aff.availableBalance, method, date: new Date() } } });
         await transactionsCollection.insertOne({ userId: user._id, type: 'affiliate_payout', amount: aff.availableBalance, method, status: 'pending', createdAt: new Date() });
@@ -753,7 +753,7 @@ app.patch('/api/admin/set-tier', authenticate, requireAdmin, async(req, res) => 
 app.post('/api/vault/:id/share', authenticate, async(req, res) => {
     try {
         const { expiresInHours = 24, password, permissions = ['view'] } = req.body;
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ? ._id });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ?._id });
         if (!secret) return res.status(404).json({ error: 'Archivo no encontrado' });
         const token = crypto.randomBytes(16).toString('hex');
         const expiresAt = new Date(Date.now() + expiresInHours * 3600000);
@@ -777,10 +777,10 @@ app.get('/s/:token', async(req, res) => {
 // 🖼️ THUMBNAILS CIFRADOS
 app.post('/api/vault/:id/thumbnail', authenticate, async(req, res) => {
     try {
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ? ._id });
-        if (!secret ? .encrypted) return res.status(400).json({ error: 'Archivo no soporta thumbnail' });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ?._id });
+        if (!secret ?.encrypted) return res.status(400).json({ error: 'Archivo no soporta thumbnail' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user ? .encryptedUserKey) return res.status(400).json({ error: 'Clave no disponible' });
+        if (!user ?.encryptedUserKey) return res.status(400).json({ error: 'Clave no disponible' });
         const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
         const img = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64');
         const thumb = await sharp(img).resize(300, 300, { fit: 'inside' }).png().toBuffer();
@@ -794,7 +794,7 @@ app.get('/api/vault/:id/thumbnail', authenticate, async(req, res) => {
         const thumb = await thumbnailsCollection.findOne({ fileId: new ObjectId(req.params.id) });
         if (!thumb) return res.status(404).json({ error: 'Thumbnail no disponible' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        const userDEK = EnvelopeEncryption.unwrapDEK(user ? .encryptedUserKey);
+        const userDEK = EnvelopeEncryption.unwrapDEK(user ?.encryptedUserKey);
         const dec = EnvelopeEncryption.open(thumb.encrypted, userDEK);
         res.type('image/png').send(Buffer.from(dec, 'base64'));
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -805,19 +805,19 @@ app.post('/api/vault/:id/version', authenticate, async(req, res) => {
     try {
         const { content } = req.body;
         if (!content) return res.status(400).json({ error: 'Contenido requerido' });
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ? ._id });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ?._id });
         if (!secret) return res.status(404).json({ error: 'No encontrado' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
         const last = await versionsCollection.findOne({ fileId: secret._id }, { sort: { versionNumber: -1 } });
-        const next = (last ? .versionNumber || 0) + 1;
+        const next = (last ?.versionNumber || 0) + 1;
         await versionsCollection.insertOne({ fileId: secret._id, versionNumber: next, content: EnvelopeEncryption.seal(content, userDEK), createdBy: req.user.uid, createdAt: new Date() });
         res.json({ success: true, version: next });
     } catch (e) { res.status(500).json({ error: 'Error versión: ' + e.message }); }
 });
 app.get('/api/vault/:id/versions', authenticate, async(req, res) => {
     try {
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ? ._id });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ?._id });
         if (!secret) return res.status(404).json({ error: 'No encontrado' });
         const vers = await versionsCollection.find({ fileId: secret._id }).sort({ versionNumber: -1 }).toArray();
         res.json({ success: true, versions: vers.map(v => ({ v: v.versionNumber, date: v.createdAt, user: v.createdBy })) });
@@ -825,7 +825,7 @@ app.get('/api/vault/:id/versions', authenticate, async(req, res) => {
 });
 app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
     try {
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ? ._id });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ?._id });
         if (!secret) return res.status(404).json({ error: 'No encontrado' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
@@ -843,7 +843,7 @@ app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
 app.post('/api/vault/:id/comments', authenticate, async(req, res) => {
     try {
         const { content } = req.body;
-        if (!content ? .trim()) return res.status(400).json({ error: 'Texto requerido' });
+        if (!content ?.trim()) return res.status(400).json({ error: 'Texto requerido' });
         const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
         if (!secret) return res.status(404).json({ error: 'No encontrado' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
@@ -921,7 +921,7 @@ app.post('/api/crypto-auth/register-start', authenticate, async(req, res) => {
     try {
         const { email } = req.body;
         const user = email ? await usersCollection.findOne({ email }) : null;
-        const userId = user ? .uid || crypto.randomUUID();
+        const userId = user ?.uid || crypto.randomUUID();
         const options = await generateRegistrationOptions({
             rpName: 'ApiRomwiner Vault',
             rpID: new URL(APP_URL).hostname,
@@ -940,7 +940,7 @@ app.post('/api/crypto-auth/register-finish', authenticate, async(req, res) => {
     try {
         const { userId, response } = req.body;
         const record = await cryptoKeysCollection.findOne({ userId });
-        if (!record ? .challenge) return res.status(400).json({ error: 'Registro no iniciado o expirado' });
+        if (!record ?.challenge) return res.status(400).json({ error: 'Registro no iniciado o expirado' });
         const verification = await verifyRegistrationResponse({
             response,
             expectedChallenge: record.challenge,
@@ -950,9 +950,9 @@ app.post('/api/crypto-auth/register-finish', authenticate, async(req, res) => {
         if (!verification.verified) return res.status(400).json({ error: 'Verificación fallida' });
         await cryptoKeysCollection.updateOne({ userId }, {
             $set: {
-                publicKey: verification.registrationInfo ? .credentialPublicKey,
-                credentialID: verification.registrationInfo ? .credentialID,
-                counter: verification.registrationInfo ? .counter,
+                publicKey: verification.registrationInfo ?.credentialPublicKey,
+                credentialID: verification.registrationInfo ?.credentialID,
+                counter: verification.registrationInfo ?.counter,
                 registeredAt: new Date()
             },
             $unset: { challenge: 1 }
@@ -982,7 +982,7 @@ app.post('/api/crypto-auth/login-finish', async(req, res) => {
     try {
         const { credentialID, response } = req.body;
         const record = await cryptoKeysCollection.findOne({ credentialID });
-        if (!record ? .challenge) return res.status(400).json({ error: 'Login no iniciado o credencial no encontrada' });
+        if (!record ?.challenge) return res.status(400).json({ error: 'Login no iniciado o credencial no encontrada' });
         const verification = await verifyAuthenticationResponse({
             response,
             expectedChallenge: record.challenge,
@@ -991,7 +991,7 @@ app.post('/api/crypto-auth/login-finish', async(req, res) => {
             authenticator: { credentialPublicKey: record.publicKey, counter: record.counter || 0 }
         });
         if (!verification.verified) return res.status(401).json({ error: 'Autenticación fallida' });
-        await cryptoKeysCollection.updateOne({ credentialID }, { $set: { counter: verification.authenticationInfo ? .newCounter, lastLogin: new Date() }, $unset: { challenge: 1 } });
+        await cryptoKeysCollection.updateOne({ credentialID }, { $set: { counter: verification.authenticationInfo ?.newCounter, lastLogin: new Date() }, $unset: { challenge: 1 } });
         const token = jwt.sign({ uid: record.userId, scopes: ['vault:read:own'], authMethod: 'crypto' }, JWT_SECRET, { expiresIn: '24h' });
         await logAudit('crypto_login', { userId: record.userId, verified: true });
         res.json({ success: true, token, consentRequired: true, availableScopes: ['vault:read:own', 'vault:read:shared', 'wallet:read', 'identity:verify'], message: 'Autenticación exitosa. Aprueba permisos para acceder a funciones adicionales.' });
@@ -1055,9 +1055,11 @@ app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async(req, re
         delete decrypted.address.iv;
         delete decrypted.address.data;
         delete decrypted.address.tag;
-        if (decrypted.legalId) { delete decrypted.legalId.iv;
+        if (decrypted.legalId) {
+            delete decrypted.legalId.iv;
             delete decrypted.legalId.data;
-            delete decrypted.legalId.tag; }
+            delete decrypted.legalId.tag;
+        }
         res.json({ success: true, identity: decrypted });
     } catch (e) { res.status(500).json({ error: 'Error obteniendo identidad: ' + e.message }); }
 });
