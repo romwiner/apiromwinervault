@@ -1,4 +1,4 @@
-// === INICIO: index.js - APIROMWINER VAULT (TODAS FUNCIONES ORIGINALES + IDENTIDAD CRIPTOGRÁFICA + IDENTIDAD VERIFICADA) ===
+// === INICIO: index.js - APIROMWINER VAULT (TODAS FUNCIONES ORIGINALES + CORRECCIONES) ===
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -15,10 +15,16 @@ const pino = require('pino');
 const sharp = require('sharp');
 const diffLib = require('diff');
 const fileType = require('file-type');
-// ✅ Librería para WebAuthn/FIDO2 (identificación criptográfica autónoma)
 const { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } = require('@simplewebauthn/server');
 
-// 🔐 SISTEMA DE CIFRADO EN CAPAS (ENVELOPE ENCRYPTION)
+// 🔐 CLAVES + ADMINS (DEFINIDAS PRIMERO PARA QUE ESTÉN DISPONIBLES)
+const JWT_SECRET = process.env.JWT_SECRET || 'romwiner_jwt_secret_fallback';
+const MASTER_KEY = process.env.MASTER_KEY || 'romwiner_master_key_fallback';
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'rraygoza67@gmail.com,nubislosnubis@gmail.com,romraywiner@gmail.com').split(',').map(e => e.trim());
+const APP_URL = process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com';
+
+// 🔐 SISTEMA DE CIFRADO EN CAPAS (ENVELOPE ENCRYPTION) — AHORA MASTER_KEY YA EXISTE
 const EnvelopeEncryption = (function() {
     class CryptoWrapper {
         constructor(masterKey) { this.mk = Buffer.from(masterKey.slice(0, 32)); }
@@ -49,7 +55,7 @@ const EnvelopeEncryption = (function() {
     return new CryptoWrapper(MASTER_KEY);
 })();
 
-// 🔐 CIFRADO PARA DATOS PERSONALES (PII) - IDENTIDAD VERIFICADA
+// 🔐 CIFRADO PARA DATOS PERSONALES (PII) — IDENTIDAD VERIFICADA
 const encryptPII = (plaintext) => {
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(MASTER_KEY.slice(0, 32)), iv);
@@ -89,7 +95,7 @@ async function connectToMongo() {
         webhooksCollection = db.collection('webhooks');
         promoCollection = db.collection('promo_codes');
         cryptoKeysCollection = db.collection('cryptoKeys');
-        verifiedIdentitiesCollection = db.collection('verifiedIdentities'); // ✅ NUEVA: identidades legales verificadas
+        verifiedIdentitiesCollection = db.collection('verifiedIdentities');
         sharedLinksCollection = db.collection('sharedLinks');
         thumbnailsCollection = db.collection('thumbnails');
         versionsCollection = db.collection('fileVersions');
@@ -113,9 +119,9 @@ async function connectToMongo() {
         await promoCollection.createIndex({ code: 1 }, { unique: true });
         await cryptoKeysCollection.createIndex({ publicKey: 1 }, { unique: true });
         await cryptoKeysCollection.createIndex({ userId: 1 });
-        await verifiedIdentitiesCollection.createIndex({ userId: 1 }, { unique: true }); // ✅ ÍNDICE NUEVO
-        await verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, sparse: true }); // ✅ ÍNDICE NUEVO
-        await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true }); // ✅ ÍNDICE NUEVO
+        await verifiedIdentitiesCollection.createIndex({ userId: 1 }, { unique: true });
+        await verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, sparse: true });
+        await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true });
 
         mongoReady = true;
         logger.info('✅ MongoDB Atlas conectado');
@@ -178,13 +184,6 @@ const upload = multer({
 
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Demasiadas solicitudes' } }));
 
-// 🔐 CLAVES + ADMINS
-const JWT_SECRET = process.env.JWT_SECRET || 'romwiner_jwt_secret_fallback';
-const MASTER_KEY = process.env.MASTER_KEY || 'romwiner_master_key_fallback';
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'rraygoza67@gmail.com,nubislosnubis@gmail.com,romraywiner@gmail.com').split(',').map(e => e.trim());
-const APP_URL = process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com';
-
 // 🔐 AUTH + ADMIN
 const authenticate = (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -204,9 +203,9 @@ const requireAdmin = async(req, res, next) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// ✅ Middleware para consentimiento granular
+// ✅ Middleware para consentimiento granular (SIN ?. — USANDO &&)
 const requireConsent = (...requiredScopes) => (req, res, next) => {
-    const tokenScopes = req.user ?.scopes || [];
+    const tokenScopes = (req.user && req.user.scopes) || [];
     const missing = requiredScopes.filter(scope => !tokenScopes.includes(scope));
     if (missing.length > 0) {
         return res.status(403).json({ error: 'Consentimiento requerido', missingScopes: missing, message: 'El usuario debe aprobar estos permisos primero' });
@@ -214,7 +213,7 @@ const requireConsent = (...requiredScopes) => (req, res, next) => {
     next();
 };
 
-// ✅ TIERS + CUOTAS
+// ✅ TIERS + CUOTAS (SIN ?. — USANDO &&)
 const USER_TIERS = {
     personal: { id: 'personal', name: 'Personal', storageLimitGB: 10, maxFileSizeMB: 100, apiRateLimit: 100 },
     business: { id: 'business', name: 'Business', storageLimitGB: 100, maxFileSizeMB: 500, apiRateLimit: 1000 },
@@ -223,7 +222,7 @@ const USER_TIERS = {
 const requireTier = (...allowed) => async(req, res, next) => {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        const tier = user ?.tier || 'personal';
+        const tier = (user && user.tier) || 'personal';
         if (!allowed.includes(tier)) return res.status(403).json({ error: 'Acceso denegado para tu plan' });
         req.userTier = tier;
         next();
@@ -232,22 +231,22 @@ const requireTier = (...allowed) => async(req, res, next) => {
 const checkQuota = async(req, res, next) => {
     try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        const tier = USER_TIERS[user ?.tier || 'personal'];
+        const tier = USER_TIERS[(user && user.tier) || 'personal'];
         if (!tier) return next();
-        const used = await secretsCollection.aggregate([{ $match: { userId: user ?._id } }, { $group: { _id: null, total: { $sum: '$fileSize' } } }]).toArray();
-        const usedGB = (used[0] ?.total || 0) / (1024 ** 3);
+        const used = await secretsCollection.aggregate([{ $match: { userId: (user && user._id) } }, { $group: { _id: null, total: { $sum: '$fileSize' } } }]).toArray();
+        const usedGB = ((used[0] && used[0].total) || 0) / (1024 ** 3);
         if (tier.storageLimitGB > 0 && usedGB >= tier.storageLimitGB) return res.status(413).json({ error: 'Límite excedido' });
         if (req.file && req.file.size > tier.maxFileSizeMB * 1024 * 1024) return res.status(413).json({ error: 'Archivo muy grande' });
         next();
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// ✅ AUDITORÍA INMUTABLE
+// ✅ AUDITORÍA INMUTABLE (SIN ?. — USANDO &&)
 const createImmutableLog = async(data) => {
     const eventId = crypto.randomUUID();
     const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
     const last = await auditCollection.findOne({}, { sort: { createdAt: -1 }, projection: { currentHash: 1 } });
-    const prev = last ?.currentHash || 'genesis';
+    const prev = (last && last.currentHash) || 'genesis';
     const current = crypto.createHash('sha256').update(prev + hash).digest('hex');
     const sig = crypto.createHmac('sha256', process.env.AUDIT_SECRET || MASTER_KEY).update(eventId + current).digest('hex');
     return {...data, eventId, previousHash: prev, currentHash: current, signature: sig, timestamp: new Date() };
@@ -258,11 +257,11 @@ const logAudit = async(action, data) => {
     }
 };
 
-// ✅ REPORTES GDPR/SOC2
+// ✅ REPORTES GDPR/SOC2 (SIN ?. — USANDO &&)
 const generateGDPRReport = async(userId, start, end) => {
     const user = await usersCollection.findOne({ uid: userId });
     const logs = await auditCollection.find({ userId, timestamp: { $gte: new Date(start), $lte: new Date(end) } }).sort({ timestamp: 1 }).toArray();
-    return { reportType: 'GDPR_ARTICLE_15', generatedAt: new Date().toISOString(), subject: { uid: user ?.uid, email: user ?.email }, data: logs };
+    return { reportType: 'GDPR_ARTICLE_15', generatedAt: new Date().toISOString(), subject: { uid: (user && user.uid), email: (user && user.email) }, data: logs };
 };
 const generateSOC2Report = async(orgId, start, end) => ({
     reportType: 'SOC2_TYPE_II',
@@ -293,7 +292,7 @@ const KeyRotationService = {
     }
 };
 
-// ✅ WEBHOOKS
+// ✅ WEBHOOKS (SIN ?. — USANDO &&)
 const AlertWebhookService = {
     async registerWebhook(userId, config) {
         if (!mongoReady) return { success: true, message: 'Demo', demo: true };
@@ -304,7 +303,7 @@ const AlertWebhookService = {
         if (!mongoReady) return;
         const hooks = await webhooksCollection.find({ userId }).toArray();
         for (const h of hooks) {
-            if (!h.events ?.includes(alert.type)) continue;
+            if (!(h.events && h.events.includes(alert.type))) continue;
             const payload = { eventId: crypto.randomUUID(), timestamp: new Date().toISOString(), alert, signature: crypto.createHmac('sha256', h.secret).update(JSON.stringify(alert)).digest('hex') };
             try { await fetch(h.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Vault-Sig': payload.signature }, body: JSON.stringify(payload), timeout: 5000 }); } catch (e) { logger.warn('⚠️ Webhook failed: ' + e.message); }
         }
@@ -316,7 +315,7 @@ app.get('/api/status', (req, res) => res.json({
     api: 'ApiRomwiner Vault',
     status: 'online',
     database: mongoReady ? 'connected' : 'fallback',
-    features: ['🟢 52 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos']
+    features: ['🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos']
 }));
 
 // 🔐 REGISTRO + LOGIN
@@ -346,9 +345,9 @@ app.post('/login', async(req, res) => {
         const user = await usersCollection.findOne({ email });
         if (!user || !await bcrypt.compare(password, user.password)) return res.status(401).json({ error: 'Credenciales inválidas' });
         await usersCollection.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
-        const token = jwt.sign({ uid: user.uid, email, isAdmin: user.isAdmin || ADMIN_EMAILS.includes(email), tier: user.tier || 'personal' }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign({ uid: user.uid, email, isAdmin: (user.isAdmin || ADMIN_EMAILS.includes(email)), tier: (user.tier || 'personal') }, JWT_SECRET, { expiresIn: '7d' });
         await logAudit('login', { email });
-        res.json({ success: true, token, user: { uid: user.uid, email, isAdmin: user.isAdmin || ADMIN_EMAILS.includes(email), refCode: user.refCode, tier: user.tier || 'personal' } });
+        res.json({ success: true, token, user: { uid: user.uid, email, isAdmin: (user.isAdmin || ADMIN_EMAILS.includes(email)), refCode: user.refCode, tier: (user.tier || 'personal') } });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -378,7 +377,7 @@ app.post('/api/profile', authenticate, upload.single('avatar'), async(req, res) 
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 💰 WALLET + PAGOS
+// 💰 WALLET + PAGOS (SIN ?. — USANDO &&)
 app.get('/api/wallet', authenticate, async(req, res) => {
     try {
         if (!mongoReady) return res.json({ success: true, wallet: { balance: 0, currency: 'USD' }, demo: true });
@@ -395,7 +394,7 @@ app.post('/api/wallet/deposit', authenticate, async(req, res) => {
         if (STRIPE_SECRET_KEY.includes('placeholder')) return res.json({ success: true, message: 'Modo demo: configura STRIPE_SECRET_KEY en .env', demo: true, clientSecret: 'demo' });
         const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', { method: 'POST', headers: { 'Authorization': 'Bearer ' + STRIPE_SECRET_KEY, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ amount: Math.round(amount * 100), currency: 'usd', metadata: JSON.stringify({ uid: req.user.uid, type: 'deposit' }) }) });
         const data = await stripeRes.json();
-        if (!data.client_secret) return res.status(500).json({ error: 'Error de Stripe: ' + (data.error ?.message || 'Cliente secreto no generado') });
+        if (!data.client_secret) return res.status(500).json({ error: 'Error de Stripe: ' + ((data.error && data.error.message) || 'Cliente secreto no generado') });
         res.json({ success: true, clientSecret: data.client_secret, paymentId: data.id });
     } catch (e) { res.status(500).json({ error: 'Error procesando pago con Stripe: ' + e.message }); }
 });
@@ -407,7 +406,7 @@ app.post('/api/wallet/withdraw', authenticate, async(req, res) => {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const w = await walletCollection.findOne({ userId: user._id });
-        if (!w || w.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente. Saldo actual: $' + (w ?.balance || 0).toFixed(2) });
+        if (!w || w.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente. Saldo actual: $' + ((w && w.balance) || 0).toFixed(2) });
         await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -amount }, $push: { history: { type: 'withdraw', amount, method, date: new Date() } } });
         await transactionsCollection.insertOne({ userId: user._id, type: 'withdrawal', amount, method, status: 'pending', createdAt: new Date() });
         res.json({ success: true, message: 'Solicitud de retiro enviada. Te contactaremos para confirmar.' });
@@ -443,7 +442,7 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
     } catch (e) { res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message }); }
 });
 
-// 📦 VAULT + COMPRAS
+// 📦 VAULT + COMPRAS (SIN ?. — USANDO &&)
 app.post('/vault', authenticate, checkQuota, async(req, res) => {
     try {
         const { titulo, categoria = 'general', folderId = 'general', contenido, price = 0, forSale = false, licenseDays = null } = req.body;
@@ -451,27 +450,7 @@ app.post('/vault', authenticate, checkQuota, async(req, res) => {
         if (!mongoReady || !secretsCollection) return res.status(201).json({ success: true, message: 'Guardado en modo demo', id: 'demo', demo: true });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        const data = {
-            userId: user._id,
-            userUid: user.uid,
-            titulo,
-            categoria,
-            folderId,
-            tipo: req.file ? 'archivo' : 'texto',
-            contenido: null,
-            fileName: req.file ? path.basename(req.file.filename) : null,
-            fileType: req.file ? req.file.mimetype : null,
-            fileSize: req.file ? req.file.size : null,
-            encrypted: null,
-            isForSale: forSale,
-            price: forSale ? price : 0,
-            licenseDays,
-            sales: 0,
-            buyers: [],
-            createdAt: new Date()
-        };
-
+        const data = { userId: user._id, userUid: user.uid, titulo, categoria, folderId, tipo: req.file ? 'archivo' : 'texto', contenido: null, fileName: req.file ? path.basename(req.file.filename) : null, fileType: req.file ? req.file.mimetype : null, fileSize: req.file ? req.file.size : null, encrypted: null, isForSale: forSale, price: forSale ? price : 0, licenseDays, sales: 0, buyers: [], createdAt: new Date() };
         let wrappedDEK = user.encryptedUserKey;
         if (!wrappedDEK) {
             const dek = EnvelopeEncryption.generateDEK();
@@ -479,7 +458,6 @@ app.post('/vault', authenticate, checkQuota, async(req, res) => {
             await usersCollection.updateOne({ _id: user._id }, { $set: { encryptedUserKey: wrappedDEK } });
         }
         const userDEK = EnvelopeEncryption.unwrapDEK(wrappedDEK);
-
         if (req.file) {
             data.fileName = path.basename(req.file.filename);
             data.fileType = req.file.mimetype;
@@ -487,10 +465,7 @@ app.post('/vault', authenticate, checkQuota, async(req, res) => {
             const fileContent = await fs.readFile(req.file.path);
             data.encrypted = EnvelopeEncryption.seal(fileContent.toString('base64'), userDEK);
             await fs.unlink(req.file.path).catch(function(e) { logger.warn('⚠️ No se pudo eliminar archivo temporal: ' + e.message); });
-        } else if (contenido) {
-            data.contenido = EnvelopeEncryption.seal(contenido, userDEK);
-        }
-
+        } else if (contenido) { data.contenido = EnvelopeEncryption.seal(contenido, userDEK); }
         const result = await secretsCollection.insertOne(data);
         await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale });
         res.status(201).json({ success: true, message: 'Contenido guardado y cifrado en Vault (clave única por usuario)', id: result.insertedId, fileName: data.fileName });
@@ -518,34 +493,26 @@ app.get('/vault/:id', authenticate, async(req, res) => {
         const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
         if (!secret) return res.status(404).json({ error: 'Contenido no encontrado' });
         if (secret.userId.toString() !== user._id.toString() && secret.buyers.indexOf(user.uid) === -1 && !secret.isForSale) return res.status(403).json({ error: 'Acceso denegado: no tienes permiso para este contenido' });
-
         let contenido = null;
         if (user.encryptedUserKey) {
             try {
                 const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
-                if (secret.tipo === 'texto' && secret.contenido) {
-                    contenido = EnvelopeEncryption.open(secret.contenido, userDEK);
-                } else if (secret.tipo === 'archivo' && secret.encrypted) {
-                    const decrypted = EnvelopeEncryption.open(secret.encrypted, userDEK);
-                    contenido = Buffer.from(decrypted, 'base64').toString('base64');
-                }
+                if (secret.tipo === 'texto' && secret.contenido) contenido = EnvelopeEncryption.open(secret.contenido, userDEK);
+                else if (secret.tipo === 'archivo' && secret.encrypted) contenido = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64').toString('base64');
             } catch (fallback) {
-                if (secret.tipo === 'texto' && secret.contenido) {
-                    contenido = decrypt({ iv: secret.encrypted ?.iv, encrypted: secret.contenido, authTag: secret.encrypted ?.authTag });
-                } else if (secret.tipo === 'archivo' && secret.encrypted) {
+                if (secret.tipo === 'texto' && secret.contenido) contenido = decrypt({ iv: (secret.encrypted && secret.encrypted.iv), encrypted: secret.contenido, authTag: (secret.encrypted && secret.encrypted.authTag) });
+                else if (secret.tipo === 'archivo' && secret.encrypted) {
                     const decrypted = decrypt(secret.encrypted);
                     contenido = Buffer.from(decrypted, 'base64').toString('base64');
                 }
             }
         } else {
-            if (secret.tipo === 'texto' && secret.contenido) {
-                contenido = decrypt({ iv: secret.encrypted ?.iv, encrypted: secret.contenido, authTag: secret.encrypted ?.authTag });
-            } else if (secret.tipo === 'archivo' && secret.encrypted) {
+            if (secret.tipo === 'texto' && secret.contenido) contenido = decrypt({ iv: (secret.encrypted && secret.encrypted.iv), encrypted: secret.contenido, authTag: (secret.encrypted && secret.encrypted.authTag) });
+            else if (secret.tipo === 'archivo' && secret.encrypted) {
                 const decrypted = decrypt(secret.encrypted);
                 contenido = Buffer.from(decrypted, 'base64').toString('base64');
             }
         }
-
         res.json({ success: true, secret: { id: secret._id.toString(), titulo: secret.titulo, contenido, isForSale: secret.isForSale, price: secret.price, sales: secret.sales, licenseDays: secret.licenseDays, fileName: secret.fileName, fileType: secret.fileType } });
     } catch (e) { res.status(500).json({ error: 'Error al obtener contenido: ' + e.message }); }
 });
@@ -572,7 +539,7 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
         if (secret.buyers.indexOf(buyer.uid) !== -1) return res.status(400).json({ error: 'Ya compraste este contenido. Revisa tu Vault.' });
         const price = secret.price || 10;
         const bWallet = await walletCollection.findOne({ userId: buyer._id });
-        if (!bWallet || bWallet.balance < price) return res.status(400).json({ error: 'Saldo insuficiente. Necesitas $' + price + ' USD. Saldo actual: $' + (bWallet ?.balance || 0).toFixed(2) });
+        if (!bWallet || bWallet.balance < price) return res.status(400).json({ error: 'Saldo insuficiente. Necesitas $' + price + ' USD. Saldo actual: $' + ((bWallet && bWallet.balance) || 0).toFixed(2) });
         const seller = await usersCollection.findOne({ _id: secret.userId });
         const sWallet = await walletCollection.findOne({ userId: seller._id });
         let affCommission = 0;
@@ -588,7 +555,7 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error procesando compra: ' + e.message }); }
 });
 
-// 🤝 AFILIADOS + NIVELES + RETIROS
+// 🤝 AFILIADOS + NIVELES + RETIROS (SIN ?. — USANDO &&)
 app.get('/api/affiliates/dashboard', authenticate, async(req, res) => {
     try {
         if (!mongoReady || !affiliatesCollection) return res.json({ success: true, dashboard: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0, referralLink: APP_URL + '?ref=DEMO', refCode: 'DEMO' }, demo: true });
@@ -605,7 +572,7 @@ app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const aff = await affiliatesCollection.findOne({ userId: user._id });
-        if (!aff || aff.availableBalance < 10) return res.status(400).json({ error: 'Mínimo $10 USD para retiro de afiliados. Balance actual: $' + (aff ?.availableBalance || 0).toFixed(2) });
+        if (!aff || aff.availableBalance < 10) return res.status(400).json({ error: 'Mínimo $10 USD para retiro de afiliados. Balance actual: $' + ((aff && aff.availableBalance) || 0).toFixed(2) });
         const w = await walletCollection.findOne({ userId: user._id });
         if (w) await walletCollection.updateOne({ _id: w._id }, { $inc: { availableBalance: -aff.availableBalance, withdrawnBalance: aff.availableBalance }, $push: { history: { type: 'affiliate_withdraw', amount: aff.availableBalance, method, date: new Date() } } });
         await transactionsCollection.insertOne({ userId: user._id, type: 'affiliate_payout', amount: aff.availableBalance, method, status: 'pending', createdAt: new Date() });
@@ -677,14 +644,8 @@ app.get('/api/audit/export', authenticate, requireTier('business', 'enterprise')
     try {
         const { type, startDate, endDate, organizationId } = req.query;
         if (!mongoReady || !auditCollection) return res.json({ success: true, logs: [], demo: true });
-        if (type === 'gdpr') {
-            const report = await generateGDPRReport(req.user.uid, startDate || new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), endDate || new Date());
-            return res.json({ success: true, reportType: 'GDPR', data: report });
-        }
-        if (type === 'soc2' && req.userTier === 'enterprise') {
-            const report = await generateSOC2Report(organizationId || req.user.uid, startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), endDate || new Date());
-            return res.json({ success: true, reportType: 'SOC2', data: report });
-        }
+        if (type === 'gdpr') { const report = await generateGDPRReport(req.user.uid, startDate || new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), endDate || new Date()); return res.json({ success: true, reportType: 'GDPR', data: report }); }
+        if (type === 'soc2' && req.userTier === 'enterprise') { const report = await generateSOC2Report(organizationId || req.user.uid, startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), endDate || new Date()); return res.json({ success: true, reportType: 'SOC2', data: report }); }
         const logs = await auditCollection.find({ userId: req.user.uid }).sort({ timestamp: -1 }).limit(100).toArray();
         res.json({ success: true, logs });
     } catch (e) { res.status(500).json({ error: 'Error al exportar auditoría: ' + e.message }); }
@@ -737,9 +698,7 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
 app.patch('/api/admin/set-tier', authenticate, requireAdmin, async(req, res) => {
     try {
         const { targetEmail, tier } = req.body;
-        if (!targetEmail || !['personal', 'business', 'enterprise'].includes(tier)) {
-            return res.status(400).json({ error: 'Email y tier válidos requeridos (personal|business|enterprise)' });
-        }
+        if (!targetEmail || !['personal', 'business', 'enterprise'].includes(tier)) return res.status(400).json({ error: 'Email y tier válidos requeridos (personal|business|enterprise)' });
         if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo: tier actualizado', demo: true });
         const result = await usersCollection.updateOne({ email: targetEmail }, { $set: { tier, updatedAt: new Date() } });
         if (result.matchedCount === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -749,11 +708,12 @@ app.patch('/api/admin/set-tier', authenticate, requireAdmin, async(req, res) => 
 });
 
 // === FUNCIONES NUEVAS INTEGRADAS SIN BORRAR NADA ===
-// 🔗 ENLACES COMPARTIDOS SEGUROS
+// 🔗 ENLACES COMPARTIDOS SEGUROS (SIN ?. — USANDO &&)
 app.post('/api/vault/:id/share', authenticate, async(req, res) => {
     try {
         const { expiresInHours = 24, password, permissions = ['view'] } = req.body;
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ?._id });
+        const userCheck = await usersCollection.findOne({ uid: req.user.uid });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
         if (!secret) return res.status(404).json({ error: 'Archivo no encontrado' });
         const token = crypto.randomBytes(16).toString('hex');
         const expiresAt = new Date(Date.now() + expiresInHours * 3600000);
@@ -774,13 +734,14 @@ app.get('/s/:token', async(req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 🖼️ THUMBNAILS CIFRADOS
+// 🖼️ THUMBNAILS CIFRADOS (SIN ?. — USANDO &&)
 app.post('/api/vault/:id/thumbnail', authenticate, async(req, res) => {
     try {
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ?._id });
-        if (!secret ?.encrypted) return res.status(400).json({ error: 'Archivo no soporta thumbnail' });
+        const userCheck = await usersCollection.findOne({ uid: req.user.uid });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
+        if (!(secret && secret.encrypted)) return res.status(400).json({ error: 'Archivo no soporta thumbnail' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user ?.encryptedUserKey) return res.status(400).json({ error: 'Clave no disponible' });
+        if (!(user && user.encryptedUserKey)) return res.status(400).json({ error: 'Clave no disponible' });
         const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
         const img = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64');
         const thumb = await sharp(img).resize(300, 300, { fit: 'inside' }).png().toBuffer();
@@ -794,30 +755,32 @@ app.get('/api/vault/:id/thumbnail', authenticate, async(req, res) => {
         const thumb = await thumbnailsCollection.findOne({ fileId: new ObjectId(req.params.id) });
         if (!thumb) return res.status(404).json({ error: 'Thumbnail no disponible' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
-        const userDEK = EnvelopeEncryption.unwrapDEK(user ?.encryptedUserKey);
+        const userDEK = EnvelopeEncryption.unwrapDEK(user && user.encryptedUserKey);
         const dec = EnvelopeEncryption.open(thumb.encrypted, userDEK);
         res.type('image/png').send(Buffer.from(dec, 'base64'));
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 📜 VERSIONES + DIFF
+// 📜 VERSIONES + DIFF (SIN ?. — USANDO &&)
 app.post('/api/vault/:id/version', authenticate, async(req, res) => {
     try {
         const { content } = req.body;
         if (!content) return res.status(400).json({ error: 'Contenido requerido' });
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ?._id });
+        const userCheck = await usersCollection.findOne({ uid: req.user.uid });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
         if (!secret) return res.status(404).json({ error: 'No encontrado' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
         const last = await versionsCollection.findOne({ fileId: secret._id }, { sort: { versionNumber: -1 } });
-        const next = (last ?.versionNumber || 0) + 1;
+        const next = ((last && last.versionNumber) || 0) + 1;
         await versionsCollection.insertOne({ fileId: secret._id, versionNumber: next, content: EnvelopeEncryption.seal(content, userDEK), createdBy: req.user.uid, createdAt: new Date() });
         res.json({ success: true, version: next });
     } catch (e) { res.status(500).json({ error: 'Error versión: ' + e.message }); }
 });
 app.get('/api/vault/:id/versions', authenticate, async(req, res) => {
     try {
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ?._id });
+        const userCheck = await usersCollection.findOne({ uid: req.user.uid });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
         if (!secret) return res.status(404).json({ error: 'No encontrado' });
         const vers = await versionsCollection.find({ fileId: secret._id }).sort({ versionNumber: -1 }).toArray();
         res.json({ success: true, versions: vers.map(v => ({ v: v.versionNumber, date: v.createdAt, user: v.createdBy })) });
@@ -825,7 +788,8 @@ app.get('/api/vault/:id/versions', authenticate, async(req, res) => {
 });
 app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
     try {
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (await usersCollection.findOne({ uid: req.user.uid })) ?._id });
+        const userCheck = await usersCollection.findOne({ uid: req.user.uid });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
         if (!secret) return res.status(404).json({ error: 'No encontrado' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
@@ -839,11 +803,11 @@ app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 💬 COMENTARIOS CIFRADOS
+// 💬 COMENTARIOS CIFRADOS (SIN ?. — USANDO &&)
 app.post('/api/vault/:id/comments', authenticate, async(req, res) => {
     try {
         const { content } = req.body;
-        if (!content ?.trim()) return res.status(400).json({ error: 'Texto requerido' });
+        if (!(content && content.trim())) return res.status(400).json({ error: 'Texto requerido' });
         const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
         if (!secret) return res.status(404).json({ error: 'No encontrado' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
@@ -915,90 +879,51 @@ app.get('/api/admin/export-user/:email', authenticate, requireAdmin, async(req, 
     } catch (e) { res.status(500).json({ error: 'Error exportando datos: ' + e.message }); }
 });
 
-// 🔐 IDENTIDAD CRIPTOGRÁFICA AUTÓNOMA (WebAuthn/FIDO2) - SIN GOOGLE/MICROSOFT
-// ✅ REGISTRO DE CLAVE PÚBLICA (PASO 1)
+// 🔐 IDENTIDAD CRIPTOGRÁFICA AUTÓNOMA (WebAuthn/FIDO2) — SIN GOOGLE/MICROSOFT (SIN ?. — USANDO &&)
 app.post('/api/crypto-auth/register-start', authenticate, async(req, res) => {
     try {
         const { email } = req.body;
         const user = email ? await usersCollection.findOne({ email }) : null;
-        const userId = user ?.uid || crypto.randomUUID();
-        const options = await generateRegistrationOptions({
-            rpName: 'ApiRomwiner Vault',
-            rpID: new URL(APP_URL).hostname,
-            userID: Buffer.from(userId),
-            userName: email || 'anonymous',
-            attestationType: 'none',
-            authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' }
-        });
+        const userId = (user && user.uid) || crypto.randomUUID();
+        const options = await generateRegistrationOptions({ rpName: 'ApiRomwiner Vault', rpID: new URL(APP_URL).hostname, userID: Buffer.from(userId), userName: email || 'anonymous', attestationType: 'none', authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' } });
         await cryptoKeysCollection.updateOne({ userId }, { $set: { challenge: options.challenge, createdAt: new Date() } }, { upsert: true });
         res.json({ success: true, options, userId });
     } catch (e) { res.status(500).json({ error: 'Error iniciando registro criptográfico: ' + e.message }); }
 });
-
-// ✅ REGISTRO DE CLAVE PÚBLICA (PASO 2 - VERIFICACIÓN)
 app.post('/api/crypto-auth/register-finish', authenticate, async(req, res) => {
     try {
         const { userId, response } = req.body;
         const record = await cryptoKeysCollection.findOne({ userId });
-        if (!record ?.challenge) return res.status(400).json({ error: 'Registro no iniciado o expirado' });
-        const verification = await verifyRegistrationResponse({
-            response,
-            expectedChallenge: record.challenge,
-            expectedOrigin: APP_URL,
-            expectedRPID: new URL(APP_URL).hostname
-        });
+        if (!(record && record.challenge)) return res.status(400).json({ error: 'Registro no iniciado o expirado' });
+        const verification = await verifyRegistrationResponse({ response, expectedChallenge: record.challenge, expectedOrigin: APP_URL, expectedRPID: new URL(APP_URL).hostname });
         if (!verification.verified) return res.status(400).json({ error: 'Verificación fallida' });
-        await cryptoKeysCollection.updateOne({ userId }, {
-            $set: {
-                publicKey: verification.registrationInfo ?.credentialPublicKey,
-                credentialID: verification.registrationInfo ?.credentialID,
-                counter: verification.registrationInfo ?.counter,
-                registeredAt: new Date()
-            },
-            $unset: { challenge: 1 }
-        }, { upsert: true });
+        await cryptoKeysCollection.updateOne({ userId }, { $set: { publicKey: (verification.registrationInfo && verification.registrationInfo.credentialPublicKey), credentialID: (verification.registrationInfo && verification.registrationInfo.credentialID), counter: (verification.registrationInfo && verification.registrationInfo.counter), registeredAt: new Date() }, $unset: { challenge: 1 } }, { upsert: true });
         await logAudit('crypto_register', { userId, verified: true });
         res.json({ success: true, message: 'Clave pública registrada exitosamente' });
     } catch (e) { res.status(500).json({ error: 'Error verificando registro: ' + e.message }); }
 });
-
-// ✅ LOGIN CRIPTOGRÁFICO (PASO 1 - DESAFÍO)
 app.post('/api/crypto-auth/login-start', async(req, res) => {
     try {
         const { credentialID } = req.body;
         const allowCredentials = credentialID ? [{ id: credentialID, type: 'public-key' }] : [];
-        const options = await generateAuthenticationOptions({
-            rpID: new URL(APP_URL).hostname,
-            userVerification: 'preferred',
-            allowCredentials
-        });
+        const options = await generateAuthenticationOptions({ rpID: new URL(APP_URL).hostname, userVerification: 'preferred', allowCredentials });
         await cryptoKeysCollection.updateOne({ credentialID }, { $set: { challenge: options.challenge, lastLoginAttempt: new Date() } }, { upsert: true });
         res.json({ success: true, options });
     } catch (e) { res.status(500).json({ error: 'Error iniciando login criptográfico: ' + e.message }); }
 });
-
-// ✅ LOGIN CRIPTOGRÁFICO (PASO 2 - VERIFICACIÓN + TOKEN)
 app.post('/api/crypto-auth/login-finish', async(req, res) => {
     try {
         const { credentialID, response } = req.body;
         const record = await cryptoKeysCollection.findOne({ credentialID });
-        if (!record ?.challenge) return res.status(400).json({ error: 'Login no iniciado o credencial no encontrada' });
-        const verification = await verifyAuthenticationResponse({
-            response,
-            expectedChallenge: record.challenge,
-            expectedOrigin: APP_URL,
-            expectedRPID: new URL(APP_URL).hostname,
-            authenticator: { credentialPublicKey: record.publicKey, counter: record.counter || 0 }
-        });
+        if (!(record && record.challenge)) return res.status(400).json({ error: 'Login no iniciado o credencial no encontrada' });
+        const verification = await verifyAuthenticationResponse({ response, expectedChallenge: record.challenge, expectedOrigin: APP_URL, expectedRPID: new URL(APP_URL).hostname, authenticator: { credentialPublicKey: record.publicKey, counter: record.counter || 0 } });
         if (!verification.verified) return res.status(401).json({ error: 'Autenticación fallida' });
-        await cryptoKeysCollection.updateOne({ credentialID }, { $set: { counter: verification.authenticationInfo ?.newCounter, lastLogin: new Date() }, $unset: { challenge: 1 } });
+        await cryptoKeysCollection.updateOne({ credentialID }, { $set: { counter: (verification.authenticationInfo && verification.authenticationInfo.newCounter), lastLogin: new Date() }, $unset: { challenge: 1 } });
         const token = jwt.sign({ uid: record.userId, scopes: ['vault:read:own'], authMethod: 'crypto' }, JWT_SECRET, { expiresIn: '24h' });
         await logAudit('crypto_login', { userId: record.userId, verified: true });
         res.json({ success: true, token, consentRequired: true, availableScopes: ['vault:read:own', 'vault:read:shared', 'wallet:read', 'identity:verify'], message: 'Autenticación exitosa. Aprueba permisos para acceder a funciones adicionales.' });
     } catch (e) { res.status(500).json({ error: 'Error verificando login: ' + e.message }); }
 });
-
-// ✅ CONSENTIMIENTO GRANULAR
 app.post('/api/crypto-auth/consent', authenticate, async(req, res) => {
     try {
         const { scopes } = req.body;
@@ -1012,7 +937,6 @@ app.post('/api/crypto-auth/consent', authenticate, async(req, res) => {
 });
 
 // 📋 IDENTIDAD LEGAL VERIFICADA (ADMIN + USER) - CIFRADO PII
-// ✅ ADMIN: Registrar/Actualizar identidad verificada
 app.post('/api/admin/verify-identity', authenticate, requireAdmin, async(req, res) => {
     try {
         const { targetUserId, fullName, address, legalId, entityType = 'person', documents, verifiedBy } = req.body;
@@ -1020,18 +944,7 @@ app.post('/api/admin/verify-identity', authenticate, requireAdmin, async(req, re
         const encryptedAddress = encryptPII(address);
         const encryptedLegalId = legalId ? encryptPII(legalId) : null;
         const encryptedDocuments = documents ? documents.map(d => ({...d, content: encryptPII(d.content) })) : [];
-        const identityData = {
-            userId: targetUserId,
-            fullName,
-            address: encryptedAddress,
-            legalId: encryptedLegalId,
-            entityType,
-            documents: encryptedDocuments,
-            verifiedBy: verifiedBy || req.admin.uid,
-            verifiedAt: new Date(),
-            status: 'verified',
-            metadata: req.body.metadata || {}
-        };
+        const identityData = { userId: targetUserId, fullName, address: encryptedAddress, legalId: encryptedLegalId, entityType, documents: encryptedDocuments, verifiedBy: verifiedBy || req.admin.uid, verifiedAt: new Date(), status: 'verified', metadata: req.body.metadata || {} };
         await verifiedIdentitiesCollection.updateOne({ userId: targetUserId }, { $set: identityData }, { upsert: true });
         await logAudit('admin.verify_identity', { admin: req.admin.uid, targetUser: targetUserId, entityType, verified: true });
         res.json({ success: true, message: `Identidad de ${targetUserId} verificada exitosamente`, userId: targetUserId, entityType, verifiedAt: identityData.verifiedAt });
@@ -1040,18 +953,11 @@ app.post('/api/admin/verify-identity', authenticate, requireAdmin, async(req, re
         res.status(500).json({ error: 'Error al verificar identidad: ' + e.message });
     }
 });
-
-// ✅ ADMIN: Obtener identidad verificada (con desencriptación)
 app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async(req, res) => {
     try {
         const identity = await verifiedIdentitiesCollection.findOne({ userId: req.params.userId });
         if (!identity) return res.status(404).json({ error: 'Identidad verificada no encontrada para este usuario' });
-        const decrypted = {
-            ...identity,
-            address: decryptPII(identity.address),
-            legalId: identity.legalId ? decryptPII(identity.legalId) : null,
-            documents: identity.documents ? identity.documents.map(d => ({...d, content: decryptPII(d.content) })) : []
-        };
+        const decrypted = {...identity, address: decryptPII(identity.address), legalId: identity.legalId ? decryptPII(identity.legalId) : null, documents: identity.documents ? identity.documents.map(d => ({...d, content: decryptPII(d.content) })) : [] };
         delete decrypted.address.iv;
         delete decrypted.address.data;
         delete decrypted.address.tag;
@@ -1063,8 +969,6 @@ app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async(req, re
         res.json({ success: true, identity: decrypted });
     } catch (e) { res.status(500).json({ error: 'Error obteniendo identidad: ' + e.message }); }
 });
-
-// ✅ ADMIN: Buscar identidades por correo o nombre
 app.get('/api/admin/search-identities', authenticate, requireAdmin, async(req, res) => {
     try {
         const { query, entityType } = req.query;
@@ -1075,30 +979,16 @@ app.get('/api/admin/search-identities', authenticate, requireAdmin, async(req, r
         res.json({ success: true, count: results.length, results });
     } catch (e) { res.status(500).json({ error: 'Error en búsqueda: ' + e.message }); }
 });
-
-// ✅ USER: Solicitar verificación de identidad
 app.post('/api/identity/verify-request', authenticate, async(req, res) => {
     try {
         const { fullName, address, legalId, entityType = 'person', documents } = req.body;
         if (!fullName || !address) return res.status(400).json({ error: 'Nombre completo y dirección son requeridos' });
-        const request = {
-            userId: req.user.uid,
-            fullName,
-            address: encryptPII(address),
-            legalId: legalId ? encryptPII(legalId) : null,
-            entityType,
-            documents: documents ? documents.map(d => ({...d, content: encryptPII(d.content) })) : [],
-            status: 'pending',
-            requestedAt: new Date(),
-            metadata: { submittedVia: 'api', userAgent: req.headers['user-agent'] }
-        };
+        const request = { userId: req.user.uid, fullName, address: encryptPII(address), legalId: legalId ? encryptPII(legalId) : null, entityType, documents: documents ? documents.map(d => ({...d, content: encryptPII(d.content) })) : [], status: 'pending', requestedAt: new Date(), metadata: { submittedVia: 'api', userAgent: req.headers['user-agent'] } };
         await verifiedIdentitiesCollection.updateOne({ userId: req.user.uid }, { $set: request }, { upsert: true });
         await logAudit('identity_verification_requested', { userId: req.user.uid, entityType, requested: true });
         res.json({ success: true, message: 'Solicitud de verificación enviada. Un administrador la revisará en 24-48h.', status: 'pending', referenceId: req.user.uid });
     } catch (e) { res.status(500).json({ error: 'Error al enviar solicitud: ' + e.message }); }
 });
-
-// ✅ USER: Consultar estado de verificación
 app.get('/api/identity/verification-status', authenticate, async(req, res) => {
     try {
         const identity = await verifiedIdentitiesCollection.findOne({ userId: req.user.uid }, { projection: { userId: 1, fullName: 1, entityType: 1, status: 1, verifiedAt: 1, rejectedReason: 1, 'metadata.email': 1 } });
