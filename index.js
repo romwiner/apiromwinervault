@@ -1307,23 +1307,23 @@ await secretsCollection.createIndex({ 'rating.average': -1, sales: -1, isForSale
 const getPublicItemMetadata = (secret, sellerProfile = null) => ({
     id: secret._id.toString(),
     titulo: secret.titulo,
-    descripcion: secret.descripcion ? .substring(0, 300) + (secret.descripcion ? .length > 300 ? '...' : ''),
+    descripcion: secret.descripcion ?.substring(0, 300) + (secret.descripcion ?.length > 300 ? '...' : ''),
     categoria: secret.categoria || 'general',
     tags: secret.tags || [],
     precio: secret.price || 0,
     moneda: 'USD',
     vendedor: {
         uid: secret.userUid,
-        displayName: sellerProfile ? .displayName || 'Creador',
-        avatarUrl: sellerProfile ? .avatarUrl || null,
-        rating: sellerProfile ? .rating ? .average || 0,
-        totalVentas: sellerProfile ? .totalVentas || 0,
-        verificado: sellerProfile ? .identityVerified || false
+        displayName: sellerProfile ?.displayName || 'Creador',
+        avatarUrl: sellerProfile ?.avatarUrl || null,
+        rating: sellerProfile ?.rating ?.average || 0,
+        totalVentas: sellerProfile ?.totalVentas || 0,
+        verificado: sellerProfile ?.identityVerified || false
     },
     estadisticas: {
         ventas: secret.sales || 0,
-        rating: secret.rating ? .average || 0,
-        reseñasCount: secret.rating ? .count || 0,
+        rating: secret.rating ?.average || 0,
+        reseñasCount: secret.rating ?.count || 0,
         vistas: secret.views || 0
     },
     licencia: secret.licenseDays ? `${secret.licenseDays} días` : 'Permanente',
@@ -1486,7 +1486,7 @@ app.get('/api/marketplace/item/:id', async(req, res) => {
         });
 
         // Contar reseñas recientes
-        const recentReviews = await reviewsCollection ? .find({
+        const recentReviews = await reviewsCollection ?.find({
             itemId: secret._id,
             createdAt: { $gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
         }).sort({ createdAt: -1 }).limit(3).toArray() || [];
@@ -1501,7 +1501,7 @@ app.get('/api/marketplace/item/:id', async(req, res) => {
                 reseñasRecientes: recentReviews.map(r => ({
                     id: r._id,
                     rating: r.rating,
-                    comment: r.comment ? .substring(0, 200),
+                    comment: r.comment ?.substring(0, 200),
                     buyerName: r.buyerName || 'Comprador',
                     date: r.createdAt,
                     verified: r.verifiedPurchase
@@ -1560,10 +1560,10 @@ app.get('/api/marketplace/creator/:userId', async(req, res) => {
             success: true,
             creator: {
                 uid: user.uid,
-                displayName: profile ? .displayName || 'Creador',
-                avatarUrl: profile ? .avatarUrl,
-                bio: profile ? .bio,
-                identityVerified: profile ? .identityVerified || false,
+                displayName: profile ?.displayName || 'Creador',
+                avatarUrl: profile ?.avatarUrl,
+                bio: profile ?.bio,
+                identityVerified: profile ?.identityVerified || false,
                 memberSince: user.createdAt,
                 tier: user.tier
             },
@@ -1571,13 +1571,13 @@ app.get('/api/marketplace/creator/:userId', async(req, res) => {
                 totalItems,
                 itemsEnVenta: itemsForSale,
                 totalVentas,
-                ratingPromedio: ratingStats[0] ? .avgRating ? .toFixed(2) || 0,
-                totalReseñas: ratingStats[0] ? .totalReviews || 0
+                ratingPromedio: ratingStats[0] ?.avgRating ?.toFixed(2) || 0,
+                totalReseñas: ratingStats[0] ?.totalReviews || 0
             },
             itemsDestacados: enrichedItems,
             acciones: {
                 seguir: req.user ? '/api/marketplace/creator/' + req.params.userId + '/follow' : null,
-                contactar: profile ? .isPublic ? '/api/marketplace/creator/' + req.params.userId + '/contact' : null
+                contactar: profile ?.isPublic ? '/api/marketplace/creator/' + req.params.userId + '/contact' : null
             }
         });
     } catch (e) {
@@ -1601,12 +1601,12 @@ app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
         if (secret.userId.toString() === buyer._id.toString()) {
             return res.status(400).json({ error: 'No puedes reseñar tu propio producto' });
         }
-        if (!secret.buyers ? .includes(buyer.uid)) {
+        if (!secret.buyers ?.includes(buyer.uid)) {
             return res.status(403).json({ error: 'Solo compradores verificados pueden dejar reseñas' });
         }
 
         // Verificar que no haya reseña previa
-        const existingReview = await reviewsCollection ? .findOne({
+        const existingReview = await reviewsCollection ?.findOne({
             itemId: secret._id,
             buyerUid: req.user.uid
         });
@@ -1617,9 +1617,9 @@ app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
         const review = {
             itemId: secret._id,
             buyerUid: req.user.uid,
-            buyerName: (await profilesCollection.findOne({ userId: buyer._id })) ? .displayName || 'Comprador',
+            buyerName: (await profilesCollection.findOne({ userId: buyer._id })) ?.displayName || 'Comprador',
             rating: parseInt(rating),
-            comment: comment ? .substring(0, 1000),
+            comment: comment ?.substring(0, 1000),
             verifiedPurchase: true,
             createdAt: new Date(),
             helpful: 0,
@@ -1636,8 +1636,8 @@ app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
 
         await secretsCollection.updateOne({ _id: secret._id }, {
             $set: {
-                'rating.average': stats[0] ? .avg ? .toFixed(2) || 0,
-                'rating.count': stats[0] ? .count || 0
+                'rating.average': stats[0] ?.avg ?.toFixed(2) || 0,
+                'rating.count': stats[0] ?.count || 0
             }
         });
 
@@ -1697,9 +1697,9 @@ app.get('/api/marketplace/item/:id/reviews', async(req, res) => {
                 pages: Math.ceil(total / limit)
             },
             summary: {
-                average: secret.rating ? .average || 0,
-                count: secret.rating ? .count || 0,
-                distribution: await reviewsCollection ? .aggregate([
+                average: secret.rating ?.average || 0,
+                count: secret.rating ?.count || 0,
+                distribution: await reviewsCollection ?.aggregate([
                     { $match: { itemId: secret._id } },
                     { $group: { _id: '$rating', count: { $sum: 1 } } }
                 ]).toArray() || []
@@ -1723,11 +1723,11 @@ app.post('/api/marketplace/favorites', authenticate, async(req, res) => {
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
         if (action === 'add') {
-            await favoritesCollection ? .updateOne({ userId: user._id, itemId: new ObjectId(itemId) }, { $set: { addedAt: new Date() } }, { upsert: true });
+            await favoritesCollection ?.updateOne({ userId: user._id, itemId: new ObjectId(itemId) }, { $set: { addedAt: new Date() } }, { upsert: true });
             await logAudit('favorite_added', { userId: req.user.uid, itemId });
             res.json({ success: true, message: 'Agregado a favoritos' });
         } else {
-            await favoritesCollection ? .deleteOne({ userId: user._id, itemId: new ObjectId(itemId) });
+            await favoritesCollection ?.deleteOne({ userId: user._id, itemId: new ObjectId(itemId) });
             await logAudit('favorite_removed', { userId: req.user.uid, itemId });
             res.json({ success: true, message: 'Removido de favoritos' });
         }
@@ -1744,7 +1744,7 @@ app.get('/api/marketplace/favorites', authenticate, async(req, res) => {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-        const favorites = await favoritesCollection ? .find({ userId: user._id })
+        const favorites = await favoritesCollection ?.find({ userId: user._id })
             .sort({ addedAt: -1 })
             .toArray() || [];
 
@@ -1887,113 +1887,74 @@ app.get('/api/marketplace/recommendations', authenticate, async(req, res) => {
     }
 });
 
-// 📊 ANALYTICS PARA VENDEDORES (dashboard de marketplace)
+// 📊 ANALYTICS PARA VENDEDORES (dashboard de marketplace) — CORREGIDO ✅
 app.get('/api/marketplace/seller/analytics', authenticate, async(req, res) => {
-        try {
-            if (!mongoReady) return res.json({ success: true, analytics: {}, demo: true });
+    try {
+        if (!mongoReady) return res.json({ success: true, analytics: {}, demo: true });
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-            const user = await usersCollection.findOne({ uid: req.user.uid });
-            if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        const now = new Date();
+        const last7Days = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        const last30Days = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
-            const now = new Date();
-            const last7Days = new Date(now - 7 * 24 * 60 * 60 * 1000);
-            const last30Days = new Date(now - 30 * 24 * 60 * 60 * 1000);
+        const [totalItems, activeListings, totalSales, revenue7d, revenue30d] = await Promise.all([
+            secretsCollection.countDocuments({ userId: user._id }),
+            secretsCollection.countDocuments({ userId: user._id, isForSale: true }),
+            transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' }),
+            transactionsCollection.aggregate([
+                { $match: { seller: user.uid, type: 'sale', createdAt: { $gte: last7Days } } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ]).toArray(),
+            transactionsCollection.aggregate([
+                { $match: { seller: user.uid, type: 'sale', createdAt: { $gte: last30Days } } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ]).toArray()
+        ]);
 
-            const [
-                totalItems,
-                activeListings,
-                totalSales,
-                revenue7d,
-                revenue30d,
-                views7d,
-                conversionRate
-            ] = await Promise.all([
-                secretsCollection.countDocuments({ userId: user._id }),
-                secretsCollection.countDocuments({ userId: user._id, isForSale: true }),
-                transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' }),
-                transactionsCollection.aggregate([
-                    { $match: { seller: user.uid, type: 'sale', createdAt: { $gte: last7Days } } },
-                    { $group: { _id: null, total: { $sum: '$amount' } } }
-                ]).toArray(),
-                transactionsCollection.aggregate([
-                    { $match: { seller: user.uid, type: 'sale', createdAt: { $gte: last30Days } } },
-                    { $group: { _id: null, total: { $sum: '$amount' } } }
-                ]).toArray(),
-                // Views (si tienes tracking) - placeholder
-                Promise.resolve(0),
-                // Conversion rate: ventas / vistas
-                Promise.resolve(0)
-            ]);
+        const allTimeRevenue = await transactionsCollection.aggregate([
+            { $match: { seller: user.uid, type: 'sale' } },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]).toArray();
 
-            // Items más vendidos
-            const topItems = await secretsCollection.find({ userId: user._id, isForSale: true, sales: { $gt: 0 } })
-                .sort({ sales: -1 })
-                .limit(5)
-                .project({ titulo: 1, price: 1, sales: 1, rating: 1 })
-                .toArray();
+        const topItems = await secretsCollection.find({ userId: user._id, isForSale: true, sales: { $gt: 0 } })
+            .sort({ sales: -1 }).limit(5)
+            .project({ titulo: 1, price: 1, sales: 1, rating: 1 }).toArray();
 
-            res.json({
-                success: true,
-                analytics: {
-                    overview: {
-                        totalItems,
-                        activeListings,
-                        totalSales,
-                        revenue: {
-                            last7Days: revenue7d[0] ? .total || 0,
-                            last30Days: revenue30d[0] ? .total || 0,
-                            allTime: await transactionsCollection.aggregate([
-                                { $match: { seller: user.uid, type: 'sale' } },
-                                { $group: { _id: null, total: { $sum: '$amount' } } }
-                            ]).toArray().then(r => r[0] ? .total || 0)
-                        }
-                    },
-                    performance: {
-                        views: { last7Days: views7d },
-                        conversionRate: conversionRate,
-                        avgOrderValue: totalSales > 0 ? (revenue30d[0] ? .total || 0) / totalSales : 0
-                    },
-                    topItems: topItems.map(i => ({
-                        id: i._id.toString(),
-                        titulo: i.titulo,
-                        price: i.price,
-                        sales: i.sales,
-                        rating: i.rating ? .average || 0
-                    })),
-                    tips: [
-                        activeListings === 0 && '💡 Agrega tu primer producto para empezar a vender',
-                        totalSales === 0 && activeListings > 0 && '💡 Promociona tus productos en redes sociales',
-                        (revenue7d[0] ? .total || 0) > 0 && '🎉 ¡Tus ventas van en aumento! Sigue así'
-                    ].filter(Boolean)
-                }
-            });
-        ]).toArray().then(r => r[0] ? .total || 0)
-}
-},
-performance: {
-        views: { last7Days: views7d },
-        conversionRate: conversionRate,
-        avgOrderValue: totalSales > 0 ? (revenue30d[0] ? .total || 0) / totalSales : 0
-    },
-    topItems: topItems.map(i => ({
-        id: i._id.toString(),
-        titulo: i.titulo,
-        price: i.price,
-        sales: i.sales,
-        rating: i.rating ? .average || 0
-    })),
-    tips: [
-        activeListings === 0 && '💡 Agrega tu primer producto para empezar a vender',
-        totalSales === 0 && activeListings > 0 && '💡 Promociona tus productos en redes sociales',
-        (revenue7d[0] ? .total || 0) > 0 && '🎉 ¡Tus ventas van en aumento! Sigue así'
-    ].filter(Boolean)
-}
-});
-}
-catch (e) {
-    logger.error('❌ Seller analytics error: ' + e.message);
-    res.status(500).json({ error: 'Error cargando analytics: ' + e.message });
-}
+        res.json({
+            success: true,
+            analytics: {
+                overview: {
+                    totalItems,
+                    activeListings,
+                    totalSales,
+                    revenue: {
+                        last7Days: revenue7d[0] ?.total || 0,
+                        last30Days: revenue30d[0] ?.total || 0,
+                        allTime: allTimeRevenue[0] ?.total || 0
+                    }
+                },
+                performance: {
+                    avgOrderValue: totalSales > 0 ? ((revenue30d[0] ?.total || 0) / totalSales).toFixed(2) : 0
+                },
+                topItems: topItems.map(i => ({
+                    id: i._id.toString(),
+                    titulo: i.titulo,
+                    price: i.price,
+                    sales: i.sales,
+                    rating: i.rating ?.average || 0
+                })),
+                tips: [
+                    activeListings === 0 && '💡 Agrega tu primer producto para empezar a vender',
+                    totalSales === 0 && activeListings > 0 && '💡 Promociona tus productos en redes sociales',
+                    (revenue7d[0] ?.total || 0) > 0 && '🎉 ¡Tus ventas van en aumento! Sigue así'
+                ].filter(Boolean)
+            }
+        });
+    } catch (e) {
+        logger.error('❌ Seller analytics error: ' + e.message);
+        res.status(500).json({ error: 'Error cargando analytics: ' + e.message });
+    }
 });
 
 // 🏷️ GESTIÓN DE CATEGORÍAS Y TAGS (admin)
@@ -2163,6 +2124,100 @@ app.post('/api/marketplace/promo/validate', async(req, res) => {
 // ============================================
 // FIN: MARKETPLACE INTEGRADO
 // ============================================
+// 🛠️ CONFIGURAR ITEM PARA MARKETPLACE (solo dueño)
+app.post('/api/marketplace/configure/:id', authenticate, async(req, res) => {
+    try {
+        const { price, previewUrl, seoTitle, seoDescription, externalLink, category } = req.body;
+        if (!price || price < 0) return res.status(400).json({ error: 'Precio válido requerido' });
+
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
+        if (!secret) return res.status(404).json({ error: 'Archivo no encontrado' });
+
+        await secretsCollection.updateOne({ _id: secret._id }, {
+            $set: {
+                'marketplace.listed': true,
+                'marketplace.price': parseFloat(price),
+                'marketplace.previewUrl': previewUrl || '',
+                'marketplace.seoTitle': seoTitle || secret.titulo,
+                'marketplace.seoDescription': seoDescription || '',
+                'marketplace.externalLink': externalLink || '',
+                'marketplace.category': category || secret.categoria || 'general',
+                'marketplace.updatedAt': new Date()
+            }
+        });
+
+        await logAudit('marketplace.configure', { fileId: req.params.id, price, userId: user.uid });
+        res.json({ success: true, message: 'Item configurado para marketplace' });
+    } catch (e) { res.status(500).json({ error: 'Error configurando marketplace: ' + e.message }); }
+});
+
+// 🌍 RUTA PÚBLICA: TIENDA + SEO DINÁMICO
+app.get('/marketplace', async(req, res) => {
+            try {
+                const items = await secretsCollection.find({
+                    'marketplace.listed': true,
+                    isForSale: true
+                }).sort({ 'marketplace.price': 1, createdAt: -1 }).limit(50).project({
+                    titulo: 1,
+                    'marketplace.price': 1,
+                    'marketplace.previewUrl': 1,
+                    'marketplace.seoTitle': 1,
+                    'marketplace.seoDescription': 1,
+                    'marketplace.category': 1,
+                    fileName: 1,
+                    tipo: 1
+                }).toArray();
+
+                const seo = {
+                    title: 'ApiRomwiner Marketplace | Contenido Cifrado y Seguro',
+                    desc: 'Explora, compra y descarga contenido verificado. Todo cifrado con Envelope Encryption.',
+                    url: `${APP_URL}/marketplace`
+                };
+
+                res.send(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${seo.title}</title>
+  <meta name="description" content="${seo.desc}">
+  <meta property="og:title" content="${seo.title}">
+  <meta property="og:description" content="${seo.desc}">
+  <meta property="og:url" content="${seo.url}">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="${seo.url}">
+  <style>
+    body{background:#0b0c10;color:#e8eaed;font-family:system-ui;padding:20px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;max-width:1200px;margin:0 auto}
+    .card{background:#12161e;border:1px solid #333;border-radius:12px;padding:16px;transition:0.2s}
+    .card:hover{border-color:#00e676;transform:translateY(-2px)}
+    .preview{width:100%;height:160px;background:#1a1f2a;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;color:#8b95a5}
+    .price{color:#00e676;font-weight:700;font-size:1.2rem;margin:8px 0}
+    .btn{display:block;width:100%;padding:10px;background:#00e676;color:#0b0c10;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin-top:8px}
+    .btn:hover{opacity:0.9}
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;margin-bottom:24px">🛍️ ApiRomwiner Marketplace</h1>
+  <div class="grid">
+    ${items.map(i => `
+      <div class="card">
+        ${i.marketplace.previewUrl ? `<img src="${i.marketplace.previewUrl}" class="preview" alt="${i.marketplace.seoTitle}">` : `<div class="preview">📦 ${i.tipo === 'archivo' ? 'Archivo' : 'Texto'}</div>`}
+        <h3 style="margin:0 0 4px">${i.marketplace.seoTitle || i.titulo}</h3>
+        <div class="price">$${i.marketplace.price.toFixed(2)} USD</div>
+        <p style="color:#8b95a5;font-size:0.85rem;margin:0 0 12px">${i.marketplace.category || 'General'}</p>
+        ${i.marketplace.externalLink ? `<a href="${i.marketplace.externalLink}" target="_blank" class="btn" style="text-decoration:none">🔗 Ver Detalle / Comprar</a>` : `<button class="btn" onclick="alert('Login requerido para comprar. Próximamente: checkout integrado')">🛒 Comprar</button>`}
+      </div>
+    `).join('')}
+  </div>
+  <footer style="text-align:center;margin-top:40px;color:#5a6577;font-size:0.8rem">
+    © ${new Date().getFullYear()} ApiRomwiner Vault | Contenido cifrado E2E | <a href="/" style="color:#00e676">Volver al Vault</a>
+  </footer>
+</body>
+</html>`);
+  } catch (e) { res.status(500).send('Error cargando marketplace'); }
+});
 // 🌐 SERVIR FRONTEND
 app.get('/', function(req, res) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
