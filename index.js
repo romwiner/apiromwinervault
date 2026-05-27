@@ -1,4 +1,4 @@
-// === INICIO: index.js - APIROMWINER VAULT (COMPLETO: 61 + 4 FUNCIONES) ===
+// === INICIO: index.js - APIROMWINER VAULT (COMPLETO Y CORREGIDO) ===
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -112,6 +112,7 @@ const PORT = process.env.PORT || 10000;
 const MONGODB_URI = "mongodb+srv://apiromwinervault:Grup%40selen2000@cluster0.f83xnse.mongodb.net/apiromwinervault?retryWrites=true&w=majority&appName=Cluster0&tls=true&tlsAllowInvalidCertificates=true";
 let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
+let reviewsCollection, favoritesCollection; // ✅ Agregadas para marketplace
 let mongoReady = false;
 
 async function connectToMongo() {
@@ -135,6 +136,8 @@ async function connectToMongo() {
         thumbnailsCollection = db.collection('thumbnails');
         versionsCollection = db.collection('fileVersions');
         commentsCollection = db.collection('comments');
+        reviewsCollection = db.collection('reviews');
+        favoritesCollection = db.collection('favorites');
 
         await usersCollection.createIndex({ email: 1 }, { unique: true });
         await usersCollection.createIndex({ uid: 1 }, { unique: true });
@@ -157,6 +160,10 @@ async function connectToMongo() {
         await verifiedIdentitiesCollection.createIndex({ userId: 1 }, { unique: true });
         await verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, sparse: true });
         await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true });
+        
+        // Índices marketplace
+        await reviewsCollection.createIndex({ itemId: 1, createdAt: -1 });
+        await favoritesCollection.createIndex({ userId: 1, itemId: 1 }, { unique: true });
 
         mongoReady = true;
         logger.info('✅ MongoDB Atlas conectado');
@@ -189,47 +196,27 @@ app.use(helmet({
     crossOriginResourcePolicy: false
 }));
 
-// ✅ CORS: PERMITE CONEXIONES DESDE EL FRONTEND (VERSIÓN CORREGIDA)
 app.use(cors({
     origin: function(origin, callback) {
-        // Permitir si no hay origin (app móvil, Postman, curl, etc.)
         if (!origin) return callback(null, true);
-
         const allowedOrigins = [
-            'https://apiromwinervault.onrender.com',
-            'https://api.romwinervault.com',
-            'https://romwinervault.com',
-            'http://localhost:3000',
-            'http://127.0.0.1:3000',
-            'http://localhost:10000',
-            'http://127.0.0.1:10000',
-            'https://localhost:3000',
-            'https://127.0.0.1:3000'
+            'https://apiromwinervault.onrender.com', 'https://api.romwinervault.com',
+            'https://romwinervault.com', 'http://localhost:3000', 'http://127.0.0.1:3000',
+            'http://localhost:10000', 'http://127.0.0.1:10000'
         ];
-
-        // Permitir cualquier origen que termine en .onrender.com o .romwinervault.com
-        if (origin.endsWith('.onrender.com') || origin.endsWith('.romwinervault.com')) {
-            return callback(null, true);
-        }
-
-        if (allowedOrigins.indexOf(origin) !== -1) {
+        if (origin.endsWith('.onrender.com') || origin.endsWith('.romwinervault.com') || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            // Para desarrollo: loguear y PERMITIR (no bloquear)
             console.warn('⚠️ Origen no en lista permitida:', origin);
-            callback(null, true); // ← CAMBIO CRÍTICO: permitir en lugar de rechazar
+            callback(null, true);
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Vault-Sig', 'X-Requested-With', 'Accept', 'Origin'],
-    exposedHeaders: ['Content-Range', 'X-Content-Range', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Vault-Sig', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
-// ✅ MANEJO EXPLÍCITO DE PETICIONES PREFLIGHT
 app.options('*', cors());
-
-// ✅ MIDDLEWARES DE EXPRESS (SOLO UNA VEZ)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -259,8 +246,8 @@ const upload = multer({
     }
 });
 
-// 🔐 RATE LIMITING PARA API
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Demasiadas solicitudes' } }));
+
 // 🔐 AUTH
 const authenticate = (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -383,19 +370,8 @@ const AlertWebhookService = {
 
 // 🌐 STATUS
 app.get('/api/status', (req, res) => res.json({
-    api: 'ApiRomwiner Vault',
-    status: 'online',
-    database: mongoReady ? 'connected' : 'fallback',
-    features: [
-        '🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada',
-        '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable',
-        '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados',
-        '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault',
-        '🟢 Validación Real de Archivos',
-        FEATURES.PORTABLE_EXPORT && '🟢 Exportación Portable', FEATURES.LOCAL_SYNC && '🟢 Sync Offline',
-        FEATURES.ZERO_KNOWLEDGE && '🟢 Zero-Knowledge Ready', FEATURES.WEB3_LOGIN && '🟢 Login Web3',
-        FEATURES.IPFS_BACKUP && '🟢 Backup IPFS (Helia)'
-    ].filter(Boolean)
+    api: 'ApiRomwiner Vault', status: 'online', database: mongoReady ? 'connected' : 'fallback',
+    features: ['🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos', FEATURES.PORTABLE_EXPORT && '🟢 Exportación Portable', FEATURES.LOCAL_SYNC && '🟢 Sync Offline', FEATURES.ZERO_KNOWLEDGE && '🟢 Zero-Knowledge Ready', FEATURES.WEB3_LOGIN && '🟢 Login Web3', FEATURES.IPFS_BACKUP && '🟢 Backup IPFS (Helia)'].filter(Boolean)
 }));
 
 // 🔐 REGISTER
@@ -481,8 +457,7 @@ app.post('/api/wallet/deposit', authenticate, async(req, res) => {
 });
 app.post('/api/wallet/withdraw', authenticate, async(req, res) => {
     try {
-        const amount = parseFloat(req.body.amount),
-            method = req.body.method || 'bank';
+        const amount = parseFloat(req.body.amount), method = req.body.method || 'bank';
         if (!mongoReady || !walletCollection) return res.json({ success: true, message: 'Retiro demo: configura wallet real', demo: true });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -666,8 +641,7 @@ app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
 // 🆔 IDENTITY: REGISTER APP
 app.post('/api/identity/register-app', authenticate, async(req, res) => {
     try {
-        const appName = req.body.appName,
-            redirectUri = req.body.redirectUri;
+        const appName = req.body.appName, redirectUri = req.body.redirectUri;
         if (!appName || !redirectUri) return res.status(400).json({ error: 'Nombre de app y URL de redirección requeridos' });
         if (!mongoReady || !identityCollection) return res.json({ success: true, appId: 'demo', appSecret: 'demo', demo: true });
         const user = await usersCollection.findOne({ uid: req.user.uid });
@@ -680,8 +654,7 @@ app.post('/api/identity/register-app', authenticate, async(req, res) => {
 });
 app.post('/api/identity/authorize', authenticate, async(req, res) => {
     try {
-        const appId = req.body.appId,
-            scopes = req.body.scopes;
+        const appId = req.body.appId, scopes = req.body.scopes;
         if (!appId) return res.status(400).json({ error: 'App ID requerido' });
         if (!mongoReady || !identityCollection) return res.json({ success: true, token: 'demo_token', demo: true });
         const user = await usersCollection.findOne({ uid: req.user.uid });
@@ -1043,14 +1016,8 @@ app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async(req, re
         const identity = await verifiedIdentitiesCollection.findOne({ userId: req.params.userId });
         if (!identity) return res.status(404).json({ error: 'Identidad verificada no encontrada para este usuario' });
         const decrypted = {...identity, address: decryptPII(identity.address), legalId: identity.legalId ? decryptPII(identity.legalId) : null, documents: identity.documents ? identity.documents.map(d => ({...d, content: decryptPII(d.content) })) : [] };
-        delete decrypted.address.iv;
-        delete decrypted.address.data;
-        delete decrypted.address.tag;
-        if (decrypted.legalId) {
-            delete decrypted.legalId.iv;
-            delete decrypted.legalId.data;
-            delete decrypted.legalId.tag;
-        }
+        delete decrypted.address.iv; delete decrypted.address.data; delete decrypted.address.tag;
+        if (decrypted.legalId) { delete decrypted.legalId.iv; delete decrypted.legalId.data; delete decrypted.legalId.tag; }
         res.json({ success: true, identity: decrypted });
     } catch (e) { res.status(500).json({ error: 'Error obteniendo identidad: ' + e.message }); }
 });
@@ -1083,7 +1050,6 @@ app.get('/api/identity/verification-status', authenticate, async(req, res) => {
 });
 
 // === 🚀 NUEVAS FUNCIONES: EXPORT/IMPORT/SYNC (PORTABLE) ===
-// POST /api/vault/export
 app.post('/api/vault/export', authenticate, async(req, res) => {
     try {
         if (!FEATURES.PORTABLE_EXPORT || !mongoReady || !secretsCollection) return res.json({ success: true, message: 'Modo demo: estructura de exportación vacía', demo: true, exportToken: 'demo_export_' + Date.now(), note: 'Configura ENABLE_EXPORT=true y MongoDB para exportación real' });
@@ -1094,13 +1060,8 @@ app.post('/api/vault/export', authenticate, async(req, res) => {
         const exportToken = crypto.randomBytes(32).toString('hex');
         await logAudit('vault_export', { userId: user.uid, itemCount: items.length, zeroKnowledge: FEATURES.ZERO_KNOWLEDGE, exportToken: exportToken.slice(0, 8) + '...', metadata: ZeroKnowledgeUtils.createZKMetadata('export', user.uid) });
         res.json({ success: true, message: FEATURES.ZERO_KNOWLEDGE ? 'Exportación generada. Cifra este JSON con tu clave maestra antes de guardar.' : 'Exportación generada. Descarga archivos individualmente para backup completo.', exportToken, expiresAt: new Date(Date.now() + 3600000).toISOString(), data: vaultExport, instructions: { downloadContent: 'GET /vault/:id para cada archivo', importLater: 'POST /api/vault/import con este JSON', zeroKnowledge: FEATURES.ZERO_KNOWLEDGE ? 'Usa deriveUserKey(password, salt) en frontend para cifrar este JSON' : null } });
-    } catch (e) {
-        logger.error('❌ Export error: ' + e.message);
-        res.status(500).json({ error: 'Error exportando bóveda: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Export error: ' + e.message); res.status(500).json({ error: 'Error exportando bóveda: ' + e.message }); }
 });
-
-// GET /api/vault/export/:token
 app.get('/api/vault/export/:token', authenticate, async(req, res) => {
     try {
         if (!FEATURES.PORTABLE_EXPORT) return res.status(404).json({ error: 'Exportación portable no habilitada' });
@@ -1115,13 +1076,8 @@ app.get('/api/vault/export/:token', authenticate, async(req, res) => {
         const exportData = { version: '1.0', exportedAt: new Date().toISOString(), userId: user.uid, email: user.email, items: items.map(i => ({ id: i._id.toString(), titulo: i.titulo, categoria: i.categoria, fileName: i.fileName, createdAt: i.createdAt })) };
         res.send(JSON.stringify(exportData, null, 2));
         await logAudit('vault_export_download', { userId: user.uid, token: req.params.token.slice(0, 8) + '...' });
-    } catch (e) {
-        logger.error('❌ Export download error: ' + e.message);
-        res.status(500).json({ error: 'Error descargando exportación: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Export download error: ' + e.message); res.status(500).json({ error: 'Error descargando exportación: ' + e.message }); }
 });
-
-// POST /api/vault/import
 app.post('/api/vault/import', authenticate, async(req, res) => {
     try {
         const { exportData, options = {} } = req.body;
@@ -1130,29 +1086,18 @@ app.post('/api/vault/import', authenticate, async(req, res) => {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         if (exportData.userId && exportData.userId !== user.uid && !options.forceImport) return res.status(403).json({ error: 'Exportación pertenece a otro usuario.', exportUserId: exportData.userId, yourUserId: user.uid, solution: 'Usa forceImport:true para importar como nueva bóveda' });
-        let importedCount = 0;
-        const errors = [];
-        const skipped = [];
-        for (const item of(exportData.items || [])) {
+        let importedCount = 0; const errors = []; const skipped = [];
+        for (const item of (exportData.items || [])) {
             try {
                 if (!item.titulo) { skipped.push({ reason: 'missing titulo', item }); continue; }
                 const newItem = { userId: user._id, userUid: user.uid, titulo: item.titulo, categoria: item.categoria || 'imported', folderId: 'imported', tipo: item.tipo || (item.fileName ? 'archivo' : 'texto'), fileName: item.fileName || null, fileType: item.fileType || null, fileSize: item.fileSize || 0, encrypted: null, contenido: null, isForSale: false, price: 0, sales: 0, buyers: [], createdAt: new Date(item.createdAt) || new Date(), importedFrom: exportData.exportedAt || new Date().toISOString(), originalId: item.id, metadata: { imported: true, importDate: new Date().toISOString() } };
-                await secretsCollection.insertOne(newItem);
-                importedCount++;
-            } catch (itemError) {
-                errors.push({ itemId: item.id, titulo: item.titulo, error: itemError.message });
-                logger.warn(`⚠️ Import item failed: ${item.id} - ${itemError.message}`);
-            }
+                await secretsCollection.insertOne(newItem); importedCount++;
+            } catch (itemError) { errors.push({ itemId: item.id, titulo: item.titulo, error: itemError.message }); logger.warn(`⚠️ Import item failed: ${item.id} - ${itemError.message}`); }
         }
         await logAudit('vault_import', { userId: user.uid, importedCount, errorCount: errors.length, skippedCount: skipped.length, sourceExport: exportData.exportedAt, zeroKnowledge: FEATURES.ZERO_KNOWLEDGE });
         res.json({ success: true, message: `Importación completada: ${importedCount} items restaurados`, summary: { imported: importedCount, errors: errors.length, skipped: skipped.length, total: exportData.items.length }, errors: errors.length > 0 ? errors : undefined, skipped: skipped.length > 0 ? skipped : undefined, nextSteps: ['Sube el contenido cifrado de cada archivo vía POST /vault normal', 'O usa el frontend con zero-knowledge para restaurar contenido completo', 'Verifica tus archivos en GET /vault'] });
-    } catch (e) {
-        logger.error('❌ Import error: ' + e.message);
-        res.status(500).json({ error: 'Error importando bóveda: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Import error: ' + e.message); res.status(500).json({ error: 'Error importando bóveda: ' + e.message }); }
 });
-
-// GET /api/vault/sync/check
 app.get('/api/vault/sync/check', authenticate, async(req, res) => {
     try {
         const { lastSync } = req.query;
@@ -1163,13 +1108,8 @@ app.get('/api/vault/sync/check', authenticate, async(req, res) => {
         if (lastSync) { const lastSyncDate = new Date(lastSync); if (!isNaN(lastSyncDate.getTime())) query.$or = [{ createdAt: { $gt: lastSyncDate } }, { updatedAt: { $gt: lastSyncDate } }]; }
         const changes = await secretsCollection.find(query, { projection: { _id: 1, titulo: 1, categoria: 1, fileName: 1, updatedAt: 1, createdAt: 1, tipo: 1, fileSize: 1 } }).sort({ updatedAt: -1 }).limit(100).toArray();
         res.json({ success: true, hasChanges: changes.length > 0, changesCount: changes.length, lastServerSync: new Date().toISOString(), clientLastSync: lastSync || null, changes: changes.map(c => ({ id: c._id.toString(), titulo: c.titulo, categoria: c.categoria, tipo: c.tipo, fileName: c.fileName, fileSize: c.fileSize, updatedAt: c.updatedAt || c.createdAt, createdAt: c.createdAt })), instructions: { pull: 'GET /vault/:id para contenido completo de cada cambio', push: 'POST /api/vault/sync/push para subir cambios locales', zeroKnowledge: FEATURES.ZERO_KNOWLEDGE ? 'Contenido viene cifrado - descifra en frontend con tu clave' : null } });
-    } catch (e) {
-        logger.error('❌ Sync check error: ' + e.message);
-        res.status(500).json({ error: 'Error verificando sync: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Sync check error: ' + e.message); res.status(500).json({ error: 'Error verificando sync: ' + e.message }); }
 });
-
-// POST /api/vault/sync/push
 app.post('/api/vault/sync/push', authenticate, async(req, res) => {
     try {
         const { changes = [], options = {} } = req.body;
@@ -1177,44 +1117,26 @@ app.post('/api/vault/sync/push', authenticate, async(req, res) => {
         if (!FEATURES.LOCAL_SYNC || !mongoReady || !secretsCollection) return res.json({ success: true, synced: changes.length, demo: true, message: 'Modo demo: cambios simulados como sincronizados' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-        let syncedCount = 0;
-        const errors = [];
-        const created = [];
-        const updated = [];
+        let syncedCount = 0; const errors = []; const created = []; const updated = [];
         for (const change of changes) {
             try {
                 if (!change.titulo) { errors.push({ change: change.id || 'unknown', error: 'titulo requerido' }); continue; }
                 const updateData = { titulo: change.titulo, categoria: change.categoria, fileName: change.fileName, fileType: change.fileType, fileSize: change.fileSize, updatedAt: new Date(), metadata: {...(change.metadata || {}), lastSynced: new Date().toISOString(), syncedFrom: options.source || 'client' } };
                 if (change.id && ObjectId.isValid(change.id)) {
                     const result = await secretsCollection.updateOne({ _id: new ObjectId(change.id), userId: user._id }, { $set: updateData });
-                    if (result.matchedCount > 0) {
-                        updated.push(change.id);
-                        syncedCount++;
-                    } else {
-                        await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date(), originalId: change.id });
-                        created.push(change.id);
-                        syncedCount++;
-                    }
+                    if (result.matchedCount > 0) { updated.push(change.id); syncedCount++; }
+                    else { await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date(), originalId: change.id }); created.push(change.id); syncedCount++; }
                 } else {
-                    await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date() });
-                    created.push(change.id || 'new');
-                    syncedCount++;
+                    await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date() }); created.push(change.id || 'new'); syncedCount++;
                 }
-            } catch (itemError) {
-                errors.push({ changeId: change.id, titulo: change.titulo, error: itemError.message });
-                logger.warn(`⚠️ Sync push failed: ${change.id} - ${itemError.message}`);
-            }
+            } catch (itemError) { errors.push({ changeId: change.id, titulo: change.titulo, error: itemError.message }); logger.warn(`⚠️ Sync push failed: ${change.id} - ${itemError.message}`); }
         }
         await logAudit('vault_sync_push', { userId: user.uid, synced: syncedCount, created: created.length, updated: updated.length, errors: errors.length, source: options.source || 'client' });
         res.json({ success: true, message: `${syncedCount} cambios sincronizados`, summary: { synced: syncedCount, created: created.length, updated: updated.length, errors: errors.length, total: changes.length }, created: created.length > 0 ? created : undefined, updated: updated.length > 0 ? updated : undefined, errors: errors.length > 0 ? errors : undefined, nextSteps: ['Sube el contenido cifrado de nuevos archivos vía POST /vault', 'Verifica sincronización con GET /api/vault/sync/check', FEATURES.ZERO_KNOWLEDGE ? 'Contenido local debe cifrarse con tu clave antes de subir' : null].filter(Boolean) });
-    } catch (e) {
-        logger.error('❌ Sync push error: ' + e.message);
-        res.status(500).json({ error: 'Error sincronizando cambios: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Sync push error: ' + e.message); res.status(500).json({ error: 'Error sincronizando cambios: ' + e.message }); }
 });
 
 // === 🚀 NUEVAS FUNCIONES: WEB3 LOGIN + IPFS BACKUP ===
-// 🔗 WEB3 LOGIN
 app.post('/api/web3/login', async(req, res) => {
     try {
         if (!FEATURES.WEB3_LOGIN) return res.status(404).json({ error: 'Web3 login no habilitado' });
@@ -1229,24 +1151,18 @@ app.post('/api/web3/login', async(req, res) => {
             await profilesCollection.insertOne({ userId: r.insertedId, uid: newUser.uid, displayName: '', avatarUrl: '', bio: '', isPublic: false, createdAt: new Date() });
             await walletCollection.insertOne({ userId: r.insertedId, balance: 0, currency: 'USD', history: [], createdAt: new Date() });
             await affiliatesCollection.insertOne({ userId: r.insertedId, refCode: newUser.refCode, level: 'bronce', createdAt: new Date() });
-            user = newUser;
-            await logAudit('web3_register', { address });
+            user = newUser; await logAudit('web3_register', { address });
         } else if (!user) { user = { uid: 'demo_web3', walletAddress: address, tier: 'personal' }; }
         const token = jwt.sign({ uid: user.uid, wallet: address, authMethod: 'web3' }, JWT_SECRET, { expiresIn: '7d' });
         await logAudit('web3_login', { address });
         res.json({ success: true, token, user: { uid: user.uid, wallet: address, tier: user.tier } });
-    } catch (e) {
-        logger.error('❌ Web3 login error: ' + e.message);
-        res.status(500).json({ error: 'Error login Web3: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Web3 login error: ' + e.message); res.status(500).json({ error: 'Error login Web3: ' + e.message }); }
 });
 
-// 🌐 IPFS BACKUP CON HELIA
 app.post('/api/vault/:id/backup', authenticate, async(req, res) => {
     try {
         if (!FEATURES.IPFS_BACKUP) return res.status(404).json({ error: 'Backup IPFS no habilitado' });
-        const { id } = req.params;
-        const user = await usersCollection.findOne({ uid: req.user.uid });
+        const { id } = req.params; const user = await usersCollection.findOne({ uid: req.user.uid });
         const secret = await secretsCollection.findOne({ _id: new ObjectId(id), userId: user._id });
         if (!secret) return res.status(404).json({ error: 'Archivo no encontrado' });
         let content = null;
@@ -1256,403 +1172,125 @@ app.post('/api/vault/:id/backup', authenticate, async(req, res) => {
             else if (secret.tipo === 'archivo' && secret.encrypted) content = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64');
         }
         if (!content) return res.status(400).json({ error: 'No se pudo descifrar el contenido' });
-        const fs = await initHelia();
-        if (!fs) return res.status(500).json({ error: 'IPFS no disponible' });
+        const fs = await initHelia(); if (!fs) return res.status(500).json({ error: 'IPFS no disponible' });
         const result = await fs.addBytes(content instanceof Buffer ? content : new TextEncoder().encode(content));
-        const cid = result.toString();
-        const ipfsUrl = `https://ipfs.io/ipfs/${cid}`;
+        const cid = result.toString(); const ipfsUrl = `https://ipfs.io/ipfs/${cid}`;
         await secretsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { backupCid: cid, backupUrl: ipfsUrl, backupAt: new Date() } });
         await logAudit('vault.backup', { fileId: id, cid, userId: user.uid, system: 'helia' });
         res.json({ success: true, cid, url: ipfsUrl, message: 'Backup en IPFS creado vía Helia. Contenido sigue cifrado con tu clave.' });
-    } catch (e) {
-        logger.error('❌ Helia backup error: ' + e.message);
-        res.status(500).json({ error: 'Error creando backup IPFS: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Helia backup error: ' + e.message); res.status(500).json({ error: 'Error creando backup IPFS: ' + e.message }); }
 });
 
-// 📥 RESTAURAR DESDE IPFS
 app.get('/api/vault/:id/restore', authenticate, async(req, res) => {
     try {
         if (!FEATURES.IPFS_BACKUP) return res.status(404).json({ error: 'Backup IPFS no habilitado' });
-        const { id } = req.params;
-        const user = await usersCollection.findOne({ uid: req.user.uid });
+        const { id } = req.params; const user = await usersCollection.findOne({ uid: req.user.uid });
         const secret = await secretsCollection.findOne({ _id: new ObjectId(id), userId: user._id });
         if (!(secret && secret.backupCid)) return res.status(404).json({ error: 'No hay backup en IPFS para este archivo' });
-        const fs = await initHelia();
-        if (!fs) return res.status(500).json({ error: 'IPFS no disponible' });
-        const chunks = [];
-        for await (const chunk of fs.cat(secret.backupCid)) chunks.push(chunk);
+        const fs = await initHelia(); if (!fs) return res.status(500).json({ error: 'IPFS no disponible' });
+        const chunks = []; for await (const chunk of fs.cat(secret.backupCid)) chunks.push(chunk);
         await secretsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { restoredFromBackup: new Date(), backupRestored: true } });
         await logAudit('vault.restore', { fileId: id, cid: secret.backupCid, userId: user.uid });
         res.json({ success: true, message: 'Archivo restaurado desde IPFS. Contenido sigue cifrado con tu clave.' });
-    } catch (e) {
-        logger.error('❌ Helia restore error: ' + e.message);
-        res.status(500).json({ error: 'Error restaurando desde IPFS: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Helia restore error: ' + e.message); res.status(500).json({ error: 'Error restaurando desde IPFS: ' + e.message }); }
 });
-// ============================================
-// 🛍️ MARKETPLACE INTEGRADO + RECOMENDACIONES
-// ============================================
 
-// 🔍 ÍNDICES PARA MARKETPLACE (agregar al conectar MongoDB)
-// Agrega esto dentro de connectToMongo(), después de los otros createIndex:
-/*
-await secretsCollection.createIndex({ isForSale: 1, price: 1, createdAt: -1 });
-await secretsCollection.createIndex({ categoria: 1, isForSale: 1 });
-await secretsCollection.createIndex({ titulo: 'text', descripcion: 'text', tags: 'text' }, { weights: { titulo: 10, descripcion: 5, tags: 3 } });
-await secretsCollection.createIndex({ 'rating.average': -1, sales: -1, isForSale: 1 });
-*/
-
-// 📦 METADATOS PÚBLICOS DE PRODUCTO — CORREGIDO ✅
+// ============================================
+// 🛍️ MARKETPLACE INTEGRADO + RECOMENDACIONES (CORREGIDO 100%)
+// ============================================
 const getPublicItemMetadata = (secret, sellerProfile = null) => ({
-    id: secret._id.toString(),
-    titulo: secret.titulo,
-    descripcion: secret.descripcion ? .substring(0, 300) + (secret.descripcion ? .length > 300 ? '...' : ''),
-    categoria: secret.categoria || 'general',
-    tags: secret.tags || [],
-    precio: secret.price || 0,
-    moneda: 'USD',
-    vendedor: {
-        uid: secret.userUid,
-        displayName: sellerProfile ? .displayName || 'Creador',
-        avatarUrl: sellerProfile ? .avatarUrl || null,
-        rating: sellerProfile ? .rating ? .average || 0,
-        totalVentas: sellerProfile ? .totalVentas || 0,
-        verificado: sellerProfile ? .identityVerified || false
-    },
-    estadisticas: {
-        ventas: secret.sales || 0,
-        rating: secret.rating ? .average || 0,
-        reseñasCount: secret.rating ? .count || 0,
-        vistas: secret.views || 0
-    },
-    licencia: secret.licenseDays ? `${secret.licenseDays} días` : 'Permanente',
-    tipo: secret.tipo,
-    fileName: secret.fileName,
-    fileType: secret.fileType,
-    fileSize: secret.fileSize,
-    createdAt: secret.createdAt,
-    thumbnailUrl: secret.thumbnailUrl || null,
+    id: secret._id.toString(), titulo: secret.titulo,
+    descripcion: secret.descripcion?.substring(0, 300) + (secret.descripcion?.length > 300 ? '...' : ''),
+    categoria: secret.categoria || 'general', tags: secret.tags || [], precio: secret.price || 0, moneda: 'USD',
+    vendedor: { uid: secret.userUid, displayName: sellerProfile?.displayName || 'Creador', avatarUrl: sellerProfile?.avatarUrl || null, rating: sellerProfile?.rating?.average || 0, totalVentas: sellerProfile?.totalVentas || 0, verificado: sellerProfile?.identityVerified || false },
+    estadisticas: { ventas: secret.sales || 0, rating: secret.rating?.average || 0, reseñasCount: secret.rating?.count || 0, vistas: secret.views || 0 },
+    licencia: secret.licenseDays ? `${secret.licenseDays} días` : 'Permanente', tipo: secret.tipo, fileName: secret.fileName, fileType: secret.fileType, fileSize: secret.fileSize, createdAt: secret.createdAt, thumbnailUrl: secret.thumbnailUrl || null
 });
 
-// 🛍️ MARKETPLACE: CATÁLOGO PÚBLICO CON FILTROS
 app.get('/api/marketplace', async(req, res) => {
     try {
-        if (!mongoReady || !secretsCollection) {
-            return res.json({ success: true, items: [], total: 0, page: 1, demo: true });
-        }
-
-        const {
-            categoria,
-            maxPrice,
-            minPrice,
-            sortBy = 'popularity',
-            page = 1,
-            limit = 20,
-            q, // búsqueda textual
-            tags,
-            verifiedOnly
-        } = req.query;
-
+        if (!mongoReady || !secretsCollection) return res.json({ success: true, items: [], total: 0, page: 1, demo: true });
+        const { categoria, maxPrice, minPrice, sortBy = 'popularity', page = 1, limit = 20, q, tags, verifiedOnly } = req.query;
         const filter = { isForSale: true };
-
         if (categoria) filter.categoria = categoria;
         if (maxPrice) filter.price = {...filter.price, $lte: parseFloat(maxPrice) };
         if (minPrice) filter.price = {...filter.price, $gte: parseFloat(minPrice) };
-        if (verifiedOnly === 'true') {
-            // Filtrar por vendedores verificados (requiere join con profiles)
-            const verifiedUsers = await profilesCollection.find({ identityVerified: true }, { projection: { userId: 1 } }).toArray();
-            filter.userId = { $in: verifiedUsers.map(p => p.userId) };
-        }
-        if (tags) {
-            const tagList = tags.split(',').map(t => t.trim());
-            filter.tags = { $in: tagList };
-        }
-
-        // Búsqueda textual
-        if (q) {
-            filter.$text = { $search: q };
-        }
-
-        // Sorting
+        if (verifiedOnly === 'true') { const verifiedUsers = await profilesCollection.find({ identityVerified: true }, { projection: { userId: 1 } }).toArray(); filter.userId = { $in: verifiedUsers.map(p => p.userId) }; }
+        if (tags) { const tagList = tags.split(',').map(t => t.trim()); filter.tags = { $in: tagList }; }
+        if (q) filter.$text = { $search: q };
         let sort = {};
-        switch (sortBy) {
-            case 'price_asc':
-                sort = { price: 1 };
-                break;
-            case 'price_desc':
-                sort = { price: -1 };
-                break;
-            case 'newest':
-                sort = { createdAt: -1 };
-                break;
-            case 'rating':
-                sort = { 'rating.average': -1, sales: -1 };
-                break;
-            case 'popularity':
-            default:
-                sort = { sales: -1, 'rating.average': -1, createdAt: -1 };
+        switch(sortBy) {
+            case 'price_asc': sort = { price: 1 }; break;
+            case 'price_desc': sort = { price: -1 }; break;
+            case 'newest': sort = { createdAt: -1 }; break;
+            case 'rating': sort = { 'rating.average': -1, sales: -1 }; break;
+            default: sort = { sales: -1, 'rating.average': -1, createdAt: -1 };
         }
-
         const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        const [items, total] = await Promise.all([
-            secretsCollection.find(filter)
-            .sort(sort)
-            .skip(skip)
-            .limit(parseInt(limit))
-            .project({ encrypted: 0, contenido: 0, buyers: 0 })
-            .toArray(),
-            secretsCollection.countDocuments(filter)
-        ]);
-
-        // Enriquecer con datos del vendedor
+        const [items, total] = await Promise.all([secretsCollection.find(filter).sort(sort).skip(skip).limit(parseInt(limit)).project({ encrypted: 0, contenido: 0, buyers: 0 }).toArray(), secretsCollection.countDocuments(filter)]);
         const enrichedItems = [];
-        for (const item of items) {
-            const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, {
-                projection: { displayName: 1, avatarUrl: 1, rating: 1, totalVentas: 1, identityVerified: 1 }
-            });
-            enrichedItems.push(getPublicItemMetadata(item, sellerProfile));
-        }
-
-        res.json({
-            success: true,
-            items: enrichedItems,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / limit)
-            },
-            filters: { categoria, maxPrice, minPrice, sortBy, q, tags }
-        });
-    } catch (e) {
-        logger.error('❌ Marketplace catalog error: ' + e.message);
-        res.status(500).json({ error: 'Error cargando catálogo: ' + e.message });
-    }
+        for (const item of items) { const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, { projection: { displayName: 1, avatarUrl: 1, rating: 1, totalVentas: 1, identityVerified: 1 } }); enrichedItems.push(getPublicItemMetadata(item, sellerProfile)); }
+        res.json({ success: true, items: enrichedItems, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }, filters: { categoria, maxPrice, minPrice, sortBy, q, tags } });
+    } catch (e) { logger.error('❌ Marketplace catalog error: ' + e.message); res.status(500).json({ error: 'Error cargando catálogo: ' + e.message }); }
 });
 
-// 🔍 MARKETPLACE: BÚSQUEDA FULL-TEXT
 app.get('/api/marketplace/search', async(req, res) => {
     try {
         const { q, categoria, limit = 10 } = req.query;
         if (!q || q.length < 2) return res.status(400).json({ error: 'Término de búsqueda debe tener al menos 2 caracteres' });
-
         if (!mongoReady) return res.json({ success: true, results: [], demo: true });
-
-        const filter = {
-            isForSale: true,
-            $text: { $search: q }
-        };
+        const filter = { isForSale: true, $text: { $search: q } };
         if (categoria) filter.categoria = categoria;
-
-        const results = await secretsCollection.find(filter, {
-                score: { $meta: 'textScore' },
-                projection: { encrypted: 0, contenido: 0, buyers: 0 }
-            })
-            .sort({ score: { $meta: 'textScore' } })
-            .limit(parseInt(limit))
-            .toArray();
-
+        const results = await secretsCollection.find(filter, { score: { $meta: 'textScore' }, projection: { encrypted: 0, contenido: 0, buyers: 0 } }).sort({ score: { $meta: 'textScore' } }).limit(parseInt(limit)).toArray();
         const enriched = [];
-        for (const item of results) {
-            const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, {
-                projection: { displayName: 1, avatarUrl: 1 }
-            });
-            enriched.push({...getPublicItemMetadata(item, sellerProfile), relevanceScore: item.score });
-        }
-
+        for (const item of results) { const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, { projection: { displayName: 1, avatarUrl: 1 } }); enriched.push({...getPublicItemMetadata(item, sellerProfile), relevanceScore: item.score }); }
         res.json({ success: true, query: q, results: enriched, count: enriched.length });
-    } catch (e) {
-        logger.error('❌ Marketplace search error: ' + e.message);
-        res.status(500).json({ error: 'Error en búsqueda: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Marketplace search error: ' + e.message); res.status(500).json({ error: 'Error en búsqueda: ' + e.message }); }
 });
 
-// 📄 MARKETPLACE: DETALLE PÚBLICO DE PRODUCTO
 app.get('/api/marketplace/item/:id', async(req, res) => {
     try {
         if (!mongoReady) return res.json({ success: true, item: { id: req.params.id, titulo: 'Demo' }, demo: true });
-
-        const secret = await secretsCollection.findOne({
-            _id: new ObjectId(req.params.id),
-            isForSale: true
-        }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } });
-
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), isForSale: true }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } });
         if (!secret) return res.status(404).json({ error: 'Producto no encontrado o no disponible' });
-
-        const sellerProfile = await profilesCollection.findOne({ userId: secret.userId }, {
-            projection: { displayName: 1, avatarUrl: 1, bio: 1, rating: 1, totalVentas: 1, identityVerified: 1, createdAt: 1 }
-        });
-
-        // Contar reseñas recientes
-        const recentReviews = await reviewsCollection ? .find({
-            itemId: secret._id,
-            createdAt: { $gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-        }).sort({ createdAt: -1 }).limit(3).toArray() || [];
-
-        res.json({
-            success: true,
-            item: {
-                ...getPublicItemMetadata(secret, sellerProfile),
-                descripcionCompleta: secret.descripcion,
-                requisitos: secret.requisitos || null,
-                preview: secret.preview || null, // URL de preview público si existe
-                reseñasRecientes: recentReviews.map(r => ({
-                    id: r._id,
-                    rating: r.rating,
-                    comment: r.comment ? .substring(0, 200),
-                    buyerName: r.buyerName || 'Comprador',
-                    date: r.createdAt,
-                    verified: r.verifiedPurchase
-                }))
-            },
-            acciones: {
-                comprar: '/api/buy/' + req.params.id,
-                agregarFavoritos: req.user ? '/api/marketplace/favorites' : null,
-                compartir: APP_URL + '/marketplace/item/' + req.params.id
-            }
-        });
-    } catch (e) {
-        logger.error('❌ Marketplace item detail error: ' + e.message);
-        res.status(500).json({ error: 'Error cargando producto: ' + e.message });
-    }
+        const sellerProfile = await profilesCollection.findOne({ userId: secret.userId }, { projection: { displayName: 1, avatarUrl: 1, bio: 1, rating: 1, totalVentas: 1, identityVerified: 1, createdAt: 1 } });
+        const recentReviews = await reviewsCollection?.find({ itemId: secret._id, createdAt: { $gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }).sort({ createdAt: -1 }).limit(3).toArray() || [];
+        res.json({ success: true, item: {...getPublicItemMetadata(secret, sellerProfile), descripcionCompleta: secret.descripcion, requisitos: secret.requisitos || null, preview: secret.preview || null, reseñasRecientes: recentReviews.map(r => ({ id: r._id, rating: r.rating, comment: r.comment?.substring(0, 200), buyerName: r.buyerName || 'Comprador', date: r.createdAt, verified: r.verifiedPurchase })) }, acciones: { comprar: '/api/buy/' + req.params.id, agregarFavoritos: req.user ? '/api/marketplace/favorites' : null, compartir: APP_URL + '/marketplace/item/' + req.params.id } });
+    } catch (e) { logger.error('❌ Marketplace item detail error: ' + e.message); res.status(500).json({ error: 'Error cargando producto: ' + e.message }); }
 });
 
-// 👤 MARKETPLACE: PERFIL PÚBLICO DE CREADOR
 app.get('/api/marketplace/creator/:userId', async(req, res) => {
     try {
         if (!mongoReady) return res.json({ success: true, creator: { uid: req.params.userId, displayName: 'Demo' }, demo: true });
-
-        const user = await usersCollection.findOne({ uid: req.params.userId }, {
-            projection: { password: 0, encryptedUserKey: 0, email: 0 }
-        });
+        const user = await usersCollection.findOne({ uid: req.params.userId }, { projection: { password: 0, encryptedUserKey: 0, email: 0 } });
         if (!user) return res.status(404).json({ error: 'Creador no encontrado' });
-
         const profile = await profilesCollection.findOne({ userId: user._id });
-
-        // Estadísticas del creador
-        const [totalItems, itemsForSale, totalVentas, ratingStats] = await Promise.all([
-            secretsCollection.countDocuments({ userId: user._id }),
-            secretsCollection.countDocuments({ userId: user._id, isForSale: true }),
-            transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' }),
-            secretsCollection.aggregate([
-                { $match: { userId: user._id, 'rating.count': { $gt: 0 } } },
-                {
-                    $group: {
-                        _id: null,
-                        avgRating: { $avg: '$rating.average' },
-                        totalReviews: { $sum: '$rating.count' }
-                    }
-                }
-            ]).toArray()
-        ]);
-
-        // Items destacados del creador
-        const featuredItems = await secretsCollection.find({ userId: user._id, isForSale: true }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } })
-            .sort({ sales: -1, 'rating.average': -1 })
-            .limit(6)
-            .toArray();
-
+        const [totalItems, itemsForSale, totalVentas, ratingStats] = await Promise.all([secretsCollection.countDocuments({ userId: user._id }), secretsCollection.countDocuments({ userId: user._id, isForSale: true }), transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' }), secretsCollection.aggregate([{ $match: { userId: user._id, 'rating.count': { $gt: 0 } } }, { $group: { _id: null, avgRating: { $avg: '$rating.average' }, totalReviews: { $sum: '$rating.count' } } }]).toArray()]);
+        const featuredItems = await secretsCollection.find({ userId: user._id, isForSale: true }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } }).sort({ sales: -1, 'rating.average': -1 }).limit(6).toArray();
         const enrichedItems = featuredItems.map(item => getPublicItemMetadata(item, profile));
-
-        res.json({
-            success: true,
-            creator: {
-                uid: user.uid,
-                displayName: profile ? .displayName || 'Creador',
-                avatarUrl: profile ? .avatarUrl,
-                bio: profile ? .bio,
-                identityVerified: profile ? .identityVerified || false,
-                memberSince: user.createdAt,
-                tier: user.tier
-            },
-            estadisticas: {
-                totalItems,
-                itemsEnVenta: itemsForSale,
-                totalVentas,
-                ratingPromedio: ratingStats[0] ? .avgRating ? .toFixed(2) || 0,
-                totalReseñas: ratingStats[0] ? .totalReviews || 0
-            },
-            itemsDestacados: enrichedItems,
-            acciones: {
-                seguir: req.user ? '/api/marketplace/creator/' + req.params.userId + '/follow' : null,
-                contactar: profile ? .isPublic ? '/api/marketplace/creator/' + req.params.userId + '/contact' : null
-            }
-        });
-    } catch (e) {
-        logger.error('❌ Marketplace creator profile error: ' + e.message);
-        res.status(500).json({ error: 'Error cargando perfil: ' + e.message });
-    }
+        res.json({ success: true, creator: { uid: user.uid, displayName: profile?.displayName || 'Creador', avatarUrl: profile?.avatarUrl, bio: profile?.bio, identityVerified: profile?.identityVerified || false, memberSince: user.createdAt, tier: user.tier }, estadisticas: { totalItems, itemsEnVenta: itemsForSale, totalVentas, ratingPromedio: ratingStats[0]?.avgRating?.toFixed(2) || 0, totalReseñas: ratingStats[0]?.totalReviews || 0 }, itemsDestacados: enrichedItems, acciones: { seguir: req.user ? '/api/marketplace/creator/' + req.params.userId + '/follow' : null, contactar: profile?.isPublic ? '/api/marketplace/creator/' + req.params.userId + '/contact' : null } });
+    } catch (e) { logger.error('❌ Marketplace creator profile error: ' + e.message); res.status(500).json({ error: 'Error cargando perfil: ' + e.message }); }
 });
 
-// ⭐ SISTEMA DE RESEÑAS (solo compradores verificados)
 app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
     try {
         const { rating, comment } = req.body;
         if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating debe ser entre 1 y 5' });
-
         if (!mongoReady) return res.json({ success: true, message: 'Reseña guardada (demo)', demo: true });
-
         const buyer = await usersCollection.findOne({ uid: req.user.uid });
         const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
-
         if (!secret) return res.status(404).json({ error: 'Producto no encontrado' });
-        if (secret.userId.toString() === buyer._id.toString()) {
-            return res.status(400).json({ error: 'No puedes reseñar tu propio producto' });
-        }
-        if (!secret.buyers ? .includes(buyer.uid)) {
-            return res.status(403).json({ error: 'Solo compradores verificados pueden dejar reseñas' });
-        }
-
-        // Verificar que no haya reseña previa
-        const existingReview = await reviewsCollection ? .findOne({
-            itemId: secret._id,
-            buyerUid: req.user.uid
-        });
-        if (existingReview) {
-            return res.status(400).json({ error: 'Ya has dejado una reseña para este producto' });
-        }
-
-        const review = {
-            itemId: secret._id,
-            buyerUid: req.user.uid,
-            buyerName: (await profilesCollection.findOne({ userId: buyer._id })) ? .displayName || 'Comprador',
-            rating: parseInt(rating),
-            comment: comment ? .substring(0, 1000),
-            verifiedPurchase: true,
-            createdAt: new Date(),
-            helpful: 0,
-            reported: false
-        };
-
+        if (secret.userId.toString() === buyer._id.toString()) return res.status(400).json({ error: 'No puedes reseñar tu propio producto' });
+        if (!secret.buyers?.includes(buyer.uid)) return res.status(403).json({ error: 'Solo compradores verificados pueden dejar reseñas' });
+        const existingReview = await reviewsCollection?.findOne({ itemId: secret._id, buyerUid: req.user.uid });
+        if (existingReview) return res.status(400).json({ error: 'Ya has dejado una reseña para este producto' });
+        const review = { itemId: secret._id, buyerUid: req.user.uid, buyerName: (await profilesCollection.findOne({ userId: buyer._id }))?.displayName || 'Comprador', rating: parseInt(rating), comment: comment?.substring(0, 1000), verifiedPurchase: true, createdAt: new Date(), helpful: 0, reported: false };
         await reviewsCollection.insertOne(review);
-
-        // Actualizar rating promedio del producto
-        const stats = await reviewsCollection.aggregate([
-            { $match: { itemId: secret._id } },
-            { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } }
-        ]).toArray();
-
-        await secretsCollection.updateOne({ _id: secret._id }, {
-            $set: {
-                'rating.average': stats[0] ? .avg ? .toFixed(2) || 0,
-                'rating.count': stats[0] ? .count || 0
-            }
-        });
-
-        await logAudit('review_created', {
-            itemId: req.params.id,
-            buyer: req.user.uid,
-            rating,
-            verified: true
-        });
-
+        const stats = await reviewsCollection.aggregate([{ $match: { itemId: secret._id } }, { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } }]).toArray();
+        await secretsCollection.updateOne({ _id: secret._id }, { $set: { 'rating.average': stats[0]?.avg?.toFixed(2) || 0, 'rating.count': stats[0]?.count || 0 } });
+        await logAudit('review_created', { itemId: req.params.id, buyer: req.user.uid, rating, verified: true });
         res.json({ success: true, message: '¡Gracias por tu reseña!', review: {...review, id: review._id } });
-    } catch (e) {
-        logger.error('❌ Review error: ' + e.message);
-        res.status(500).json({ error: 'Error guardando reseña: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Review error: ' + e.message); res.status(500).json({ error: 'Error guardando reseña: ' + e.message }); }
 });
 
 app.get('/api/marketplace/item/:id/reviews', async(req, res) => {
@@ -1660,566 +1298,146 @@ app.get('/api/marketplace/item/:id/reviews', async(req, res) => {
         const { page = 1, limit = 10, sortBy = 'recent' } = req.query;
         const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), isForSale: true });
         if (!secret) return res.status(404).json({ error: 'Producto no encontrado' });
-
         if (!mongoReady) return res.json({ success: true, reviews: [], demo: true });
-
         let sort = { createdAt: -1 };
         if (sortBy === 'rating_high') sort = { rating: -1, createdAt: -1 };
         if (sortBy === 'rating_low') sort = { rating: 1, createdAt: -1 };
         if (sortBy === 'helpful') sort = { helpful: -1, createdAt: -1 };
-
         const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        const [reviews, total] = await Promise.all([
-            reviewsCollection.find({ itemId: secret._id })
-            .sort(sort)
-            .skip(skip)
-            .limit(parseInt(limit))
-            .toArray(),
-            reviewsCollection.countDocuments({ itemId: secret._id })
-        ]);
-
-        res.json({
-            success: true,
-            reviews: reviews.map(r => ({
-                id: r._id,
-                rating: r.rating,
-                comment: r.comment,
-                buyerName: r.buyerName,
-                date: r.createdAt,
-                verified: r.verifiedPurchase,
-                helpful: r.helpful
-            })),
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / limit)
-            },
-            summary: {
-                average: secret.rating ? .average || 0,
-                count: secret.rating ? .count || 0,
-                distribution: await reviewsCollection ? .aggregate([
-                    { $match: { itemId: secret._id } },
-                    { $group: { _id: '$rating', count: { $sum: 1 } } }
-                ]).toArray() || []
-            }
-        });
-    } catch (e) {
-        logger.error('❌ Reviews fetch error: ' + e.message);
-        res.status(500).json({ error: 'Error cargando reseñas: ' + e.message });
-    }
+        const [reviews, total] = await Promise.all([reviewsCollection.find({ itemId: secret._id }).sort(sort).skip(skip).limit(parseInt(limit)).toArray(), reviewsCollection.countDocuments({ itemId: secret._id })]);
+        res.json({ success: true, reviews: reviews.map(r => ({ id: r._id, rating: r.rating, comment: r.comment, buyerName: r.buyerName, date: r.createdAt, verified: r.verifiedPurchase, helpful: r.helpful })), pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }, summary: { average: secret.rating?.average || 0, count: secret.rating?.count || 0, distribution: await reviewsCollection?.aggregate([{ $match: { itemId: secret._id } }, { $group: { _id: '$rating', count: { $sum: 1 } } }]).toArray() || [] } });
+    } catch (e) { logger.error('❌ Reviews fetch error: ' + e.message); res.status(500).json({ error: 'Error cargando reseñas: ' + e.message }); }
 });
 
-// ❤️ FAVORITOS / WISHLIST
 app.post('/api/marketplace/favorites', authenticate, async(req, res) => {
     try {
-        const { itemId, action = 'add' } = req.body; // 'add' o 'remove'
+        const { itemId, action = 'add' } = req.body;
         if (!itemId) return res.status(400).json({ error: 'itemId requerido' });
-
         if (!mongoReady) return res.json({ success: true, demo: true });
-
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        if (action === 'add') {
-            await favoritesCollection ? .updateOne({ userId: user._id, itemId: new ObjectId(itemId) }, { $set: { addedAt: new Date() } }, { upsert: true });
-            await logAudit('favorite_added', { userId: req.user.uid, itemId });
-            res.json({ success: true, message: 'Agregado a favoritos' });
-        } else {
-            await favoritesCollection ? .deleteOne({ userId: user._id, itemId: new ObjectId(itemId) });
-            await logAudit('favorite_removed', { userId: req.user.uid, itemId });
-            res.json({ success: true, message: 'Removido de favoritos' });
-        }
-    } catch (e) {
-        logger.error('❌ Favorites error: ' + e.message);
-        res.status(500).json({ error: 'Error con favoritos: ' + e.message });
-    }
+        if (action === 'add') { await favoritesCollection?.updateOne({ userId: user._id, itemId: new ObjectId(itemId) }, { $set: { addedAt: new Date() } }, { upsert: true }); await logAudit('favorite_added', { userId: req.user.uid, itemId }); res.json({ success: true, message: 'Agregado a favoritos' }); }
+        else { await favoritesCollection?.deleteOne({ userId: user._id, itemId: new ObjectId(itemId) }); await logAudit('favorite_removed', { userId: req.user.uid, itemId }); res.json({ success: true, message: 'Removido de favoritos' }); }
+    } catch (e) { logger.error('❌ Favorites error: ' + e.message); res.status(500).json({ error: 'Error con favoritos: ' + e.message }); }
 });
 
 app.get('/api/marketplace/favorites', authenticate, async(req, res) => {
     try {
         if (!mongoReady) return res.json({ success: true, items: [], demo: true });
-
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        const favorites = await favoritesCollection ? .find({ userId: user._id })
-            .sort({ addedAt: -1 })
-            .toArray() || [];
-
+        const favorites = await favoritesCollection?.find({ userId: user._id }).sort({ addedAt: -1 }).toArray() || [];
         const itemIds = favorites.map(f => f.itemId);
-        const items = await secretsCollection.find({
-            _id: { $in: itemIds },
-            isForSale: true
-        }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } }).toArray();
-
+        const items = await secretsCollection.find({ _id: { $in: itemIds }, isForSale: true }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } }).toArray();
         const enriched = [];
-        for (const item of items) {
-            const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, {
-                projection: { displayName: 1, avatarUrl: 1 }
-            });
-            enriched.push(getPublicItemMetadata(item, sellerProfile));
-        }
-
+        for (const item of items) { const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, { projection: { displayName: 1, avatarUrl: 1 } }); enriched.push(getPublicItemMetadata(item, sellerProfile)); }
         res.json({ success: true, items: enriched, count: enriched.length });
-    } catch (e) {
-        logger.error('❌ Favorites list error: ' + e.message);
-        res.status(500).json({ error: 'Error cargando favoritos: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Favorites list error: ' + e.message); res.status(500).json({ error: 'Error cargando favoritos: ' + e.message }); }
 });
 
-// 🎯 MOTOR DE RECOMENDACIONES (algoritmo simple basado en comportamiento)
 app.get('/api/marketplace/recommendations', authenticate, async(req, res) => {
     try {
         const { limit = 10, type = 'personalized' } = req.query;
-
-        if (!mongoReady) {
-            return res.json({
-                success: true,
-                recommendations: [],
-                demo: true,
-                message: 'Configura MongoDB para recomendaciones personalizadas'
-            });
-        }
-
+        if (!mongoReady) return res.json({ success: true, recommendations: [], demo: true, message: 'Configura MongoDB para recomendaciones personalizadas' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
         let recommendedItems = [];
-
         if (type === 'personalized') {
-            // 1. Obtener categorías de compras previas del usuario
-            const purchasedCategories = await transactionsCollection.distinct('categoria', {
-                buyer: user.uid,
-                type: 'sale'
-            });
-
-            // 2. Obtener items que el usuario ha visto (si tienes tracking)
-            // const viewedCategories = await userActivityCollection?.distinct('categoria', { 
-            //     userId: user._id, 
-            //     action: 'view_item' 
-            // }) || [];
-
-            // 3. Buscar items similares que NO ha comprado
-            const purchasedItemIds = await transactionsCollection.distinct('itemId', {
-                buyer: user.uid,
-                type: 'sale'
-            }).then(ids => ids.map(id => new ObjectId(id)));
-
-            const filter = {
-                isForSale: true,
-                userId: { $ne: user._id }, // No recomendar sus propios items
-                _id: { $nin: purchasedItemIds }
-            };
-
-            if (purchasedCategories.length > 0) {
-                filter.categoria = { $in: purchasedCategories };
-            }
-
-            // 4. Score de recomendación: ventas + rating + recencia
-            recommendedItems = await secretsCollection.aggregate([
-                { $match: filter },
-                {
-                    $addFields: {
-                        score: {
-                            $add: [
-                                { $multiply: ['$sales', 0.4] },
-                                { $multiply: ['$rating.average', 0.3] },
-                                { $multiply: [{ $divide: [{ $toLong: '$createdAt' }, 1000] }, 0.1] } // Recencia
-                            ]
-                        }
-                    }
-                },
-                { $sort: { score: -1 } },
-                { $limit: parseInt(limit) }
-            ]).toArray();
-
+            const purchasedCategories = await transactionsCollection.distinct('categoria', { buyer: user.uid, type: 'sale' });
+            const purchasedItemIds = await transactionsCollection.distinct('itemId', { buyer: user.uid, type: 'sale' }).then(ids => ids.map(id => new ObjectId(id)));
+            const filter = { isForSale: true, userId: { $ne: user._id }, _id: { $nin: purchasedItemIds } };
+            if (purchasedCategories.length > 0) filter.categoria = { $in: purchasedCategories };
+            recommendedItems = await secretsCollection.aggregate([{ $match: filter }, { $addFields: { score: { $add: [{ $multiply: ['$sales', 0.4] }, { $multiply: ['$rating.average', 0.3] }, { $multiply: [{ $divide: [{ $toLong: '$createdAt' }, 1000] }, 0.1] }] } } }, { $sort: { score: -1 } }, { $limit: parseInt(limit) }]).toArray();
         } else if (type === 'trending') {
-            // Items más populares en las últimas 24h
-            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            recommendedItems = await secretsCollection.find({
-                    isForSale: true,
-                    createdAt: { $gt: yesterday }
-                }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } })
-                .sort({ sales: -1, 'rating.average': -1 })
-                .limit(parseInt(limit))
-                .toArray();
-
+            const yesterday = new Date(Date.now() - 24*60*60*1000);
+            recommendedItems = await secretsCollection.find({ isForSale: true, createdAt: { $gt: yesterday } }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } }).sort({ sales: -1, 'rating.average': -1 }).limit(parseInt(limit)).toArray();
         } else if (type === 'new') {
-            // Items nuevos
-            recommendedItems = await secretsCollection.find({
-                    isForSale: true
-                }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } })
-                .sort({ createdAt: -1 })
-                .limit(parseInt(limit))
-                .toArray();
+            recommendedItems = await secretsCollection.find({ isForSale: true }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } }).sort({ createdAt: -1 }).limit(parseInt(limit)).toArray();
         }
-
-        // Enriquecer resultados
         const enriched = [];
-        for (const item of recommendedItems) {
-            const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, {
-                projection: { displayName: 1, avatarUrl: 1, rating: 1 }
-            });
-            enriched.push({
-                ...getPublicItemMetadata(item, sellerProfile),
-                reason: type === 'personalized' ? 'Basado en tus compras anteriores' : type === 'trending' ? 'Tendencia esta semana' : 'Recién llegado'
-            });
-        }
-
-        await logAudit('recommendations_served', {
-            userId: req.user.uid,
-            type,
-            count: enriched.length
-        });
-
-        res.json({
-            success: true,
-            recommendations: enriched,
-            algorithm: type,
-            count: enriched.length,
-            nextRefresh: new Date(Date.now() + 60 * 60 * 1000).toISOString() // Cache por 1h
-        });
-    } catch (e) {
-        logger.error('❌ Recommendations error: ' + e.message);
-        res.status(500).json({ error: 'Error generando recomendaciones: ' + e.message });
-    }
+        for (const item of recommendedItems) { const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, { projection: { displayName: 1, avatarUrl: 1, rating: 1 } }); enriched.push({...getPublicItemMetadata(item, sellerProfile), reason: type === 'personalized' ? 'Basado en tus compras anteriores' : type === 'trending' ? 'Tendencia esta semana' : 'Recién llegado' }); }
+        await logAudit('recommendations_served', { userId: req.user.uid, type, count: enriched.length });
+        res.json({ success: true, recommendations: enriched, algorithm: type, count: enriched.length, nextRefresh: new Date(Date.now() + 60*60*1000).toISOString() });
+    } catch (e) { logger.error('❌ Recommendations error: ' + e.message); res.status(500).json({ error: 'Error generando recomendaciones: ' + e.message }); }
 });
 
-// 📊 ANALYTICS PARA VENDEDORES (VERIFICADO: CERO ESPACIOS)
 app.get('/api/marketplace/seller/analytics', authenticate, async(req, res) => {
     try {
         if (!mongoReady) return res.json({ success: true, analytics: {}, demo: true });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
         const now = new Date();
-        const last7Days = new Date(now - 7 * 24 * 60 * 60 * 1000);
-        const last30Days = new Date(now - 30 * 24 * 60 * 60 * 1000);
-
+        const last7Days = new Date(now - 7*24*60*60*1000);
+        const last30Days = new Date(now - 30*24*60*60*1000);
         const [totalItems, activeListings, totalSales, revenue7d, revenue30d] = await Promise.all([
             secretsCollection.countDocuments({ userId: user._id }),
             secretsCollection.countDocuments({ userId: user._id, isForSale: true }),
             transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' }),
-            transactionsCollection.aggregate([
-                { $match: { seller: user.uid, type: 'sale', createdAt: { $gte: last7Days } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]).toArray(),
-            transactionsCollection.aggregate([
-                { $match: { seller: user.uid, type: 'sale', createdAt: { $gte: last30Days } } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]).toArray()
+            transactionsCollection.aggregate([{ $match: { seller: user.uid, type: 'sale', createdAt: { $gte: last7Days } } }, { $group: { _id: null, total: { $sum: '$amount' } } }]).toArray(),
+            transactionsCollection.aggregate([{ $match: { seller: user.uid, type: 'sale', createdAt: { $gte: last30Days } } }, { $group: { _id: null, total: { $sum: '$amount' } } }]).toArray()
         ]);
-
-        const allTimeRevenue = await transactionsCollection.aggregate([
-            { $match: { seller: user.uid, type: 'sale' } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]).toArray();
-
-        const topItems = await secretsCollection.find({ userId: user._id, isForSale: true, sales: { $gt: 0 } })
-            .sort({ sales: -1 })
-            .limit(5)
-            .project({ titulo: 1, price: 1, sales: 1, rating: 1 })
-            .toArray();
-
+        const allTimeRevenue = await transactionsCollection.aggregate([{ $match: { seller: user.uid, type: 'sale' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]).toArray();
+        const topItems = await secretsCollection.find({ userId: user._id, isForSale: true, sales: { $gt: 0 } }).sort({ sales: -1 }).limit(5).project({ titulo: 1, price: 1, sales: 1, rating: 1 }).toArray();
         res.json({
-            success: true,
-            analytics: {
-                overview: {
-                    totalItems,
-                    activeListings,
-                    totalSales,
-                    revenue: {
-                        last7Days: revenue7d[0] ? .total || 0,
-                        last30Days: revenue30d[0] ? .total || 0,
-                        allTime: allTimeRevenue[0] ? .total || 0
-                    }
-                },
-                performance: {
-                    avgOrderValue: totalSales > 0 ? ((revenue30d[0] ? .total || 0) / totalSales).toFixed(2) : 0
-                },
-                topItems: topItems.map(i => ({
-                    id: i._id.toString(),
-                    titulo: i.titulo,
-                    price: i.price,
-                    sales: i.sales,
-                    rating: i.rating ? .average || 0
-                })),
-                tips: [
-                    activeListings === 0 && '💡 Agrega tu primer producto para empezar a vender',
-                    totalSales === 0 && activeListings > 0 && '💡 Promociona tus productos en redes sociales',
-                    (revenue7d[0] ? .total || 0) > 0 && '🎉 ¡Tus ventas van en aumento! Sigue así'
-                ].filter(Boolean)
+            success: true, analytics: {
+                overview: { totalItems, activeListings, totalSales, revenue: { last7Days: revenue7d[0]?.total || 0, last30Days: revenue30d[0]?.total || 0, allTime: allTimeRevenue[0]?.total || 0 } },
+                performance: { avgOrderValue: totalSales > 0 ? ((revenue30d[0]?.total || 0) / totalSales).toFixed(2) : 0 },
+                topItems: topItems.map(i => ({ id: i._id.toString(), titulo: i.titulo, price: i.price, sales: i.sales, rating: i.rating?.average || 0 })),
+                tips: [activeListings === 0 && '💡 Agrega tu primer producto para empezar a vender', totalSales === 0 && activeListings > 0 && '💡 Promociona tus productos en redes sociales', (revenue7d[0]?.total || 0) > 0 && '🎉 ¡Tus ventas van en aumento! Sigue así'].filter(Boolean)
             }
         });
-    } catch (e) {
-        logger.error('❌ Seller analytics error: ' + e.message);
-        res.status(500).json({ error: 'Error cargando analytics: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Seller analytics error: ' + e.message); res.status(500).json({ error: 'Error cargando analytics: ' + e.message }); }
 });
 
-// 🏷️ GESTIÓN DE CATEGORÍAS Y TAGS (admin)
 app.get('/api/marketplace/categories', async(req, res) => {
     try {
-        if (!mongoReady) {
-            return res.json({
-                success: true,
-                categories: [
-                    { id: 'educacion', name: 'Educación', count: 0 },
-                    { id: 'software', name: 'Software', count: 0 },
-                    { id: 'arte', name: 'Arte Digital', count: 0 },
-                    { id: 'musica', name: 'Música', count: 0 },
-                    { id: 'datos', name: 'Datos/Investigación', count: 0 }
-                ],
-                demo: true
-            });
-        }
-
-        const categories = await secretsCollection.aggregate([
-            { $match: { isForSale: true, categoria: { $exists: true, $ne: '' } } },
-            { $group: { _id: '$categoria', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-            { $limit: 20 }
-        ]).toArray();
-
-        res.json({
-            success: true,
-            categories: categories.map(c => ({
-                id: c._id,
-                name: c._id.charAt(0).toUpperCase() + c._id.slice(1),
-                count: c.count
-            }))
-        });
-    } catch (e) {
-        logger.error('❌ Categories error: ' + e.message);
-        res.status(500).json({ error: 'Error cargando categorías: ' + e.message });
-    }
+        if (!mongoReady) return res.json({ success: true, categories: [{ id: 'educacion', name: 'Educación', count: 0 }, { id: 'software', name: 'Software', count: 0 }, { id: 'arte', name: 'Arte Digital', count: 0 }, { id: 'musica', name: 'Música', count: 0 }, { id: 'datos', name: 'Datos/Investigación', count: 0 }], demo: true });
+        const categories = await secretsCollection.aggregate([{ $match: { isForSale: true, categoria: { $exists: true, $ne: '' } } }, { $group: { _id: '$categoria', count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 20 }]).toArray();
+        res.json({ success: true, categories: categories.map(c => ({ id: c._id, name: c._id.charAt(0).toUpperCase() + c._id.slice(1), count: c.count })) });
+    } catch (e) { logger.error('❌ Categories error: ' + e.message); res.status(500).json({ error: 'Error cargando categorías: ' + e.message }); }
 });
 
-// 🏷️ GESTIÓN DE TAGS (para vendedores)
 app.get('/api/marketplace/tags', async(req, res) => {
     try {
         if (!mongoReady) return res.json({ success: true, tags: [], demo: true });
-
-        const tags = await secretsCollection.aggregate([
-            { $match: { isForSale: true, tags: { $exists: true, $ne: [] } } },
-            { $unwind: '$tags' },
-            { $group: { _id: '$tags', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-            { $limit: 50 }
-        ]).toArray();
-
-        res.json({
-            success: true,
-            tags: tags.map(t => ({ name: t._id, count: t.count }))
-        });
-    } catch (e) {
-        logger.error('❌ Tags error: ' + e.message);
-        res.status(500).json({ error: 'Error cargando tags: ' + e.message });
-    }
+        const tags = await secretsCollection.aggregate([{ $match: { isForSale: true, tags: { $exists: true, $ne: [] } } }, { $unwind: '$tags' }, { $group: { _id: '$tags', count: { $sum: 1 } } }, { $sort: { count: -1 } }, { $limit: 50 }]).toArray();
+        res.json({ success: true, tags: tags.map(t => ({ name: t._id, count: t.count })) });
+    } catch (e) { logger.error('❌ Tags error: ' + e.message); res.status(500).json({ error: 'Error cargando tags: ' + e.message }); }
 });
 
-// 🎁 COUPONES Y PROMOCIONES (para vendedores)
 app.post('/api/marketplace/promo', authenticate, async(req, res) => {
     try {
         const { code, discountType, discountValue, validUntil, maxUses, applicableItems } = req.body;
-
-        if (!code || !discountType || !discountValue) {
-            return res.status(400).json({ error: 'code, discountType y discountValue son requeridos' });
-        }
-
+        if (!code || !discountType || !discountValue) return res.status(400).json({ error: 'code, discountType y discountValue son requeridos' });
         if (!mongoReady) return res.json({ success: true, message: 'Cupón creado (demo)', demo: true, code });
-
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        // Verificar que el código no exista
         const existing = await promoCollection.findOne({ code: code.toUpperCase() });
         if (existing) return res.status(400).json({ error: 'Este código de cupón ya existe' });
-
-        const promo = {
-            code: code.toUpperCase(),
-            createdBy: user.uid,
-            discountType, // 'percent' o 'fixed'
-            discountValue: parseFloat(discountValue),
-            validFrom: new Date(),
-            validUntil: validUntil ? new Date(validUntil) : null,
-            maxUses: maxUses ? parseInt(maxUses) : null,
-            currentUses: 0,
-            applicableItems: applicableItems || [], // array de item IDs o 'all'
-            active: true,
-            createdAt: new Date()
-        };
-
+        const promo = { code: code.toUpperCase(), createdBy: user.uid, discountType, discountValue: parseFloat(discountValue), validFrom: new Date(), validUntil: validUntil ? new Date(validUntil) : null, maxUses: maxUses ? parseInt(maxUses) : null, currentUses: 0, applicableItems: applicableItems || [], active: true, createdAt: new Date() };
         await promoCollection.insertOne(promo);
         await logAudit('promo_created', { code: promo.code, by: user.uid });
-
-        res.json({
-            success: true,
-            message: 'Cupón creado exitosamente',
-            promo: {...promo, id: promo._id }
-        });
-    } catch (e) {
-        logger.error('❌ Promo create error: ' + e.message);
-        res.status(500).json({ error: 'Error creando cupón: ' + e.message });
-    }
+        res.json({ success: true, message: 'Cupón creado exitosamente', promo: {...promo, id: promo._id } });
+    } catch (e) { logger.error('❌ Promo create error: ' + e.message); res.status(500).json({ error: 'Error creando cupón: ' + e.message }); }
 });
 
-// Validar y aplicar cupón en checkout
 app.post('/api/marketplace/promo/validate', async(req, res) => {
     try {
         const { code, itemId, userId } = req.body;
         if (!code) return res.status(400).json({ error: 'Código de cupón requerido' });
-
-        if (!mongoReady) {
-            return res.json({
-                success: true,
-                valid: true,
-                discount: { type: 'percent', value: 10 },
-                demo: true
-            });
-        }
-
-        const promo = await promoCollection.findOne({
-            code: code.toUpperCase(),
-            active: true
-        });
-
+        if (!mongoReady) return res.json({ success: true, valid: true, discount: { type: 'percent', value: 10 }, demo: true });
+        const promo = await promoCollection.findOne({ code: code.toUpperCase(), active: true });
         if (!promo) return res.status(404).json({ error: 'Cupón no válido' });
-        if (promo.validUntil && new Date() > promo.validUntil) {
-            return res.status(400).json({ error: 'Cupón expirado' });
-        }
-        if (promo.maxUses && promo.currentUses >= promo.maxUses) {
-            return res.status(400).json({ error: 'Cupón agotado' });
-        }
-        if (promo.applicableItems.length > 0 && !promo.applicableItems.includes(itemId)) {
-            return res.status(400).json({ error: 'Cupón no aplica a este producto' });
-        }
-
-        // Calcular descuento
+        if (promo.validUntil && new Date() > promo.validUntil) return res.status(400).json({ error: 'Cupón expirado' });
+        if (promo.maxUses && promo.currentUses >= promo.maxUses) return res.status(400).json({ error: 'Cupón agotado' });
+        if (promo.applicableItems.length > 0 && !promo.applicableItems.includes(itemId)) return res.status(400).json({ error: 'Cupón no aplica a este producto' });
         const item = await secretsCollection.findOne({ _id: new ObjectId(itemId), isForSale: true });
         if (!item) return res.status(404).json({ error: 'Producto no encontrado' });
-
-        const discount = promo.discountType === 'percent' ?
-            Math.min(item.price * (promo.discountValue / 100), item.price) :
-            Math.min(promo.discountValue, item.price);
-
-        res.json({
-            success: true,
-            valid: true,
-            discount: {
-                type: promo.discountType,
-                value: promo.discountValue,
-                amount: discount.toFixed(2),
-                originalPrice: item.price,
-                finalPrice: (item.price - discount).toFixed(2)
-            },
-            code: promo.code
-        });
-    } catch (e) {
-        logger.error('❌ Promo validate error: ' + e.message);
-        res.status(500).json({ error: 'Error validando cupón: ' + e.message });
-    }
+        const discount = promo.discountType === 'percent' ? Math.min(item.price * (promo.discountValue / 100), item.price) : Math.min(promo.discountValue, item.price);
+        res.json({ success: true, valid: true, discount: { type: promo.discountType, value: promo.discountValue, amount: discount.toFixed(2), originalPrice: item.price, finalPrice: (item.price - discount).toFixed(2) }, code: promo.code });
+    } catch (e) { logger.error('❌ Promo validate error: ' + e.message); res.status(500).json({ error: 'Error validando cupón: ' + e.message }); }
 });
 
-// ============================================
-// FIN: MARKETPLACE INTEGRADO
-// ============================================
-// 🛠️ CONFIGURAR ITEM PARA MARKETPLACE (solo dueño)
-app.post('/api/marketplace/configure/:id', authenticate, async(req, res) => {
-    try {
-        const { price, previewUrl, seoTitle, seoDescription, externalLink, category } = req.body;
-        if (!price || price < 0) return res.status(400).json({ error: 'Precio válido requerido' });
-
-        const user = await usersCollection.findOne({ uid: req.user.uid });
-        const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
-        if (!secret) return res.status(404).json({ error: 'Archivo no encontrado' });
-
-        await secretsCollection.updateOne({ _id: secret._id }, {
-            $set: {
-                'marketplace.listed': true,
-                'marketplace.price': parseFloat(price),
-                'marketplace.previewUrl': previewUrl || '',
-                'marketplace.seoTitle': seoTitle || secret.titulo,
-                'marketplace.seoDescription': seoDescription || '',
-                'marketplace.externalLink': externalLink || '',
-                'marketplace.category': category || secret.categoria || 'general',
-                'marketplace.updatedAt': new Date()
-            }
-        });
-
-        await logAudit('marketplace.configure', { fileId: req.params.id, price, userId: user.uid });
-        res.json({ success: true, message: 'Item configurado para marketplace' });
-    } catch (e) { res.status(500).json({ error: 'Error configurando marketplace: ' + e.message }); }
-});
-
-// 🌍 RUTA PÚBLICA: TIENDA + SEO DINÁMICO
-app.get('/marketplace', async(req, res) => {
-            try {
-                const items = await secretsCollection.find({
-                    'marketplace.listed': true,
-                    isForSale: true
-                }).sort({ 'marketplace.price': 1, createdAt: -1 }).limit(50).project({
-                    titulo: 1,
-                    'marketplace.price': 1,
-                    'marketplace.previewUrl': 1,
-                    'marketplace.seoTitle': 1,
-                    'marketplace.seoDescription': 1,
-                    'marketplace.category': 1,
-                    fileName: 1,
-                    tipo: 1
-                }).toArray();
-
-                const seo = {
-                    title: 'ApiRomwiner Marketplace | Contenido Cifrado y Seguro',
-                    desc: 'Explora, compra y descarga contenido verificado. Todo cifrado con Envelope Encryption.',
-                    url: `${APP_URL}/marketplace`
-                };
-
-                res.send(`<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${seo.title}</title>
-  <meta name="description" content="${seo.desc}">
-  <meta property="og:title" content="${seo.title}">
-  <meta property="og:description" content="${seo.desc}">
-  <meta property="og:url" content="${seo.url}">
-  <meta property="og:type" content="website">
-  <link rel="canonical" href="${seo.url}">
-  <style>
-    body{background:#0b0c10;color:#e8eaed;font-family:system-ui;padding:20px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;max-width:1200px;margin:0 auto}
-    .card{background:#12161e;border:1px solid #333;border-radius:12px;padding:16px;transition:0.2s}
-    .card:hover{border-color:#00e676;transform:translateY(-2px)}
-    .preview{width:100%;height:160px;background:#1a1f2a;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;color:#8b95a5}
-    .price{color:#00e676;font-weight:700;font-size:1.2rem;margin:8px 0}
-    .btn{display:block;width:100%;padding:10px;background:#00e676;color:#0b0c10;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin-top:8px}
-    .btn:hover{opacity:0.9}
-  </style>
-</head>
-<body>
-  <h1 style="text-align:center;margin-bottom:24px">🛍️ ApiRomwiner Marketplace</h1>
-  <div class="grid">
-    ${items.map(i => `
-      <div class="card">
-        ${i.marketplace.previewUrl ? `<img src="${i.marketplace.previewUrl}" class="preview" alt="${i.marketplace.seoTitle}">` : `<div class="preview">📦 ${i.tipo === 'archivo' ? 'Archivo' : 'Texto'}</div>`}
-        <h3 style="margin:0 0 4px">${i.marketplace.seoTitle || i.titulo}</h3>
-        <div class="price">$${i.marketplace.price.toFixed(2)} USD</div>
-        <p style="color:#8b95a5;font-size:0.85rem;margin:0 0 12px">${i.marketplace.category || 'General'}</p>
-        ${i.marketplace.externalLink ? `<a href="${i.marketplace.externalLink}" target="_blank" class="btn" style="text-decoration:none">🔗 Ver Detalle / Comprar</a>` : `<button class="btn" onclick="alert('Login requerido para comprar. Próximamente: checkout integrado')">🛒 Comprar</button>`}
-      </div>
-    `).join('')}
-  </div>
-  <footer style="text-align:center;margin-top:40px;color:#5a6577;font-size:0.8rem">
-    © ${new Date().getFullYear()} ApiRomwiner Vault | Contenido cifrado E2E | <a href="/" style="color:#00e676">Volver al Vault</a>
-  </footer>
-</body>
-</html>`);
-  } catch (e) { res.status(500).send('Error cargando marketplace'); }
-});
 // 🌐 SERVIR FRONTEND
 app.get('/', function(req, res) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
