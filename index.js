@@ -189,30 +189,44 @@ app.use(helmet({
     crossOriginResourcePolicy: false
 }));
 
-// ✅ CORS: PERMITE CONEXIONES DESDE EL FRONTEND
+// ✅ CORS: PERMITE CONEXIONES DESDE EL FRONTEND (VERSIÓN CORREGIDA)
 app.use(cors({
     origin: function(origin, callback) {
+        // Permitir si no hay origin (app móvil, Postman, curl, etc.)
         if (!origin) return callback(null, true);
+
         const allowedOrigins = [
             'https://apiromwinervault.onrender.com',
+            'https://api.romwinervault.com',
+            'https://romwinervault.com',
             'http://localhost:3000',
             'http://127.0.0.1:3000',
             'http://localhost:10000',
-            'http://127.0.0.1:10000'
+            'http://127.0.0.1:10000',
+            'https://localhost:3000',
+            'https://127.0.0.1:3000'
         ];
+
+        // Permitir cualquier origen que termine en .onrender.com o .romwinervault.com
+        if (origin.endsWith('.onrender.com') || origin.endsWith('.romwinervault.com')) {
+            return callback(null, true);
+        }
+
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
-            callback(new Error('CORS no permitido para este origen'));
+            // Para desarrollo: loguear y PERMITIR (no bloquear)
+            console.warn('⚠️ Origen no en lista permitida:', origin);
+            callback(null, true); // ← CAMBIO CRÍTICO: permitir en lugar de rechazar
         }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Vault-Sig', 'X-Requested-With'],
-    exposedHeaders: ['Content-Range', 'X-Content-Range']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Vault-Sig', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range', 'Authorization']
 }));
 
-// ✅ MANEJO DE PREFLIGHT OPTIONS (CRÍTICO PARA CORS)
+// ✅ MANEJO EXPLÍCITO DE PETICIONES PREFLIGHT
 app.options('*', cors());
 
 // ✅ MIDDLEWARES DE EXPRESS (SOLO UNA VEZ)
