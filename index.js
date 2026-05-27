@@ -1303,7 +1303,7 @@ await secretsCollection.createIndex({ titulo: 'text', descripcion: 'text', tags:
 await secretsCollection.createIndex({ 'rating.average': -1, sales: -1, isForSale: 1 });
 */
 
-// 📦 METADATOS PÚBLICOS DE PRODUCTO (sin exponer contenido cifrado)
+// 📦 METADATOS PÚBLICOS DE PRODUCTO — CORREGIDO ✅
 const getPublicItemMetadata = (secret, sellerProfile = null) => ({
     id: secret._id.toString(),
     titulo: secret.titulo,
@@ -1333,7 +1333,6 @@ const getPublicItemMetadata = (secret, sellerProfile = null) => ({
     fileSize: secret.fileSize,
     createdAt: secret.createdAt,
     thumbnailUrl: secret.thumbnailUrl || null,
-    // ❌ NUNCA incluir: encrypted, contenido, contenido descifrado, buyer list completa
 });
 
 // 🛍️ MARKETPLACE: CATÁLOGO PÚBLICO CON FILTROS
