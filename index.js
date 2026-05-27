@@ -1307,23 +1307,23 @@ await secretsCollection.createIndex({ 'rating.average': -1, sales: -1, isForSale
 const getPublicItemMetadata = (secret, sellerProfile = null) => ({
     id: secret._id.toString(),
     titulo: secret.titulo,
-    descripcion: secret.descripcion ?.substring(0, 300) + (secret.descripcion ?.length > 300 ? '...' : ''),
+    descripcion: secret.descripcion ? .substring(0, 300) + (secret.descripcion ? .length > 300 ? '...' : ''),
     categoria: secret.categoria || 'general',
     tags: secret.tags || [],
     precio: secret.price || 0,
     moneda: 'USD',
     vendedor: {
         uid: secret.userUid,
-        displayName: sellerProfile ?.displayName || 'Creador',
-        avatarUrl: sellerProfile ?.avatarUrl || null,
-        rating: sellerProfile ?.rating ?.average || 0,
-        totalVentas: sellerProfile ?.totalVentas || 0,
-        verificado: sellerProfile ?.identityVerified || false
+        displayName: sellerProfile ? .displayName || 'Creador',
+        avatarUrl: sellerProfile ? .avatarUrl || null,
+        rating: sellerProfile ? .rating ? .average || 0,
+        totalVentas: sellerProfile ? .totalVentas || 0,
+        verificado: sellerProfile ? .identityVerified || false
     },
     estadisticas: {
         ventas: secret.sales || 0,
-        rating: secret.rating ?.average || 0,
-        reseñasCount: secret.rating ?.count || 0,
+        rating: secret.rating ? .average || 0,
+        reseñasCount: secret.rating ? .count || 0,
         vistas: secret.views || 0
     },
     licencia: secret.licenseDays ? `${secret.licenseDays} días` : 'Permanente',
@@ -1486,7 +1486,7 @@ app.get('/api/marketplace/item/:id', async(req, res) => {
         });
 
         // Contar reseñas recientes
-        const recentReviews = await reviewsCollection ?.find({
+        const recentReviews = await reviewsCollection ? .find({
             itemId: secret._id,
             createdAt: { $gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
         }).sort({ createdAt: -1 }).limit(3).toArray() || [];
@@ -1501,7 +1501,7 @@ app.get('/api/marketplace/item/:id', async(req, res) => {
                 reseñasRecientes: recentReviews.map(r => ({
                     id: r._id,
                     rating: r.rating,
-                    comment: r.comment ?.substring(0, 200),
+                    comment: r.comment ? .substring(0, 200),
                     buyerName: r.buyerName || 'Comprador',
                     date: r.createdAt,
                     verified: r.verifiedPurchase
@@ -1560,10 +1560,10 @@ app.get('/api/marketplace/creator/:userId', async(req, res) => {
             success: true,
             creator: {
                 uid: user.uid,
-                displayName: profile ?.displayName || 'Creador',
-                avatarUrl: profile ?.avatarUrl,
-                bio: profile ?.bio,
-                identityVerified: profile ?.identityVerified || false,
+                displayName: profile ? .displayName || 'Creador',
+                avatarUrl: profile ? .avatarUrl,
+                bio: profile ? .bio,
+                identityVerified: profile ? .identityVerified || false,
                 memberSince: user.createdAt,
                 tier: user.tier
             },
@@ -1571,13 +1571,13 @@ app.get('/api/marketplace/creator/:userId', async(req, res) => {
                 totalItems,
                 itemsEnVenta: itemsForSale,
                 totalVentas,
-                ratingPromedio: ratingStats[0] ?.avgRating ?.toFixed(2) || 0,
-                totalReseñas: ratingStats[0] ?.totalReviews || 0
+                ratingPromedio: ratingStats[0] ? .avgRating ? .toFixed(2) || 0,
+                totalReseñas: ratingStats[0] ? .totalReviews || 0
             },
             itemsDestacados: enrichedItems,
             acciones: {
                 seguir: req.user ? '/api/marketplace/creator/' + req.params.userId + '/follow' : null,
-                contactar: profile ?.isPublic ? '/api/marketplace/creator/' + req.params.userId + '/contact' : null
+                contactar: profile ? .isPublic ? '/api/marketplace/creator/' + req.params.userId + '/contact' : null
             }
         });
     } catch (e) {
@@ -1601,12 +1601,12 @@ app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
         if (secret.userId.toString() === buyer._id.toString()) {
             return res.status(400).json({ error: 'No puedes reseñar tu propio producto' });
         }
-        if (!secret.buyers ?.includes(buyer.uid)) {
+        if (!secret.buyers ? .includes(buyer.uid)) {
             return res.status(403).json({ error: 'Solo compradores verificados pueden dejar reseñas' });
         }
 
         // Verificar que no haya reseña previa
-        const existingReview = await reviewsCollection ?.findOne({
+        const existingReview = await reviewsCollection ? .findOne({
             itemId: secret._id,
             buyerUid: req.user.uid
         });
@@ -1617,9 +1617,9 @@ app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
         const review = {
             itemId: secret._id,
             buyerUid: req.user.uid,
-            buyerName: (await profilesCollection.findOne({ userId: buyer._id })) ?.displayName || 'Comprador',
+            buyerName: (await profilesCollection.findOne({ userId: buyer._id })) ? .displayName || 'Comprador',
             rating: parseInt(rating),
-            comment: comment ?.substring(0, 1000),
+            comment: comment ? .substring(0, 1000),
             verifiedPurchase: true,
             createdAt: new Date(),
             helpful: 0,
@@ -1636,8 +1636,8 @@ app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
 
         await secretsCollection.updateOne({ _id: secret._id }, {
             $set: {
-                'rating.average': stats[0] ?.avg ?.toFixed(2) || 0,
-                'rating.count': stats[0] ?.count || 0
+                'rating.average': stats[0] ? .avg ? .toFixed(2) || 0,
+                'rating.count': stats[0] ? .count || 0
             }
         });
 
@@ -1697,9 +1697,9 @@ app.get('/api/marketplace/item/:id/reviews', async(req, res) => {
                 pages: Math.ceil(total / limit)
             },
             summary: {
-                average: secret.rating ?.average || 0,
-                count: secret.rating ?.count || 0,
-                distribution: await reviewsCollection ?.aggregate([
+                average: secret.rating ? .average || 0,
+                count: secret.rating ? .count || 0,
+                distribution: await reviewsCollection ? .aggregate([
                     { $match: { itemId: secret._id } },
                     { $group: { _id: '$rating', count: { $sum: 1 } } }
                 ]).toArray() || []
@@ -1723,11 +1723,11 @@ app.post('/api/marketplace/favorites', authenticate, async(req, res) => {
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
         if (action === 'add') {
-            await favoritesCollection ?.updateOne({ userId: user._id, itemId: new ObjectId(itemId) }, { $set: { addedAt: new Date() } }, { upsert: true });
+            await favoritesCollection ? .updateOne({ userId: user._id, itemId: new ObjectId(itemId) }, { $set: { addedAt: new Date() } }, { upsert: true });
             await logAudit('favorite_added', { userId: req.user.uid, itemId });
             res.json({ success: true, message: 'Agregado a favoritos' });
         } else {
-            await favoritesCollection ?.deleteOne({ userId: user._id, itemId: new ObjectId(itemId) });
+            await favoritesCollection ? .deleteOne({ userId: user._id, itemId: new ObjectId(itemId) });
             await logAudit('favorite_removed', { userId: req.user.uid, itemId });
             res.json({ success: true, message: 'Removido de favoritos' });
         }
@@ -1744,7 +1744,7 @@ app.get('/api/marketplace/favorites', authenticate, async(req, res) => {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-        const favorites = await favoritesCollection ?.find({ userId: user._id })
+        const favorites = await favoritesCollection ? .find({ userId: user._id })
             .sort({ addedAt: -1 })
             .toArray() || [];
 
@@ -1887,7 +1887,7 @@ app.get('/api/marketplace/recommendations', authenticate, async(req, res) => {
     }
 });
 
-// 📊 ANALYTICS PARA VENDEDORES (dashboard de marketplace) — CORREGIDO ✅
+// 📊 ANALYTICS PARA VENDEDORES (VERIFICADO: CERO ESPACIOS)
 app.get('/api/marketplace/seller/analytics', authenticate, async(req, res) => {
     try {
         if (!mongoReady) return res.json({ success: true, analytics: {}, demo: true });
@@ -1918,8 +1918,10 @@ app.get('/api/marketplace/seller/analytics', authenticate, async(req, res) => {
         ]).toArray();
 
         const topItems = await secretsCollection.find({ userId: user._id, isForSale: true, sales: { $gt: 0 } })
-            .sort({ sales: -1 }).limit(5)
-            .project({ titulo: 1, price: 1, sales: 1, rating: 1 }).toArray();
+            .sort({ sales: -1 })
+            .limit(5)
+            .project({ titulo: 1, price: 1, sales: 1, rating: 1 })
+            .toArray();
 
         res.json({
             success: true,
@@ -1929,25 +1931,25 @@ app.get('/api/marketplace/seller/analytics', authenticate, async(req, res) => {
                     activeListings,
                     totalSales,
                     revenue: {
-                        last7Days: revenue7d[0] ?.total || 0,
-                        last30Days: revenue30d[0] ?.total || 0,
-                        allTime: allTimeRevenue[0] ?.total || 0
+                        last7Days: revenue7d[0] ? .total || 0,
+                        last30Days: revenue30d[0] ? .total || 0,
+                        allTime: allTimeRevenue[0] ? .total || 0
                     }
                 },
                 performance: {
-                    avgOrderValue: totalSales > 0 ? ((revenue30d[0] ?.total || 0) / totalSales).toFixed(2) : 0
+                    avgOrderValue: totalSales > 0 ? ((revenue30d[0] ? .total || 0) / totalSales).toFixed(2) : 0
                 },
                 topItems: topItems.map(i => ({
                     id: i._id.toString(),
                     titulo: i.titulo,
                     price: i.price,
                     sales: i.sales,
-                    rating: i.rating ?.average || 0
+                    rating: i.rating ? .average || 0
                 })),
                 tips: [
                     activeListings === 0 && '💡 Agrega tu primer producto para empezar a vender',
                     totalSales === 0 && activeListings > 0 && '💡 Promociona tus productos en redes sociales',
-                    (revenue7d[0] ?.total || 0) > 0 && '🎉 ¡Tus ventas van en aumento! Sigue así'
+                    (revenue7d[0] ? .total || 0) > 0 && '🎉 ¡Tus ventas van en aumento! Sigue así'
                 ].filter(Boolean)
             }
         });
