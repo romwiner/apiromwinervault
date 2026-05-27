@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#00e676">
+    <title>Sin conexión - ApiRomwiner Vault</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background: #0b0c10;
+            color: #e8eaed;
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .card {
+            background: rgba(18, 22, 30, 0.9);
+            border: 1px solid rgba(0, 230, 118, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        
+        h1 {
+            color: #00e676;
+            margin-bottom: 12px;
+            font-size: 1.5rem;
+        }
+        
+        p {
+            color: #8b95a5;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(0, 230, 118, 0.1);
+            border-radius: 20px;
+            color: #00e676;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00e676;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.4;
+            }
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            background: #00e676;
+            color: #0b0c10;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+            opacity: 0.95;
+        }
+        
+        .features {
+            text-align: left;
+            margin: 20px 0;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+        
+        .features li {
+            margin: 6px 0;
+            color: #b0b8c4;
+            list-style: none;
+        }
+        
+        .features li::before {
+            content: "✅ ";
+            color: #00e676;
+        }
+        
+        footer {
+            margin-top: 24px;
+            font-size: 0.75rem;
+            color: #5a6577;
+        }
+        
+        footer a {
+            color: #00e676;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <div class="status"><span class="status-dot"></span><span>Modo Offline</span></div>
+        <h1>🔐 Tu bóveda está segura</h1>
+        <p>No hay conexión a internet, pero tus datos están protegidos localmente. Los cambios se sincronizarán automáticamente cuando recuperes la conexión.</p>
+        <div class="features">
+            <li>Tus archivos siguen cifrados en tu dispositivo</li>
+            <li>Puedes seguir trabajando en modo offline</li>
+            <li>La sincronización es automática al reconectar</li>
+        </div>
+        <button onclick="location.reload()">🔄 Reintentar Conexión</button>
+        <footer>© 2026 ApiRomwiner Vault<br><a href="/privacy.html">🔐 Privacidad</a> | <a href="/terms.html">📜 Términos</a></footer>
+    </div>
+    <script>
+        let retryCount = 0;
+        setInterval(async() => {
+            if (navigator.onLine) {
+                try {
+                    const res = await fetch('/api/status', {
+                        cache: 'no-store'
+                    });
+                    if (res.ok) window.location.href = '/';
+                } catch (e) {}
+            }
+            retryCount++;
+            if (retryCount >= 6) {
+                document.querySelector('p').innerHTML += '<br><br><small style="color:#666">Sugerencia: Verifica tu conexión Wi-Fi o datos móviles.</small>';
+            }
+        }, 30000);
+    </script>
+</body>
+
+</html>
