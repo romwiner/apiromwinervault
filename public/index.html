@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -12,75 +13,623 @@
     <title>ApiRomwiner Vault | Monetiza tu Identidad Digital</title>
     <style>
         /* === TU CSS ORIGINAL (100% INTACTO) === */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0b0c10; color: #e8eaed; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; line-height: 1.5; padding-bottom: 20px; }
-        .glass { background: rgba(18, 22, 30, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 18px; margin: 12px auto; max-width: 480px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); }
-        .green { border-left: 4px solid #00e676; }
-        .enterprise { border-left: 4px solid #7e57c2; }
-        .business { border-left: 4px solid #29b6f6; }
-        h1 { font-size: 1.6rem; margin-bottom: 8px; }
-        h2 { font-size: 1.3rem; margin-bottom: 12px; color: #00e676; }
-        h3 { font-size: 1.1rem; margin: 12px 0 8px; color: #8ab4f8; }
-        p { color: #b0b8c4; margin-bottom: 12px; }
-        input, select { width: 100%; padding: 12px; margin: 6px 0; border-radius: 10px; border: 1px solid #2a2f3a; background: #151922; color: #fff; font-size: 1rem; }
-        button { width: 100%; padding: 13px; margin: 6px 0; border-radius: 10px; border: none; background: #00e676; color: #0b0c10; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.15s; }
-        button:hover { transform: translateY(-1px); opacity: 0.95; }
-        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .btn-sec { background: transparent; border: 1px solid #00e676; color: #00e676; }
-        .btn-danger { background: #ff5252; color: #fff; }
-        .btn-enterprise { background: #7e57c2; color: #fff; }
-        .qr-box { text-align: center; margin: 16px 0; }
-        .qr-img { max-width: 160px; border-radius: 12px; border: 2px solid #00e676; margin: 8px auto; display: block; background: #000; }
-        .hidden { display: none !important; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
-        .card { background: rgba(0, 0, 0, 0.35); padding: 12px; border-radius: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.05); }
-        .val { font-size: 1.4rem; font-weight: 700; color: #fff; margin: 6px 0 2px; }
-        .label { font-size: 0.8rem; color: #8b95a5; }
-        .feature-icon { font-size: 2rem; margin-bottom: 6px; }
-        .promo-badge { background: rgba(0, 230, 118, 0.15); color: #00e676; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block; margin-bottom: 8px; }
-        .tier-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin: 4px 0; }
-        .tier-personal { background: rgba(144, 202, 249, 0.2); color: #90caf9; }
-        .tier-business { background: rgba(41, 182, 246, 0.2); color: #29b6f6; }
-        .tier-enterprise { background: rgba(126, 87, 194, 0.2); color: #ce93d8; }
-        .cta-section { text-align: center; padding: 20px 0; }
-        footer { text-align: center; padding: 20px 12px; color: #5a6577; font-size: 0.8rem; border-top: 1px solid #1a202a; margin-top: 20px; }
-        .log { background: #0a0a0a; padding: 8px; border-radius: 6px; font-family: monospace; font-size: 0.7rem; max-height: 80px; overflow-y: auto; text-align: left; color: #6a7585; margin-top: 10px; white-space: pre-wrap; }
-        .progress-bar { height: 4px; background: rgba(0, 230, 118, 0.3); border-radius: 2px; margin: 8px 0; overflow: hidden; }
-        .progress-fill { height: 100%; background: #00e676; width: 0%; transition: width 0.3s; }
-        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #666; }
-        .status-dot.online { background: #00e676; }
-        .status-dot.offline { background: #ff5252; }
-        .enterprise-only { display: none; }
-        .enterprise .enterprise-only { display: block; }
-        .loading { opacity: 0.7; pointer-events: none; }
-        .fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .vault-item { background: rgba(30, 35, 45, 0.8); padding: 12px; border-radius: 10px; margin: 8px 0; border: 1px solid rgba(255, 255, 255, 0.05); }
-        .vault-item-header { display: flex; justify-content: space-between; align-items: center; }
-        .vault-item-title { font-weight: 600; color: #fff; }
-        .vault-item-meta { font-size: 0.8rem; color: #8b95a5; margin-top: 4px; }
-        .encryption-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: rgba(0, 230, 118, 0.15); color: #00e676; border-radius: 12px; font-size: 0.7rem; margin-left: 8px; }
-        .audit-log { font-size: 0.75rem; color: #8b95a5; max-height: 120px; overflow-y: auto; }
-        .audit-entry { padding: 4px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-        .webhook-item { background: rgba(30, 35, 45, 0.8); padding: 10px; border-radius: 8px; margin: 6px 0; font-size: 0.85rem; }
-        .quota-bar { height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; margin: 8px 0; overflow: hidden; }
-        .quota-fill { height: 100%; background: linear-gradient(90deg, #00e676, #29b6f6); transition: width 0.3s; }
-        .quota-warning { color: #ffb74d; font-size: 0.8rem; }
-        .quota-critical { color: #ff5252; font-size: 0.8rem; }
-        .legal-links { margin-top: 8px; font-size: 0.75rem; }
-        .legal-links a { color: #8b95a5; margin: 0 6px; text-decoration: none; }
-        .legal-links a:hover { color: #00e676; }
         
-        /* === 🎒 NUEVAS FUNCIONES: ESTILOS AGREGADOS (NO ELIMINAN NADA) === */
-        .zk-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.8rem; color: #8b95a5; }
-        .zk-toggle input { width: auto; margin: 0; }
-        .zk-warning { color: #00e676; font-size: 0.75rem; margin-left: 8px; display: none; }
-        .zk-toggle input:checked ~ .zk-warning { display: block; }
-        /* === FIN ESTILOS NUEVOS === */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background: #0b0c10;
+            color: #e8eaed;
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            line-height: 1.5;
+            padding-bottom: 20px;
+        }
+        
+        .glass {
+            background: rgba(18, 22, 30, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 18px;
+            margin: 12px auto;
+            max-width: 480px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        .green {
+            border-left: 4px solid #00e676;
+        }
+        
+        .enterprise {
+            border-left: 4px solid #7e57c2;
+        }
+        
+        .business {
+            border-left: 4px solid #29b6f6;
+        }
+        
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+        }
+        
+        h2 {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            color: #00e676;
+        }
+        
+        h3 {
+            font-size: 1.1rem;
+            margin: 12px 0 8px;
+            color: #8ab4f8;
+        }
+        
+        p {
+            color: #b0b8c4;
+            margin-bottom: 12px;
+        }
+        
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            margin: 6px 0;
+            border-radius: 10px;
+            border: 1px solid #2a2f3a;
+            background: #151922;
+            color: #fff;
+            font-size: 1rem;
+        }
+        
+        button {
+            width: 100%;
+            padding: 13px;
+            margin: 6px 0;
+            border-radius: 10px;
+            border: none;
+            background: #00e676;
+            color: #0b0c10;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+            opacity: 0.95;
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-sec {
+            background: transparent;
+            border: 1px solid #00e676;
+            color: #00e676;
+        }
+        
+        .btn-danger {
+            background: #ff5252;
+            color: #fff;
+        }
+        
+        .btn-enterprise {
+            background: #7e57c2;
+            color: #fff;
+        }
+        
+        .qr-box {
+            text-align: center;
+            margin: 16px 0;
+        }
+        
+        .qr-img {
+            max-width: 160px;
+            border-radius: 12px;
+            border: 2px solid #00e676;
+            margin: 8px auto;
+            display: block;
+            background: #000;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 12px 0;
+        }
+        
+        .card {
+            background: rgba(0, 0, 0, 0.35);
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .val {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 6px 0 2px;
+        }
+        
+        .label {
+            font-size: 0.8rem;
+            color: #8b95a5;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 6px;
+        }
+        
+        .promo-badge {
+            background: rgba(0, 230, 118, 0.15);
+            color: #00e676;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        
+        .tier-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 4px 0;
+        }
+        
+        .tier-personal {
+            background: rgba(144, 202, 249, 0.2);
+            color: #90caf9;
+        }
+        
+        .tier-business {
+            background: rgba(41, 182, 246, 0.2);
+            color: #29b6f6;
+        }
+        
+        .tier-enterprise {
+            background: rgba(126, 87, 194, 0.2);
+            color: #ce93d8;
+        }
+        
+        .cta-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px 12px;
+            color: #5a6577;
+            font-size: 0.8rem;
+            border-top: 1px solid #1a202a;
+            margin-top: 20px;
+        }
+        
+        .log {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.7rem;
+            max-height: 80px;
+            overflow-y: auto;
+            text-align: left;
+            color: #6a7585;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: rgba(0, 230, 118, 0.3);
+            border-radius: 2px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #00e676;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            background: #666;
+        }
+        
+        .status-dot.online {
+            background: #00e676;
+        }
+        
+        .status-dot.offline {
+            background: #ff5252;
+        }
+        
+        .enterprise-only {
+            display: none;
+        }
+        
+        .enterprise .enterprise-only {
+            display: block;
+        }
+        
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .vault-item {
+            background: rgba(30, 35, 45, 0.8);
+            padding: 12px;
+            border-radius: 10px;
+            margin: 8px 0;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .vault-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .vault-item-title {
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .vault-item-meta {
+            font-size: 0.8rem;
+            color: #8b95a5;
+            margin-top: 4px;
+        }
+        
+        .encryption-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(0, 230, 118, 0.15);
+            color: #00e676;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+        
+        .audit-log {
+            font-size: 0.75rem;
+            color: #8b95a5;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        
+        .audit-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .webhook-item {
+            background: rgba(30, 35, 45, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 6px 0;
+            font-size: 0.85rem;
+        }
+        
+        .quota-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        
+        .quota-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00e676, #29b6f6);
+            transition: width 0.3s;
+        }
+        
+        .quota-warning {
+            color: #ffb74d;
+            font-size: 0.8rem;
+        }
+        
+        .quota-critical {
+            color: #ff5252;
+            font-size: 0.8rem;
+        }
+        
+        .legal-links {
+            margin-top: 8px;
+            font-size: 0.75rem;
+        }
+        
+        .legal-links a {
+            color: #8b95a5;
+            margin: 0 6px;
+            text-decoration: none;
+        }
+        
+        .legal-links a:hover {
+            color: #00e676;
+        }
+        
+        .zk-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: #8b95a5;
+        }
+        
+        .zk-toggle input {
+            width: auto;
+            margin: 0;
+        }
+        
+        .zk-warning {
+            color: #00e676;
+            font-size: 0.75rem;
+            margin-left: 8px;
+            display: none;
+        }
+        
+        .zk-toggle input:checked~.zk-warning {
+            display: block;
+        }
+        /* === 🛍️ ESTILOS MARKETPLACE (AGREGADOS) === */
+        
+        .market-search {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .market-search input,
+        .market-search select {
+            flex: 1;
+            min-width: 120px;
+            margin: 0;
+        }
+        
+        .market-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        
+        .market-item {
+            background: rgba(30, 35, 45, 0.9);
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 230, 118, 0.2);
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        
+        .market-item:hover {
+            transform: translateY(-3px);
+            border-color: #00e676;
+            box-shadow: 0 4px 12px rgba(0, 230, 118, 0.15);
+        }
+        
+        .market-item-title {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+        
+        .market-item-price {
+            color: #00e676;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin: 4px 0;
+        }
+        
+        .market-item-vendor {
+            font-size: 0.75rem;
+            color: #8b95a5;
+            margin-bottom: 4px;
+        }
+        
+        .market-item-rating {
+            font-size: 0.7rem;
+            color: #b0b8c4;
+        }
+        
+        .market-tag {
+            display: inline-block;
+            background: rgba(0, 230, 118, 0.1);
+            color: #00e676;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.65rem;
+            margin: 2px;
+        }
+        
+        .market-empty {
+            text-align: center;
+            color: #8b95a5;
+            padding: 20px;
+        }
+        
+        .market-loading {
+            text-align: center;
+            padding: 16px;
+            color: #8b95a5;
+        }
+        
+        .market-recommendations {
+            margin-bottom: 16px;
+        }
+        
+        .market-recommendations h3 {
+            margin-bottom: 8px;
+        }
+        
+        .market-item-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        
+        .market-item-actions button {
+            width: auto;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            background: transparent;
+            border: 1px solid;
+            border-radius: 6px;
+        }
+        
+        .btn-buy {
+            border-color: #00e676;
+            color: #00e676;
+        }
+        
+        .btn-fav {
+            border-color: #ab47bc;
+            color: #ab47bc;
+        }
+        
+        .btn-details {
+            border-color: #29b6f6;
+            color: #29b6f6;
+        }
+        
+        .market-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            padding: 16px;
+        }
+        
+        .market-modal-content {
+            max-width: 420px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .market-modal-title {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        
+        .market-modal-desc {
+            font-size: 0.85rem;
+            color: #b0b8c4;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        
+        .market-modal-meta {
+            font-size: 0.75rem;
+            color: #8b95a5;
+            margin: 4px 0;
+        }
+        
+        .market-modal-tags {
+            margin: 8px 0;
+        }
+        
+        .market-modal-seller {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px;
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+        
+        .market-modal-seller h4 {
+            margin-bottom: 4px;
+            color: #fff;
+        }
+        
+        .market-modal-seller p {
+            font-size: 0.75rem;
+            color: #8b95a5;
+        }
+        
+        .market-modal-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        
+        .market-modal-actions button {
+            flex: 1;
+        }
+        
+        .market-filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .market-filters select {
+            min-width: 100px;
+        }
+        
+        .market-filters button {
+            width: auto;
+            padding: 8px 12px;
+        }
+        /* === FIN ESTILOS MARKETPLACE === */
     </style>
 </head>
+
 <body>
-    <!-- 🌐 VISTA LANDING (PÚBLICA) - 100% IGUAL AL ORIGINAL -->
+    <!-- 🌐 VISTA LANDING (PÚBLICA) -->
     <div id="landingView">
         <div class="glass green" style="text-align:center; padding:24px 18px;">
             <h1>🔐 ApiRomwiner Vault</h1>
@@ -96,10 +645,22 @@
         <div class="glass">
             <h2>💰 Cómo Ganas Dinero</h2>
             <div class="grid">
-                <div class="card"><div class="feature-icon">📦</div><div class="label">Vende información cifrada con Envelope Encryption</div></div>
-                <div class="card"><div class="feature-icon">🤝</div><div class="label">15% comisión automática por cada referido activo</div></div>
-                <div class="card"><div class="feature-icon">🆔</div><div class="label">Licencias de acceso: cobra por tiempo o permanente</div></div>
-                <div class="card"><div class="feature-icon">🌍</div><div class="label">Sin plataformas que se quedan con tu margen</div></div>
+                <div class="card">
+                    <div class="feature-icon">📦</div>
+                    <div class="label">Vende información cifrada con Envelope Encryption</div>
+                </div>
+                <div class="card">
+                    <div class="feature-icon">🤝</div>
+                    <div class="label">15% comisión automática por cada referido activo</div>
+                </div>
+                <div class="card">
+                    <div class="feature-icon">🆔</div>
+                    <div class="label">Licencias de acceso: cobra por tiempo o permanente</div>
+                </div>
+                <div class="card">
+                    <div class="feature-icon">🌍</div>
+                    <div class="label">Sin plataformas que se quedan con tu margen</div>
+                </div>
             </div>
         </div>
         <div class="glass qr-box">
@@ -126,7 +687,7 @@
         </div>
     </div>
 
-    <!-- 👤 VISTA DASHBOARD (PRIVADA) - 100% IGUAL AL ORIGINAL + NUEVAS FUNCIONES AL FINAL -->
+    <!-- 👤 VISTA DASHBOARD (PRIVADA) -->
     <div id="dashboardView" class="hidden">
         <div class="glass green" style="text-align:center;">
             <h2>🟢 Panel de Monetización</h2>
@@ -134,25 +695,51 @@
             <div id="userTierBadge" class="tier-badge tier-personal" style="margin:8px 0;">Personal</div>
             <div id="quotaDisplay" class="hidden">
                 <div style="font-size:0.8rem; color:#8b95a5; margin:4px 0;">Almacenamiento usado</div>
-                <div class="quota-bar"><div id="quotaFill" class="quota-fill" style="width:0%"></div></div>
+                <div class="quota-bar">
+                    <div id="quotaFill" class="quota-fill" style="width:0%"></div>
+                </div>
                 <div id="quotaText" style="font-size:0.75rem; color:#8b95a5;"></div>
             </div>
             <div class="grid">
-                <div class="card"><div class="label">💰 Saldo Disponible</div><div class="val" id="saldo">$0.00</div></div>
-                <div class="card"><div class="label">📦 Activos en Venta</div><div class="val" id="activos">0</div></div>
-                <div class="card"><div class="label">📈 Ventas Completadas</div><div class="val" id="ventas">0</div></div>
-                <div class="card"><div class="label">🤝 Ganancias Afiliados</div><div class="val" id="afiliados">$0.00</div></div>
+                <div class="card">
+                    <div class="label">💰 Saldo Disponible</div>
+                    <div class="val" id="saldo">$0.00</div>
+                </div>
+                <div class="card">
+                    <div class="label">📦 Activos en Venta</div>
+                    <div class="val" id="activos">0</div>
+                </div>
+                <div class="card">
+                    <div class="label">📈 Ventas Completadas</div>
+                    <div class="val" id="ventas">0</div>
+                </div>
+                <div class="card">
+                    <div class="label">🤝 Ganancias Afiliados</div>
+                    <div class="val" id="afiliados">$0.00</div>
+                </div>
             </div>
         </div>
 
-        <!-- ✅ EMPRESARIAL: Funciones exclusivas por tier - 100% IGUAL -->
+        <!-- ✅ EMPRESARIAL: Funciones exclusivas por tier -->
         <div id="enterpriseFeatures" class="glass enterprise enterprise-only">
             <h2 style="color:#ce93d8;">🏦 Funciones Enterprise</h2>
             <div class="grid">
-                <div class="card"><div class="feature-icon">🔐</div><div class="label">Cifrado Envelope: clave única por usuario</div></div>
-                <div class="card"><div class="feature-icon">📊</div><div class="label">Auditoría inmutable + export GDPR/SOC2</div></div>
-                <div class="card"><div class="feature-icon">🔄</div><div class="label">Rotación automática de claves cada 90 días</div></div>
-                <div class="card"><div class="feature-icon">🚨</div><div class="label">Webhooks de alertas en tiempo real</div></div>
+                <div class="card">
+                    <div class="feature-icon">🔐</div>
+                    <div class="label">Cifrado Envelope: clave única por usuario</div>
+                </div>
+                <div class="card">
+                    <div class="feature-icon">📊</div>
+                    <div class="label">Auditoría inmutable + export GDPR/SOC2</div>
+                </div>
+                <div class="card">
+                    <div class="feature-icon">🔄</div>
+                    <div class="label">Rotación automática de claves cada 90 días</div>
+                </div>
+                <div class="card">
+                    <div class="feature-icon">🚨</div>
+                    <div class="label">Webhooks de alertas en tiempo real</div>
+                </div>
             </div>
             <button class="btn-enterprise" onclick="exportAudit('gdpr')">📄 Exportar Reporte GDPR</button>
             <button class="btn-enterprise" onclick="showWebhooks()">🔗 Gestionar Webhooks</button>
@@ -160,18 +747,20 @@
         </div>
 
         <div class="glass">
-            <h2>🚀 Acciones Rápidas - 100% IGUAL</h2>
+            <h2>🚀 Acciones Rápidas</h2>
             <button onclick="refresh()">🔄 Actualizar Métricas</button>
             <button onclick="openUpload()">📤 Subir Archivo al Vault</button>
             <button onclick="openCreate()">📤 Publicar Texto en Venta</button>
             <button onclick="showVault()">🗄️ Ver mi Vault</button>
+            <!-- 🔘 BOTÓN MARKETPLACE AGREGADO -->
+            <button class="btn-sec" onclick="showMarketplace()">🛍️ Marketplace</button>
             <button onclick="showIdentityQR()">🆔 Mi QR de Identidad Digital</button>
             <button onclick="withdraw()">💸 Solicitar Retiro a Cuenta</button>
             <button class="btn-sec" onclick="showAuditLog()">📋 Ver Auditoría</button>
             <button class="btn-danger" onclick="logout()">🚪 Cerrar Sesión</button>
         </div>
 
-        <!-- 🗄️ MODAL VAULT LISTA - 100% IGUAL -->
+        <!-- 🗄️ MODAL VAULT LISTA -->
         <div id="vaultModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; justify-content:center; align-items:center; z-index:100; padding:16px;">
             <div class="glass" style="max-width:400px; max-height:80vh; overflow-y:auto;">
                 <h2>🗄️ Mi Vault</h2>
@@ -180,7 +769,7 @@
             </div>
         </div>
 
-        <!-- 🔗 MODAL WEBHOOKS - 100% IGUAL -->
+        <!-- 🔗 MODAL WEBHOOKS -->
         <div id="webhookModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; justify-content:center; align-items:center; z-index:100; padding:16px;">
             <div class="glass" style="max-width:400px;">
                 <h2>🔗 Webhooks de Alertas</h2>
@@ -198,7 +787,7 @@
             </div>
         </div>
 
-        <!-- 📋 MODAL AUDITORÍA - 100% IGUAL -->
+        <!-- 📋 MODAL AUDITORÍA -->
         <div id="auditModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; justify-content:center; align-items:center; z-index:100; padding:16px;">
             <div class="glass" style="max-width:400px; max-height:80vh; overflow-y:auto;">
                 <h2>📋 Auditoría de Actividad</h2>
@@ -207,7 +796,7 @@
             </div>
         </div>
 
-        <!-- === 🎒 NUEVAS FUNCIONES: BÓVEDA PORTABLE (AGREGADAS, NO ELIMINAN NADA) === -->
+        <!-- 🎒 BÓVEDA PORTABLE -->
         <div class="glass" id="portableFeatures">
             <h2>🎒 Bóveda Portable</h2>
             <p style="font-size:0.8rem; color:#8b95a5; margin-bottom:12px;">Exporta tu bóveda para backup o migración. Tus datos, siempre bajo tu control.</p>
@@ -228,7 +817,34 @@
                 <span class="zk-warning" id="zkWarning">⚠️ Cifra este archivo con tu clave maestra antes de guardarlo externamente.</span>
             </label>
         </div>
-        <!-- === FIN NUEVAS FUNCIONES HTML === -->
+
+        <!-- 🛍️ SECCIÓN MARKETPLACE (NUEVA) -->
+        <div class="glass" id="marketplaceSection" style="display:none;">
+            <h2>🛍️ Marketplace Cifrado</h2>
+            <p style="color:#8b95a5; margin-bottom:12px;">Explora contenido en venta. Todo cifrado con Envelope Encryption.</p>
+
+            <!-- Barra de búsqueda y filtros -->
+            <div class="market-search">
+                <input type="text" id="marketSearch" placeholder="Buscar por título o tag...">
+                <select id="marketCategory">
+                    <option value="">Todas las categorías</option>
+                </select>
+                <button onclick="loadMarketplace()" style="width:auto; padding:8px 16px;">🔍 Buscar</button>
+            </div>
+
+            <!-- Recomendaciones -->
+            <div id="marketRecommendations" class="market-recommendations hidden">
+                <h3>🎯 Recomendado para ti</h3>
+                <div id="recommendationsGrid" class="market-grid"></div>
+            </div>
+
+            <!-- Grid de productos -->
+            <div id="marketGrid" class="market-grid"></div>
+            <div id="marketLoading" class="market-loading hidden">⏳ Cargando marketplace...</div>
+            <div id="marketEmpty" class="market-empty hidden">🔍 No se encontró contenido. ¡Sé el primero en vender!</div>
+
+            <button onclick="closeMarketplace()" class="btn-sec" style="margin-top:16px;">Cerrar Marketplace</button>
+        </div>
 
         <div class="glass qr-box">
             <h2>📲 App Instalada</h2>
@@ -237,7 +853,7 @@
         </div>
     </div>
 
-    <!-- 🆔 MODAL QR IDENTIDAD - 100% IGUAL -->
+    <!-- 🆔 MODAL QR IDENTIDAD -->
     <div id="idModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; justify-content:center; align-items:center; z-index:100; padding:16px;">
         <div class="glass" style="max-width:340px; text-align:center;">
             <h2>🆔 Identidad Universal</h2>
@@ -247,7 +863,7 @@
         </div>
     </div>
 
-    <!-- 📦 MODAL PUBLICAR (TEXTO) - 100% IGUAL -->
+    <!-- 📦 MODAL PUBLICAR (TEXTO) -->
     <div id="createModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; justify-content:center; align-items:center; z-index:100; padding:16px;">
         <div class="glass" style="max-width:340px;">
             <h2>📤 Publicar Activo (Texto)</h2>
@@ -268,7 +884,7 @@
         </div>
     </div>
 
-    <!-- 📤 MODAL SUBIR ARCHIVO AL VAULT - 100% IGUAL -->
+    <!-- 📤 MODAL SUBIR ARCHIVO AL VAULT -->
     <div id="uploadModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; justify-content:center; align-items:center; z-index:100; padding:16px;">
         <div class="glass" style="max-width:340px;">
             <h2>📤 Subir Archivo al Vault</h2>
@@ -297,7 +913,7 @@
         </div>
     </div>
 
-    <!-- 📦 MODAL EXPORTAR VAULT (NUEVO) -->
+    <!-- 📦 MODAL EXPORTAR VAULT -->
     <div id="exportModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; justify-content:center; align-items:center; z-index:100; padding:16px;">
         <div class="glass" style="max-width:400px; text-align:center;">
             <h2>📦 Exportar Bóveda</h2>
@@ -310,7 +926,7 @@
         </div>
     </div>
 
-    <!-- 📥 MODAL IMPORTAR VAULT (NUEVO) -->
+    <!-- 📥 MODAL IMPORTAR VAULT -->
     <div id="importModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.92); display:flex; justify-content:center; align-items:center; z-index:100; padding:16px;">
         <div class="glass" style="max-width:400px;">
             <h2>📥 Importar Backup</h2>
@@ -321,6 +937,28 @@
             <button onclick="doImportVault()" id="importBtn">✅ Importar</button>
             <button onclick="closeImportModal()" class="btn-sec">Cancelar</button>
             <div id="importStatus" style="font-size:0.75rem; color:#00e676; margin-top:12px; min-height:1.2em;"></div>
+        </div>
+    </div>
+
+    <!-- 🛍️ MODAL DETALLE DE PRODUCTO (NUEVO) -->
+    <div id="marketItemModal" class="market-modal hidden">
+        <div class="glass market-modal-content">
+            <h2 class="market-modal-title" id="modalItemTitle">Título del producto</h2>
+            <p class="market-modal-desc" id="modalItemDesc">Descripción del producto...</p>
+            <div class="market-item-price" id="modalItemPrice">$0.00 USD</div>
+            <div class="market-modal-meta" id="modalItemMeta">📁 Categoría • 📦 Tipo</div>
+            <div class="market-modal-tags" id="modalItemTags"></div>
+            <div class="market-modal-seller">
+                <h4>👤 Vendedor</h4>
+                <p id="modalSellerName">Creador</p>
+                <p id="modalSellerRating">⭐ 0.0 • 0 ventas</p>
+            </div>
+            <div class="market-modal-meta" id="modalItemLicense">Licencia: Permanente</div>
+            <div class="market-modal-actions">
+                <button class="btn-buy" onclick="buyMarketItem()">💰 Comprar</button>
+                <button class="btn-fav" onclick="toggleFavorite()">❤️ Favorito</button>
+                <button class="btn-sec" onclick="closeMarketItemModal()">✕ Cerrar</button>
+            </div>
         </div>
     </div>
 
@@ -336,11 +974,14 @@
         </span>
     </footer>
 
-    <!-- ✅ JAVASCRIPT COMPLETO: ORIGINAL + NUEVAS FUNCIONES AL FINAL -->
+    <!-- ✅ JAVASCRIPT COMPLETO -->
     <script>
         const API = 'https://apiromwinervault.onrender.com';
         let token = localStorage.getItem('token') || '';
-        let deferredPrompt, currentUser = null, userTier = 'personal', userQuota = null;
+        let deferredPrompt, currentUser = null,
+            userTier = 'personal',
+            userQuota = null,
+            currentMarketItem = null;
 
         function log(m) {
             const el = document.getElementById('log');
@@ -354,17 +995,23 @@
             const headers = {};
             if (!isFormData) headers['Content-Type'] = 'application/json';
             if (token) headers['Authorization'] = `Bearer ${token}`;
-            const config = { method, headers };
-            if (body) { if (isFormData) config.body = body; else config.body = JSON.stringify(body); }
+            const config = {
+                method,
+                headers
+            };
+            if (body) {
+                if (isFormData) config.body = body;
+                else config.body = JSON.stringify(body);
+            }
             const r = await fetch(API + path, config);
-            const j = await r.json?.() || {};
+            const j = await r.json ? .() || {};
             if (!r.ok) throw new Error(j.error || `Error ${r.status}`);
             return j;
         }
 
-        // === FUNCIONES ORIGINALES (100% IGUALES, SIN CAMBIOS) ===
+        // === FUNCIONES ORIGINALES ===
         async function init() {
-            if(typeof loadZeroKnowledgePref==='function')loadZeroKnowledgePref();
+            if (typeof loadZeroKnowledgePref === 'function') loadZeroKnowledgePref();
             try {
                 const s = await req('/api/status');
                 const statusDot = document.getElementById('apiStatus');
@@ -384,58 +1031,87 @@
                 document.getElementById('statusText').textContent = '❌ Sin conexión';
                 log('❌ API no responde: ' + e.message);
             }
-            if (token) { await loadUser(); if (currentUser) showDashboard(); }
+            if (token) {
+                await loadUser();
+                if (currentUser) showDashboard();
+            }
         }
 
         async function login() {
-            const email = document.getElementById('email').value?.trim();
+            const email = document.getElementById('email').value ? .trim();
             const pass = document.getElementById('pass').value;
             if (!email || !pass) return log('⚠️ Ingresa correo y contraseña');
             try {
-                const btn = event?.target;
-                if (btn) { btn.disabled = true; btn.textContent = '🔐 Conectando...'; }
-                const r = await req('/login', 'POST', { email, password: pass });
+                const btn = event ? .target;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = '🔐 Conectando...';
+                }
+                const r = await req('/login', 'POST', {
+                    email,
+                    password: pass
+                });
                 token = r.token;
                 localStorage.setItem('token', token);
                 localStorage.setItem('userEmail', email);
-                userTier = r.user?.tier || 'personal';
+                userTier = r.user ? .tier || 'personal';
                 localStorage.setItem('userTier', userTier);
                 await loadUser();
                 showDashboard();
                 log('✅ Acceso concedido • Tier: ' + userTier);
-            } catch (e) { log('❌ ' + e.message); }
-            finally { const btn = event?.target; if (btn) { btn.disabled = false; btn.textContent = '🔓 Iniciar Sesión'; } }
+            } catch (e) {
+                log('❌ ' + e.message);
+            } finally {
+                const btn = event ? .target;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🔓 Iniciar Sesión';
+                }
+            }
         }
 
         async function register() {
-            const email = document.getElementById('email').value?.trim();
+            const email = document.getElementById('email').value ? .trim();
             const pass = document.getElementById('pass').value;
-            const acceptTerms = document.getElementById('acceptTerms')?.checked;
+            const acceptTerms = document.getElementById('acceptTerms') ? .checked;
             if (!email || !pass) return log('⚠️ Ingresa correo y contraseña');
             if (!acceptTerms) return log('⚠️ Debes aceptar los Términos y Política de Privacidad');
             if (pass.length < 8 || !/[A-Z]/.test(pass) || !/[0-9]/.test(pass) || !/[^a-zA-Z0-9]/.test(pass)) {
                 return log('⚠️ Contraseña débil. Usa 8+ chars, 1 mayúscula, 1 número, 1 símbolo');
             }
             try {
-                const btn = event?.target;
-                if (btn) { btn.disabled = true; btn.textContent = '✨ Creando...'; }
-                await req('/register', 'POST', { email, password: pass });
+                const btn = event ? .target;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = '✨ Creando...';
+                }
+                await req('/register', 'POST', {
+                    email,
+                    password: pass
+                });
                 log('✅ Cuenta creada. Inicia sesión para comenzar.');
                 document.getElementById('pass').value = '';
-            } catch (e) { log('❌ ' + e.message); }
-            finally { const btn = event?.target; if (btn) { btn.disabled = false; btn.textContent = '✨ Registrar Cuenta Nueva'; } }
+            } catch (e) {
+                log('❌ ' + e.message);
+            } finally {
+                const btn = event ? .target;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '✨ Registrar Cuenta Nueva';
+                }
+            }
         }
 
         async function loadUser() {
             try {
                 const p = await req('/api/profile');
                 currentUser = p.user || p.profile;
-                userTier = currentUser?.tier || localStorage.getItem('userTier') || 'personal';
-                const nombre = (p.profile?.displayName === 'Demo' || !p.profile?.displayName) ?
-                    (localStorage.getItem('userEmail')?.split('@')?.[0] || 'Usuario') : p.profile.displayName;
+                userTier = currentUser ? .tier || localStorage.getItem('userTier') || 'personal';
+                const nombre = (p.profile ? .displayName === 'Demo' || !p.profile ? .displayName) ?
+                    (localStorage.getItem('userEmail') ? .split('@') ? .[0] || 'Usuario') : p.profile.displayName;
                 document.getElementById('uEmail').textContent = nombre;
                 const tierBadge = document.getElementById('userTierBadge');
-                tierBadge.textContent = userTier?.charAt(0).toUpperCase() + userTier?.slice(1);
+                tierBadge.textContent = userTier ? .charAt(0).toUpperCase() + userTier ? .slice(1);
                 tierBadge.className = `tier-badge tier-${userTier}`;
                 const dashboard = document.getElementById('dashboardView');
                 if (userTier === 'enterprise') {
@@ -445,7 +1121,7 @@
                     dashboard.classList.remove('enterprise');
                     document.getElementById('enterpriseFeatures').classList.add('hidden');
                 }
-                const refCode = currentUser?.refCode || localStorage.getItem('refCode') || 'ROM000';
+                const refCode = currentUser ? .refCode || localStorage.getItem('refCode') || 'ROM000';
                 document.getElementById('refQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(API + '?ref=' + refCode)}&color=00e676&bgcolor=0b0c10`;
                 if (p.quota) userQuota = p.quota;
             } catch (e) {
@@ -463,117 +1139,218 @@
         }
 
         function logout() {
-            token = ''; currentUser = null; userTier = 'personal';
-            localStorage.removeItem('token'); localStorage.removeItem('userTier');
+            token = '';
+            currentUser = null;
+            userTier = 'personal';
+            localStorage.removeItem('token');
+            localStorage.removeItem('userTier');
             document.getElementById('dashboardView').classList.add('hidden');
             document.getElementById('landingView').classList.remove('hidden');
-            log('🚪 Sesión cerrada'); window.scrollTo(0, 0);
+            log('🚪 Sesión cerrada');
+            window.scrollTo(0, 0);
         }
 
-        function scrollToAuth() { document.getElementById('authSection')?.scrollIntoView({ behavior: 'smooth' }); }
+        function scrollToAuth() {
+            document.getElementById('authSection') ? .scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
 
         async function refresh() {
             if (!token) return;
-            const btn = event?.target;
-            if (btn) { btn.disabled = true; btn.textContent = '🔄 Actualizando...'; }
+            const btn = event ? .target;
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '🔄 Actualizando...';
+            }
             try {
                 const [w, d, a] = await Promise.all([req('/api/wallet'), req('/api/dashboard'), req('/api/affiliates/dashboard')]);
-                document.getElementById('saldo').textContent = '$' + (w.wallet?.balance || 0).toFixed(2);
-                document.getElementById('activos').textContent = d.dashboard?.active || 0;
-                document.getElementById('ventas').textContent = d.dashboard?.sales || 0;
-                document.getElementById('afiliados').textContent = '$' + (a.dashboard?.availableBalance || 0).toFixed(2);
-                if (d.dashboard?.quota) { userQuota = d.dashboard.quota; updateQuotaDisplay(); }
+                document.getElementById('saldo').textContent = '$' + (w.wallet ? .balance || 0).toFixed(2);
+                document.getElementById('activos').textContent = d.dashboard ? .active || 0;
+                document.getElementById('ventas').textContent = d.dashboard ? .sales || 0;
+                document.getElementById('afiliados').textContent = '$' + (a.dashboard ? .availableBalance || 0).toFixed(2);
+                if (d.dashboard ? .quota) {
+                    userQuota = d.dashboard.quota;
+                    updateQuotaDisplay();
+                }
                 log('🟢 Métricas actualizadas');
-            } catch (e) { log('⚠️ Sincronizando...'); }
-            finally { if (btn) { btn.disabled = false; btn.textContent = '🔄 Actualizar Métricas'; } }
+            } catch (e) {
+                log('⚠️ Sincronizando...');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🔄 Actualizar Métricas';
+                }
+            }
         }
 
         function updateQuotaDisplay() {
             if (!userQuota) return;
-            const display = document.getElementById('quotaDisplay'), fill = document.getElementById('quotaFill'), text = document.getElementById('quotaText');
-            const used = userQuota.usedGB || 0, limit = userQuota.tier?.storageLimitGB;
+            const display = document.getElementById('quotaDisplay'),
+                fill = document.getElementById('quotaFill'),
+                text = document.getElementById('quotaText');
+            const used = userQuota.usedGB || 0,
+                limit = userQuota.tier ? .storageLimitGB;
             if (limit && limit > 0) {
                 const percent = Math.min(100, (used / limit) * 100);
                 fill.style.width = percent + '%';
                 text.textContent = `${used.toFixed(2)} GB / ${limit} GB`;
-                if (percent >= 90) { text.className = 'quota-critical'; text.textContent += ' ⚠️ Casi lleno'; }
-                else if (percent >= 75) { text.className = 'quota-warning'; text.textContent += ' ⚠️ Considera limpiar'; }
-                else text.className = '';
+                if (percent >= 90) {
+                    text.className = 'quota-critical';
+                    text.textContent += ' ⚠️ Casi lleno';
+                } else if (percent >= 75) {
+                    text.className = 'quota-warning';
+                    text.textContent += ' ⚠️ Considera limpiar';
+                } else text.className = '';
                 display.classList.remove('hidden');
             } else if (limit === -1) {
-                text.textContent = '📦 Almacenamiento ilimitado'; text.className = ''; fill.style.width = '100%';
+                text.textContent = '📦 Almacenamiento ilimitado';
+                text.className = '';
+                fill.style.width = '100%';
                 display.classList.remove('hidden');
             } else display.classList.add('hidden');
         }
 
-        function openCreate() { document.getElementById('createModal').classList.remove('hidden'); }
-        function closeCreate() { document.getElementById('createModal').classList.add('hidden'); document.getElementById('itemTitle').value = ''; document.getElementById('itemPrice').value = ''; document.getElementById('itemForSale').checked = false; }
+        function openCreate() {
+            document.getElementById('createModal').classList.remove('hidden');
+        }
+
+        function closeCreate() {
+            document.getElementById('createModal').classList.add('hidden');
+            document.getElementById('itemTitle').value = '';
+            document.getElementById('itemPrice').value = '';
+            document.getElementById('itemForSale').checked = false;
+        }
         async function publish() {
-            const titulo = document.getElementById('itemTitle').value?.trim();
+            const titulo = document.getElementById('itemTitle').value ? .trim();
             const price = parseFloat(document.getElementById('itemPrice').value) || 0;
             const categoria = document.getElementById('itemCat').value;
             const forSale = document.getElementById('itemForSale').checked;
             if (!titulo) return log('⚠️ Agrega un título');
             try {
-                const btn = event?.target;
-                if (btn) { btn.disabled = true; btn.textContent = '📤 Publicando...'; }
-                await req('/vault', 'POST', { titulo, price, categoria, forSale, contenido: 'Contenido cifrado con Envelope Encryption' });
-                log('📦 Activo publicado y cifrado'); closeCreate(); refresh();
-            } catch (e) { log('❌ ' + e.message); }
-            finally { const btn = event?.target; if (btn) { btn.disabled = false; btn.textContent = '✅ Publicar en Venta'; } }
+                const btn = event ? .target;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = '📤 Publicando...';
+                }
+                await req('/vault', 'POST', {
+                    titulo,
+                    price,
+                    categoria,
+                    forSale,
+                    contenido: 'Contenido cifrado con Envelope Encryption'
+                });
+                log('📦 Activo publicado y cifrado');
+                closeCreate();
+                refresh();
+            } catch (e) {
+                log('❌ ' + e.message);
+            } finally {
+                const btn = event ? .target;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '✅ Publicar en Venta';
+                }
+            }
         }
 
-        function openUpload() { document.getElementById('uploadModal').classList.remove('hidden'); document.getElementById('uploadPrice').style.display = 'none'; document.getElementById('uploadStatus').textContent = ''; document.getElementById('uploadProgress').classList.add('hidden'); document.getElementById('uploadProgressFill').style.width = '0%'; document.getElementById('uploadBtn').disabled = false; }
-        function closeUpload() { document.getElementById('uploadModal').classList.add('hidden'); document.getElementById('uploadFile').value = ''; document.getElementById('uploadTitle').value = ''; document.getElementById('uploadStatus').textContent = ''; }
-        document.getElementById('uploadForSale')?.addEventListener('change', function(e) { document.getElementById('uploadPrice').style.display = e.target.checked ? 'block' : 'none'; });
+        function openUpload() {
+            document.getElementById('uploadModal').classList.remove('hidden');
+            document.getElementById('uploadPrice').style.display = 'none';
+            document.getElementById('uploadStatus').textContent = '';
+            document.getElementById('uploadProgress').classList.add('hidden');
+            document.getElementById('uploadProgressFill').style.width = '0%';
+            document.getElementById('uploadBtn').disabled = false;
+        }
+
+        function closeUpload() {
+            document.getElementById('uploadModal').classList.add('hidden');
+            document.getElementById('uploadFile').value = '';
+            document.getElementById('uploadTitle').value = '';
+            document.getElementById('uploadStatus').textContent = '';
+        }
+        document.getElementById('uploadForSale') ? .addEventListener('change', function(e) {
+            document.getElementById('uploadPrice').style.display = e.target.checked ? 'block' : 'none';
+        });
         async function doUpload() {
-            const title = document.getElementById('uploadTitle').value?.trim();
+            const title = document.getElementById('uploadTitle').value ? .trim();
             const cat = document.getElementById('uploadCat').value;
-            const file = document.getElementById('uploadFile').files?.[0];
+            const file = document.getElementById('uploadFile').files ? .[0];
             const forSale = document.getElementById('uploadForSale').checked;
             const price = parseFloat(document.getElementById('uploadPrice').value) || 0;
             if (!title) return log('⚠️ Agrega un título');
             if (!file) return log('⚠️ Selecciona un archivo');
-            const maxSizeMB = { personal: 100, business: 500, enterprise: 5000 }[userTier] || 100;
+            const maxSizeMB = {
+                personal: 100,
+                business: 500,
+                enterprise: 5000
+            }[userTier] || 100;
             const fileMB = file.size / (1024 * 1024);
             if (fileMB > maxSizeMB) return log(`⚠️ Archivo muy grande. Tu plan permite hasta ${maxSizeMB}MB`);
-            const progress = document.getElementById('uploadProgress'), progressFill = document.getElementById('uploadProgressFill');
-            const status = document.getElementById('uploadStatus'), btn = document.getElementById('uploadBtn');
-            progress.classList.remove('hidden'); btn.disabled = true;
+            const progress = document.getElementById('uploadProgress'),
+                progressFill = document.getElementById('uploadProgressFill');
+            const status = document.getElementById('uploadStatus'),
+                btn = document.getElementById('uploadBtn');
+            progress.classList.remove('hidden');
+            btn.disabled = true;
             let prog = 0;
-            const interval = setInterval(() => { prog = Math.min(90, prog + 10); progressFill.style.width = prog + '%'; }, 200);
+            const interval = setInterval(() => {
+                prog = Math.min(90, prog + 10);
+                progressFill.style.width = prog + '%';
+            }, 200);
             try {
                 const formData = new FormData();
-                formData.append('titulo', title); formData.append('categoria', cat); formData.append('forSale', forSale);
+                formData.append('titulo', title);
+                formData.append('categoria', cat);
+                formData.append('forSale', forSale);
                 if (forSale) formData.append('price', price);
                 formData.append('archivo', file);
-                const headers = {}; if (token) headers['Authorization'] = `Bearer ${token}`;
-                const r = await fetch(API + '/vault', { method: 'POST', headers, body: formData });
-                clearInterval(interval); progressFill.style.width = '100%';
-                const j = await r.json?.() || {};
+                const headers = {};
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+                const r = await fetch(API + '/vault', {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+                clearInterval(interval);
+                progressFill.style.width = '100%';
+                const j = await r.json ? .() || {};
                 if (!r.ok) throw new Error(j.error || 'Error al subir');
-                status.textContent = '✅ Archivo subido y cifrado con clave única'; status.style.color = '#00e676';
+                status.textContent = '✅ Archivo subido y cifrado con clave única';
+                status.style.color = '#00e676';
                 log(`📦 ${title} guardado en Vault • ${fileMB.toFixed(1)}MB`);
-                setTimeout(() => { closeUpload(); refresh(); }, 1200);
+                setTimeout(() => {
+                    closeUpload();
+                    refresh();
+                }, 1200);
             } catch (e) {
-                clearInterval(interval); progressFill.style.width = '0%';
-                status.textContent = '❌ Error: ' + e.message; status.style.color = '#ff5252';
+                clearInterval(interval);
+                progressFill.style.width = '0%';
+                status.textContent = '❌ Error: ' + e.message;
+                status.style.color = '#ff5252';
                 log('❌ Upload: ' + e.message);
-            } finally { btn.disabled = false; }
+            } finally {
+                btn.disabled = false;
+            }
         }
 
         async function showVault() {
             try {
-                const modal = document.getElementById('vaultModal'), list = document.getElementById('vaultList');
-                modal.classList.remove('hidden'); list.innerHTML = '<p style="text-align:center; color:#8b95a5;">🔄 Cargando...</p>';
-                const res = await req('/vault'), items = res.items || [];
-                if (items.length === 0) { list.innerHTML = '<p style="text-align:center; color:#8b95a5;">📭 Tu vault está vacío</p>'; return; }
+                const modal = document.getElementById('vaultModal'),
+                    list = document.getElementById('vaultList');
+                modal.classList.remove('hidden');
+                list.innerHTML = '<p style="text-align:center; color:#8b95a5;">🔄 Cargando...</p>';
+                const res = await req('/vault'),
+                    items = res.items || [];
+                if (items.length === 0) {
+                    list.innerHTML = '<p style="text-align:center; color:#8b95a5;">📭 Tu vault está vacío</p>';
+                    return;
+                }
                 list.innerHTML = items.map(item => `<div class="vault-item"><div class="vault-item-header"><span class="vault-item-title">${item.titulo || 'Sin título'}</span>${item.isForSale ? `<span class="encryption-badge">💰 $${item.price}</span>` : ''}</div><div class="vault-item-meta">${item.tipo === 'archivo' ? `📁 ${item.fileName}` : '📝 Texto'} • ${item.categoria} • <span class="encryption-badge">🔐 Cifrado</span></div><div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:4px;"><button onclick="shareFile('${item._id}')" style="width:auto; padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #29b6f6; color:#29b6f6;">🔗 Compartir</button><button onclick="genThumb('${item._id}')" style="width:auto; padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #66bb6a; color:#66bb6a;">🖼️ Thumb</button><button onclick="showVersions('${item._id}')" style="width:auto; padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #ffa726; color:#ffa726;">📜 Historial</button><button onclick="addComment('${item._id}')" style="width:auto; padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #ab47bc; color:#ab47bc;">💬 Comentar</button><button onclick="loadComments('${item._id}')" style="width:auto; padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #8b95a5; color:#8b95a5;">👁️ Ver</button></div>${item.sales > 0 ? `<div class="vault-item-meta">📈 ${item.sales} ventas</div>` : ''}</div>`).join('');
                 log(`🗄️ Vault: ${items.length} activos`);
             } catch (e) { log('❌ Vault: ' + e.message); document.getElementById('vaultList').innerHTML = `<p style="color:#ff5252;">Error: ${e.message}</p>`; }
         }
         function closeVault() { document.getElementById('vaultModal').classList.add('hidden'); }
-
         async function shareFile(fileId) { try { const pass = prompt('🔒 Contraseña opcional (Enter para sin contraseña):'); const hours = prompt('⏱️ Expirar en horas (default 24):', '24') || 24; const res = await req(`/api/vault/${fileId}/share`, 'POST', { password: pass || null, expiresInHours: parseInt(hours) }); if (navigator.clipboard) await navigator.clipboard.writeText(res.link); log(`🔗 Enlace: ${res.link}`); alert('✅ Copiado al portapapeles'); } catch (e) { log('❌ Share: ' + e.message); } }
         async function genThumb(fileId) { try { log('🖼️ Generando thumbnail...'); await req(`/api/vault/${fileId}/thumbnail`, 'POST'); log('✅ Thumbnail listo'); showVault(); } catch (e) { log('❌ Thumb: ' + e.message); } }
         async function showVersions(fileId) { try { const res = await req(`/api/vault/${fileId}/versions`); const list = res.versions.map(v => `v${v.v} • ${new Date(v.date).toLocaleString()}`).join('\n'); alert('📜 Historial:\n' + (list || '(vacío)')); } catch (e) { log('❌ Versiones: ' + e.message); } }
@@ -600,7 +1377,7 @@
         function installApp() { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice?.then(function(res) { if (res?.outcome === 'accepted') log('✅ App instalada'); deferredPrompt = null; document.getElementById('installBtn').style.display = 'none'; }); } else log('ℹ️ Usa el menú del navegador → "Agregar a pantalla de inicio"'); }
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').then(() => log('🛡️ Sistema seguro activo')).catch(e => log('⚠️ SW: ' + e.message)); }
 
-        // === 🚀 NUEVAS FUNCIONES: EXPORTAR, IMPORTAR, SYNC, ZERO-KNOWLEDGE (AGREGADAS AL FINAL, SIN TOCAR LO ORIGINAL) ===
+        // === 🎒 FUNCIONES PORTABLE ===
         function toggleZeroKnowledge() { const enabled = document.getElementById('zkToggle')?.checked; if (enabled !== undefined) { localStorage.setItem('zeroKnowledge', enabled ? 'true' : 'false'); const warning = document.getElementById('zkWarning'); if (warning) warning.style.display = enabled ? 'block' : 'none'; const exportWarning = document.getElementById('zkExportWarning'); if (exportWarning) exportWarning.classList.toggle('hidden', !enabled); log(enabled ? '🔐 Zero-Knowledge: ACTIVADO' : '🔓 Zero-Knowledge: desactivado'); } }
         function loadZeroKnowledgePref() { const zk = localStorage.getItem('zeroKnowledge') === 'true'; const toggle = document.getElementById('zkToggle'); if (toggle) toggle.checked = zk; const warning = document.getElementById('zkWarning'); if (warning) warning.style.display = zk ? 'block' : 'none'; const exportWarning = document.getElementById('zkExportWarning'); if (exportWarning) exportWarning.classList.toggle('hidden', !zk); }
         function updateOnlineStatus(isOnline) { const dot = document.getElementById('apiStatus'); const text = document.getElementById('statusText'); if (dot && text) { dot.className = 'status-dot ' + (isOnline ? 'online' : 'offline'); const db = text.dataset?.db || ''; text.textContent = isOnline ? `✅ Online • ${db}` : '📴 Offline - Cambios se sincronizarán después'; } }
@@ -612,12 +1389,139 @@
         async function doImportVault() { const file = document.getElementById('importFile')?.files?.[0]; const force = document.getElementById('forceImport')?.checked; const btn = document.getElementById('importBtn'); const status = document.getElementById('importStatus'); if (!file || !btn || !status) return log('⚠️ Elementos del modal no encontrados'); try { btn.disabled = true; status.textContent = '🔄 Leyendo archivo...'; const text = await file.text(); const exportData = JSON.parse(text); status.textContent = '🔄 Importando...'; const res = await req('/api/vault/import', 'POST', { exportData, options: { forceImport: force } }); status.textContent = `✅ ${res.summary?.imported || 0} items restaurados`; status.style.color = '#00e676'; log(`📥 Importación: ${res.summary?.imported} items, ${res.summary?.errors || 0} errores`); if (res.errors?.length > 0) log('⚠️ Errores: ' + res.errors.map(e => e.titulo || e.itemId).join(', ')); setTimeout(() => { closeImportModal(); if (typeof refresh === 'function') refresh(); if (typeof showVault === 'function') showVault(); }, 1500); } catch (e) { status.textContent = '❌ Error: ' + e.message; status.style.color = '#ff5252'; log('❌ Import: ' + e.message); } finally { if (btn) btn.disabled = false; } }
         async function syncCheck() { if (!token) return log('⚠️ Inicia sesión primero'); const status = document.getElementById('syncStatus'); if (!status) return; try { status.textContent = '🔄 Verificando...'; const lastSync = localStorage.getItem('lastSync') || null; const url = `/api/vault/sync/check${lastSync ? '?lastSync=' + encodeURIComponent(lastSync) : ''}`; const res = await req(url); if (res?.hasChanges) { status.innerHTML = `📥 ${res.changesCount} cambios nuevos. <button onclick="syncPull()" style="margin-left:8px; padding:2px 8px; font-size:0.7rem; background:transparent; border:1px solid #29b6f6; color:#29b6f6; border-radius:4px;">Descargar</button>`; log(`📥 Sync: ${res.changesCount} cambios disponibles`); } else { status.textContent = '✅ Todo sincronizado'; status.style.color = '#00e676'; localStorage.setItem('lastSync', new Date().toISOString()); } } catch (e) { status.textContent = '⚠️ Sin conexión - Cambios se sincronizarán después'; status.style.color = '#ffb74d'; log('⚠️ Sync check: ' + e.message); } }
         async function syncPull() { const status = document.getElementById('syncStatus'); if (!status) return; try { status.textContent = '📥 Descargando cambios...'; if (typeof showVault === 'function') await showVault(); localStorage.setItem('lastSync', new Date().toISOString()); status.textContent = '✅ Cambios sincronizados'; status.style.color = '#00e676'; log('📥 Sync pull completado'); } catch (e) { status.textContent = '❌ Error: ' + e.message; log('❌ Sync pull: ' + e.message); } }
-        // === FIN NUEVAS FUNCIONES ===
 
-        // 🌐 EVENT LISTENERS PARA ONLINE/OFFLINE
+        // === 🛍️ FUNCIONES MARKETPLACE (NUEVAS) ===
+        function showMarketplace() {
+            if (!token) { log('⚠️ Inicia sesión para acceder al marketplace'); return scrollToAuth(); }
+            document.getElementById('dashboardView').querySelectorAll('.glass').forEach(el => {
+                if (el.id !== 'marketplaceSection' && !el.classList.contains('hidden')) el.style.display = 'none';
+            });
+            document.getElementById('marketplaceSection').style.display = 'block';
+            loadMarketplace();
+            loadCategories();
+            loadRecommendations();
+            window.scrollTo(0, 0);
+            log('🛍️ Marketplace abierto');
+        }
+        function closeMarketplace() {
+            document.getElementById('marketplaceSection').style.display = 'none';
+            document.getElementById('dashboardView').querySelectorAll('.glass').forEach(el => {
+                if (el.id !== 'marketplaceSection') el.style.display = '';
+            });
+            log('🛍️ Marketplace cerrado');
+        }
+        async function loadCategories() {
+            try {
+                const res = await req('/api/marketplace/categories');
+                const sel = document.getElementById('marketCategory');
+                if (sel && res.categories) {
+                    sel.innerHTML = '<option value="">Todas las categorías</option>' + 
+                        res.categories.map(c => `<option value="${c.id}">${c.name} (${c.count})</option>`).join('');
+                }
+            } catch (e) { log('⚠️ Categorías: ' + e.message); }
+        }
+        async function loadMarketplace() {
+            if (!token) return;
+            const grid = document.getElementById('marketGrid');
+            const load = document.getElementById('marketLoading');
+            const empty = document.getElementById('marketEmpty');
+            grid.innerHTML = ''; load.classList.remove('hidden'); empty.classList.add('hidden');
+            try {
+                const q = document.getElementById('marketSearch').value;
+                const cat = document.getElementById('marketCategory').value;
+                let url = `/api/marketplace`;
+                const params = [];
+                if (q) params.push(`q=${encodeURIComponent(q)}`);
+                if (cat) params.push(`category=${encodeURIComponent(cat)}`);
+                if (params.length) url += '?' + params.join('&');
+                const res = await req(url);
+                load.classList.add('hidden');
+                if (!res.items || res.items.length === 0) { empty.classList.remove('hidden'); return; }
+                grid.innerHTML = res.items.map(item => `
+                    <div class="market-item" onclick="openMarketItem('${item.id}')">
+                        <div class="market-item-title">${item.titulo}</div>
+                        <div class="market-item-vendor">👤 ${item.vendedor?.displayName || 'Anónimo'}</div>
+                        <div class="market-item-price">$${item.precio} USD</div>
+                        <div class="market-item-rating">${item.vendedor?.rating || 0}⭐ • ${item.vendedor?.totalVentas || 0} ventas</div>
+                        <div>${(item.tags||[]).slice(0,3).map(t=>`<span class="market-tag">${t}</span>`).join('')}</div>
+                        <div class="market-item-actions">
+                            <button class="btn-buy" onclick="event.stopPropagation(); buyMarketItem('${item.id}')">💰 Comprar</button>
+                            <button class="btn-details" onclick="event.stopPropagation(); openMarketItem('${item.id}')">👁️ Ver</button>
+                        </div>
+                    </div>
+                `).join('');
+                log(`🛍️ Marketplace: ${res.items.length} items`);
+            } catch (e) {
+                load.classList.add('hidden');
+                grid.innerHTML = `<p class="market-empty">❌ Error: ${e.message}</p>`;
+                log('❌ Marketplace: ' + e.message);
+            }
+        }
+        async function loadRecommendations() {
+            try {
+                const res = await req('/api/marketplace/recommendations?limit=4');
+                const container = document.getElementById('marketRecommendations');
+                const grid = document.getElementById('recommendationsGrid');
+                if (!res.recommendations || res.recommendations.length === 0) { container.classList.add('hidden'); return; }
+                container.classList.remove('hidden');
+                grid.innerHTML = res.recommendations.map(item => `
+                    <div class="market-item" onclick="openMarketItem('${item.id}')" style="background:rgba(0,230,118,0.05);">
+                        <div class="market-item-title">${item.titulo}</div>
+                        <div class="market-item-price">$${item.precio} USD</div>
+                        <div class="market-item-meta" style="font-size:0.7rem;color:#8b95a5;">${item.reason || 'Recomendado'}</div>
+                    </div>
+                `).join('');
+            } catch (e) { document.getElementById('marketRecommendations').classList.add('hidden'); }
+        }
+        async function openMarketItem(itemId) {
+            try {
+                const res = await req(`/api/marketplace/item/${itemId}`);
+                if (!res.success || !res.item) throw new Error('Producto no encontrado');
+                currentMarketItem = res.item;
+                document.getElementById('modalItemTitle').textContent = res.item.titulo;
+                document.getElementById('modalItemDesc').textContent = res.item.descripcionCompleta || res.item.descripcion || 'Sin descripción';
+                document.getElementById('modalItemPrice').textContent = `$${res.item.precio} USD`;
+                document.getElementById('modalItemMeta').textContent = `📁 ${res.item.categoria} • 📦 ${res.item.tipo || 'Digital'}`;
+                document.getElementById('modalItemTags').innerHTML = (res.item.tags||[]).map(t=>`<span class="market-tag">${t}</span>`).join('');
+                document.getElementById('modalSellerName').textContent = res.item.vendedor?.displayName || 'Creador';
+                document.getElementById('modalSellerRating').textContent = `⭐ ${res.item.vendedor?.rating || 0} • ${res.item.vendedor?.totalVentas || 0} ventas`;
+                document.getElementById('modalItemLicense').textContent = `Licencia: ${res.item.licencia || 'Permanente'}`;
+                document.getElementById('marketItemModal').classList.remove('hidden');
+            } catch (e) { alert('❌ ' + e.message); log('❌ Detalle item: ' + e.message); }
+        }
+        function closeMarketItemModal() { document.getElementById('marketItemModal').classList.add('hidden'); currentMarketItem = null; }
+        async function buyMarketItem(itemId) {
+            const id = itemId || currentMarketItem?.id;
+            if (!id) return log('⚠️ Selecciona un producto');
+            const item = currentMarketItem;
+            if (!confirm(`🛒 ¿COMPRAR "${item?.titulo || 'este producto'}"?\n💰 Precio: $${item?.precio || '?'} USD\n👤 Vendedor: ${item?.vendedor?.displayName || '?'}\n\n✅ El contenido se desbloqueará en tu bóveda.`)) return;
+            try {
+                log('💰 Procesando compra...');
+                const res = await req(`/api/buy/${id}`, 'POST');
+                if (res.success) {
+                    alert('✅ ¡Compra exitosa! Contenido desbloqueado en tu bóveda.');
+                    closeMarketItemModal();
+                    if (typeof showVault === 'function') await showVault();
+                    if (typeof refresh === 'function') await refresh();
+                    log('✅ Compra completada');
+                } else { throw new Error(res.error || 'Error en la compra'); }
+            } catch (e) { alert('❌ ' + e.message); log('❌ Compra: ' + e.message); }
+        }
+        async function toggleFavorite() {
+            if (!currentMarketItem?.id) return;
+            try {
+                await req('/api/marketplace/favorites', 'POST', { itemId: currentMarketItem.id, action: 'toggle' });
+                log('❤️ Favorito actualizado');
+                alert('✅ Agregado a favoritos');
+            } catch (e) { log('❌ Favorito: ' + e.message); }
+        }
+        // === FIN FUNCIONES MARKETPLACE ===
+
+        // 🌐 EVENT LISTENERS
         window.addEventListener('online', () => { if (typeof updateOnlineStatus === 'function') updateOnlineStatus(true); });
         window.addEventListener('offline', () => { if (typeof updateOnlineStatus === 'function') updateOnlineStatus(false); });
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
+
 </html>
