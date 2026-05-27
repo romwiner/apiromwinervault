@@ -192,9 +192,7 @@ app.use(helmet({
 // ✅ CORS: PERMITE CONEXIONES DESDE EL FRONTEND
 app.use(cors({
     origin: function(origin, callback) {
-        // Permitir si no hay origin (app móvil, Postman, etc.)
         if (!origin) return callback(null, true);
-
         const allowedOrigins = [
             'https://apiromwinervault.onrender.com',
             'http://localhost:3000',
@@ -202,7 +200,6 @@ app.use(cors({
             'http://localhost:10000',
             'http://127.0.0.1:10000'
         ];
-
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
@@ -215,16 +212,14 @@ app.use(cors({
     exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
 
-// ✅ MANEJO EXPLÍCITO DE PREFLIGHT OPTIONS (CRÍTICO PARA CORS)
+// ✅ MANEJO DE PREFLIGHT OPTIONS (CRÍTICO PARA CORS)
 app.options('*', cors());
 
+// ✅ MIDDLEWARES DE EXPRESS (SOLO UNA VEZ)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
 // 📁 UPLOADS
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdir(uploadDir, { recursive: true }).catch(() => {});
@@ -250,8 +245,8 @@ const upload = multer({
     }
 });
 
+// 🔐 RATE LIMITING PARA API
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Demasiadas solicitudes' } }));
-
 // 🔐 AUTH
 const authenticate = (req, res, next) => {
     const authHeader = req.headers.authorization;
