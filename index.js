@@ -188,10 +188,22 @@ app.use(helmet({
     crossOriginOpenerPolicy: false,
     crossOriginResourcePolicy: false
 }));
+
+// ✅ AGREGADO: CORS para permitir conexiones desde el frontend
+app.use(cors({
+    origin: [
+        'https://apiromwinervault.onrender.com',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Vault-Sig']
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-
 // 📁 UPLOADS
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdir(uploadDir, { recursive: true }).catch(() => {});
@@ -489,9 +501,11 @@ app.post('/vault', authenticate, checkQuota, async(req, res) => {
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const data = { userId: user._id, userUid: user.uid, titulo, categoria, folderId, tipo: req.file ? 'archivo' : 'texto', contenido: null, fileName: req.file ? path.basename(req.file.filename) : null, fileType: req.file ? req.file.mimetype : null, fileSize: req.file ? req.file.size : null, encrypted: null, isForSale: forSale, price: forSale ? price : 0, licenseDays, sales: 0, buyers: [], createdAt: new Date() };
         let wrappedDEK = user.encryptedUserKey;
-        if (!wrappedDEK) { const dek = EnvelopeEncryption.generateDEK();
+        if (!wrappedDEK) {
+            const dek = EnvelopeEncryption.generateDEK();
             wrappedDEK = EnvelopeEncryption.wrapDEK(dek);
-            await usersCollection.updateOne({ _id: user._id }, { $set: { encryptedUserKey: wrappedDEK } }); }
+            await usersCollection.updateOne({ _id: user._id }, { $set: { encryptedUserKey: wrappedDEK } });
+        }
         const userDEK = EnvelopeEncryption.unwrapDEK(wrappedDEK);
         if (req.file) {
             data.fileName = path.basename(req.file.filename);
@@ -504,8 +518,10 @@ app.post('/vault', authenticate, checkQuota, async(req, res) => {
         const result = await secretsCollection.insertOne(data);
         await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale });
         res.status(201).json({ success: true, message: 'Contenido guardado y cifrado en Vault (clave única por usuario)', id: result.insertedId, fileName: data.fileName });
-    } catch (e) { logger.error('❌ Vault create: ' + e.message);
-        res.status(500).json({ error: 'Error al guardar en Vault: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Vault create: ' + e.message);
+        res.status(500).json({ error: 'Error al guardar en Vault: ' + e.message });
+    }
 });
 
 // 📦 VAULT LIST
@@ -536,13 +552,17 @@ app.get('/vault/:id', authenticate, async(req, res) => {
                 else if (secret.tipo === 'archivo' && secret.encrypted) contenido = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64').toString('base64');
             } catch (fallback) {
                 if (secret.tipo === 'texto' && secret.contenido) contenido = decryptPII({ iv: (secret.encrypted && secret.encrypted.iv), data: secret.contenido, tag: (secret.encrypted && secret.encrypted.tag) });
-                else if (secret.tipo === 'archivo' && secret.encrypted) { const decrypted = decryptPII(secret.encrypted);
-                    contenido = Buffer.from(decrypted, 'base64').toString('base64'); }
+                else if (secret.tipo === 'archivo' && secret.encrypted) {
+                    const decrypted = decryptPII(secret.encrypted);
+                    contenido = Buffer.from(decrypted, 'base64').toString('base64');
+                }
             }
         } else {
             if (secret.tipo === 'texto' && secret.contenido) contenido = decryptPII({ iv: (secret.encrypted && secret.encrypted.iv), data: secret.contenido, tag: (secret.encrypted && secret.encrypted.tag) });
-            else if (secret.tipo === 'archivo' && secret.encrypted) { const decrypted = decryptPII(secret.encrypted);
-                contenido = Buffer.from(decrypted, 'base64').toString('base64'); }
+            else if (secret.tipo === 'archivo' && secret.encrypted) {
+                const decrypted = decryptPII(secret.encrypted);
+                contenido = Buffer.from(decrypted, 'base64').toString('base64');
+            }
         }
         res.json({ success: true, secret: { id: secret._id.toString(), titulo: secret.titulo, contenido, isForSale: secret.isForSale, price: secret.price, sales: secret.sales, licenseDays: secret.licenseDays, fileName: secret.fileName, fileType: secret.fileType } });
     } catch (e) { res.status(500).json({ error: 'Error al obtener contenido: ' + e.message }); }
@@ -723,8 +743,10 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
             }
         }
         res.json({ received: true });
-    } catch (e) { logger.error('❌ Webhook error: ' + e.message);
-        res.status(400).send('Webhook Error: ' + e.message); }
+    } catch (e) {
+        logger.error('❌ Webhook error: ' + e.message);
+        res.status(400).send('Webhook Error: ' + e.message);
+    }
 });
 
 // 👥 ADMIN: SET TIER
@@ -981,8 +1003,10 @@ app.post('/api/admin/verify-identity', authenticate, requireAdmin, async(req, re
         await verifiedIdentitiesCollection.updateOne({ userId: targetUserId }, { $set: identityData }, { upsert: true });
         await logAudit('admin.verify_identity', { admin: req.admin.uid, targetUser: targetUserId, entityType, verified: true });
         res.json({ success: true, message: `Identidad de ${targetUserId} verificada exitosamente`, userId: targetUserId, entityType, verifiedAt: identityData.verifiedAt });
-    } catch (e) { logger.error('❌ Error verificando identidad: ' + e.message);
-        res.status(500).json({ error: 'Error al verificar identidad: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Error verificando identidad: ' + e.message);
+        res.status(500).json({ error: 'Error al verificar identidad: ' + e.message });
+    }
 });
 app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async(req, res) => {
     try {
@@ -992,9 +1016,11 @@ app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async(req, re
         delete decrypted.address.iv;
         delete decrypted.address.data;
         delete decrypted.address.tag;
-        if (decrypted.legalId) { delete decrypted.legalId.iv;
+        if (decrypted.legalId) {
+            delete decrypted.legalId.iv;
             delete decrypted.legalId.data;
-            delete decrypted.legalId.tag; }
+            delete decrypted.legalId.tag;
+        }
         res.json({ success: true, identity: decrypted });
     } catch (e) { res.status(500).json({ error: 'Error obteniendo identidad: ' + e.message }); }
 });
@@ -1038,8 +1064,10 @@ app.post('/api/vault/export', authenticate, async(req, res) => {
         const exportToken = crypto.randomBytes(32).toString('hex');
         await logAudit('vault_export', { userId: user.uid, itemCount: items.length, zeroKnowledge: FEATURES.ZERO_KNOWLEDGE, exportToken: exportToken.slice(0, 8) + '...', metadata: ZeroKnowledgeUtils.createZKMetadata('export', user.uid) });
         res.json({ success: true, message: FEATURES.ZERO_KNOWLEDGE ? 'Exportación generada. Cifra este JSON con tu clave maestra antes de guardar.' : 'Exportación generada. Descarga archivos individualmente para backup completo.', exportToken, expiresAt: new Date(Date.now() + 3600000).toISOString(), data: vaultExport, instructions: { downloadContent: 'GET /vault/:id para cada archivo', importLater: 'POST /api/vault/import con este JSON', zeroKnowledge: FEATURES.ZERO_KNOWLEDGE ? 'Usa deriveUserKey(password, salt) en frontend para cifrar este JSON' : null } });
-    } catch (e) { logger.error('❌ Export error: ' + e.message);
-        res.status(500).json({ error: 'Error exportando bóveda: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Export error: ' + e.message);
+        res.status(500).json({ error: 'Error exportando bóveda: ' + e.message });
+    }
 });
 
 // GET /api/vault/export/:token
@@ -1057,8 +1085,10 @@ app.get('/api/vault/export/:token', authenticate, async(req, res) => {
         const exportData = { version: '1.0', exportedAt: new Date().toISOString(), userId: user.uid, email: user.email, items: items.map(i => ({ id: i._id.toString(), titulo: i.titulo, categoria: i.categoria, fileName: i.fileName, createdAt: i.createdAt })) };
         res.send(JSON.stringify(exportData, null, 2));
         await logAudit('vault_export_download', { userId: user.uid, token: req.params.token.slice(0, 8) + '...' });
-    } catch (e) { logger.error('❌ Export download error: ' + e.message);
-        res.status(500).json({ error: 'Error descargando exportación: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Export download error: ' + e.message);
+        res.status(500).json({ error: 'Error descargando exportación: ' + e.message });
+    }
 });
 
 // POST /api/vault/import
@@ -1079,13 +1109,17 @@ app.post('/api/vault/import', authenticate, async(req, res) => {
                 const newItem = { userId: user._id, userUid: user.uid, titulo: item.titulo, categoria: item.categoria || 'imported', folderId: 'imported', tipo: item.tipo || (item.fileName ? 'archivo' : 'texto'), fileName: item.fileName || null, fileType: item.fileType || null, fileSize: item.fileSize || 0, encrypted: null, contenido: null, isForSale: false, price: 0, sales: 0, buyers: [], createdAt: new Date(item.createdAt) || new Date(), importedFrom: exportData.exportedAt || new Date().toISOString(), originalId: item.id, metadata: { imported: true, importDate: new Date().toISOString() } };
                 await secretsCollection.insertOne(newItem);
                 importedCount++;
-            } catch (itemError) { errors.push({ itemId: item.id, titulo: item.titulo, error: itemError.message });
-                logger.warn(`⚠️ Import item failed: ${item.id} - ${itemError.message}`); }
+            } catch (itemError) {
+                errors.push({ itemId: item.id, titulo: item.titulo, error: itemError.message });
+                logger.warn(`⚠️ Import item failed: ${item.id} - ${itemError.message}`);
+            }
         }
         await logAudit('vault_import', { userId: user.uid, importedCount, errorCount: errors.length, skippedCount: skipped.length, sourceExport: exportData.exportedAt, zeroKnowledge: FEATURES.ZERO_KNOWLEDGE });
         res.json({ success: true, message: `Importación completada: ${importedCount} items restaurados`, summary: { imported: importedCount, errors: errors.length, skipped: skipped.length, total: exportData.items.length }, errors: errors.length > 0 ? errors : undefined, skipped: skipped.length > 0 ? skipped : undefined, nextSteps: ['Sube el contenido cifrado de cada archivo vía POST /vault normal', 'O usa el frontend con zero-knowledge para restaurar contenido completo', 'Verifica tus archivos en GET /vault'] });
-    } catch (e) { logger.error('❌ Import error: ' + e.message);
-        res.status(500).json({ error: 'Error importando bóveda: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Import error: ' + e.message);
+        res.status(500).json({ error: 'Error importando bóveda: ' + e.message });
+    }
 });
 
 // GET /api/vault/sync/check
@@ -1099,8 +1133,10 @@ app.get('/api/vault/sync/check', authenticate, async(req, res) => {
         if (lastSync) { const lastSyncDate = new Date(lastSync); if (!isNaN(lastSyncDate.getTime())) query.$or = [{ createdAt: { $gt: lastSyncDate } }, { updatedAt: { $gt: lastSyncDate } }]; }
         const changes = await secretsCollection.find(query, { projection: { _id: 1, titulo: 1, categoria: 1, fileName: 1, updatedAt: 1, createdAt: 1, tipo: 1, fileSize: 1 } }).sort({ updatedAt: -1 }).limit(100).toArray();
         res.json({ success: true, hasChanges: changes.length > 0, changesCount: changes.length, lastServerSync: new Date().toISOString(), clientLastSync: lastSync || null, changes: changes.map(c => ({ id: c._id.toString(), titulo: c.titulo, categoria: c.categoria, tipo: c.tipo, fileName: c.fileName, fileSize: c.fileSize, updatedAt: c.updatedAt || c.createdAt, createdAt: c.createdAt })), instructions: { pull: 'GET /vault/:id para contenido completo de cada cambio', push: 'POST /api/vault/sync/push para subir cambios locales', zeroKnowledge: FEATURES.ZERO_KNOWLEDGE ? 'Contenido viene cifrado - descifra en frontend con tu clave' : null } });
-    } catch (e) { logger.error('❌ Sync check error: ' + e.message);
-        res.status(500).json({ error: 'Error verificando sync: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Sync check error: ' + e.message);
+        res.status(500).json({ error: 'Error verificando sync: ' + e.message });
+    }
 });
 
 // POST /api/vault/sync/push
@@ -1121,20 +1157,30 @@ app.post('/api/vault/sync/push', authenticate, async(req, res) => {
                 const updateData = { titulo: change.titulo, categoria: change.categoria, fileName: change.fileName, fileType: change.fileType, fileSize: change.fileSize, updatedAt: new Date(), metadata: {...(change.metadata || {}), lastSynced: new Date().toISOString(), syncedFrom: options.source || 'client' } };
                 if (change.id && ObjectId.isValid(change.id)) {
                     const result = await secretsCollection.updateOne({ _id: new ObjectId(change.id), userId: user._id }, { $set: updateData });
-                    if (result.matchedCount > 0) { updated.push(change.id);
-                        syncedCount++; } else { await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date(), originalId: change.id });
+                    if (result.matchedCount > 0) {
+                        updated.push(change.id);
+                        syncedCount++;
+                    } else {
+                        await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date(), originalId: change.id });
                         created.push(change.id);
-                        syncedCount++; }
-                } else { await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date() });
+                        syncedCount++;
+                    }
+                } else {
+                    await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date() });
                     created.push(change.id || 'new');
-                    syncedCount++; }
-            } catch (itemError) { errors.push({ changeId: change.id, titulo: change.titulo, error: itemError.message });
-                logger.warn(`⚠️ Sync push failed: ${change.id} - ${itemError.message}`); }
+                    syncedCount++;
+                }
+            } catch (itemError) {
+                errors.push({ changeId: change.id, titulo: change.titulo, error: itemError.message });
+                logger.warn(`⚠️ Sync push failed: ${change.id} - ${itemError.message}`);
+            }
         }
         await logAudit('vault_sync_push', { userId: user.uid, synced: syncedCount, created: created.length, updated: updated.length, errors: errors.length, source: options.source || 'client' });
         res.json({ success: true, message: `${syncedCount} cambios sincronizados`, summary: { synced: syncedCount, created: created.length, updated: updated.length, errors: errors.length, total: changes.length }, created: created.length > 0 ? created : undefined, updated: updated.length > 0 ? updated : undefined, errors: errors.length > 0 ? errors : undefined, nextSteps: ['Sube el contenido cifrado de nuevos archivos vía POST /vault', 'Verifica sincronización con GET /api/vault/sync/check', FEATURES.ZERO_KNOWLEDGE ? 'Contenido local debe cifrarse con tu clave antes de subir' : null].filter(Boolean) });
-    } catch (e) { logger.error('❌ Sync push error: ' + e.message);
-        res.status(500).json({ error: 'Error sincronizando cambios: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Sync push error: ' + e.message);
+        res.status(500).json({ error: 'Error sincronizando cambios: ' + e.message });
+    }
 });
 
 // === 🚀 NUEVAS FUNCIONES: WEB3 LOGIN + IPFS BACKUP ===
@@ -1159,8 +1205,10 @@ app.post('/api/web3/login', async(req, res) => {
         const token = jwt.sign({ uid: user.uid, wallet: address, authMethod: 'web3' }, JWT_SECRET, { expiresIn: '7d' });
         await logAudit('web3_login', { address });
         res.json({ success: true, token, user: { uid: user.uid, wallet: address, tier: user.tier } });
-    } catch (e) { logger.error('❌ Web3 login error: ' + e.message);
-        res.status(500).json({ error: 'Error login Web3: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Web3 login error: ' + e.message);
+        res.status(500).json({ error: 'Error login Web3: ' + e.message });
+    }
 });
 
 // 🌐 IPFS BACKUP CON HELIA
@@ -1186,8 +1234,10 @@ app.post('/api/vault/:id/backup', authenticate, async(req, res) => {
         await secretsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { backupCid: cid, backupUrl: ipfsUrl, backupAt: new Date() } });
         await logAudit('vault.backup', { fileId: id, cid, userId: user.uid, system: 'helia' });
         res.json({ success: true, cid, url: ipfsUrl, message: 'Backup en IPFS creado vía Helia. Contenido sigue cifrado con tu clave.' });
-    } catch (e) { logger.error('❌ Helia backup error: ' + e.message);
-        res.status(500).json({ error: 'Error creando backup IPFS: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Helia backup error: ' + e.message);
+        res.status(500).json({ error: 'Error creando backup IPFS: ' + e.message });
+    }
 });
 
 // 📥 RESTAURAR DESDE IPFS
@@ -1205,8 +1255,10 @@ app.get('/api/vault/:id/restore', authenticate, async(req, res) => {
         await secretsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { restoredFromBackup: new Date(), backupRestored: true } });
         await logAudit('vault.restore', { fileId: id, cid: secret.backupCid, userId: user.uid });
         res.json({ success: true, message: 'Archivo restaurado desde IPFS. Contenido sigue cifrado con tu clave.' });
-    } catch (e) { logger.error('❌ Helia restore error: ' + e.message);
-        res.status(500).json({ error: 'Error restaurando desde IPFS: ' + e.message }); }
+    } catch (e) {
+        logger.error('❌ Helia restore error: ' + e.message);
+        res.status(500).json({ error: 'Error restaurando desde IPFS: ' + e.message });
+    }
 });
 
 // 🌐 SERVIR FRONTEND
@@ -1236,6 +1288,8 @@ async function startServer() {
         if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
     });
 }
-startServer().catch(function(err) { logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
-    process.exit(1); });
+startServer().catch(function(err) {
+    logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
+    process.exit(1);
+});
 // === FIN: index.js ===
