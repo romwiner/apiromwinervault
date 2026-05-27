@@ -175,7 +175,7 @@ app.use(helmet({
             scriptSrc: ["'self'", "'unsafe-inline'"],
             scriptSrcAttr: ["'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:", "http:"],
-            connectSrc: ["'self'", "https://apiromwinervault.onrender.com", "https://checkout.stripe.com", "https://api.qrserver.com"],
+            connectSrc: ["'self'", "https://apiromwinervault.onrender.com", "https://checkout.stripe.com", "https://api.qrserver.com", "http://localhost:3000", "http://127.0.0.1:3000"],
             fontSrc: ["'self'", "https:", "data:"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
@@ -189,17 +189,38 @@ app.use(helmet({
     crossOriginResourcePolicy: false
 }));
 
-// ✅ AGREGADO: CORS para permitir conexiones desde el frontend
+// ✅ CORS: PERMITE CONEXIONES DESDE EL FRONTEND
 app.use(cors({
-    origin: [
-        'https://apiromwinervault.onrender.com',
-        'http://localhost:3000',
-        'http://127.0.0.1:3000'
-    ],
+    origin: function(origin, callback) {
+        // Permitir si no hay origin (app móvil, Postman, etc.)
+        if (!origin) return callback(null, true);
+
+        const allowedOrigins = [
+            'https://apiromwinervault.onrender.com',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            'http://localhost:10000',
+            'http://127.0.0.1:10000'
+        ];
+
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('CORS no permitido para este origen'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Vault-Sig']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Vault-Sig', 'X-Requested-With'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
+
+// ✅ MANEJO EXPLÍCITO DE PREFLIGHT OPTIONS (CRÍTICO PARA CORS)
+app.options('*', cors());
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
