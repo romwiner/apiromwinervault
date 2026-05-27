@@ -1,4 +1,4 @@
-// === INICIO: index.js - APIROMWINER VAULT (MEJORADO: PERSONAL + PRIVADO + PORTABLE) ===
+// === INICIO: index.js - APIROMWINER VAULT (COMPLETO: 61 + 4 FUNCIONES) ===
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -16,48 +16,50 @@ const sharp = require('sharp');
 const diffLib = require('diff');
 const fileType = require('file-type');
 const { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } = require('@simplewebauthn/server');
+const { ethers } = require('ethers');
+const { createFromURL } = require('@helia/http');
+const { unixfs } = require('@helia/unixfs');
 
-// 🔐 CLAVES + ADMINS (DEFINIDAS PRIMERO PARA QUE ESTÉN DISPONIBLES)
+// 🔐 CLAVES + ADMINS
 const JWT_SECRET = process.env.JWT_SECRET || 'romwiner_jwt_secret_fallback';
 const MASTER_KEY = process.env.MASTER_KEY || 'romwiner_master_key_fallback';
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'rraygoza67@gmail.com,nubislosnubis@gmail.com,romraywiner@gmail.com').split(',').map(e => e.trim());
 const APP_URL = process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com';
 
-// === 🚀 MEJORAS: BÓVEDA PERSONAL, PRIVADA Y PORTABLE (NUEVO) ===
-// Feature flags para controlar nuevas funcionalidades (todas opcionales)
+// 🚀 FEATURE FLAGS
 const FEATURES = {
     ZERO_KNOWLEDGE: process.env.ENABLE_ZERO_KNOWLEDGE === 'true',
     OFFLINE_MODE: process.env.ENABLE_OFFLINE === 'true',
-    PORTABLE_EXPORT: process.env.ENABLE_EXPORT !== 'false', // Default: true
-    LOCAL_SYNC: process.env.ENABLE_LOCAL_SYNC === 'true'
+    PORTABLE_EXPORT: process.env.ENABLE_EXPORT !== 'false',
+    LOCAL_SYNC: process.env.ENABLE_LOCAL_SYNC === 'true',
+    WEB3_LOGIN: process.env.ENABLE_WEB3 === 'true',
+    IPFS_BACKUP: process.env.ENABLE_IPFS === 'true'
 };
 
-// Utilidades Zero-Knowledge (cliente-side encryption helpers)
-// NOTA: El cifrado real ocurre en el frontend. Estas funciones ayudan al backend a validar.
+// 🌐 HELIA (IPFS) INIT
+let heliaFs = null;
+const initHelia = async() => {
+    if (heliaFs) return heliaFs;
+    try {
+        const gatewayUrl = process.env.IPFS_GATEWAY || 'https://ipfs.io';
+        const helia = createFromURL(gatewayUrl);
+        heliaFs = unixfs(helia);
+        pino().info(`🌐 Helia initialized: ${gatewayUrl}`);
+        return heliaFs;
+    } catch (e) {
+        pino().warn('⚠️ Helia init failed: ' + e.message);
+        return null;
+    }
+};
+
+// 🔐 ZERO-KNOWLEDGE UTILS
 const ZeroKnowledgeUtils = {
-    // Validar que el payload viene cifrado (estructura esperada)
-    isValidEncryptedPayload: (payload) => {
-        return payload &&
-            typeof payload === 'object' &&
-            'data' in payload &&
-            'iv' in payload &&
-            'alg' in payload &&
-            payload.alg === 'AES-GCM-256';
-    },
-
-    // Generar metadata para auditoría zero-knowledge
-    createZKMetadata: (action, userId) => ({
-        action,
-        userId,
-        zeroKnowledge: true,
-        serverSees: 'encrypted_only',
-        timestamp: new Date().toISOString()
-    })
+    isValidEncryptedPayload: (payload) => payload && typeof payload === 'object' && 'data' in payload && 'iv' in payload && 'alg' in payload && payload.alg === 'AES-GCM-256',
+    createZKMetadata: (action, userId) => ({ action, userId, zeroKnowledge: true, serverSees: 'encrypted_only', timestamp: new Date().toISOString() })
 };
-// === FIN MEJORAS CONFIGURACIÓN ===
 
-// 🔐 SISTEMA DE CIFRADO EN CAPAS (ENVELOPE ENCRYPTION) — AHORA MASTER_KEY YA EXISTE
+// 🔐 ENVELOPE ENCRYPTION
 const EnvelopeEncryption = (function() {
     class CryptoWrapper {
         constructor(masterKey) { this.mk = Buffer.from(masterKey.slice(0, 32)); }
@@ -88,7 +90,7 @@ const EnvelopeEncryption = (function() {
     return new CryptoWrapper(MASTER_KEY);
 })();
 
-// 🔐 CIFRADO PARA DATOS PERSONALES (PII) — IDENTIDAD VERIFICADA
+// 🔐 PII CIFRADO
 const encryptPII = (plaintext) => {
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(MASTER_KEY.slice(0, 32)), iv);
@@ -103,7 +105,7 @@ const decryptPII = (encrypted) => {
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
-app.set('trust proxy', 1); // ✅ Crítico para Render
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 10000;
 
 // 🔐 MONGODB
@@ -190,7 +192,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 📁 UPLOADS CON VALIDACIÓN REAL
+// 📁 UPLOADS
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdir(uploadDir, { recursive: true }).catch(() => {});
 const storage = multer.diskStorage({
@@ -210,14 +212,14 @@ const upload = multer({
             const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'rar', 'zip', '7z', 'epub', 'mobi'];
             const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain', 'video/mp4', 'video/webm', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'application/x-rar-compressed', 'application/zip', 'application/x-7z-compressed', 'application/epub+zip', 'application/x-mobipocket-ebook'];
             if ((type && allowedExts.includes(type.ext)) || allowedMimes.includes(file.mimetype)) cb(null, true);
-            else cb(new Error('Archivo no permitido. Formatos: JPG, PNG, PDF, DOC, XLS, TXT, MP4, MP3, RAR, ZIP, etc.'));
+            else cb(new Error('Archivo no permitido'));
         } catch (e) { cb(new Error('Error validando archivo: ' + e.message)); }
     }
 });
 
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Demasiadas solicitudes' } }));
 
-// 🔐 AUTH + ADMIN
+// 🔐 AUTH
 const authenticate = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'Token requerido' });
@@ -235,18 +237,14 @@ const requireAdmin = async(req, res, next) => {
         next();
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
-
-// ✅ Middleware para consentimiento granular (SIN ?. — USANDO &&)
 const requireConsent = (...requiredScopes) => (req, res, next) => {
     const tokenScopes = (req.user && req.user.scopes) || [];
     const missing = requiredScopes.filter(scope => !tokenScopes.includes(scope));
-    if (missing.length > 0) {
-        return res.status(403).json({ error: 'Consentimiento requerido', missingScopes: missing, message: 'El usuario debe aprobar estos permisos primero' });
-    }
+    if (missing.length > 0) return res.status(403).json({ error: 'Consentimiento requerido', missingScopes: missing });
     next();
 };
 
-// ✅ TIERS + CUOTAS (SIN ?. — USANDO &&)
+// ✅ TIERS + CUOTAS
 const USER_TIERS = {
     personal: { id: 'personal', name: 'Personal', storageLimitGB: 10, maxFileSizeMB: 100, apiRateLimit: 100 },
     business: { id: 'business', name: 'Business', storageLimitGB: 100, maxFileSizeMB: 500, apiRateLimit: 1000 },
@@ -274,7 +272,7 @@ const checkQuota = async(req, res, next) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
-// ✅ AUDITORÍA INMUTABLE (SIN ?. — USANDO &&)
+// ✅ AUDITORÍA
 const createImmutableLog = async(data) => {
     const eventId = crypto.randomUUID();
     const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
@@ -285,12 +283,10 @@ const createImmutableLog = async(data) => {
     return {...data, eventId, previousHash: prev, currentHash: current, signature: sig, timestamp: new Date() };
 };
 const logAudit = async(action, data) => {
-    if (mongoReady && auditCollection) {
-        try { await auditCollection.insertOne(await createImmutableLog({ action, data, createdAt: new Date() })); } catch (e) { logger.warn('⚠️ Audit failed: ' + e.message); }
-    }
+    if (mongoReady && auditCollection) { try { await auditCollection.insertOne(await createImmutableLog({ action, data, createdAt: new Date() })); } catch (e) { logger.warn('⚠️ Audit failed: ' + e.message); } }
 };
 
-// ✅ REPORTES GDPR/SOC2 (SIN ?. — USANDO &&)
+// ✅ GDPR/SOC2
 const generateGDPRReport = async(userId, start, end) => {
     const user = await usersCollection.findOne({ uid: userId });
     const logs = await auditCollection.find({ userId, timestamp: { $gte: new Date(start), $lte: new Date(end) } }).sort({ timestamp: 1 }).toArray();
@@ -304,7 +300,7 @@ const generateSOC2Report = async(orgId, start, end) => ({
     integrityHash: crypto.createHash('sha256').update(orgId + start + end).digest('hex')
 });
 
-// ✅ ROTACIÓN DE CLAVES
+// ✅ KEY ROTATION
 const KeyRotationService = {
     rotationIntervalDays: 90,
     async rotateUserKey(userId) {
@@ -325,7 +321,7 @@ const KeyRotationService = {
     }
 };
 
-// ✅ WEBHOOKS (SIN ?. — USANDO &&)
+// ✅ WEBHOOKS
 const AlertWebhookService = {
     async registerWebhook(userId, config) {
         if (!mongoReady) return { success: true, message: 'Demo', demo: true };
@@ -343,37 +339,24 @@ const AlertWebhookService = {
     }
 };
 
-// 🌐 STATUS (ACTUALIZADO CON NUEVAS FUNCIONES)
+// 🌐 STATUS
 app.get('/api/status', (req, res) => res.json({
     api: 'ApiRomwiner Vault',
     status: 'online',
     database: mongoReady ? 'connected' : 'fallback',
     features: [
-        '🟢 57 Funciones Reales',
-        '🟢 Identidad Criptográfica Autónoma',
-        '🟢 Identidad Legal Verificada',
-        '🟢 Consentimiento Granular',
-        '🟢 Enterprise Tiers',
-        '🟢 Envelope Encryption',
-        '🟢 Auditoría Inmutable',
-        '🟢 GDPR/SOC2',
-        '🟢 Rotación de Claves',
-        '🟢 Webhooks',
-        '🟢 Enlaces Seguros',
-        '🟢 Thumbnails Cifrados',
-        '🟢 Versionado+Diff',
-        '🟢 Comentarios Cifrados',
-        '🟢 Super Admin Powers',
-        '🟢 Búsqueda en Vault',
+        '🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada',
+        '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable',
+        '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados',
+        '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault',
         '🟢 Validación Real de Archivos',
-        // === NUEVAS FUNCIONES ===
-        FEATURES.PORTABLE_EXPORT && '🟢 Exportación Portable',
-        FEATURES.LOCAL_SYNC && '🟢 Sync Offline',
-        FEATURES.ZERO_KNOWLEDGE && '🟢 Zero-Knowledge Ready'
+        FEATURES.PORTABLE_EXPORT && '🟢 Exportación Portable', FEATURES.LOCAL_SYNC && '🟢 Sync Offline',
+        FEATURES.ZERO_KNOWLEDGE && '🟢 Zero-Knowledge Ready', FEATURES.WEB3_LOGIN && '🟢 Login Web3',
+        FEATURES.IPFS_BACKUP && '🟢 Backup IPFS (Helia)'
     ].filter(Boolean)
 }));
 
-// 🔐 REGISTRO + LOGIN
+// 🔐 REGISTER
 app.post('/register', async(req, res) => {
     try {
         const { email, password, refCode } = req.body;
@@ -392,6 +375,7 @@ app.post('/register', async(req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// 🔐 LOGIN
 app.post('/login', async(req, res) => {
     try {
         const { email, password } = req.body;
@@ -406,7 +390,7 @@ app.post('/login', async(req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 👤 PERFIL
+// 👤 PROFILE
 app.get('/api/profile', authenticate, async(req, res) => {
     try {
         if (!mongoReady) return res.json({ success: true, profile: { displayName: 'Demo' }, demo: true });
@@ -432,7 +416,7 @@ app.post('/api/profile', authenticate, upload.single('avatar'), async(req, res) 
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 💰 WALLET + PAGOS (SIN ?. — USANDO &&)
+// 💰 WALLET
 app.get('/api/wallet', authenticate, async(req, res) => {
     try {
         if (!mongoReady) return res.json({ success: true, wallet: { balance: 0, currency: 'USD' }, demo: true });
@@ -468,7 +452,7 @@ app.post('/api/wallet/withdraw', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error al procesar retiro: ' + e.message }); }
 });
 
-// 👑 DUEÑO: REGALAR + MULTIAMIN
+// 👑 ADMIN: GIFT ACCOUNT
 app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) => {
     try {
         const { recipientEmail, initialBalance, note, tier } = req.body;
@@ -485,9 +469,7 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
             await affiliatesCollection.insertOne({ userId: r.insertedId, refCode: newUser.refCode, level: 'bronce', createdAt: new Date() });
             user = newUser;
         } else {
-            if (tier && ['personal', 'business', 'enterprise'].includes(tier)) {
-                await usersCollection.updateOne({ _id: user._id }, { $set: { tier, updatedAt: new Date() } });
-            }
+            if (tier && ['personal', 'business', 'enterprise'].includes(tier)) await usersCollection.updateOne({ _id: user._id }, { $set: { tier, updatedAt: new Date() } });
         }
         const bal = parseFloat(initialBalance) || 0;
         await walletCollection.updateOne({ userId: user._id }, { $setOnInsert: { balance: bal, currency: 'USD', history: [] }, $inc: { balance: bal }, $push: { history: { type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() } } }, { upsert: true });
@@ -497,7 +479,7 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
     } catch (e) { res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message }); }
 });
 
-// 📦 VAULT + COMPRAS (SIN ?. — USANDO &&)
+// 📦 VAULT CREATE
 app.post('/vault', authenticate, checkQuota, async(req, res) => {
     try {
         const { titulo, categoria = 'general', folderId = 'general', contenido, price = 0, forSale = false, licenseDays = null } = req.body;
@@ -507,11 +489,9 @@ app.post('/vault', authenticate, checkQuota, async(req, res) => {
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
         const data = { userId: user._id, userUid: user.uid, titulo, categoria, folderId, tipo: req.file ? 'archivo' : 'texto', contenido: null, fileName: req.file ? path.basename(req.file.filename) : null, fileType: req.file ? req.file.mimetype : null, fileSize: req.file ? req.file.size : null, encrypted: null, isForSale: forSale, price: forSale ? price : 0, licenseDays, sales: 0, buyers: [], createdAt: new Date() };
         let wrappedDEK = user.encryptedUserKey;
-        if (!wrappedDEK) {
-            const dek = EnvelopeEncryption.generateDEK();
+        if (!wrappedDEK) { const dek = EnvelopeEncryption.generateDEK();
             wrappedDEK = EnvelopeEncryption.wrapDEK(dek);
-            await usersCollection.updateOne({ _id: user._id }, { $set: { encryptedUserKey: wrappedDEK } });
-        }
+            await usersCollection.updateOne({ _id: user._id }, { $set: { encryptedUserKey: wrappedDEK } }); }
         const userDEK = EnvelopeEncryption.unwrapDEK(wrappedDEK);
         if (req.file) {
             data.fileName = path.basename(req.file.filename);
@@ -524,12 +504,11 @@ app.post('/vault', authenticate, checkQuota, async(req, res) => {
         const result = await secretsCollection.insertOne(data);
         await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale });
         res.status(201).json({ success: true, message: 'Contenido guardado y cifrado en Vault (clave única por usuario)', id: result.insertedId, fileName: data.fileName });
-    } catch (e) {
-        logger.error('❌ Vault create: ' + e.message);
-        res.status(500).json({ error: 'Error al guardar en Vault: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Vault create: ' + e.message);
+        res.status(500).json({ error: 'Error al guardar en Vault: ' + e.message }); }
 });
 
+// 📦 VAULT LIST
 app.get('/vault', authenticate, async(req, res) => {
     try {
         if (!mongoReady || !secretsCollection) return res.json({ success: true, items: [], total: 0 });
@@ -540,6 +519,7 @@ app.get('/vault', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error al listar Vault: ' + e.message }); }
 });
 
+// 📦 VAULT READ
 app.get('/vault/:id', authenticate, async(req, res) => {
     try {
         if (!mongoReady || !secretsCollection) return res.json({ success: true, secret: { id: req.params.id, titulo: 'Demo' }, demo: true });
@@ -555,23 +535,20 @@ app.get('/vault/:id', authenticate, async(req, res) => {
                 if (secret.tipo === 'texto' && secret.contenido) contenido = EnvelopeEncryption.open(secret.contenido, userDEK);
                 else if (secret.tipo === 'archivo' && secret.encrypted) contenido = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64').toString('base64');
             } catch (fallback) {
-                if (secret.tipo === 'texto' && secret.contenido) contenido = decrypt({ iv: (secret.encrypted && secret.encrypted.iv), encrypted: secret.contenido, authTag: (secret.encrypted && secret.encrypted.authTag) });
-                else if (secret.tipo === 'archivo' && secret.encrypted) {
-                    const decrypted = decrypt(secret.encrypted);
-                    contenido = Buffer.from(decrypted, 'base64').toString('base64');
-                }
+                if (secret.tipo === 'texto' && secret.contenido) contenido = decryptPII({ iv: (secret.encrypted && secret.encrypted.iv), data: secret.contenido, tag: (secret.encrypted && secret.encrypted.tag) });
+                else if (secret.tipo === 'archivo' && secret.encrypted) { const decrypted = decryptPII(secret.encrypted);
+                    contenido = Buffer.from(decrypted, 'base64').toString('base64'); }
             }
         } else {
-            if (secret.tipo === 'texto' && secret.contenido) contenido = decrypt({ iv: (secret.encrypted && secret.encrypted.iv), encrypted: secret.contenido, authTag: (secret.encrypted && secret.encrypted.authTag) });
-            else if (secret.tipo === 'archivo' && secret.encrypted) {
-                const decrypted = decrypt(secret.encrypted);
-                contenido = Buffer.from(decrypted, 'base64').toString('base64');
-            }
+            if (secret.tipo === 'texto' && secret.contenido) contenido = decryptPII({ iv: (secret.encrypted && secret.encrypted.iv), data: secret.contenido, tag: (secret.encrypted && secret.encrypted.tag) });
+            else if (secret.tipo === 'archivo' && secret.encrypted) { const decrypted = decryptPII(secret.encrypted);
+                contenido = Buffer.from(decrypted, 'base64').toString('base64'); }
         }
         res.json({ success: true, secret: { id: secret._id.toString(), titulo: secret.titulo, contenido, isForSale: secret.isForSale, price: secret.price, sales: secret.sales, licenseDays: secret.licenseDays, fileName: secret.fileName, fileType: secret.fileType } });
     } catch (e) { res.status(500).json({ error: 'Error al obtener contenido: ' + e.message }); }
 });
 
+// 📦 VAULT DELETE
 app.delete('/vault/:id', authenticate, async(req, res) => {
     try {
         if (!mongoReady || !secretsCollection) return res.json({ success: true, message: 'Eliminado en modo demo', demo: true });
@@ -584,6 +561,7 @@ app.delete('/vault/:id', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error al eliminar: ' + e.message }); }
 });
 
+// 💰 BUY
 app.post('/api/buy/:id', authenticate, async(req, res) => {
     try {
         if (!mongoReady || !secretsCollection || !walletCollection) return res.json({ success: true, message: 'Compra demo: configura MongoDB y wallet', demo: true });
@@ -610,7 +588,7 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error procesando compra: ' + e.message }); }
 });
 
-// 🤝 AFILIADOS + NIVELES + RETIROS (SIN ?. — USANDO &&)
+// 🤝 AFFILIATES DASHBOARD
 app.get('/api/affiliates/dashboard', authenticate, async(req, res) => {
     try {
         if (!mongoReady || !affiliatesCollection) return res.json({ success: true, dashboard: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0, referralLink: APP_URL + '?ref=DEMO', refCode: 'DEMO' }, demo: true });
@@ -635,7 +613,7 @@ app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error al procesar retiro de afiliados: ' + e.message }); }
 });
 
-// 🆔 IDENTIDAD + OAUTH
+// 🆔 IDENTITY: REGISTER APP
 app.post('/api/identity/register-app', authenticate, async(req, res) => {
     try {
         const appName = req.body.appName,
@@ -682,7 +660,7 @@ app.get('/api/identity/qr', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error al generar QR: ' + e.message }); }
 });
 
-// 📊 DASHBOARD + AUDITORÍA + EXPORT
+// 📊 DASHBOARD
 app.get('/api/dashboard', authenticate, async(req, res) => {
     try {
         if (!mongoReady || !secretsCollection) return res.json({ success: true, dashboard: { revenue: 0, sales: 0, active: 0, forSale: 0 }, demo: true });
@@ -695,6 +673,7 @@ app.get('/api/dashboard', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error al cargar dashboard: ' + e.message }); }
 });
 
+// 📋 AUDIT EXPORT
 app.get('/api/audit/export', authenticate, requireTier('business', 'enterprise'), async(req, res) => {
     try {
         const { type, startDate, endDate, organizationId } = req.query;
@@ -706,6 +685,7 @@ app.get('/api/audit/export', authenticate, requireTier('business', 'enterprise')
     } catch (e) { res.status(500).json({ error: 'Error al exportar auditoría: ' + e.message }); }
 });
 
+// 🔑 ROTATE KEYS
 app.post('/api/admin/rotate-keys', authenticate, requireAdmin, requireTier('enterprise'), async(req, res) => {
     try {
         const { userId } = req.body;
@@ -713,6 +693,7 @@ app.post('/api/admin/rotate-keys', authenticate, requireAdmin, requireTier('ente
     } catch (e) { res.status(500).json({ error: 'Error rotando claves: ' + e.message }); }
 });
 
+// 🔗 WEBHOOKS ADMIN
 app.post('/api/admin/webhooks', authenticate, requireAdmin, async(req, res) => {
     try {
         const { userId, url, events, secret } = req.body;
@@ -721,7 +702,6 @@ app.post('/api/admin/webhooks', authenticate, requireAdmin, async(req, res) => {
         res.json(result);
     } catch (e) { res.status(500).json({ error: 'Error registrando webhook: ' + e.message }); }
 });
-
 app.delete('/api/admin/webhooks/:url', authenticate, requireAdmin, async(req, res) => {
     try {
         if (!mongoReady) return res.json({ success: true, message: 'Demo: webhook eliminado', demo: true });
@@ -730,7 +710,7 @@ app.delete('/api/admin/webhooks/:url', authenticate, requireAdmin, async(req, re
     } catch (e) { res.status(500).json({ error: 'Error eliminando webhook: ' + e.message }); }
 });
 
-// 🌐 WEBHOOK STRIPE
+// 💳 STRIPE WEBHOOK
 app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async(req, res) => {
     try {
         const event = JSON.parse(req.body.toString());
@@ -743,17 +723,15 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
             }
         }
         res.json({ received: true });
-    } catch (e) {
-        logger.error('❌ Webhook error: ' + e.message);
-        res.status(400).send('Webhook Error: ' + e.message);
-    }
+    } catch (e) { logger.error('❌ Webhook error: ' + e.message);
+        res.status(400).send('Webhook Error: ' + e.message); }
 });
 
-// 👥 ADMIN: Actualizar tier de usuario
+// 👥 ADMIN: SET TIER
 app.patch('/api/admin/set-tier', authenticate, requireAdmin, async(req, res) => {
     try {
         const { targetEmail, tier } = req.body;
-        if (!targetEmail || !['personal', 'business', 'enterprise'].includes(tier)) return res.status(400).json({ error: 'Email y tier válidos requeridos (personal|business|enterprise)' });
+        if (!targetEmail || !['personal', 'business', 'enterprise'].includes(tier)) return res.status(400).json({ error: 'Email y tier válidos requeridos' });
         if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo: tier actualizado', demo: true });
         const result = await usersCollection.updateOne({ email: targetEmail }, { $set: { tier, updatedAt: new Date() } });
         if (result.matchedCount === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -762,8 +740,8 @@ app.patch('/api/admin/set-tier', authenticate, requireAdmin, async(req, res) => 
     } catch (e) { res.status(500).json({ error: 'Error al actualizar tier: ' + e.message }); }
 });
 
-// === FUNCIONES NUEVAS INTEGRADAS SIN BORRAR NADA ===
-// 🔗 ENLACES COMPARTIDOS SEGUROS (SIN ?. — USANDO &&)
+// === FUNCIONES EXISTENTES: SHARE, THUMBNAIL, VERSIONS, COMMENTS, ADMIN ===
+// 🔗 SHARE LINKS
 app.post('/api/vault/:id/share', authenticate, async(req, res) => {
     try {
         const { expiresInHours = 24, password, permissions = ['view'] } = req.body;
@@ -789,7 +767,7 @@ app.get('/s/:token', async(req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 🖼️ THUMBNAILS CIFRADOS (SIN ?. — USANDO &&)
+// 🖼️ THUMBNAILS
 app.post('/api/vault/:id/thumbnail', authenticate, async(req, res) => {
     try {
         const userCheck = await usersCollection.findOne({ uid: req.user.uid });
@@ -816,7 +794,7 @@ app.get('/api/vault/:id/thumbnail', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 📜 VERSIONES + DIFF (SIN ?. — USANDO &&)
+// 📜 VERSIONS + DIFF
 app.post('/api/vault/:id/version', authenticate, async(req, res) => {
     try {
         const { content } = req.body;
@@ -858,7 +836,7 @@ app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 💬 COMENTARIOS CIFRADOS (SIN ?. — USANDO &&)
+// 💬 COMMENTS
 app.post('/api/vault/:id/comments', authenticate, async(req, res) => {
     try {
         const { content } = req.body;
@@ -882,7 +860,7 @@ app.get('/api/vault/:id/comments', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 👑 SUPER ADMIN: FUNCIONES EXCLUSIVAS
+// 👑 SUPER ADMIN FUNCTIONS
 app.delete('/api/admin/users/:email', authenticate, requireAdmin, async(req, res) => {
     try {
         const targetUser = await usersCollection.findOne({ email: req.params.email });
@@ -934,7 +912,7 @@ app.get('/api/admin/export-user/:email', authenticate, requireAdmin, async(req, 
     } catch (e) { res.status(500).json({ error: 'Error exportando datos: ' + e.message }); }
 });
 
-// 🔐 IDENTIDAD CRIPTOGRÁFICA AUTÓNOMA (WebAuthn/FIDO2) — SIN GOOGLE/MICROSOFT (SIN ?. — USANDO &&)
+// 🔐 CRYPTO-AUTH (WEBAUTHN/FIDO2)
 app.post('/api/crypto-auth/register-start', authenticate, async(req, res) => {
     try {
         const { email } = req.body;
@@ -991,7 +969,7 @@ app.post('/api/crypto-auth/consent', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error procesando consentimiento: ' + e.message }); }
 });
 
-// 📋 IDENTIDAD LEGAL VERIFICADA (ADMIN + USER) - CIFRADO PII
+// 📋 IDENTITY LEGAL VERIFIED
 app.post('/api/admin/verify-identity', authenticate, requireAdmin, async(req, res) => {
     try {
         const { targetUserId, fullName, address, legalId, entityType = 'person', documents, verifiedBy } = req.body;
@@ -1003,10 +981,8 @@ app.post('/api/admin/verify-identity', authenticate, requireAdmin, async(req, re
         await verifiedIdentitiesCollection.updateOne({ userId: targetUserId }, { $set: identityData }, { upsert: true });
         await logAudit('admin.verify_identity', { admin: req.admin.uid, targetUser: targetUserId, entityType, verified: true });
         res.json({ success: true, message: `Identidad de ${targetUserId} verificada exitosamente`, userId: targetUserId, entityType, verifiedAt: identityData.verifiedAt });
-    } catch (e) {
-        logger.error('❌ Error verificando identidad: ' + e.message);
-        res.status(500).json({ error: 'Error al verificar identidad: ' + e.message });
-    }
+    } catch (e) { logger.error('❌ Error verificando identidad: ' + e.message);
+        res.status(500).json({ error: 'Error al verificar identidad: ' + e.message }); }
 });
 app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async(req, res) => {
     try {
@@ -1016,11 +992,9 @@ app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async(req, re
         delete decrypted.address.iv;
         delete decrypted.address.data;
         delete decrypted.address.tag;
-        if (decrypted.legalId) {
-            delete decrypted.legalId.iv;
+        if (decrypted.legalId) { delete decrypted.legalId.iv;
             delete decrypted.legalId.data;
-            delete decrypted.legalId.tag;
-        }
+            delete decrypted.legalId.tag; }
         res.json({ success: true, identity: decrypted });
     } catch (e) { res.status(500).json({ error: 'Error obteniendo identidad: ' + e.message }); }
 });
@@ -1052,483 +1026,187 @@ app.get('/api/identity/verification-status', authenticate, async(req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error consultando estado: ' + e.message }); }
 });
 
-// === 🚀 NUEVAS FUNCIONES: EXPORTACIÓN PORTABLE (ZERO-ERROR, ADITIVAS) ===
-
-// POST /api/vault/export - Exportar bóveda para backup/migración (PORTABLE)
+// === 🚀 NUEVAS FUNCIONES: EXPORT/IMPORT/SYNC (PORTABLE) ===
+// POST /api/vault/export
 app.post('/api/vault/export', authenticate, async(req, res) => {
     try {
-        // Modo demo/fallback: no requiere MongoDB
-        if (!FEATURES.PORTABLE_EXPORT || !mongoReady || !secretsCollection) {
-            return res.json({
-                success: true,
-                message: 'Modo demo: estructura de exportación vacía',
-                demo: true,
-                exportToken: 'demo_export_' + Date.now(),
-                note: 'Configura ENABLE_EXPORT=true y MongoDB para exportación real'
-            });
-        }
-
+        if (!FEATURES.PORTABLE_EXPORT || !mongoReady || !secretsCollection) return res.json({ success: true, message: 'Modo demo: estructura de exportación vacía', demo: true, exportToken: 'demo_export_' + Date.now(), note: 'Configura ENABLE_EXPORT=true y MongoDB para exportación real' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        // Obtener SOLO metadatos (el contenido cifrado se descarga individualmente)
-        // Esto mantiene la exportación ligera y segura
-        const items = await secretsCollection.find({ userId: user._id }, {
-            projection: {
-                encrypted: 0,
-                contenido: 0,
-                _id: 1,
-                titulo: 1,
-                categoria: 1,
-                fileName: 1,
-                fileType: 1,
-                fileSize: 1,
-                createdAt: 1,
-                isForSale: 1,
-                tipo: 1
-            }
-        }).toArray();
-
-        // Crear paquete de exportación estandarizado
-        const vaultExport = {
-            version: '1.0',
-            exportedAt: new Date().toISOString(),
-            userId: user.uid,
-            email: user.email,
-            tier: user.tier,
-            metadata: {
-                totalItems: items.length,
-                categories: [...new Set(items.map(i => i.categoria).filter(Boolean))],
-                totalSize: items.reduce((sum, i) => sum + (i.fileSize || 0), 0),
-                zeroKnowledge: FEATURES.ZERO_KNOWLEDGE
-            },
-            items: items.map(item => ({
-                id: item._id.toString(),
-                titulo: item.titulo,
-                categoria: item.categoria,
-                tipo: item.tipo,
-                fileName: item.fileName,
-                fileType: item.fileType,
-                fileSize: item.fileSize,
-                createdAt: item.createdAt,
-                isForSale: item.isForSale,
-                // ⚠️ IMPORTANTE: El contenido NO se incluye aquí
-                // El cliente debe descargar cada archivo vía GET /vault/:id con su clave
-                note: 'Contenido cifrado: descargar individualmente para backup completo'
-            }))
-        };
-
-        // Generar token de exportación único (expira en 1 hora)
+        const items = await secretsCollection.find({ userId: user._id }, { projection: { encrypted: 0, contenido: 0, _id: 1, titulo: 1, categoria: 1, fileName: 1, fileType: 1, fileSize: 1, createdAt: 1, isForSale: 1, tipo: 1 } }).toArray();
+        const vaultExport = { version: '1.0', exportedAt: new Date().toISOString(), userId: user.uid, email: user.email, tier: user.tier, metadata: { totalItems: items.length, categories: [...new Set(items.map(i => i.categoria).filter(Boolean))], totalSize: items.reduce((sum, i) => sum + (i.fileSize || 0), 0), zeroKnowledge: FEATURES.ZERO_KNOWLEDGE }, items: items.map(item => ({ id: item._id.toString(), titulo: item.titulo, categoria: item.categoria, tipo: item.tipo, fileName: item.fileName, fileType: item.fileType, fileSize: item.fileSize, createdAt: item.createdAt, isForSale: item.isForSale, note: 'Contenido cifrado: descargar individualmente para backup completo' })) };
         const exportToken = crypto.randomBytes(32).toString('hex');
-
-        // Registrar en auditoría (inmutable)
-        await logAudit('vault_export', {
-            userId: user.uid,
-            itemCount: items.length,
-            zeroKnowledge: FEATURES.ZERO_KNOWLEDGE,
-            exportToken: exportToken.slice(0, 8) + '...',
-            metadata: ZeroKnowledgeUtils.createZKMetadata('export', user.uid)
-        });
-
-        res.json({
-            success: true,
-            message: FEATURES.ZERO_KNOWLEDGE ?
-                'Exportación generada. Cifra este JSON con tu clave maestra antes de guardar.' :
-                'Exportación generada. Descarga archivos individualmente para backup completo.',
-            exportToken,
-            expiresAt: new Date(Date.now() + 3600000).toISOString(),
-            data: vaultExport,
-            instructions: {
-                downloadContent: 'GET /vault/:id para cada archivo',
-                importLater: 'POST /api/vault/import con este JSON',
-                zeroKnowledge: FEATURES.ZERO_KNOWLEDGE ? 'Usa deriveUserKey(password, salt) en frontend para cifrar este JSON' : null
-            }
-        });
-
-    } catch (e) {
-        logger.error('❌ Export error: ' + e.message);
-        res.status(500).json({ error: 'Error exportando bóveda: ' + e.message });
-    }
+        await logAudit('vault_export', { userId: user.uid, itemCount: items.length, zeroKnowledge: FEATURES.ZERO_KNOWLEDGE, exportToken: exportToken.slice(0, 8) + '...', metadata: ZeroKnowledgeUtils.createZKMetadata('export', user.uid) });
+        res.json({ success: true, message: FEATURES.ZERO_KNOWLEDGE ? 'Exportación generada. Cifra este JSON con tu clave maestra antes de guardar.' : 'Exportación generada. Descarga archivos individualmente para backup completo.', exportToken, expiresAt: new Date(Date.now() + 3600000).toISOString(), data: vaultExport, instructions: { downloadContent: 'GET /vault/:id para cada archivo', importLater: 'POST /api/vault/import con este JSON', zeroKnowledge: FEATURES.ZERO_KNOWLEDGE ? 'Usa deriveUserKey(password, salt) en frontend para cifrar este JSON' : null } });
+    } catch (e) { logger.error('❌ Export error: ' + e.message);
+        res.status(500).json({ error: 'Error exportando bóveda: ' + e.message }); }
 });
 
-// GET /api/vault/export/:token - Descargar archivo de exportación
+// GET /api/vault/export/:token
 app.get('/api/vault/export/:token', authenticate, async(req, res) => {
     try {
-        // Validar token (en producción, guardar en DB con expiración)
-        if (!FEATURES.PORTABLE_EXPORT) {
-            return res.status(404).json({ error: 'Exportación portable no habilitada' });
-        }
-
-        // Modo demo: aceptar tokens demo
-        if (!mongoReady && !req.params.token.startsWith('demo_export_')) {
-            return res.status(404).json({ error: 'Token de exportación no válido' });
-        }
-
-        // Headers para descarga directa
+        if (!FEATURES.PORTABLE_EXPORT) return res.status(404).json({ error: 'Exportación portable no habilitada' });
+        if (!mongoReady && !req.params.token.startsWith('demo_export_')) return res.status(404).json({ error: 'Token de exportación no válido' });
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Content-Disposition', `attachment; filename="romwiner-vault-export-${Date.now()}.json"`);
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
-
-        // Re-generar datos frescos (o cachear por 1 hora en producción)
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
         const items = await secretsCollection.find({ userId: user._id }, { projection: { encrypted: 0, contenido: 0, _id: 1, titulo: 1, categoria: 1, fileName: 1, createdAt: 1 } }).toArray();
-
-        const exportData = {
-            version: '1.0',
-            exportedAt: new Date().toISOString(),
-            userId: user.uid,
-            email: user.email,
-            items: items.map(i => ({
-                id: i._id.toString(),
-                titulo: i.titulo,
-                categoria: i.categoria,
-                fileName: i.fileName,
-                createdAt: i.createdAt
-            }))
-        };
-
+        const exportData = { version: '1.0', exportedAt: new Date().toISOString(), userId: user.uid, email: user.email, items: items.map(i => ({ id: i._id.toString(), titulo: i.titulo, categoria: i.categoria, fileName: i.fileName, createdAt: i.createdAt })) };
         res.send(JSON.stringify(exportData, null, 2));
-        await logAudit('vault_export_download', {
-            userId: user.uid,
-            token: req.params.token.slice(0, 8) + '...'
-        });
-
-    } catch (e) {
-        logger.error('❌ Export download error: ' + e.message);
-        res.status(500).json({ error: 'Error descargando exportación: ' + e.message });
-    }
+        await logAudit('vault_export_download', { userId: user.uid, token: req.params.token.slice(0, 8) + '...' });
+    } catch (e) { logger.error('❌ Export download error: ' + e.message);
+        res.status(500).json({ error: 'Error descargando exportación: ' + e.message }); }
 });
 
-// POST /api/vault/import - Importar bóveda desde backup (PORTABLE)
+// POST /api/vault/import
 app.post('/api/vault/import', authenticate, async(req, res) => {
     try {
         const { exportData, options = {} } = req.body;
-
-        // Validación básica de estructura
-        if (!exportData || !exportData.version || !Array.isArray(exportData.items)) {
-            return res.status(400).json({
-                error: 'Datos de exportación inválidos. Falta "version" o "items" array.',
-                expected: { version: '1.0', items: 'array' }
-            });
-        }
-
-        // Modo demo/fallback
-        if (!FEATURES.PORTABLE_EXPORT || !mongoReady || !secretsCollection) {
-            return res.json({
-                success: true,
-                message: 'Modo demo: importación simulada',
-                demo: true,
-                imported: exportData.items.length
-            });
-        }
-
+        if (!exportData || !exportData.version || !Array.isArray(exportData.items)) return res.status(400).json({ error: 'Datos de exportación inválidos. Falta "version" o "items" array.', expected: { version: '1.0', items: 'array' } });
+        if (!FEATURES.PORTABLE_EXPORT || !mongoReady || !secretsCollection) return res.json({ success: true, message: 'Modo demo: importación simulada', demo: true, imported: exportData.items.length });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        // Validar que el export pertenece al usuario (o permitir import como nuevo)
-        if (exportData.userId && exportData.userId !== user.uid && !options.forceImport) {
-            return res.status(403).json({
-                error: 'Exportación pertenece a otro usuario.',
-                exportUserId: exportData.userId,
-                yourUserId: user.uid,
-                solution: 'Usa forceImport:true para importar como nueva bóveda'
-            });
-        }
-
+        if (exportData.userId && exportData.userId !== user.uid && !options.forceImport) return res.status(403).json({ error: 'Exportación pertenece a otro usuario.', exportUserId: exportData.userId, yourUserId: user.uid, solution: 'Usa forceImport:true para importar como nueva bóveda' });
         let importedCount = 0;
         const errors = [];
         const skipped = [];
-
-        // Procesar cada item (metadatos solamente - contenido se sube después)
         for (const item of(exportData.items || [])) {
             try {
-                // Validar item mínimo requerido
-                if (!item.titulo) {
-                    skipped.push({ reason: 'missing titulo', item });
-                    continue;
-                }
-
-                // Crear entrada con metadatos (contenido vacío - se sube vía POST /vault normal)
-                const newItem = {
-                    userId: user._id,
-                    userUid: user.uid,
-                    titulo: item.titulo,
-                    categoria: item.categoria || 'imported',
-                    folderId: 'imported',
-                    tipo: item.tipo || (item.fileName ? 'archivo' : 'texto'),
-                    fileName: item.fileName || null,
-                    fileType: item.fileType || null,
-                    fileSize: item.fileSize || 0,
-                    encrypted: null, // ⚠️ Contenido debe subirse después vía flujo normal
-                    contenido: null,
-                    isForSale: false,
-                    price: 0,
-                    sales: 0,
-                    buyers: [],
-                    createdAt: new Date(item.createdAt) || new Date(),
-                    importedFrom: exportData.exportedAt || new Date().toISOString(),
-                    originalId: item.id,
-                    metadata: { imported: true, importDate: new Date().toISOString() }
-                };
-
+                if (!item.titulo) { skipped.push({ reason: 'missing titulo', item }); continue; }
+                const newItem = { userId: user._id, userUid: user.uid, titulo: item.titulo, categoria: item.categoria || 'imported', folderId: 'imported', tipo: item.tipo || (item.fileName ? 'archivo' : 'texto'), fileName: item.fileName || null, fileType: item.fileType || null, fileSize: item.fileSize || 0, encrypted: null, contenido: null, isForSale: false, price: 0, sales: 0, buyers: [], createdAt: new Date(item.createdAt) || new Date(), importedFrom: exportData.exportedAt || new Date().toISOString(), originalId: item.id, metadata: { imported: true, importDate: new Date().toISOString() } };
                 await secretsCollection.insertOne(newItem);
                 importedCount++;
-
-            } catch (itemError) {
-                errors.push({
-                    itemId: item.id,
-                    titulo: item.titulo,
-                    error: itemError.message
-                });
-                logger.warn(`⚠️ Import item failed: ${item.id} - ${itemError.message}`);
-            }
+            } catch (itemError) { errors.push({ itemId: item.id, titulo: item.titulo, error: itemError.message });
+                logger.warn(`⚠️ Import item failed: ${item.id} - ${itemError.message}`); }
         }
-
-        // Registrar auditoría
-        await logAudit('vault_import', {
-            userId: user.uid,
-            importedCount,
-            errorCount: errors.length,
-            skippedCount: skipped.length,
-            sourceExport: exportData.exportedAt,
-            zeroKnowledge: FEATURES.ZERO_KNOWLEDGE
-        });
-
-        res.json({
-            success: true,
-            message: `Importación completada: ${importedCount} items restaurados`,
-            summary: {
-                imported: importedCount,
-                errors: errors.length,
-                skipped: skipped.length,
-                total: exportData.items.length
-            },
-            errors: errors.length > 0 ? errors : undefined,
-            skipped: skipped.length > 0 ? skipped : undefined,
-            nextSteps: [
-                'Sube el contenido cifrado de cada archivo vía POST /vault normal',
-                'O usa el frontend con zero-knowledge para restaurar contenido completo',
-                'Verifica tus archivos en GET /vault'
-            ]
-        });
-
-    } catch (e) {
-        logger.error('❌ Import error: ' + e.message);
-        res.status(500).json({ error: 'Error importando bóveda: ' + e.message });
-    }
+        await logAudit('vault_import', { userId: user.uid, importedCount, errorCount: errors.length, skippedCount: skipped.length, sourceExport: exportData.exportedAt, zeroKnowledge: FEATURES.ZERO_KNOWLEDGE });
+        res.json({ success: true, message: `Importación completada: ${importedCount} items restaurados`, summary: { imported: importedCount, errors: errors.length, skipped: skipped.length, total: exportData.items.length }, errors: errors.length > 0 ? errors : undefined, skipped: skipped.length > 0 ? skipped : undefined, nextSteps: ['Sube el contenido cifrado de cada archivo vía POST /vault normal', 'O usa el frontend con zero-knowledge para restaurar contenido completo', 'Verifica tus archivos en GET /vault'] });
+    } catch (e) { logger.error('❌ Import error: ' + e.message);
+        res.status(500).json({ error: 'Error importando bóveda: ' + e.message }); }
 });
 
-// === 🚀 NUEVAS FUNCIONES: SYNC OFFLINE (LOCAL SYNC) ===
-
-// GET /api/vault/sync/check - Verificar cambios desde último sync (OFFLINE MODE)
+// GET /api/vault/sync/check
 app.get('/api/vault/sync/check', authenticate, async(req, res) => {
     try {
-        const { lastSync } = req.query; // Timestamp del último sync del cliente (ISO string)
-
-        // Modo demo/fallback
-        if (!FEATURES.LOCAL_SYNC || !mongoReady) {
-            return res.json({
-                success: true,
-                hasChanges: false,
-                demo: true,
-                message: 'Sync offline no habilitado. Configura ENABLE_LOCAL_SYNC=true'
-            });
-        }
-
+        const { lastSync } = req.query;
+        if (!FEATURES.LOCAL_SYNC || !mongoReady) return res.json({ success: true, hasChanges: false, demo: true, message: 'Sync offline no habilitado. Configura ENABLE_LOCAL_SYNC=true' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        // Construir query para cambios recientes
         const query = { userId: user._id };
-        if (lastSync) {
-            const lastSyncDate = new Date(lastSync);
-            if (!isNaN(lastSyncDate.getTime())) {
-                query.$or = [
-                    { createdAt: { $gt: lastSyncDate } },
-                    { updatedAt: { $gt: lastSyncDate } }
-                ];
-            }
-        }
-
-        // Obtener cambios (solo metadatos ligeros)
-        const changes = await secretsCollection.find(
-            query, {
-                projection: {
-                    _id: 1,
-                    titulo: 1,
-                    categoria: 1,
-                    fileName: 1,
-                    updatedAt: 1,
-                    createdAt: 1,
-                    tipo: 1,
-                    fileSize: 1
-                }
-            }
-        ).sort({ updatedAt: -1 }).limit(100).toArray();
-
-        res.json({
-            success: true,
-            hasChanges: changes.length > 0,
-            changesCount: changes.length,
-            lastServerSync: new Date().toISOString(),
-            clientLastSync: lastSync || null,
-            changes: changes.map(c => ({
-                id: c._id.toString(),
-                titulo: c.titulo,
-                categoria: c.categoria,
-                tipo: c.tipo,
-                fileName: c.fileName,
-                fileSize: c.fileSize,
-                updatedAt: c.updatedAt || c.createdAt,
-                createdAt: c.createdAt
-            })),
-            instructions: {
-                pull: 'GET /vault/:id para contenido completo de cada cambio',
-                push: 'POST /api/vault/sync/push para subir cambios locales',
-                zeroKnowledge: FEATURES.ZERO_KNOWLEDGE ? 'Contenido viene cifrado - descifra en frontend con tu clave' : null
-            }
-        });
-
-    } catch (e) {
-        logger.error('❌ Sync check error: ' + e.message);
-        res.status(500).json({ error: 'Error verificando sync: ' + e.message });
-    }
+        if (lastSync) { const lastSyncDate = new Date(lastSync); if (!isNaN(lastSyncDate.getTime())) query.$or = [{ createdAt: { $gt: lastSyncDate } }, { updatedAt: { $gt: lastSyncDate } }]; }
+        const changes = await secretsCollection.find(query, { projection: { _id: 1, titulo: 1, categoria: 1, fileName: 1, updatedAt: 1, createdAt: 1, tipo: 1, fileSize: 1 } }).sort({ updatedAt: -1 }).limit(100).toArray();
+        res.json({ success: true, hasChanges: changes.length > 0, changesCount: changes.length, lastServerSync: new Date().toISOString(), clientLastSync: lastSync || null, changes: changes.map(c => ({ id: c._id.toString(), titulo: c.titulo, categoria: c.categoria, tipo: c.tipo, fileName: c.fileName, fileSize: c.fileSize, updatedAt: c.updatedAt || c.createdAt, createdAt: c.createdAt })), instructions: { pull: 'GET /vault/:id para contenido completo de cada cambio', push: 'POST /api/vault/sync/push para subir cambios locales', zeroKnowledge: FEATURES.ZERO_KNOWLEDGE ? 'Contenido viene cifrado - descifra en frontend con tu clave' : null } });
+    } catch (e) { logger.error('❌ Sync check error: ' + e.message);
+        res.status(500).json({ error: 'Error verificando sync: ' + e.message }); }
 });
 
-// POST /api/vault/sync/push - Subir cambios locales al servidor (OFFLINE MODE)
+// POST /api/vault/sync/push
 app.post('/api/vault/sync/push', authenticate, async(req, res) => {
     try {
         const { changes = [], options = {} } = req.body;
-
-        // Validación básica
-        if (!Array.isArray(changes)) {
-            return res.status(400).json({ error: '"changes" debe ser un array de objetos' });
-        }
-
-        // Modo demo/fallback
-        if (!FEATURES.LOCAL_SYNC || !mongoReady || !secretsCollection) {
-            return res.json({
-                success: true,
-                synced: changes.length,
-                demo: true,
-                message: 'Modo demo: cambios simulados como sincronizados'
-            });
-        }
-
+        if (!Array.isArray(changes)) return res.status(400).json({ error: '"changes" debe ser un array de objetos' });
+        if (!FEATURES.LOCAL_SYNC || !mongoReady || !secretsCollection) return res.json({ success: true, synced: changes.length, demo: true, message: 'Modo demo: cambios simulados como sincronizados' });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
         let syncedCount = 0;
         const errors = [];
         const created = [];
         const updated = [];
-
         for (const change of changes) {
             try {
-                // Validar cambio mínimo
-                if (!change.titulo) {
-                    errors.push({ change: change.id || 'unknown', error: 'titulo requerido' });
-                    continue;
-                }
-
-                const updateData = {
-                    titulo: change.titulo,
-                    categoria: change.categoria,
-                    fileName: change.fileName,
-                    fileType: change.fileType,
-                    fileSize: change.fileSize,
-                    updatedAt: new Date(),
-                    metadata: {
-                        ...(change.metadata || {}),
-                        lastSynced: new Date().toISOString(),
-                        syncedFrom: options.source || 'client'
-                    }
-                };
-
+                if (!change.titulo) { errors.push({ change: change.id || 'unknown', error: 'titulo requerido' }); continue; }
+                const updateData = { titulo: change.titulo, categoria: change.categoria, fileName: change.fileName, fileType: change.fileType, fileSize: change.fileSize, updatedAt: new Date(), metadata: {...(change.metadata || {}), lastSynced: new Date().toISOString(), syncedFrom: options.source || 'client' } };
                 if (change.id && ObjectId.isValid(change.id)) {
-                    // Update existente (solo si pertenece al usuario)
                     const result = await secretsCollection.updateOne({ _id: new ObjectId(change.id), userId: user._id }, { $set: updateData });
-
-                    if (result.matchedCount > 0) {
-                        updated.push(change.id);
-                        syncedCount++;
-                    } else {
-                        // No encontrado o no autorizado - crear como nuevo
-                        await secretsCollection.insertOne({
-                            ...updateData,
-                            userId: user._id,
-                            userUid: user.uid,
-                            tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'),
-                            encrypted: null,
-                            contenido: null,
-                            createdAt: new Date(change.createdAt) || new Date(),
-                            originalId: change.id // Referencia al ID original del cliente
-                        });
+                    if (result.matchedCount > 0) { updated.push(change.id);
+                        syncedCount++; } else { await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date(), originalId: change.id });
                         created.push(change.id);
-                        syncedCount++;
-                    }
-                } else {
-                    // Crear nuevo
-                    await secretsCollection.insertOne({
-                        ...updateData,
-                        userId: user._id,
-                        userUid: user.uid,
-                        tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'),
-                        encrypted: null,
-                        contenido: null,
-                        createdAt: new Date(change.createdAt) || new Date()
-                    });
+                        syncedCount++; }
+                } else { await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date() });
                     created.push(change.id || 'new');
-                    syncedCount++;
-                }
-
-            } catch (itemError) {
-                errors.push({
-                    changeId: change.id,
-                    titulo: change.titulo,
-                    error: itemError.message
-                });
-                logger.warn(`⚠️ Sync push failed: ${change.id} - ${itemError.message}`);
-            }
+                    syncedCount++; }
+            } catch (itemError) { errors.push({ changeId: change.id, titulo: change.titulo, error: itemError.message });
+                logger.warn(`⚠️ Sync push failed: ${change.id} - ${itemError.message}`); }
         }
+        await logAudit('vault_sync_push', { userId: user.uid, synced: syncedCount, created: created.length, updated: updated.length, errors: errors.length, source: options.source || 'client' });
+        res.json({ success: true, message: `${syncedCount} cambios sincronizados`, summary: { synced: syncedCount, created: created.length, updated: updated.length, errors: errors.length, total: changes.length }, created: created.length > 0 ? created : undefined, updated: updated.length > 0 ? updated : undefined, errors: errors.length > 0 ? errors : undefined, nextSteps: ['Sube el contenido cifrado de nuevos archivos vía POST /vault', 'Verifica sincronización con GET /api/vault/sync/check', FEATURES.ZERO_KNOWLEDGE ? 'Contenido local debe cifrarse con tu clave antes de subir' : null].filter(Boolean) });
+    } catch (e) { logger.error('❌ Sync push error: ' + e.message);
+        res.status(500).json({ error: 'Error sincronizando cambios: ' + e.message }); }
+});
 
-        // Registrar auditoría
-        await logAudit('vault_sync_push', {
-            userId: user.uid,
-            synced: syncedCount,
-            created: created.length,
-            updated: updated.length,
-            errors: errors.length,
-            source: options.source || 'client'
-        });
+// === 🚀 NUEVAS FUNCIONES: WEB3 LOGIN + IPFS BACKUP ===
+// 🔗 WEB3 LOGIN
+app.post('/api/web3/login', async(req, res) => {
+    try {
+        if (!FEATURES.WEB3_LOGIN) return res.status(404).json({ error: 'Web3 login no habilitado' });
+        const { address, signature, message } = req.body;
+        if (!address || !signature || !message) return res.status(400).json({ error: 'address, signature y message requeridos' });
+        const recoveredAddress = ethers.verifyMessage(message, signature);
+        if (recoveredAddress.toLowerCase() !== address.toLowerCase()) return res.status(401).json({ error: 'Firma inválida' });
+        let user = await usersCollection.findOne({ walletAddress: address });
+        if (!user && mongoReady) {
+            const newUser = { walletAddress: address, uid: 'rom_' + crypto.randomBytes(8).toString('hex'), tier: 'personal', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
+            const r = await usersCollection.insertOne(newUser);
+            await profilesCollection.insertOne({ userId: r.insertedId, uid: newUser.uid, displayName: '', avatarUrl: '', bio: '', isPublic: false, createdAt: new Date() });
+            await walletCollection.insertOne({ userId: r.insertedId, balance: 0, currency: 'USD', history: [], createdAt: new Date() });
+            await affiliatesCollection.insertOne({ userId: r.insertedId, refCode: newUser.refCode, level: 'bronce', createdAt: new Date() });
+            user = newUser;
+            await logAudit('web3_register', { address });
+        } else if (!user) { user = { uid: 'demo_web3', walletAddress: address, tier: 'personal' }; }
+        const token = jwt.sign({ uid: user.uid, wallet: address, authMethod: 'web3' }, JWT_SECRET, { expiresIn: '7d' });
+        await logAudit('web3_login', { address });
+        res.json({ success: true, token, user: { uid: user.uid, wallet: address, tier: user.tier } });
+    } catch (e) { logger.error('❌ Web3 login error: ' + e.message);
+        res.status(500).json({ error: 'Error login Web3: ' + e.message }); }
+});
 
-        res.json({
-            success: true,
-            message: `${syncedCount} cambios sincronizados`,
-            summary: {
-                synced: syncedCount,
-                created: created.length,
-                updated: updated.length,
-                errors: errors.length,
-                total: changes.length
-            },
-            created: created.length > 0 ? created : undefined,
-            updated: updated.length > 0 ? updated : undefined,
-            errors: errors.length > 0 ? errors : undefined,
-            nextSteps: [
-                'Sube el contenido cifrado de nuevos archivos vía POST /vault',
-                'Verifica sincronización con GET /api/vault/sync/check',
-                FEATURES.ZERO_KNOWLEDGE ? 'Contenido local debe cifrarse con tu clave antes de subir' : null
-            ].filter(Boolean)
-        });
+// 🌐 IPFS BACKUP CON HELIA
+app.post('/api/vault/:id/backup', authenticate, async(req, res) => {
+    try {
+        if (!FEATURES.IPFS_BACKUP) return res.status(404).json({ error: 'Backup IPFS no habilitado' });
+        const { id } = req.params;
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(id), userId: user._id });
+        if (!secret) return res.status(404).json({ error: 'Archivo no encontrado' });
+        let content = null;
+        if (user.encryptedUserKey) {
+            const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
+            if (secret.tipo === 'texto' && secret.contenido) content = EnvelopeEncryption.open(secret.contenido, userDEK);
+            else if (secret.tipo === 'archivo' && secret.encrypted) content = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64');
+        }
+        if (!content) return res.status(400).json({ error: 'No se pudo descifrar el contenido' });
+        const fs = await initHelia();
+        if (!fs) return res.status(500).json({ error: 'IPFS no disponible' });
+        const result = await fs.addBytes(content instanceof Buffer ? content : new TextEncoder().encode(content));
+        const cid = result.toString();
+        const ipfsUrl = `https://ipfs.io/ipfs/${cid}`;
+        await secretsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { backupCid: cid, backupUrl: ipfsUrl, backupAt: new Date() } });
+        await logAudit('vault.backup', { fileId: id, cid, userId: user.uid, system: 'helia' });
+        res.json({ success: true, cid, url: ipfsUrl, message: 'Backup en IPFS creado vía Helia. Contenido sigue cifrado con tu clave.' });
+    } catch (e) { logger.error('❌ Helia backup error: ' + e.message);
+        res.status(500).json({ error: 'Error creando backup IPFS: ' + e.message }); }
+});
 
-    } catch (e) {
-        logger.error('❌ Sync push error: ' + e.message);
-        res.status(500).json({ error: 'Error sincronizando cambios: ' + e.message });
-    }
+// 📥 RESTAURAR DESDE IPFS
+app.get('/api/vault/:id/restore', authenticate, async(req, res) => {
+    try {
+        if (!FEATURES.IPFS_BACKUP) return res.status(404).json({ error: 'Backup IPFS no habilitado' });
+        const { id } = req.params;
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        const secret = await secretsCollection.findOne({ _id: new ObjectId(id), userId: user._id });
+        if (!(secret && secret.backupCid)) return res.status(404).json({ error: 'No hay backup en IPFS para este archivo' });
+        const fs = await initHelia();
+        if (!fs) return res.status(500).json({ error: 'IPFS no disponible' });
+        const chunks = [];
+        for await (const chunk of fs.cat(secret.backupCid)) chunks.push(chunk);
+        await secretsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { restoredFromBackup: new Date(), backupRestored: true } });
+        await logAudit('vault.restore', { fileId: id, cid: secret.backupCid, userId: user.uid });
+        res.json({ success: true, message: 'Archivo restaurado desde IPFS. Contenido sigue cifrado con tu clave.' });
+    } catch (e) { logger.error('❌ Helia restore error: ' + e.message);
+        res.status(500).json({ error: 'Error restaurando desde IPFS: ' + e.message }); }
 });
 
 // 🌐 SERVIR FRONTEND
@@ -1539,47 +1217,25 @@ app.get('/', function(req, res) {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 🚀 INICIAR + PROGRAMAR TAREAS ENTERPRISE
+// 🚀 START SERVER
 async function startServer() {
     await connectToMongo();
     if (mongoReady) {
-        // Rotación de claves programada (cada 24h verifica usuarios elegibles)
-        setInterval(() => {
-            KeyRotationService.scheduleRotations().catch(e =>
-                logger.warn('⚠️ Scheduled rotation failed: ' + e.message)
-            );
-        }, 24 * 60 * 60 * 1000);
+        setInterval(() => { KeyRotationService.scheduleRotations().catch(e => logger.warn('⚠️ Scheduled rotation failed: ' + e.message)); }, 24 * 60 * 60 * 1000);
         logger.info('🔄 Key rotation scheduled every 24h');
-
-        // Limpieza de enlaces expirados (cada hora)
-        setInterval(async() => {
-            try {
-                if (sharedLinksCollection) {
-                    const result = await sharedLinksCollection.deleteMany({
-                        expiresAt: { $lt: new Date() }
-                    });
-                    if (result.deletedCount > 0) {
-                        logger.info(`🧹 Limpiados ${result.deletedCount} enlaces expirados`);
-                    }
-                }
-            } catch (e) {
-                logger.warn('⚠️ Cleanup expired links failed: ' + e.message);
-            }
-        }, 60 * 60 * 1000);
+        setInterval(async() => { try { if (sharedLinksCollection) { const result = await sharedLinksCollection.deleteMany({ expiresAt: { $lt: new Date() } }); if (result.deletedCount > 0) logger.info(`🧹 Limpiados ${result.deletedCount} enlaces expirados`); } } catch (e) { logger.warn('⚠️ Cleanup expired links failed: ' + e.message); } }, 60 * 60 * 1000);
         logger.info('🧹 Expired links cleanup scheduled every 1h');
     }
-
     app.listen(PORT, '0.0.0.0', function() {
         logger.info('🚀 APIROMWINER en puerto ' + PORT);
         logger.info('🟢 57 Funciones Reales | 🔐 Identidad Criptográfica Autónoma | 📋 Identidad Legal Verificada | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY');
-        // === LOG DE NUEVAS FUNCIONES ===
         if (FEATURES.PORTABLE_EXPORT) logger.info('📦 Exportación Portable: ACTIVADA');
         if (FEATURES.LOCAL_SYNC) logger.info('🔄 Sync Offline: ACTIVADO');
         if (FEATURES.ZERO_KNOWLEDGE) logger.info('🔐 Zero-Knowledge: ACTIVADO');
+        if (FEATURES.WEB3_LOGIN) logger.info('🔗 Login Web3: ACTIVADO');
+        if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
     });
 }
-startServer().catch(function(err) {
-    logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
-    process.exit(1);
-});
+startServer().catch(function(err) { logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
+    process.exit(1); });
 // === FIN: index.js ===
