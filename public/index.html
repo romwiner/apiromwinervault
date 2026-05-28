@@ -64,7 +64,7 @@
             </div>
         </div>
 
-        <!-- 👑 PANEL DE ADMINISTRADOR (solo visible si isAdmin=true) -->
+        <!-- 👑 PANEL DE ADMINISTRADOR (visible solo si isAdmin=true) -->
         <div id="adminPanel" class="glass enterprise enterprise-only" style="display:none">
             <h2 style="color:#ff5252">👑 Panel de Administrador</h2>
             <div class="grid">
@@ -160,9 +160,9 @@
     <!-- MODALS -->
     <div id="idModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px;text-align:center"><h2>🆔 Identidad Universal</h2><img id="idQrImg" class="qr-img" src="" alt="QR Identidad"><p id="idQrData" style="font-size:0.8rem;color:#8b95a5;word-break:break-all;margin:8px 0"></p><button onclick="closeIdModal()" class="btn-sec">✅ Entendido</button></div></div>
 
-    <div id="createModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px"><h2>📤 Publicar Activo (Texto)</h2><input id="itemTitle" placeholder="Título del contenido *"><input id="itemPrice" type="number" step="0.01" placeholder="Precio (USD) - opcional"><select id="itemCat"><option value="general">General</option><option value="finanzas">Finanzas</option><option value="tech">Tecnología</option><option value="educacion">Educación</option><option value="personal">Personal</option></select><label style="display:block;margin:8px 0;font-size:0.8rem;color:#8b95a5"><input type="checkbox" id="itemForSale"> Marcar para vender públicamente</label><button onclick="publish()">✅ Publicar en Venta</button><button onclick="closeCreate()" class="btn-sec">Cancelar</button></div></div>
+    <div id="createModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px"><h2>📤 Publicar Activo (Texto)</h2><input id="itemTitle" placeholder="Título del contenido *"><input id="itemPrice" type="number" step="0.01" placeholder="Precio (solo números)"><span style="font-size:0.7rem;color:#8b95a5;margin-left:8px">$ USD</span><select id="itemCat"><option value="general">General</option><option value="finanzas">Finanzas</option><option value="tech">Tecnología</option><option value="educacion">Educación</option><option value="personal">Personal</option></select><label style="display:block;margin:8px 0;font-size:0.8rem;color:#8b95a5"><input type="checkbox" id="itemForSale"> Marcar para vender públicamente</label><button onclick="publish()">✅ Publicar en Venta</button><button onclick="closeCreate()" class="btn-sec">Cancelar</button></div></div>
 
-    <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px"><h2>📤 Subir Archivo al Vault</h2><input id="uploadTitle" placeholder="Título del archivo *"><select id="uploadCat"><option value="general">📁 General</option><option value="fotos">📷 Fotos</option><option value="videos">🎬 Videos</option><option value="libros">📚 Libros</option><option value="documentos">📄 Documentos</option><option value="textos">✍️ Textos</option><option value="audio">🎵 Audio</option><option value="otros">📦 Otros</option></select><input id="uploadFile" type="file" style="background:#1a1f2a;padding:10px;border-radius:8px;margin:8px 0"><label style="display:block;margin:8px 0;font-size:0.8rem;color:#8b95a5"><input type="checkbox" id="uploadForSale"> Marcar para vender ($ USD)</label><input id="uploadPrice" type="number" step="0.01" placeholder="Precio (opcional)" style="display:none"><div class="progress-bar hidden" id="uploadProgress"><div class="progress-fill" id="uploadProgressFill"></div></div><p id="uploadStatus" style="font-size:0.75rem;color:#00e676;margin-top:8px;min-height:1.2em"></p><button onclick="doUpload()" id="uploadBtn">✅ Subir y Cifrar</button><button onclick="closeUpload()" class="btn-sec">Cancelar</button></div></div>
+    <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px"><h2>📤 Subir Archivo al Vault</h2><input id="uploadTitle" placeholder="Título del archivo *"><select id="uploadCat"><option value="general">📁 General</option><option value="fotos">📷 Fotos</option><option value="videos">🎬 Videos</option><option value="libros">📚 Libros</option><option value="documentos">📄 Documentos</option><option value="textos">✍️ Textos</option><option value="audio">🎵 Audio</option><option value="otros">📦 Otros</option></select><input id="uploadFile" type="file" style="background:#1a1f2a;padding:10px;border-radius:8px;margin:8px 0"><label style="display:block;margin:8px 0;font-size:0.8rem;color:#8b95a5"><input type="checkbox" id="uploadForSale"> Marcar para vender ($ USD)</label><input id="uploadPrice" type="number" step="0.01" placeholder="Precio (solo números)" style="display:none"><span id="uploadPriceLabel" style="font-size:0.7rem;color:#8b95a5;margin-left:8px;display:none">$ USD</span><div class="progress-bar hidden" id="uploadProgress"><div class="progress-fill" id="uploadProgressFill"></div></div><p id="uploadStatus" style="font-size:0.75rem;color:#00e676;margin-top:8px;min-height:1.2em"></p><button onclick="doUpload()" id="uploadBtn">✅ Subir y Cifrar</button><button onclick="closeUpload()" class="btn-sec">Cancelar</button></div></div>
 
     <div id="exportModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:400px;text-align:center"><h2>📦 Exportar Bóveda</h2><p style="font-size:0.8rem;color:#8b95a5;margin:12px 0">Se generará un archivo JSON con los metadatos de tu bóveda.<b id="zkExportWarning" class="hidden" style="color:#00e676;display:block;margin:8px 0">🔐 Modo Zero-Knowledge: cifra este archivo con tu clave maestra antes de guardarlo.</b></p><button onclick="doExportVault()" id="exportBtn">✅ Generar Exportación</button><button onclick="closeExportModal()" class="btn-sec">Cancelar</button><div id="exportStatus" style="font-size:0.75rem;color:#00e676;margin-top:12px;min-height:1.2em"></div></div></div>
 
@@ -347,39 +347,76 @@
             finally{const btn=event?.target;if(btn){btn.disabled=false;btn.textContent='✅ Publicar en Venta';}}
         }
 
-        function openUpload(){document.getElementById('uploadModal').classList.remove('hidden');document.getElementById('uploadPrice').style.display='none';document.getElementById('uploadStatus').textContent='';document.getElementById('uploadProgress').classList.add('hidden');document.getElementById('uploadProgressFill').style.width='0%';document.getElementById('uploadBtn').disabled=false;}
-        function closeUpload(){document.getElementById('uploadModal').classList.add('hidden');document.getElementById('uploadFile').value='';document.getElementById('uploadTitle').value='';document.getElementById('uploadStatus').textContent='';}
-        document.getElementById('uploadForSale')?.addEventListener('change',function(e){document.getElementById('uploadPrice').style.display=e.target.checked?'block':'none';});
+        function openUpload(){
+            document.getElementById('uploadModal').classList.remove('hidden');
+            document.getElementById('uploadPrice').style.display='none';
+            document.getElementById('uploadPriceLabel').style.display='none';
+            document.getElementById('uploadStatus').textContent='';
+            document.getElementById('uploadProgress').classList.add('hidden');
+            document.getElementById('uploadProgressFill').style.width='0%';
+            document.getElementById('uploadBtn').disabled=false;
+        }
+        function closeUpload(){
+            document.getElementById('uploadModal').classList.add('hidden');
+            document.getElementById('uploadFile').value='';
+            document.getElementById('uploadTitle').value='';
+            document.getElementById('uploadStatus').textContent='';
+        }
+        document.getElementById('uploadForSale')?.addEventListener('change',function(e){
+            document.getElementById('uploadPrice').style.display=e.target.checked?'block':'none';
+            document.getElementById('uploadPriceLabel').style.display=e.target.checked?'inline':'none';
+        });
+        
         async function doUpload(){
             const title=document.getElementById('uploadTitle').value?.trim();
             const cat=document.getElementById('uploadCat').value;
             const file=document.getElementById('uploadFile').files?.[0];
             const forSale=document.getElementById('uploadForSale').checked;
             const price=parseFloat(document.getElementById('uploadPrice').value)||0;
-            if(!title)return log('⚠️ Agrega un título');
-            if(!file)return log('⚠️ Selecciona un archivo');
+            
+            if(!title){showNotification('⚠️ Agrega un título','error');return;}
+            if(!file){showNotification('⚠️ Selecciona un archivo','error');return;}
+            
             const maxSizeMB={personal:100,business:500,enterprise:5000}[userTier]||100;
             const fileMB=file.size/(1024*1024);
-            if(fileMB>maxSizeMB)return log(`⚠️ Archivo muy grande. Tu plan permite hasta ${maxSizeMB}MB`);
+            if(fileMB>maxSizeMB){showNotification(`⚠️ Archivo muy grande. Tu plan permite hasta ${maxSizeMB}MB`,'error');return;}
+            
             const progress=document.getElementById('uploadProgress'),progressFill=document.getElementById('uploadProgressFill');
             const status=document.getElementById('uploadStatus'),btn=document.getElementById('uploadBtn');
             progress.classList.remove('hidden');btn.disabled=true;let prog=0;
             const interval=setInterval(()=>{prog=Math.min(90,prog+10);progressFill.style.width=prog+'%';},200);
+            
             try{
                 const formData=new FormData();
-                formData.append('titulo',title);formData.append('categoria',cat);formData.append('forSale',forSale);
+                formData.append('titulo',title);
+                formData.append('categoria',cat);
+                formData.append('forSale',forSale);
                 if(forSale)formData.append('price',price);
                 formData.append('archivo',file);
-                const headers={};if(token)headers['Authorization']=`Bearer ${token}`;
+                
+                const headers={'Authorization':`Bearer ${token}`};
                 const r=await fetch(API+'/vault',{method:'POST',headers,body:formData});
                 clearInterval(interval);progressFill.style.width='100%';
                 const j=await r.json?.()||{};
+                
                 if(!r.ok)throw new Error(j.error||'Error al subir');
-                status.textContent='✅ Archivo subido y cifrado con clave única';status.style.color='#00e676';
-                log(`📦 ${title} guardado en Vault • ${fileMB.toFixed(1)}MB`);showNotification('✅ Archivo subido','success');
-                setTimeout(()=>{closeUpload();refresh();},1200);
-            }catch(e){clearInterval(interval);progressFill.style.width='0%';status.textContent='❌ Error: '+e.message;status.style.color='#ff5252';log('❌ Upload: '+e.message);showNotification('❌ '+e.message,'error');}
-            finally{btn.disabled=false;}
+                
+                status.textContent='✅ Archivo subido y cifrado con clave única';
+                status.style.color='#00e676';
+                log(`📦 ${title} guardado en Vault • ${fileMB.toFixed(1)}MB`);
+                showNotification('✅ Archivo subido','success');
+                setTimeout(()=>{closeUpload();refresh();showVault();},1200);
+            }catch(e){
+                clearInterval(interval);
+                progressFill.style.width='0%';
+                status.textContent='❌ Error: '+e.message;
+                status.style.color='#ff5252';
+                log('❌ Upload: '+e.message);
+                showNotification('❌ '+e.message,'error');
+                console.error('Upload error:',e);
+            }finally{
+                btn.disabled=false;
+            }
         }
 
         async function showVault(){
