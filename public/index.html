@@ -126,8 +126,6 @@
         <div class="glass" id="marketplaceSection" style="display:none">
             <h2>🛍️ Marketplace Cifrado</h2>
             <p style="color:#8b95a5;margin-bottom:12px">Explora contenido en venta. Todo cifrado con Envelope Encryption.</p>
-            
-            <!-- Filtros avanzados -->
             <div class="market-search">
                 <input type="text" id="marketSearch" placeholder="Buscar por título o tag...">
                 <select id="marketCategory"><option value="">Todas las categorías</option></select>
@@ -140,14 +138,10 @@
                 </select>
                 <button onclick="loadMarketplace()" style="width:auto;padding:8px 16px">🔍 Buscar</button>
             </div>
-
-            <!-- Recomendaciones -->
             <div id="marketRecommendations" class="market-recommendations hidden">
                 <h3>🎯 Recomendado para ti</h3>
                 <div id="recommendationsGrid" class="market-grid"></div>
             </div>
-
-            <!-- Grid de productos con previews -->
             <div id="marketGrid" class="market-grid"></div>
             <div id="marketLoading" class="market-loading hidden">⏳ Cargando marketplace...</div>
             <div id="marketEmpty" class="market-empty hidden">🔍 No se encontró contenido. ¡Sé el primero en vender!</div>
@@ -160,9 +154,9 @@
     <!-- MODALS -->
     <div id="idModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px;text-align:center"><h2>🆔 Identidad Universal</h2><img id="idQrImg" class="qr-img" src="" alt="QR Identidad"><p id="idQrData" style="font-size:0.8rem;color:#8b95a5;word-break:break-all;margin:8px 0"></p><button onclick="closeIdModal()" class="btn-sec">✅ Entendido</button></div></div>
 
-    <div id="createModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px"><h2>📤 Publicar Activo (Texto)</h2><input id="itemTitle" placeholder="Título del contenido *"><input id="itemPrice" type="number" step="0.01" placeholder="Precio (solo números)"><span style="font-size:0.7rem;color:#8b95a5;margin-left:8px">$ USD</span><select id="itemCat"><option value="general">General</option><option value="finanzas">Finanzas</option><option value="tech">Tecnología</option><option value="educacion">Educación</option><option value="personal">Personal</option></select><label style="display:block;margin:8px 0;font-size:0.8rem;color:#8b95a5"><input type="checkbox" id="itemForSale"> Marcar para vender públicamente</label><button onclick="publish()">✅ Publicar en Venta</button><button onclick="closeCreate()" class="btn-sec">Cancelar</button></div></div>
+    <div id="createModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px"><h2>📤 Publicar Activo (Texto)</h2><label style="display:block;margin:10px 0 5px;font-weight:bold">Título del contenido *</label><input id="itemTitle" placeholder="Ej: Mi guía de inversión" style="margin-bottom:10px"><label style="display:block;margin:10px 0 5px">Precio</label><input id="itemPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px"><span style="font-size:0.7rem;color:#8b95a5;display:block;margin-bottom:10px">💵 Se mostrará como: $XX.XX USD</span><select id="itemCat"><option value="general">General</option><option value="finanzas">Finanzas</option><option value="tech">Tecnología</option><option value="educacion">Educación</option><option value="personal">Personal</option></select><label style="display:block;margin:10px 0;font-size:0.8rem;color:#8b95a5"><input type="checkbox" id="itemForSale"> Marcar para vender públicamente</label><button onclick="publish()">✅ Publicar en Venta</button><button onclick="closeCreate()" class="btn-sec">Cancelar</button></div></div>
 
-    <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px"><h2>📤 Subir Archivo al Vault</h2><input id="uploadTitle" placeholder="Título del archivo *"><select id="uploadCat"><option value="general">📁 General</option><option value="fotos">📷 Fotos</option><option value="videos">🎬 Videos</option><option value="libros">📚 Libros</option><option value="documentos">📄 Documentos</option><option value="textos">✍️ Textos</option><option value="audio">🎵 Audio</option><option value="otros">📦 Otros</option></select><input id="uploadFile" type="file" style="background:#1a1f2a;padding:10px;border-radius:8px;margin:8px 0"><label style="display:block;margin:8px 0;font-size:0.8rem;color:#8b95a5"><input type="checkbox" id="uploadForSale"> Marcar para vender ($ USD)</label><input id="uploadPrice" type="number" step="0.01" placeholder="Precio (solo números)" style="display:none"><span id="uploadPriceLabel" style="font-size:0.7rem;color:#8b95a5;margin-left:8px;display:none">$ USD</span><div class="progress-bar hidden" id="uploadProgress"><div class="progress-fill" id="uploadProgressFill"></div></div><p id="uploadStatus" style="font-size:0.75rem;color:#00e676;margin-top:8px;min-height:1.2em"></p><button onclick="doUpload()" id="uploadBtn">✅ Subir y Cifrar</button><button onclick="closeUpload()" class="btn-sec">Cancelar</button></div></div>
+    <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px"><h2>📤 Subir Archivo al Vault</h2><label style="display:block;margin:10px 0 5px;font-weight:bold">Título del archivo *</label><input id="uploadTitle" placeholder="Ej: Mi foto de vacaciones" style="margin-bottom:10px"><label style="display:block;margin:10px 0 5px">Categoría</label><select id="uploadCat" style="margin-bottom:10px"><option value="general">📁 General</option><option value="fotos">📷 Fotos</option><option value="videos">🎬 Videos</option><option value="libros">📚 Libros</option><option value="documentos">📄 Documentos</option><option value="textos">✍️ Textos</option><option value="audio">🎵 Audio</option><option value="otros">📦 Otros</option></select><label style="display:block;margin:10px 0 5px">Selecciona archivo</label><input id="uploadFile" type="file" style="background:#1a1f2a;padding:10px;border-radius:8px;margin-bottom:10px"><label style="display:block;margin:15px 0 5px;font-weight:bold"><input type="checkbox" id="uploadForSale" style="width:auto;margin-right:8px"> Marcar para vender públicamente</label><div id="priceSection" style="display:none;margin:10px 0"><label style="display:block;margin:0 0 5px">Precio</label><input id="uploadPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px"><span style="font-size:0.8rem;color:#8b95a5">💵 Se mostrará como: $XX.XX USD</span></div><div class="progress-bar hidden" id="uploadProgress"><div class="progress-fill" id="uploadProgressFill"></div></div><p id="uploadStatus" style="font-size:0.75rem;color:#00e676;margin-top:8px;min-height:1.2em"></p><button onclick="doUpload()" id="uploadBtn">✅ Subir y Cifrar</button><button onclick="closeUpload()" class="btn-sec">Cancelar</button></div></div>
 
     <div id="exportModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:400px;text-align:center"><h2>📦 Exportar Bóveda</h2><p style="font-size:0.8rem;color:#8b95a5;margin:12px 0">Se generará un archivo JSON con los metadatos de tu bóveda.<b id="zkExportWarning" class="hidden" style="color:#00e676;display:block;margin:8px 0">🔐 Modo Zero-Knowledge: cifra este archivo con tu clave maestra antes de guardarlo.</b></p><button onclick="doExportVault()" id="exportBtn">✅ Generar Exportación</button><button onclick="closeExportModal()" class="btn-sec">Cancelar</button><div id="exportStatus" style="font-size:0.75rem;color:#00e676;margin-top:12px;min-height:1.2em"></div></div></div>
 
@@ -176,25 +170,10 @@
             <div class="market-item-price" id="modalItemPrice">$0.00 USD</div>
             <div class="market-modal-meta" id="modalItemMeta">📁 Categoría • 📦 Tipo</div>
             <div class="market-modal-tags" id="modalItemTags"></div>
-            
-            <!-- Preview de imagen -->
-            <div id="modalItemPreview" class="market-preview" style="margin:12px 0">
-                <span style="color:#8b95a5">📦 Sin imagen de preview</span>
-            </div>
-            
-            <div class="market-modal-seller">
-                <h4>👤 Vendedor</h4>
-                <p id="modalSellerName">Creador</p>
-                <p id="modalSellerRating">⭐ 0.0 • 0 ventas</p>
-            </div>
+            <div id="modalItemPreview" class="market-preview" style="margin:12px 0"><span style="color:#8b95a5">📦 Sin imagen de preview</span></div>
+            <div class="market-modal-seller"><h4>👤 Vendedor</h4><p id="modalSellerName">Creador</p><p id="modalSellerRating">⭐ 0.0 • 0 ventas</p></div>
             <div class="market-modal-meta" id="modalItemLicense">Licencia: Permanente</div>
-            
-            <!-- Acciones -->
-            <div class="market-modal-actions">
-                <button class="btn-buy" onclick="buyMarketItem()">💰 Comprar</button>
-                <button class="btn-fav" onclick="toggleFavorite()">❤️ Favorito</button>
-                <button class="btn-sec" onclick="closeMarketItemModal()">✕ Cerrar</button>
-            </div>
+            <div class="market-modal-actions"><button class="btn-buy" onclick="buyMarketItem()">💰 Comprar</button><button class="btn-fav" onclick="toggleFavorite()">❤️ Favorito</button><button class="btn-sec" onclick="closeMarketItemModal()">✕ Cerrar</button></div>
         </div>
     </div>
 
@@ -211,7 +190,6 @@
 
         function log(m){const el=document.getElementById('log');const time=new Date().toLocaleTimeString();el.innerHTML=`[${time}] ${m}<br>`+el.innerHTML;const lines=el.innerHTML.split('<br>').filter(l=>l.trim());if(lines.length>20)el.innerHTML=lines.slice(0,20).join('<br>');}
 
-        // 🔔 SISTEMA DE NOTIFICACIONES
         function showNotification(message,type='info'){
             const container=document.getElementById('notificationContainer');
             const notif=document.createElement('div');
@@ -256,7 +234,6 @@
                 const r=await req('/login','POST',{email,password:pass});
                 token=r.token;localStorage.setItem('token',token);localStorage.setItem('userEmail',email);
                 userTier=r.user?.tier||'personal';localStorage.setItem('userTier',userTier);
-                // ✅ CORRECCIÓN CLAVE: Guardar isAdmin en localStorage
                 if(r.user?.isAdmin){localStorage.setItem('isAdmin','true');isAdmin=true;}
                 await loadUser();showDashboard();log('✅ Acceso concedido • Tier: '+userTier);showNotification('✅ Sesión iniciada','success');
             }catch(e){log('❌ '+e.message);showNotification('❌ '+e.message,'error');}
@@ -283,7 +260,6 @@
                 const p=await req('/api/profile');
                 currentUser=p.user||p.profile;
                 userTier=currentUser?.tier||localStorage.getItem('userTier')||'personal';
-                // ✅ Verificar isAdmin desde la respuesta de la API
                 isAdmin=localStorage.getItem('isAdmin')==='true'||p.user?.isAdmin===true;
                 const nombre=(p.profile?.displayName==='Demo'||!p.profile?.displayName)?(localStorage.getItem('userEmail')?.split('@')?.[0]||'Usuario'):p.profile.displayName;
                 document.getElementById('uEmail').textContent=nombre;
@@ -293,7 +269,6 @@
                 const dashboard=document.getElementById('dashboardView');
                 if(userTier==='enterprise'){dashboard.classList.add('enterprise');document.getElementById('enterpriseFeatures').classList.remove('hidden');}
                 else{dashboard.classList.remove('enterprise');document.getElementById('enterpriseFeatures').classList.add('hidden');}
-                // ✅ Mostrar panel de admin si isAdmin es true
                 const adminPanel=document.getElementById('adminPanel');
                 if(isAdmin){adminPanel.style.display='block';dashboard.classList.add('enterprise');}
                 else{adminPanel.style.display='none';}
@@ -349,8 +324,7 @@
 
         function openUpload(){
             document.getElementById('uploadModal').classList.remove('hidden');
-            document.getElementById('uploadPrice').style.display='none';
-            document.getElementById('uploadPriceLabel').style.display='none';
+            document.getElementById('priceSection').style.display='none';
             document.getElementById('uploadStatus').textContent='';
             document.getElementById('uploadProgress').classList.add('hidden');
             document.getElementById('uploadProgressFill').style.width='0%';
@@ -363,8 +337,7 @@
             document.getElementById('uploadStatus').textContent='';
         }
         document.getElementById('uploadForSale')?.addEventListener('change',function(e){
-            document.getElementById('uploadPrice').style.display=e.target.checked?'block':'none';
-            document.getElementById('uploadPriceLabel').style.display=e.target.checked?'inline':'none';
+            document.getElementById('priceSection').style.display=e.target.checked?'block':'none';
         });
         
         async function doUpload(){
@@ -468,7 +441,6 @@
         async function syncCheck(){if(!token)return log('⚠️ Inicia sesión primero');const status=document.getElementById('syncStatus');if(!status)return;try{status.textContent='🔄 Verificando...';const lastSync=localStorage.getItem('lastSync')||null;const url=`/api/vault/sync/check${lastSync?'?lastSync='+encodeURIComponent(lastSync):''}`;const res=await req(url);if(res?.hasChanges){status.innerHTML=`📥 ${res.changesCount} cambios nuevos. <button onclick="syncPull()" style="margin-left:8px;padding:2px 8px;font-size:0.7rem;background:transparent;border:1px solid #29b6f6;color:#29b6f6;border-radius:4px">Descargar</button>`;log(`📥 Sync: ${res.changesCount} cambios disponibles`);}else{status.textContent='✅ Todo sincronizado';status.style.color='#00e676';localStorage.setItem('lastSync',new Date().toISOString());showNotification('✅ Todo sincronizado','success');}}catch(e){status.textContent='⚠️ Sin conexión - Cambios se sincronizarán después';status.style.color='#ffb74d';log('⚠️ Sync check: '+e.message);}}
         async function syncPull(){const status=document.getElementById('syncStatus');if(!status)return;try{status.textContent='📥 Descargando cambios...';if(typeof showVault==='function')await showVault();localStorage.setItem('lastSync',new Date().toISOString());status.textContent='✅ Cambios sincronizados';status.style.color='#00e676';log('📥 Sync pull completado');showNotification('✅ Cambios sincronizados','success');}catch(e){status.textContent='❌ Error: '+e.message;log('❌ Sync pull: '+e.message);showNotification('❌ '+e.message,'error');}}
 
-        // === 🛍️ MARKETPLACE FUNCIONES PREMIUM ===
         function showMarketplace(){if(!token){log('⚠️ Inicia sesión para acceder al marketplace');showNotification('⚠️ Inicia sesión para acceder','info');return scrollToAuth();}document.getElementById('dashboardView').querySelectorAll('.glass').forEach(el=>{if(el.id!=='marketplaceSection'&&!el.classList.contains('hidden'))el.style.display='none';});document.getElementById('marketplaceSection').style.display='block';loadMarketplace();loadCategories();loadRecommendations();window.scrollTo(0,0);log('🛍️ Marketplace abierto');}
         function closeMarketplace(){document.getElementById('marketplaceSection').style.display='none';document.getElementById('dashboardView').querySelectorAll('.glass').forEach(el=>{if(el.id!=='marketplaceSection')el.style.display='';});log('🛍️ Marketplace cerrado');}
         async function loadCategories(){try{const res=await req('/api/marketplace/categories');const sel=document.getElementById('marketCategory');if(sel&&res.categories){sel.innerHTML='<option value="">Todas las categorías</option>'+res.categories.map(c=>`<option value="${c.id}">${c.name} (${c.count})</option>`).join('');}}catch(e){log('⚠️ Categorías: '+e.message);}}
@@ -479,13 +451,11 @@
         async function buyMarketItem(itemId){const id=itemId||currentMarketItem?.id;if(!id)return log('⚠️ Selecciona un producto');const item=currentMarketItem;if(!confirm(`🛒 ¿COMPRAR "${item?.titulo||'este producto'}"?\n💰 Precio: $${item?.precio||'?'} USD\n👤 Vendedor: ${item?.vendedor?.displayName||'?'}\n\n✅ El contenido se desbloqueará en tu bóveda.`))return;try{log('💰 Procesando compra...');showNotification('💰 Procesando compra...','info');const res=await req(`/api/buy/${id}`,'POST');if(res.success){alert('✅ ¡Compra exitosa! Contenido desbloqueado en tu bóveda.');showNotification('✅ ¡Compra exitosa!','success');closeMarketItemModal();if(typeof showVault==='function')await showVault();if(typeof refresh==='function')await refresh();log('✅ Compra completada');}else{throw new Error(res.error||'Error en la compra');}}catch(e){alert('❌ '+e.message);log('❌ Compra: '+e.message);showNotification('❌ '+e.message,'error');}}
         async function toggleFavorite(){if(!currentMarketItem?.id)return;try{await req('/api/marketplace/favorites','POST',{itemId:currentMarketItem.id,action:'toggle'});log('❤️ Favorito actualizado');showNotification('✅ Favorito actualizado','success');}catch(e){log('❌ Favorito: '+e.message);showNotification('❌ '+e.message,'error');}}
 
-        // 👑 FUNCIONES DE ADMIN
         function showAdminTools(){
             if(!isAdmin){showNotification('⚠️ Solo administradores','error');return;}
             alert('🛠️ Herramientas de Admin:\n\n• Regalar cuenta: /api/admin/gift-account\n• Eliminar usuario: /api/admin/users/:email\n• Rotar claves: /api/admin/rotate-keys\n• Ver usuarios: /api/admin/users\n\nEstas funciones están disponibles vía API.');
         }
 
-        // 🌐 EVENT LISTENERS
         window.addEventListener('online',()=>{if(typeof updateOnlineStatus==='function')updateOnlineStatus(true);showNotification('🌐 Conexión restaurada','info');});
         window.addEventListener('offline',()=>{if(typeof updateOnlineStatus==='function')updateOnlineStatus(false);showNotification('📴 Sin conexión','error');});
         document.addEventListener('DOMContentLoaded',init);
