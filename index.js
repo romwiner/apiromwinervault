@@ -1,4 +1,4 @@
-// === INICIO: index.js - APIROMWINER VAULT (COMPLETO Y CORREGIDO) ===
+// === INICIO: index.js - APIROMWINER VAULT CON IA INTERNA ===
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -20,6 +20,11 @@ const { ethers } = require('ethers');
 const { createFromURL } = require('@helia/http');
 const { unixfs } = require('@helia/unixfs');
 
+// 🤖 IA INTERNA: Natural para NLP ligero
+const natural = require('natural');
+const tokenizer = new natural.WordTokenizer();
+const stemmer = natural.PorterStemmer;
+
 // 🔐 CLAVES + ADMINS
 const JWT_SECRET = process.env.JWT_SECRET || 'romwiner_jwt_secret_fallback';
 const MASTER_KEY = process.env.MASTER_KEY || 'romwiner_master_key_fallback';
@@ -34,8 +39,115 @@ const FEATURES = {
     PORTABLE_EXPORT: process.env.ENABLE_EXPORT !== 'false',
     LOCAL_SYNC: process.env.ENABLE_LOCAL_SYNC === 'true',
     WEB3_LOGIN: process.env.ENABLE_WEB3 === 'true',
-    IPFS_BACKUP: process.env.ENABLE_IPFS === 'true'
+    IPFS_BACKUP: process.env.ENABLE_IPFS === 'true',
+    AI_INTERNAL: process.env.ENABLE_AI !== 'false'  // ✅ Nuevo: IA interna activada por defecto
 };
+
+// 🤖 IA: DICCIONARIO DE SINÓNIMOS Y PATRONES
+const AI_PATTERNS = {
+    synonyms: {
+        'dinero': ['saldo', 'ganancia', 'pago', 'factura', 'ingreso', 'venta'],
+        'foto': ['imagen', 'picture', 'selfie', 'vacaciones', 'recuerdo'],
+        'trabajo': ['proyecto', 'tarea', 'documento', 'oficina', 'laboral'],
+        'personal': ['privado', 'íntimo', 'familiar', 'casa'],
+        'educacion': ['estudio', 'tesis', 'clase', 'aprender', 'curso'],
+        'finanzas': ['economia', 'presupuesto', 'ahorro', 'inversion']
+    },
+    autoTags: {
+        'factura|recibo|pago|invoice|bill': ['finanzas', 'documentos'],
+        'foto|img|picture|selfie|vacaciones|recuerdo': ['fotos', 'personal'],
+        'contrato|legal|agreement|firma|abogado': ['legal', 'documentos'],
+        'tesis|estudio|paper|clase|curso|aprender': ['educacion', 'textos'],
+        'romwiner|apiromwiner|vault|backup|sistema': ['sistema', 'tecnologia'],
+        'musica|cancion|audio|mp3|wav': ['musica', 'audio'],
+        'video|pelicula|clip|mp4': ['videos', 'multimedia']
+    }
+};
+
+// 🤖 IA: FUNCIÓN DE BÚSQUEDA INTELIGENTE
+function smartSearch(query, items) {
+    if (!FEATURES.AI_INTERNAL) return items.filter(i => 
+        i.titulo?.toLowerCase().includes(query.toLowerCase()) ||
+        i.fileName?.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    const queryLower = query.toLowerCase();
+    const queryStemmed = stemmer.tokenizeAndStem(queryLower).join(' ');
+    const terms = [queryLower, queryStemmed];
+    
+    // Agregar sinónimos
+    for (const [base, syns] of Object.entries(AI_PATTERNS.synonyms)) {
+        if (queryLower.includes(base)) {
+            terms.push(...syns);
+        }
+    }
+    
+    return items.filter(item => 
+        terms.some(term => 
+            item.titulo?.toLowerCase().includes(term) ||
+            item.fileName?.toLowerCase().includes(term) ||
+            item.categoria?.toLowerCase().includes(term) ||
+            item.tags?.some(t => t.toLowerCase().includes(term))
+        )
+    );
+}
+
+// 🤖 IA: SUGERIR TAGS AUTOMÁTICOS
+function suggestTags(title, fileName) {
+    if (!FEATURES.AI_INTERNAL) return [];
+    const text = `${title} ${fileName || ''}`.toLowerCase();
+    const tags = new Set();
+    
+    for (const [pattern, tagList] of Object.entries(AI_PATTERNS.autoTags)) {
+        if (new RegExp(pattern, 'i').test(text)) {
+            tagList.forEach(t => tags.add(t));
+        }
+    }
+    
+    // Extraer palabras clave con NLP ligero
+    const tokens = tokenizer.tokenize(text);
+    const important = tokens.filter(w => w.length > 4 && !['para', 'con', 'sin', 'del', 'los', 'las'].includes(w.toLowerCase()));
+    important.slice(0, 3).forEach(w => tags.add(w.toLowerCase()));
+    
+    return Array.from(tags).slice(0, 5);
+}
+
+// 🤖 IA: PROCESAR COMANDOS DE USUARIO
+function processCommand(cmd, userData) {
+    if (!FEATURES.AI_INTERNAL) return "❓ Comando no disponible. Configura ENABLE_AI=true";
+    
+    cmd = cmd.toLowerCase().trim();
+    
+    // Comandos de dinero/wallet
+    if (cmd.match(/(gan[ée]|ganancias|dinero|saldo).*afiliado/)) {
+        return `📊 Ganaste $${userData.affiliates?.availableBalance || 0} USD en afiliados`;
+    }
+    if (cmd.includes('cuánto gané') || cmd.includes('ganancias')) {
+        return `💰 Tus ganancias totales: $${userData.wallet?.balance || 0} USD`;
+    }
+    
+    // Comandos de archivos
+    if (cmd.match(/(fotos|imágenes|pictures)/)) {
+        const count = userData.vault?.filter(i => i.categoria === 'fotos').length || 0;
+        return `📷 Tienes ${count} fotos guardadas en tu Vault`;
+    }
+    if (cmd.match(/(venta|marketplace|productos).*tengo/)) {
+        const count = userData.vault?.filter(i => i.isForSale).length || 0;
+        return `🛍️ Tienes ${count} productos en venta en el Marketplace`;
+    }
+    
+    // Comandos de ayuda
+    if (cmd.includes('ayuda') || cmd.includes('help')) {
+        return "💡 Prueba: 'ganancias', 'fotos', 'ventas', 'ayuda', 'exportar', 'sincronizar'";
+    }
+    
+    // Búsqueda inteligente
+    if (cmd.length > 3 && !cmd.startsWith('/')) {
+        return `🔍 Buscando "${cmd}"... Usa la búsqueda del Vault para ver resultados`;
+    }
+    
+    return "❓ No entendí. Prueba: 'ganancias', 'fotos', 'ventas', 'ayuda'";
+}
 
 // 🌐 HELIA (IPFS) INIT
 let heliaFs = null;
@@ -112,7 +224,7 @@ const PORT = process.env.PORT || 10000;
 const MONGODB_URI = "mongodb+srv://apiromwinervault:Grup%40selen2000@cluster0.f83xnse.mongodb.net/apiromwinervault?retryWrites=true&w=majority&appName=Cluster0&tls=true&tlsAllowInvalidCertificates=true";
 let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
-let reviewsCollection, favoritesCollection; // ✅ Agregadas para marketplace
+let reviewsCollection, favoritesCollection;
 let mongoReady = false;
 
 async function connectToMongo() {
@@ -160,8 +272,6 @@ async function connectToMongo() {
         await verifiedIdentitiesCollection.createIndex({ userId: 1 }, { unique: true });
         await verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, sparse: true });
         await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true });
-        
-        // Índices marketplace
         await reviewsCollection.createIndex({ itemId: 1, createdAt: -1 });
         await favoritesCollection.createIndex({ userId: 1, itemId: 1 }, { unique: true });
 
@@ -371,8 +481,44 @@ const AlertWebhookService = {
 // 🌐 STATUS
 app.get('/api/status', (req, res) => res.json({
     api: 'ApiRomwiner Vault', status: 'online', database: mongoReady ? 'connected' : 'fallback',
-    features: ['🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos', FEATURES.PORTABLE_EXPORT && '🟢 Exportación Portable', FEATURES.LOCAL_SYNC && '🟢 Sync Offline', FEATURES.ZERO_KNOWLEDGE && '🟢 Zero-Knowledge Ready', FEATURES.WEB3_LOGIN && '🟢 Login Web3', FEATURES.IPFS_BACKUP && '🟢 Backup IPFS (Helia)'].filter(Boolean)
+    features: ['🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos', '🟢 IA Interna (Búsqueda Inteligente + Auto-Tags)', FEATURES.PORTABLE_EXPORT && '🟢 Exportación Portable', FEATURES.LOCAL_SYNC && '🟢 Sync Offline', FEATURES.ZERO_KNOWLEDGE && '🟢 Zero-Knowledge Ready', FEATURES.WEB3_LOGIN && '🟢 Login Web3', FEATURES.IPFS_BACKUP && '🟢 Backup IPFS (Helia)'].filter(Boolean)
 }));
+
+// 🤖 IA: ENDPOINT PARA COMANDOS DE USUARIO
+app.post('/api/ai/command', authenticate, async(req, res) => {
+    try {
+        const { command } = req.body;
+        if (!command) return res.status(400).json({ error: 'Comando requerido' });
+        
+        if (!FEATURES.AI_INTERNAL) {
+            return res.json({ success: true, response: "❓ IA interna no habilitada. Configura ENABLE_AI=true", demo: true });
+        }
+        
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        
+        // Obtener datos del usuario para el asistente
+        const [wallet, dashboard] = await Promise.all([
+            walletCollection?.findOne({ userId: user._id }),
+            secretsCollection?.countDocuments({ userId: user._id })
+        ]);
+        
+        const userData = {
+            affiliates: { availableBalance: 0 }, // Simplificado para demo
+            wallet: { balance: wallet?.balance || 0 },
+            vault: await secretsCollection?.find({ userId: user._id }).project({ categoria: 1, isForSale: 1 }).toArray() || []
+        };
+        
+        const response = processCommand(command, userData);
+        
+        await logAudit('ai_command', { userId: req.user.uid, command: command.substring(0, 50) });
+        
+        res.json({ success: true, response, command, timestamp: new Date().toISOString() });
+    } catch (e) {
+        logger.error('❌ AI command error: ' + e.message);
+        res.status(500).json({ error: 'Error procesando comando: ' + e.message });
+    }
+});
 
 // 🔐 REGISTER
 app.post('/register', async(req, res) => {
@@ -496,15 +642,40 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
     } catch (e) { res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message }); }
 });
 
-// 📦 VAULT CREATE
+// 📦 VAULT CREATE (CON IA: AUTO-TAGS)
 app.post('/vault', authenticate, checkQuota, async(req, res) => {
     try {
-        const { titulo, categoria = 'general', folderId = 'general', contenido, price = 0, forSale = false, licenseDays = null } = req.body;
+        const { titulo, categoria = 'general', folderId = 'general', contenido, price = 0, forSale = false, licenseDays = null, tags: userTags } = req.body;
         if (!titulo) return res.status(400).json({ error: 'Título requerido para el contenido' });
         if (!mongoReady || !secretsCollection) return res.status(201).json({ success: true, message: 'Guardado en modo demo', id: 'demo', demo: true });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-        const data = { userId: user._id, userUid: user.uid, titulo, categoria, folderId, tipo: req.file ? 'archivo' : 'texto', contenido: null, fileName: req.file ? path.basename(req.file.filename) : null, fileType: req.file ? req.file.mimetype : null, fileSize: req.file ? req.file.size : null, encrypted: null, isForSale: forSale, price: forSale ? price : 0, licenseDays, sales: 0, buyers: [], createdAt: new Date() };
+        
+        // 🤖 IA: Sugerir tags automáticos si no se proporcionaron
+        const suggestedTags = FEATURES.AI_INTERNAL ? suggestTags(titulo, req.file?.originalname) : [];
+        const finalTags = userTags ? (Array.isArray(userTags) ? userTags : [userTags]) : suggestedTags;
+        
+        const data = { 
+            userId: user._id, 
+            userUid: user.uid, 
+            titulo, 
+            categoria, 
+            folderId, 
+            tipo: req.file ? 'archivo' : 'texto', 
+            contenido: null, 
+            fileName: req.file ? path.basename(req.file.filename) : null, 
+            fileType: req.file ? req.file.mimetype : null, 
+            fileSize: req.file ? req.file.size : null, 
+            encrypted: null, 
+            isForSale: forSale, 
+            price: forSale ? price : 0, 
+            licenseDays, 
+            sales: 0, 
+            buyers: [], 
+            tags: finalTags,  // ✅ Tags con IA
+            createdAt: new Date() 
+        };
+        
         let wrappedDEK = user.encryptedUserKey;
         if (!wrappedDEK) {
             const dek = EnvelopeEncryption.generateDEK();
@@ -521,22 +692,42 @@ app.post('/vault', authenticate, checkQuota, async(req, res) => {
             await fs.unlink(req.file.path).catch(function(e) { logger.warn('⚠️ No se pudo eliminar archivo temporal: ' + e.message); });
         } else if (contenido) { data.contenido = EnvelopeEncryption.seal(contenido, userDEK); }
         const result = await secretsCollection.insertOne(data);
-        await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale });
-        res.status(201).json({ success: true, message: 'Contenido guardado y cifrado en Vault (clave única por usuario)', id: result.insertedId, fileName: data.fileName });
+        await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale, tags: finalTags });
+        
+        // 🤖 IA: Incluir sugerencias en la respuesta
+        const response = { 
+            success: true, 
+            message: 'Contenido guardado y cifrado en Vault (clave única por usuario)', 
+            id: result.insertedId, 
+            fileName: data.fileName 
+        };
+        if (FEATURES.AI_INTERNAL && suggestedTags.length > 0) {
+            response.aiSuggestions = { suggestedTags, message: 'Tags sugeridos por IA interna' };
+        }
+        
+        res.status(201).json(response);
     } catch (e) {
         logger.error('❌ Vault create: ' + e.message);
         res.status(500).json({ error: 'Error al guardar en Vault: ' + e.message });
     }
 });
 
-// 📦 VAULT LIST
+// 📦 VAULT LIST (CON BÚSQUEDA INTELIGENTE)
 app.get('/vault', authenticate, async(req, res) => {
     try {
         if (!mongoReady || !secretsCollection) return res.json({ success: true, items: [], total: 0 });
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-        const items = await secretsCollection.find({ $or: [{ userId: user._id }, { isForSale: true }] }).sort({ createdAt: -1 }).limit(50).project({ encrypted: 0, contenido: 0 }).toArray();
-        res.json({ success: true, items, total: items.length });
+        
+        const { q } = req.query;
+        let items = await secretsCollection.find({ $or: [{ userId: user._id }, { isForSale: true }] }).sort({ createdAt: -1 }).limit(50).project({ encrypted: 0, contenido: 0 }).toArray();
+        
+        // 🤖 IA: Búsqueda inteligente si hay query
+        if (FEATURES.AI_INTERNAL && q) {
+            items = smartSearch(q, items);
+        }
+        
+        res.json({ success: true, items, total: items.length, aiSearch: FEATURES.AI_INTERNAL && q ? { query: q, resultsCount: items.length } : undefined });
     } catch (e) { res.status(500).json({ error: 'Error al listar Vault: ' + e.message }); }
 });
 
@@ -569,7 +760,7 @@ app.get('/vault/:id', authenticate, async(req, res) => {
                 contenido = Buffer.from(decrypted, 'base64').toString('base64');
             }
         }
-        res.json({ success: true, secret: { id: secret._id.toString(), titulo: secret.titulo, contenido, isForSale: secret.isForSale, price: secret.price, sales: secret.sales, licenseDays: secret.licenseDays, fileName: secret.fileName, fileType: secret.fileType } });
+        res.json({ success: true, secret: { id: secret._id.toString(), titulo: secret.titulo, contenido, isForSale: secret.isForSale, price: secret.price, sales: secret.sales, licenseDays: secret.licenseDays, fileName: secret.fileName, fileType: secret.fileType, tags: secret.tags } });
     } catch (e) { res.status(500).json({ error: 'Error al obtener contenido: ' + e.message }); }
 });
 
@@ -1457,12 +1648,13 @@ async function startServer() {
     }
     app.listen(PORT, '0.0.0.0', function() {
         logger.info('🚀 APIROMWINER en puerto ' + PORT);
-        logger.info('🟢 57 Funciones Reales | 🔐 Identidad Criptográfica Autónoma | 📋 Identidad Legal Verificada | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY');
+        logger.info('🟢 57 Funciones Reales | 🔐 Identidad Criptográfica Autónoma | 📋 Identidad Legal Verificada | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY | 🤖 IA Interna: Búsqueda Inteligente + Auto-Tags + Asistente de Comandos');
         if (FEATURES.PORTABLE_EXPORT) logger.info('📦 Exportación Portable: ACTIVADA');
         if (FEATURES.LOCAL_SYNC) logger.info('🔄 Sync Offline: ACTIVADO');
         if (FEATURES.ZERO_KNOWLEDGE) logger.info('🔐 Zero-Knowledge: ACTIVADO');
         if (FEATURES.WEB3_LOGIN) logger.info('🔗 Login Web3: ACTIVADO');
         if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
+        if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA (sin dependencias externas)');
     });
 }
 startServer().catch(function(err) {
