@@ -18,6 +18,14 @@
     <div id="landingView">
         <div class="glass green" style="text-align:center;padding:24px 18px">
             <h1>🔐 ApiRomwiner Vault</h1>
+            
+            <!-- 📊 BADGES DE ESTADO -->
+            <div style="margin:10px 0;font-size:0.75rem;color:#8b95a5;text-align:center">
+                <span style="background:rgba(0,230,118,0.15);color:#00e676;padding:2px 8px;border-radius:12px;margin:0 4px">🟢 Online</span>
+                <span style="background:rgba(41,182,246,0.15);color:#29b6f6;padding:2px 8px;border-radius:12px;margin:0 4px">🤖 IA Activa</span>
+                <span style="background:rgba(126,87,194,0.15);color:#ce93d8;padding:2px 8px;border-radius:12px;margin:0 4px">🔐 Zero-Knowledge</span>
+            </div>
+            
             <p>Tu identidad digital universal. Monétiza contenido, gana con referidos y controla tu información sin intermediarios.</p>
             <span class="promo-badge">🎉 Lanzamiento: Primeros 50 suscriptores</span>
             <button onclick="openPromo()">✨ Unirme por $25 USD</button>
@@ -181,6 +189,54 @@
     <div id="notificationContainer"></div>
 
     <div class="glass"><div id="log" class="log">📡 Conectando con ApiRomwiner...</div></div>
+    
+    <!-- 📊 PANEL DE TRANSPARENCIA (solo visible para admin) -->
+    <div id="transparencyPanel" class="glass hidden" style="margin:20px auto;max-width:600px">
+        <h3 style="color:#00e676">📊 Estado de Funciones</h3>
+        <div style="font-size:0.85rem;color:#b0b8c4;margin-bottom:12px">
+            <span style="color:#00e676">🟢 Disponible</span> • 
+            <span style="color:#ffb74d">🟡 Requiere Business/Enterprise</span> • 
+            <span style="color:#8ab4f8">🔵 Backend/API (sin UI)</span> • 
+            <span style="color:#6a7585">⚪ En desarrollo</span>
+        </div>
+        
+        <details style="margin:8px 0">
+            <summary style="cursor:pointer;color:#fff">🔐 Seguridad y Cifrado (6)</summary>
+            <div style="padding:8px 0;font-size:0.8rem;color:#b0b8c4">
+                <div>🟢 Envelope Encryption</div>
+                <div>🟢 Cifrado Zero-Knowledge</div>
+                <div>🟡 Rotación automática de claves (90 días)</div>
+                <div>🟡 Auditoría inmutable</div>
+                <div>🟡 Exportación GDPR/SOC2</div>
+                <div>🔵 Webhooks de alertas</div>
+            </div>
+        </details>
+        
+        <details style="margin:8px 0">
+            <summary style="cursor:pointer;color:#fff">🤖 IA Interna (3)</summary>
+            <div style="padding:8px 0;font-size:0.8rem;color:#b0b8c4">
+                <div>🟢 Búsqueda inteligente (sinónimos)</div>
+                <div>🟢 Auto-tags al subir archivos</div>
+                <div>🔵 Asistente de comandos (POST /api/ai/command)</div>
+            </div>
+        </details>
+        
+        <details style="margin:8px 0">
+            <summary style="cursor:pointer;color:#fff">🌐 Integraciones (4)</summary>
+            <div style="padding:8px 0;font-size:0.8rem;color:#b0b8c4">
+                <div>🟢 Login Web3 (Ethers/Wagmi)</div>
+                <div>🔵 Backup IPFS (Helia)</div>
+                <div>🔵 Stripe para pagos</div>
+                <div>⚪ Notificaciones push (próximamente)</div>
+            </div>
+        </details>
+        
+        <p style="font-size:0.75rem;color:#6a7585;margin-top:12px">
+            💡 ¿Quieres ver una función en particular? 
+            <a href="mailto:privacy@apiromwiner.com" style="color:#00e676">Contáctanos</a>
+        </p>
+    </div>
+    
     <footer>© 2026 ApiRomwiner Vault. Todos los derechos reservados.<br><span style="color:#8b95a5"><a href="/privacy.html" target="_blank" style="color:#8b95a5;margin:0 8px">🔐 Privacidad</a> | <a href="/terms.html" target="_blank" style="color:#8b95a5;margin:0 8px">📜 Términos</a> | <a href="mailto:privacy@apiromwiner.com" style="color:#8b95a5;margin:0 8px">✉️ Contacto</a></span></footer>
 
     <script>
@@ -455,6 +511,13 @@
             if(!isAdmin){showNotification('⚠️ Solo administradores','error');return;}
             alert('🛠️ Herramientas de Admin:\n\n• Regalar cuenta: /api/admin/gift-account\n• Eliminar usuario: /api/admin/users/:email\n• Rotar claves: /api/admin/rotate-keys\n• Ver usuarios: /api/admin/users\n\nEstas funciones están disponibles vía API.');
         }
+
+        // 📊 MOSTRAR PANEL DE TRANSPARENCIA SOLO PARA ADMIN
+        document.addEventListener('DOMContentLoaded', function() {
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+            const panel = document.getElementById('transparencyPanel');
+            if (isAdmin && panel) panel.classList.remove('hidden');
+        });
 
         window.addEventListener('online',()=>{if(typeof updateOnlineStatus==='function')updateOnlineStatus(true);showNotification('🌐 Conexión restaurada','info');});
         window.addEventListener('offline',()=>{if(typeof updateOnlineStatus==='function')updateOnlineStatus(false);showNotification('📴 Sin conexión','error');});
