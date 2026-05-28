@@ -643,7 +643,58 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
 });
 
 // 📦 VAULT CREATE (CON IA: AUTO-TAGS)
-app.post('/vault', authenticate, checkQuota, async(req, res) => {
+app.post('/vault', authenticate, checkQuota, async(req, res) => {// 🌿 GIT-LIKE: Commit con mensaje y metadata
+app.post('/api/vault/:id/commit', authenticate, async(req, res) => {
+    try {
+        const { message, branch = 'main', tags = [] } = req.body;
+        if (!message || message.length < 2) return res.status(400).json({ error: 'Mensaje de commit requerido (mín. 2 caracteres)' });
+        
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        const file = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
+        if (!file) return res.status(404).json({ error: 'Archivo no encontrado' });
+        
+        // Crear "commit" con metadata Git-like
+        const commit = {
+            fileId: file._id,
+            message: message.trim(),
+            author: { uid: user.uid, email: user.email },
+            branch: branch || 'main',
+            tags: Array.isArray(tags) ? tags : [],
+            parentVersion: file.currentVersion || 0,
+            timestamp: new Date(),
+            hash: crypto.createHash('sha256').update(req.params.id + message + Date.now()).digest('hex').slice(0, 12)
+        };
+        
+        // Guardar en colección de commits (crear si no existe)
+        const commitsCollection = db.collection('vaultCommits');
+        await commitsCollection.insertOne(commit);
+        
+        // Actualizar versión actual del archivo
+        await secretsCollection.updateOne({ _id: file._id }, { 
+            $set: { 
+                currentVersion: (file.currentVersion || 0) + 1,
+                lastCommit: commit.hash,
+                updatedAt: new Date()
+            } 
+        });
+        
+        await logAudit('vault_commit', { fileId: req.params.id, message: commit.message, hash: commit.hash });
+        
+        res.json({ 
+            success: true, 
+            message: '✅ Commit creado', 
+            commit: { 
+                hash: commit.hash, 
+                message: commit.message, 
+                branch: commit.branch,
+                version: commit.parentVersion + 1 
+            } 
+        });
+    } catch (e) {
+        logger.error('❌ Commit error: ' + e.message);
+        res.status(500).json({ error: 'Error creando commit: ' + e.message });
+    }
+});
     try {
         const { titulo, categoria = 'general', folderId = 'general', contenido, price = 0, forSale = false, licenseDays = null, tags: userTags } = req.body;
         if (!titulo) return res.status(400).json({ error: 'Título requerido para el contenido' });
