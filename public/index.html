@@ -25,6 +25,10 @@
         .contact-row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(0,0,0,0.3);border-radius:6px;margin:4px 0;font-size:0.8rem}
         .contact-remove{background:none;border:none;color:#ff5252;cursor:pointer;font-size:1.1rem;padding:0 4px}
         .signature-saved{border-color:#00e676!important}
+        /* 📊 Analytics Dashboard */
+        #revenueChart, #categoryChart { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; }
+        .top-product-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .affiliate-timeline-item { padding: 4px 0; border-left: 2px solid #00e676; padding-left: 12px; margin: 4px 0; font-size: 0.75rem; }
     </style>
 </head>
 <body>
@@ -175,6 +179,52 @@
             </div>
         </div>
 
+        <!-- 📊 ANALYTICS DASHBOARD FINANCIERO -->
+        <div class="glass" id="financialAnalyticsPanel" style="display:none">
+            <h2>📊 Analytics Financiero</h2>
+            <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Visualiza tus ingresos, ventas y ganancias de afiliados.</p>
+            
+            <!-- Filtros de fecha -->
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                <button onclick="loadFinancialData('7d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 7 días</button>
+                <button onclick="loadFinancialData('30d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 30 días</button>
+                <button onclick="loadFinancialData('90d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 90 días</button>
+                <button onclick="exportFinancialData('csv')" style="width:auto;padding:6px 12px;font-size:0.75rem;background:transparent;border:1px solid #00e676;color:#00e676">📤 Exportar CSV</button>
+            </div>
+            
+            <!-- Tarjetas de resumen -->
+            <div class="grid" style="margin-bottom:16px">
+                <div class="card"><div class="label">💰 Ingresos Totales</div><div class="val" id="totalRevenue">$0.00</div></div>
+                <div class="card"><div class="label">🛍️ Ventas Completadas</div><div class="val" id="totalSales">0</div></div>
+                <div class="card"><div class="label">🤝 Ganancias Afiliados</div><div class="val" id="affiliateEarnings">$0.00</div></div>
+                <div class="card"><div class="label">📦 Productos Activos</div><div class="val" id="activeProducts">0</div></div>
+            </div>
+            
+            <!-- Gráfico de ingresos -->
+            <div style="margin:16px 0">
+                <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">📈 Ingresos por Día</h3>
+                <canvas id="revenueChart" height="120"></canvas>
+            </div>
+            
+            <!-- Ventas por categoría -->
+            <div style="margin:16px 0">
+                <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🥧 Ventas por Categoría</h3>
+                <canvas id="categoryChart" height="120"></canvas>
+            </div>
+            
+            <!-- Top productos -->
+            <div style="margin:16px 0">
+                <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🏆 Top 5 Productos</h3>
+                <div id="topProducts" style="font-size:0.8rem;color:#b0b8c4"></div>
+            </div>
+            
+            <!-- Timeline de afiliados -->
+            <div style="margin:16px 0">
+                <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🤝 Historial de Afiliados</h3>
+                <div id="affiliateTimeline" style="max-height:150px;overflow-y:auto;font-size:0.8rem;color:#b0b8c4"></div>
+            </div>
+        </div>
+
         <div id="vaultModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
             <div class="glass" style="max-width:400px;max-height:80vh;overflow-y:auto"><h2>🗄️ Mi Vault</h2><div id="vaultList"></div><button onclick="closeVault()" class="btn-sec" style="margin-top:12px">Cerrar</button></div>
         </div>
@@ -272,10 +322,12 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         const API='https://apiromwinervault.onrender.com';
         let token=localStorage.getItem('token')||'';
         let deferredPrompt,currentUser=null,userTier='personal',userQuota=null,currentMarketItem=null, isAdmin=false;
+        let revenueChart, categoryChart, sigData=null;
 
         function log(m){const el=document.getElementById('log');const time=new Date().toLocaleTimeString();el.innerHTML=`[${time}] ${m}<br>`+el.innerHTML;const lines=el.innerHTML.split('<br>').filter(l=>l.trim());if(lines.length>20)el.innerHTML=lines.slice(0,20).join('<br>');}
         function showNotification(message,type='info'){const container=document.getElementById('notificationContainer');const notif=document.createElement('div');notif.className=`notification ${type}`;notif.innerHTML=`<span>${message}</span><button class="notification-close" onclick="this.parentElement.remove()">×</button>`;container.appendChild(notif);setTimeout(()=>notif.remove(),5000);}
@@ -404,6 +456,20 @@
             const isAdmin = localStorage.getItem('isAdmin') === 'true';
             const panel = document.getElementById('transparencyPanel');
             if (isAdmin && panel) panel.classList.remove('hidden');
+            // Agregar botón de analytics al dashboard
+            const vaultBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Ver mi Vault'));
+            if (vaultBtn && !document.getElementById('analyticsBtn')) {
+                const btn = document.createElement('button');
+                btn.id = 'analyticsBtn';
+                btn.className = 'btn-sec';
+                btn.textContent = '📊 Analytics Financiero';
+                btn.onclick = function() { 
+                    document.getElementById('financialAnalyticsPanel').style.display = 'block'; 
+                    loadFinancialData('30d');
+                    window.scrollTo(0, document.getElementById('financialAnalyticsPanel')?.offsetTop || 0); 
+                };
+                vaultBtn.parentNode.insertBefore(btn, vaultBtn.nextSibling);
+            }
         });
 
         window.addEventListener('online',()=>{if(typeof updateOnlineStatus==='function')updateOnlineStatus(true);showNotification('🌐 Conexión restaurada','info');});
@@ -441,7 +507,7 @@
             } catch (e) { showNotification('❌ ' + e.message, 'error'); }
         }  
 
-        // 🎬 Funciones del Reproductor
+        // 🎬 Funciones del Reproductor MP4/MP3
         function playMedia(fileId, fileType) {
             const modal = document.getElementById('mediaPlayerModal');
             const video = document.getElementById('videoPlayer');
@@ -467,7 +533,7 @@
         }
 
         // 🆔 FUNCIONES DE IDENTIDAD DIGITAL
-        let sigData=null; const sigC=document.getElementById('sigCanvas');
+        const sigC=document.getElementById('sigCanvas');
         if(sigC){const cx=sigC.getContext('2d');let dr=false;
         function gP(e){const r=sigC.getBoundingClientRect();return{x:(e.touches?.[0]?.clientX||e.clientX)-r.left,y:(e.touches?.[0]?.clientY||e.clientY)-r.top}}
         sigC.onmousedown=e=>{dr=true;cx.beginPath();cx.moveTo(...Object.values(gP(e)))}
@@ -489,6 +555,93 @@
         document.getElementById('idQR').src=`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(JSON.stringify(d))}&color=00e676&bgcolor=0b0c10`}
         async function toggleMultisig(){const on=document.getElementById('multisigToggle')?.checked;if(on!==undefined)try{await req('/api/identity/multisig','POST',{enabled:on});showNotification(on?'✅ Multifirma activada':'🔓 Multifirma desactivada','success')}catch(e){showNotification('❌ '+e.message,'error')}}
         function showProfileSection(){const s=document.getElementById('digitalIdentityPanel');if(s&&token){s.classList.remove('hidden');loadContacts();genQR();req('/api/profile').then(p=>{if(p.user?.avatar)document.getElementById('userAvatar').src=p.user.avatar}).catch(()=>{})}}
+
+        // 📊 FUNCIONES ANALYTICS FINANCIERO
+        async function loadFinancialData(period = '30d') {
+            try {
+                const res = await req(`/api/analytics/financial?period=${period}`);
+                if (!res.success) return;
+                
+                // Actualizar tarjetas
+                document.getElementById('totalRevenue').textContent = '$' + (res.data.totalRevenue || 0).toFixed(2);
+                document.getElementById('totalSales').textContent = res.data.totalSales || 0;
+                document.getElementById('affiliateEarnings').textContent = '$' + (res.data.affiliateEarnings || 0).toFixed(2);
+                document.getElementById('activeProducts').textContent = res.data.activeProducts || 0;
+                
+                // Gráfico de ingresos
+                if (typeof Chart !== 'undefined') {
+                    const ctx1 = document.getElementById('revenueChart');
+                    if (revenueChart) revenueChart.destroy();
+                    revenueChart = new Chart(ctx1, {
+                        type: 'line',
+                        data: {
+                            labels: res.data.revenueByDay.map(d => d.date),
+                            datasets: [{
+                                label: 'Ingresos ($)',
+                                data: res.data.revenueByDay.map(d => d.amount),
+                                borderColor: '#00e676',
+                                backgroundColor: 'rgba(0,230,118,0.1)',
+                                tension: 0.3,
+                                fill: true
+                            }]
+                        },
+                        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { grid: { display: false } } } }
+                    });
+                    
+                    // Gráfico de categorías
+                    const ctx2 = document.getElementById('categoryChart');
+                    if (categoryChart) categoryChart.destroy();
+                    categoryChart = new Chart(ctx2, {
+                        type: 'doughnut',
+                        data: {
+                            labels: res.data.salesByCategory.map(c => c.category),
+                            datasets: [{
+                                data: res.data.salesByCategory.map(c => c.count),
+                                backgroundColor: ['#00e676', '#29b6f6', '#ab47bc', '#ffa726', '#66bb6a']
+                            }]
+                        },
+                        options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#fff', font: { size: 10 } } } } }
+                    });
+                }
+                
+                // Top productos
+                const topDiv = document.getElementById('topProducts');
+                topDiv.innerHTML = (res.data.topProducts || []).map((p, i) => 
+                    `<div class="top-product-item"><span>${i+1}. ${p.titulo}</span><span style="color:#00e676">${p.sales} ventas</span></div>`
+                ).join('') || '<p style="color:#8b95a5">Sin datos aún</p>';
+                
+                // Timeline de afiliados
+                const affDiv = document.getElementById('affiliateTimeline');
+                affDiv.innerHTML = (res.data.affiliateHistory || []).slice(0, 10).map(h => 
+                    `<div class="affiliate-timeline-item"><b style="color:#00e676">+$${h.amount}</b> • ${h.item} • <small>${new Date(h.date).toLocaleDateString()}</small></div>`
+                ).join('') || '<p style="color:#8b95a5">Sin comisiones aún</p>';
+                
+                log('📊 Analytics cargados');
+            } catch (e) {
+                log('❌ Analytics: ' + e.message);
+                showNotification('❌ Error cargando analytics', 'error');
+            }
+        }
+
+        async function exportFinancialData(format = 'csv') {
+            try {
+                const res = await req('/api/analytics/financial/export?format=' + format);
+                if (!res.success) return;
+                
+                if (format === 'csv') {
+                    const blob = new Blob([res.data.csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = 'romwiner-financial-' + new Date().toISOString().slice(0,10) + '.csv';
+                    a.click(); URL.revokeObjectURL(url);
+                    showNotification('✅ CSV descargado', 'success');
+                }
+                log('📤 Exportado: ' + format);
+            } catch (e) {
+                log('❌ Export: ' + e.message);
+                showNotification('❌ Error exportando', 'error');
+            }
+        }
     </script>
 </body>
 </html>
