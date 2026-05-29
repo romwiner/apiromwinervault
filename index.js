@@ -1783,8 +1783,7 @@ startServer().catch(function(err) {
     logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
     process.exit(1);
 });
-// 🔐 STREAMING SEGURO CON CIFRADO ENVELOPE
-const CryptoJS = require('crypto-js');
+// 🔐 STREAMING SEGURO CON CIFRADO ENVELOPE//
 app.get('/api/vault/:id/stream/secure', async(req, res) => {
     try {
         const authToken = req.query.token;
