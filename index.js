@@ -1783,6 +1783,77 @@ startServer().catch(function(err) {
     logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
     process.exit(1);
 });
+// 🆔 RUTAS DE IDENTIDAD DIGITAL: Avatar, Firma, Recuperación, Multifirma
+app.post('/api/identity/avatar', authenticate, async(req, res) => {
+    try {
+        const { av } = req.body;
+        if (!av) return res.status(400).json({ error: 'Falta avatar' });
+        await usersCollection.updateOne({ _id: req.user._id }, { $set: { avatar: av } });
+        res.json({ ok: true, message: 'Avatar actualizado' });
+    } catch (e) { res.status(500).json({ error: 'Error guardando avatar: ' + e.message }); }
+});
+
+app.post('/api/identity/signature', authenticate, async(req, res) => {
+    try {
+        const { sig } = req.body;
+        if (!sig) return res.status(400).json({ error: 'Falta firma' });
+        // Cifrar firma con clave maestra del usuario (Envelope Encryption)
+        const masterKey = CryptoJS.PBKDF2(req.user.passwordHash || 'tmp', req.user.salt || 'tmp', { keySize: 8, iterations: 1000 }).toString(CryptoJS.enc.Hex);
+        const enc = CryptoJS.AES.encrypt(sig, masterKey).toString();
+        await usersCollection.updateOne({ _id: req.user._id }, { $set: { signature: enc } });
+        res.json({ ok: true, message: 'Firma guardada y cifrada' });
+    } catch (e) { res.status(500).json({ error: 'Error guardando firma: ' + e.message }); }
+});
+
+app.post('/api/identity/contacts', authenticate, async(req, res) => {
+    try {
+        const { email } = req.body;
+        if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
+        // Verificar que el contacto tenga cuenta en ApiRomwiner
+        const exists = await usersCollection.findOne({ email });
+        if (!exists) return res.status(400).json({ error: 'El contacto debe tener cuenta en ApiRomwiner' });
+        // Agregar contacto (máximo 5)
+        const user = await usersCollection.findOne({ _id: req.user._id });
+        const contacts = user.recoveryContacts || [];
+        if (contacts.length >= 5) return res.status(400).json({ error: 'Máximo 5 contactos permitidos' });
+        if (contacts.some(c => c.email === email)) return res.status(400).json({ error: 'Contacto ya agregado' });
+        contacts.push({ email, ts: new Date(), verified: false });
+        await usersCollection.updateOne({ _id: req.user._id }, { $set: { recoveryContacts: contacts } });
+        res.json({ ok: true, contacts });
+    } catch (e) { res.status(500).json({ error: 'Error agregando contacto: ' + e.message }); }
+});
+
+app.get('/api/identity/contacts', authenticate, async(req, res) => {
+    try {
+        const user = await usersCollection.findOne({ _id: req.user._id }, { projection: { recoveryContacts: 1 } });
+        res.json({ contacts: user.recoveryContacts || [] });
+    } catch (e) { res.status(500).json({ error: 'Error cargando contactos: ' + e.message }); }
+});
+
+app.delete('/api/identity/contacts/:id', authenticate, async(req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await usersCollection.findOne({ _id: req.user._id });
+        const updated = (user.recoveryContacts || []).filter(x => (x._id?.toString() !== id && x.email !== id));
+        await usersCollection.updateOne({ _id: req.user._id }, { $set: { recoveryContacts: updated } });
+        res.json({ ok: true, contacts: updated });
+    } catch (e) { res.status(500).json({ error: 'Error eliminando contacto: ' + e.message }); }
+});
+
+app.post('/api/identity/multisig', authenticate, async(req, res) => {
+    try {
+        const { enabled } = req.body;
+        await usersCollection.updateOne({ _id: req.user._id }, { $set: { multisig: !!enabled } });
+        res.json({ ok: true, message: enabled ? 'Multifirma activada' : 'Multifirma desactivada' });
+    } catch (e) { res.status(500).json({ error: 'Error actualizando multifirma: ' + e.message }); }
+});
+
+app.get('/api/profile', authenticate, async(req, res) => {
+    try {
+        const user = await usersCollection.findOne({ _id: req.user._id }, { projection: { password: 0, passwordHash: 0, salt: 0 } });
+        res.json({ user });
+    } catch (e) { res.status(500).json({ error: 'Error cargando perfil: ' + e.message }); }
+});
 // 🔐 STREAMING SEGURO CON CIFRADO ENVELOPE//
 app.get('/api/vault/:id/stream/secure', async(req, res) => {
     try {
