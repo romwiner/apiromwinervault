@@ -20,6 +20,11 @@
         .media-title{font-size:1rem;font-weight:bold;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .close-media{background:none;border:none;color:#ff5252;font-size:1.5rem;cursor:pointer;padding:5px 15px}
         .play-btn{width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #00e676;color:#00e676;cursor:pointer}
+        /* 🆔 Identidad Digital */
+        #sigCanvas{touch-action:none}
+        .contact-row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(0,0,0,0.3);border-radius:6px;margin:4px 0;font-size:0.8rem}
+        .contact-remove{background:none;border:none;color:#ff5252;cursor:pointer;font-size:1.1rem;padding:0 4px}
+        .signature-saved{border-color:#00e676!important}
     </style>
 </head>
 <body>
@@ -48,60 +53,7 @@
             </div>
         </div>
         <div class="glass qr-box">
-            <h2>📱 Instala la App en tu Celular</h2><!-- 🆔 IDENTIDAD DIGITAL ABSOLUTA + RECUPERACIÓN + MULTIFIRMA -->
-<div class="glass" id="digitalIdentityPanel">
-    <h2>🆔 Mi Identidad Digital Absoluta</h2>
-    <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Tu cuenta es tu ID. Sin apps externas. Sin terceros.</p>
-    
-    <!-- Avatar -->
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-        <img id="userAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" 
-             style="width:64px;height:64px;border-radius:50%;border:2px solid #00e676;background:#000;object-fit:cover">
-        <div>
-            <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatar(event)">
-            <button onclick="document.getElementById('avatarInput').click()" 
-                    style="padding:6px 12px;background:transparent;border:1px solid #29b6f6;color:#29b6f6;border-radius:8px;font-size:0.8rem">📷 Cambiar foto</button>
-            <p style="font-size:0.7rem;color:#8b95a5;margin:4px 0 0">JPG/PNG • Máx 2MB</p>
-        </div>
-    </div>
-
-    <!-- Firma Digital -->
-    <div style="margin:16px 0">
-        <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">✍️ Firma Digital (dibuja con dedo/mouse)</label>
-        <canvas id="sigCanvas" width="280" height="100" style="border:1px solid #2a2f3a;border-radius:8px;background:#000;cursor:crosshair;touch-action:none;width:100%"></canvas>
-        <div style="display:flex;gap:8px;margin-top:6px">
-            <button onclick="clearSig()" style="flex:1;padding:6px;background:transparent;border:1px solid #ff5252;color:#ff5252;border-radius:6px;font-size:0.75rem">🗑️ Borrar</button>
-            <button onclick="saveSig()" style="flex:1;padding:6px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;font-size:0.75rem;font-weight:600">💾 Guardar</button>
-        </div>
-    </div>
-
-    <!-- Recuperación Social -->
-    <div style="margin:16px 0;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
-        <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">🤝 Contactos de Recuperación (mín. 3)</label>
-        <div id="contactsList" style="margin-bottom:8px"></div>
-        <div style="display:flex;gap:6px">
-            <input type="email" id="contactEmail" placeholder="correo@ejemplo.com" 
-                   style="flex:1;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#151922;color:#fff;font-size:0.8rem">
-            <button onclick="addContact()" style="padding:8px 12px;background:#ab47bc;color:#fff;border:none;border-radius:6px;font-size:0.8rem">➕</button>
-        </div>
-    </div>
-
-    <!-- QR Identidad -->
-    <div style="margin-top:16px;text-align:center">
-        <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">📱 Escanea para verificar identidad</p>
-        <img id="idQR" src="" style="max-width:140px;border-radius:8px;border:2px solid #00e676">
-        <button onclick="genQR()" style="margin-top:8px;padding:6px 12px;background:transparent;border:1px solid #00e676;color:#00e676;border-radius:6px;font-size:0.8rem">🔄 Generar QR Actualizado</button>
-    </div>
-
-    <!-- Multifirma -->
-    <div style="margin-top:16px;padding:12px;background:rgba(126,87,194,0.1);border-radius:10px;border-left:3px solid #7e57c2">
-        <h3 style="font-size:1rem;color:#ce93d8;margin-bottom:6px">🔐 Multifirma (Acciones Críticas)</h3>
-        <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">Retiros, eliminar cuenta o cambiar clave requieren aprobación de <b>2 de 3 contactos</b>.</p>
-        <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#fff">
-            <input type="checkbox" id="multisigToggle" onchange="toggleMultisig()"> Activar multifirma para acciones críticas
-        </label>
-    </div>
-</div>
+            <h2>📱 Instala la App en tu Celular</h2>
             <p>Escanea para abrir, instalar y empezar a ganar desde cualquier dispositivo.</p>
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://apiromwinervault.onrender.com&color=00e676&bgcolor=0b0c10" class="qr-img" alt="QR Instalar App">
             <button id="installBtn" class="btn-sec" onclick="installApp()" style="display:none;max-width:200px;margin:8px auto">📲 Instalar App</button>
@@ -166,6 +118,61 @@
             <button onclick="withdraw()">💸 Solicitar Retiro a Cuenta</button>
             <button class="btn-sec" onclick="showAuditLog()">📋 Ver Auditoría</button>
             <button class="btn-danger" onclick="logout()">🚪 Cerrar Sesión</button>
+        </div>
+
+        <!-- 🆔 IDENTIDAD DIGITAL ABSOLUTA + RECUPERACIÓN + MULTIFIRMA -->
+        <div class="glass" id="digitalIdentityPanel">
+            <h2>🆔 Mi Identidad Digital Absoluta</h2>
+            <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Tu cuenta es tu ID. Sin apps externas. Sin terceros.</p>
+            
+            <!-- Avatar -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+                <img id="userAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" 
+                     style="width:64px;height:64px;border-radius:50%;border:2px solid #00e676;background:#000;object-fit:cover">
+                <div>
+                    <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatar(event)">
+                    <button onclick="document.getElementById('avatarInput').click()" 
+                            style="padding:6px 12px;background:transparent;border:1px solid #29b6f6;color:#29b6f6;border-radius:8px;font-size:0.8rem">📷 Cambiar foto</button>
+                    <p style="font-size:0.7rem;color:#8b95a5;margin:4px 0 0">JPG/PNG • Máx 2MB</p>
+                </div>
+            </div>
+
+            <!-- Firma Digital -->
+            <div style="margin:16px 0">
+                <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">✍️ Firma Digital (dibuja con dedo/mouse)</label>
+                <canvas id="sigCanvas" width="280" height="100" style="border:1px solid #2a2f3a;border-radius:8px;background:#000;cursor:crosshair;touch-action:none;width:100%"></canvas>
+                <div style="display:flex;gap:8px;margin-top:6px">
+                    <button onclick="clearSig()" style="flex:1;padding:6px;background:transparent;border:1px solid #ff5252;color:#ff5252;border-radius:6px;font-size:0.75rem">🗑️ Borrar</button>
+                    <button onclick="saveSig()" style="flex:1;padding:6px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;font-size:0.75rem;font-weight:600">💾 Guardar</button>
+                </div>
+            </div>
+
+            <!-- Recuperación Social -->
+            <div style="margin:16px 0;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
+                <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">🤝 Contactos de Recuperación (mín. 3)</label>
+                <div id="contactsList" style="margin-bottom:8px"></div>
+                <div style="display:flex;gap:6px">
+                    <input type="email" id="contactEmail" placeholder="correo@ejemplo.com" 
+                           style="flex:1;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#151922;color:#fff;font-size:0.8rem">
+                    <button onclick="addContact()" style="padding:8px 12px;background:#ab47bc;color:#fff;border:none;border-radius:6px;font-size:0.8rem">➕</button>
+                </div>
+            </div>
+
+            <!-- QR Identidad -->
+            <div style="margin-top:16px;text-align:center">
+                <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">📱 Escanea para verificar identidad</p>
+                <img id="idQR" src="" style="max-width:140px;border-radius:8px;border:2px solid #00e676">
+                <button onclick="genQR()" style="margin-top:8px;padding:6px 12px;background:transparent;border:1px solid #00e676;color:#00e676;border-radius:6px;font-size:0.8rem">🔄 Generar QR Actualizado</button>
+            </div>
+
+            <!-- Multifirma -->
+            <div style="margin-top:16px;padding:12px;background:rgba(126,87,194,0.1);border-radius:10px;border-left:3px solid #7e57c2">
+                <h3 style="font-size:1rem;color:#ce93d8;margin-bottom:6px">🔐 Multifirma (Acciones Críticas)</h3>
+                <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">Retiros, eliminar cuenta o cambiar clave requieren aprobación de <b>2 de 3 contactos</b>.</p>
+                <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#fff">
+                    <input type="checkbox" id="multisigToggle" onchange="toggleMultisig()"> Activar multifirma para acciones críticas
+                </label>
+            </div>
         </div>
 
         <div id="vaultModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
@@ -282,7 +289,7 @@
 
         async function loadUser(){try{const p=await req('/api/profile');currentUser=p.user||p.profile;userTier=currentUser?.tier||localStorage.getItem('userTier')||'personal';isAdmin=localStorage.getItem('isAdmin')==='true'||p.user?.isAdmin===true;const nombre=(p.profile?.displayName==='Demo'||!p.profile?.displayName)?(localStorage.getItem('userEmail')?.split('@')?.[0]||'Usuario'):p.profile.displayName;document.getElementById('uEmail').textContent=nombre;const tierBadge=document.getElementById('userTierBadge');tierBadge.textContent=userTier?.charAt(0).toUpperCase()+userTier?.slice(1);tierBadge.className=`tier-badge tier-${userTier}`;const dashboard=document.getElementById('dashboardView');if(userTier==='enterprise'){dashboard.classList.add('enterprise');document.getElementById('enterpriseFeatures').classList.remove('hidden');}else{dashboard.classList.remove('enterprise');document.getElementById('enterpriseFeatures').classList.add('hidden');}const adminPanel=document.getElementById('adminPanel');if(isAdmin){adminPanel.style.display='block';dashboard.classList.add('enterprise');}else{adminPanel.style.display='none';}const refCode=currentUser?.refCode||localStorage.getItem('refCode')||'ROM000';document.getElementById('refQr').src=`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(API+'?ref='+refCode)}&color=00e676&bgcolor=0b0c10`;if(p.quota)userQuota=p.quota;}catch(e){log('⚠️ Perfil: '+e.message);const email=localStorage.getItem('userEmail');if(email)document.getElementById('uEmail').textContent=email.split('@')[0];}}
 
-        function showDashboard(){document.getElementById('landingView').classList.add('hidden');document.getElementById('dashboardView').classList.remove('hidden');refresh();window.scrollTo(0,0);}
+        function showDashboard(){document.getElementById('landingView').classList.add('hidden');document.getElementById('dashboardView').classList.remove('hidden');refresh();window.scrollTo(0,0);showProfileSection();}
         function logout(){token='';currentUser=null;userTier='personal';isAdmin=false;localStorage.removeItem('token');localStorage.removeItem('userTier');localStorage.removeItem('isAdmin');document.getElementById('dashboardView').classList.add('hidden');document.getElementById('landingView').classList.remove('hidden');log('🚪 Sesión cerrada');window.scrollTo(0,0);showNotification('🚪 Sesión cerrada','info');}
         function scrollToAuth(){document.getElementById('authSection')?.scrollIntoView({behavior:'smooth'});}
 
@@ -298,7 +305,6 @@
         function closeUpload(){document.getElementById('uploadModal').classList.add('hidden');document.getElementById('uploadFile').value='';document.getElementById('uploadTitle').value='';document.getElementById('uploadTitle').classList.remove('error');document.getElementById('uploadStatus').textContent='';}
         document.getElementById('uploadForSale')?.addEventListener('change',function(e){document.getElementById('priceSection').style.display=e.target.checked?'block':'none';});
         
-        // ✅ doUpload CORREGIDA PARA MÓVILES + TÍTULO SEGURO
         async function doUpload(){
             const titleInput = document.getElementById('uploadTitle');
             if(titleInput) { titleInput.blur(); setTimeout(()=>{}, 100); }
@@ -344,7 +350,6 @@
         async function showVault(){try{const modal=document.getElementById('vaultModal'),list=document.getElementById('vaultList');modal.classList.remove('hidden');list.innerHTML='<p style="text-align:center;color:#8b95a5">🔄 Cargando...</p>';const res=await req('/vault'),items=res.items||[];if(items.length===0){list.innerHTML='<p style="text-align:center;color:#8b95a5">📭 Tu vault está vacío</p>';return;}list.innerHTML=items.map(item=>{const isMedia = item.fileName && (item.fileName.toLowerCase().endsWith('.mp4') || item.fileName.toLowerCase().endsWith('.mp3') || item.fileName.toLowerCase().endsWith('.wav') || item.fileName.toLowerCase().endsWith('.ogg'));return`<div class="vault-item"><div class="vault-item-header"><span class="vault-item-title">${item.titulo||'Sin título'}</span>${item.isForSale?`<span class="encryption-badge">💰 $${item.price}</span>`:''}</div><div class="vault-item-meta">${item.tipo==='archivo'?`📁 ${item.fileName}`:'📝 Texto'} • ${item.categoria} • <span class="encryption-badge">🔐 Cifrado</span></div><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">${isMedia?`<button onclick="playMedia('${item._id}','${item.fileName.toLowerCase().includes('mp4')?'video':'audio'}')" class="play-btn">▶️ Reproducir</button>`:''}<button onclick="shareFile('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #29b6f6;color:#29b6f6">🔗 Compartir</button><button onclick="showGitLog('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #8ab4f8;color:#8ab4f8">🌿 Git</button><button onclick="genThumb('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #66bb6a;color:#66bb6a">🖼️ Thumb</button><button onclick="showVersions('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #ffa726;color:#ffa726">📜 Historial</button><button onclick="addComment('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #ab47bc;color:#ab47bc">💬 Comentar</button><button onclick="loadComments('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #8b95a5;color:#8b95a5">👁️ Ver</button></div>${item.sales>0?`<div class="vault-item-meta">📈 ${item.sales} ventas</div>`:''}</div>`}).join('');log(`🗄️ Vault: ${items.length} activos`);}catch(e){log('❌ Vault: '+e.message);document.getElementById('vaultList').innerHTML=`<p style="color:#ff5252">Error: ${e.message}</p>`;showNotification('❌ Error cargando vault','error');}}
         function closeVault(){document.getElementById('vaultModal').classList.add('hidden');}
         
-        // === FUNCIONES DEL VAULT ===
         async function shareFile(fileId){try{const pass=prompt('🔒 Contraseña opcional (Enter para ninguna):');const hours=prompt('⏱️ Expirar en horas (24):','24')||24;const res=await req(`/api/vault/${fileId}/share`,'POST',{password:pass||null,expiresInHours:parseInt(hours)});if(navigator.clipboard)await navigator.clipboard.writeText(res.link);showNotification('✅ Enlace copiado','success');log(`🔗 Share: ${res.link}`);}catch(e){log('❌ Share: '+e.message);showNotification('❌ '+e.message,'error');}}
         async function genThumb(fileId){try{log('🖼️ Generando thumbnail...');await req(`/api/vault/${fileId}/thumbnail`,'POST');showNotification('✅ Thumbnail generado','success');log('✅ Thumbnail listo');}catch(e){log('❌ Thumb: '+e.message);showNotification('❌ '+e.message,'error');}}
         async function showVersions(fileId){try{const res=await req(`/api/vault/${fileId}/versions`);const list=res.versions?.map(v=>`v${v.v} • ${new Date(v.date).toLocaleString()}`).join('\n')||'(vacío)';alert('📜 Historial de versiones:\n'+list);}catch(e){log('❌ Versiones: '+e.message);showNotification('❌ '+e.message,'error');}}
@@ -460,6 +465,30 @@
             audio.pause(); audio.src = "";
             modal.classList.add('hidden');
         }
+
+        // 🆔 FUNCIONES DE IDENTIDAD DIGITAL
+        let sigData=null; const sigC=document.getElementById('sigCanvas');
+        if(sigC){const cx=sigC.getContext('2d');let dr=false;
+        function gP(e){const r=sigC.getBoundingClientRect();return{x:(e.touches?.[0]?.clientX||e.clientX)-r.left,y:(e.touches?.[0]?.clientY||e.clientY)-r.top}}
+        sigC.onmousedown=e=>{dr=true;cx.beginPath();cx.moveTo(...Object.values(gP(e)))}
+        sigC.onmousemove=e=>{if(!dr)return;const p=gP(e);cx.lineTo(p.x,p.y);cx.stroke()}
+        sigC.onmouseup=()=>dr=false;
+        sigC.ontouchstart=e=>{e.preventDefault();dr=true;cx.beginPath();cx.moveTo(...Object.values(gP(e)))}
+        sigC.ontouchmove=e=>{e.preventDefault();if(!dr)return;const p=gP(e);cx.lineTo(p.x,p.y);cx.stroke()}
+        sigC.ontouchend=()=>dr=false}
+        function clearSig(){sigC?.getContext('2d').clearRect(0,0,sigC.width,sigC.height);sigData=null}
+        async function saveSig(){if(!sigC)return;sigData=sigC.toDataURL('image/png');
+        try{await req('/api/identity/signature','POST',{sig:sigData});showNotification('✅ Firma guardada y cifrada','success')}catch(e){showNotification('❌ '+e.message,'error')}}
+        async function handleAvatar(e){const f=e.target.files[0];if(!f)return;if(f.size>2*1024*1024)return showNotification('⚠️ Máx 2MB','error');
+        const r=new FileReader();r.onload=ev=>{document.getElementById('userAvatar').src=ev.target.result;req('/api/identity/avatar','POST',{av:ev.target.result}).catch(()=>{})};r.readAsDataURL(f)}
+        async function addContact(){const em=document.getElementById('contactEmail')?.value?.trim();if(!em||!/^\S+@\S+\.\S+$/.test(em))return showNotification('⚠️ Email válido','error');
+        try{await req('/api/identity/contacts','POST',{email:em});loadContacts();document.getElementById('contactEmail').value='';showNotification('✅ Contacto agregado','success')}catch(e){showNotification('❌ '+e.message,'error')}}
+        async function loadContacts(){const c=document.getElementById('contactsList');if(!c)return;try{const r=await req('/api/identity/contacts');c.innerHTML=(r.contacts||[]).map(x=>`<div class="contact-row"><span>${x.email}</span><button class="contact-remove" onclick="delContact('${x._id||x.email}')">×</button></div>`).join('')||'<p style="font-size:0.75rem;color:#8b95a5">Sin contactos</p>'}catch(e){c.innerHTML='<p style="font-size:0.75rem;color:#8b95a5">Cargando...</p>'}}
+        async function delContact(id){if(!confirm('¿Eliminar contacto?'))return;try{await req(`/api/identity/contacts/${id}`,'DELETE');loadContacts();showNotification('✅ Eliminado','success')}catch(e){showNotification('❌ '+e.message,'error')}}
+        function genQR(){const u=currentUser||{};const d={id:u.uid||'ROM'+Date.now(),name:document.getElementById('uEmail')?.textContent||'Usuario',avatar:document.getElementById('userAvatar')?.src||'',sigHash:sigData?CryptoJS.SHA256(sigData).toString().slice(0,16):'none',recov:(document.querySelectorAll('.contact-row').length),multisig:document.getElementById('multisigToggle')?.checked||false};
+        document.getElementById('idQR').src=`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(JSON.stringify(d))}&color=00e676&bgcolor=0b0c10`}
+        async function toggleMultisig(){const on=document.getElementById('multisigToggle')?.checked;if(on!==undefined)try{await req('/api/identity/multisig','POST',{enabled:on});showNotification(on?'✅ Multifirma activada':'🔓 Multifirma desactivada','success')}catch(e){showNotification('❌ '+e.message,'error')}}
+        function showProfileSection(){const s=document.getElementById('digitalIdentityPanel');if(s&&token){s.classList.remove('hidden');loadContacts();genQR();req('/api/profile').then(p=>{if(p.user?.avatar)document.getElementById('userAvatar').src=p.user.avatar}).catch(()=>{})}}
     </script>
 </body>
 </html>
