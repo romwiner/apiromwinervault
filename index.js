@@ -2,6 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const CryptoJS = require('crypto-js');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { MongoClient, ObjectId } = require('mongodb');
@@ -1782,11 +1783,13 @@ startServer().catch(function(err) {
     logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
     process.exit(1);
 });
-// 🎬 STREAMING MP4/MP3
-app.get('/api/vault/:id/stream', async(req, res) => {
+// 🔐 STREAMING SEGURO CON CIFRADO ENVELOPE
+const CryptoJS = require('crypto-js');
+app.get('/api/vault/:id/stream/secure', async(req, res) => {
     try {
         const authToken = req.query.token;
-        if (!authToken) return res.status(401).json({ error: 'Token requerido' });
+        const userPassword = req.query.passwordHash;
+        if (!authToken || !userPassword) return res.status(401).json({ error: 'Autenticación requerida' });
         let user;
         try {
             const decoded = jwt.verify(authToken, process.env.JWT_SECRET || JWT_SECRET);
@@ -1801,28 +1804,43 @@ app.get('/api/vault/:id/stream', async(req, res) => {
         const hasBought = fileRecord.buyers?.includes(user.uid);
         const isPublic = fileRecord.isForSale && fileRecord.price === 0;
         if (!isOwner && !hasBought && !isPublic) return res.status(403).json({ error: 'Acceso denegado' });
-        const filePath = path.join(__dirname, 'uploads', fileRecord.fileName);
-        if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Archivo no existe en servidor' });
-        const stat = fs.statSync(filePath);
-        const fileSize = stat.size;
+        const encryptedFileKey = fileRecord.encryptedKey;
+        if (!encryptedFileKey) return res.status(500).json({ error: 'Clave de archivo no disponible' });
+        const masterKey = CryptoJS.PBKDF2(userPassword, user.salt, { keySize: 8, iterations: 1000 }).toString(CryptoJS.enc.Hex);
+        const bytes = CryptoJS.AES.decrypt(encryptedFileKey, masterKey);
+        const fileKey = bytes.toString(CryptoJS.enc.Utf8);
+        if (!fileKey) return res.status(500).json({ error: 'No se pudo desencriptar la clave del archivo' });
+        const encryptedFilePath = path.join(__dirname, 'uploads', fileRecord.fileName + '.enc');
+        if (!fs.existsSync(encryptedFilePath)) return res.status(404).json({ error: 'Archivo cifrado no encontrado' });
+        const stat = fs.statSync(encryptedFilePath);
+        const encryptedFileSize = stat.size;
         const range = req.headers.range;
-        const contentType = fileRecord.fileType || (fileRecord.fileName.endsWith('.mp4') ? 'video/mp4' : fileRecord.fileName.endsWith('.mp3') ? 'audio/mpeg' : 'application/octet-stream');
+        const contentType = fileRecord.fileType || 'application/octet-stream';
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Cache-Control', 'no-cache');
         if (range) {
             const parts = range.replace(/bytes=/, "").split("-");
             const start = parseInt(parts[0], 10);
-            const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+            const end = parts[1] ? parseInt(parts[1], 10) : encryptedFileSize - 1;
             const chunkSize = (end - start) + 1;
-            const fileStream = fs.createReadStream(filePath, { start, end });
-            const headers = { 'Content-Range': `bytes ${start}-${end}/${fileSize}`, 'Accept-Ranges': 'bytes', 'Content-Length': chunkSize, 'Content-Type': contentType, 'Cache-Control': 'no-cache' };
-            res.writeHead(206, headers);
-            fileStream.pipe(res);
+            const encryptedChunk = fs.readFileSync(encryptedFilePath, { start, end });
+            const decryptedChunk = CryptoJS.AES.decrypt({ ciphertext: CryptoJS.enc.Hex.parse(encryptedChunk.toString('hex')) }, CryptoJS.enc.Utf8.parse(fileKey), { mode: CryptoJS.mode.CTR, padding: CryptoJS.pad.NoPadding }).toString(CryptoJS.enc.Latin1);
+            res.setHeader('Content-Range', `bytes ${start}-${end}/${encryptedFileSize}`);
+            res.setHeader('Content-Length', Buffer.byteLength(decryptedChunk, 'latin1'));
+            res.writeHead(206);
+            res.end(decryptedChunk, 'latin1');
         } else {
-            const headers = { 'Content-Length': fileSize, 'Content-Type': contentType, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache' };
-            res.writeHead(200, headers);
-            fs.createReadStream(filePath).pipe(res);
+            const encryptedData = fs.readFileSync(encryptedFilePath);
+            const decryptedData = CryptoJS.AES.decrypt({ ciphertext: CryptoJS.enc.Hex.parse(encryptedData.toString('hex')) }, CryptoJS.enc.Utf8.parse(fileKey), { mode: CryptoJS.mode.CTR, padding: CryptoJS.pad.NoPadding }).toString(CryptoJS.enc.Latin1);
+            res.setHeader('Content-Length', Buffer.byteLength(decryptedData, 'latin1'));
+            res.writeHead(200);
+            res.end(decryptedData, 'latin1');
         }
+        logger.info(`🔐 Streaming seguro: ${fileRecord.fileName} • Usuario: ${user.uid}`);
     } catch (error) {
-        if (!res.headersSent) res.status(500).json({ error: 'Error en streaming' });
+        logger.error('❌ Error en streaming seguro:', error);
+        if (!res.headersSent) res.status(500).json({ error: 'Error al servir archivo cifrado' });
     }
 });
 // === FIN: index.js ===
