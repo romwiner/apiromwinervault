@@ -1782,4 +1782,47 @@ startServer().catch(function(err) {
     logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
     process.exit(1);
 });
+// 🎬 STREAMING MP4/MP3
+app.get('/api/vault/:id/stream', async(req, res) => {
+    try {
+        const authToken = req.query.token;
+        if (!authToken) return res.status(401).json({ error: 'Token requerido' });
+        let user;
+        try {
+            const decoded = jwt.verify(authToken, process.env.JWT_SECRET || JWT_SECRET);
+            user = await usersCollection.findOne({ uid: decoded.uid });
+        } catch (e) { return res.status(401).json({ error: 'Token inválido' }); }
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        const fileId = req.params.id;
+        if (!ObjectId.isValid(fileId)) return res.status(400).json({ error: 'ID inválido' });
+        const fileRecord = await secretsCollection.findOne({ _id: new ObjectId(fileId) });
+        if (!fileRecord) return res.status(404).json({ error: 'Archivo no encontrado' });
+        const isOwner = fileRecord.userId.toString() === user._id.toString();
+        const hasBought = fileRecord.buyers?.includes(user.uid);
+        const isPublic = fileRecord.isForSale && fileRecord.price === 0;
+        if (!isOwner && !hasBought && !isPublic) return res.status(403).json({ error: 'Acceso denegado' });
+        const filePath = path.join(__dirname, 'uploads', fileRecord.fileName);
+        if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Archivo no existe en servidor' });
+        const stat = fs.statSync(filePath);
+        const fileSize = stat.size;
+        const range = req.headers.range;
+        const contentType = fileRecord.fileType || (fileRecord.fileName.endsWith('.mp4') ? 'video/mp4' : fileRecord.fileName.endsWith('.mp3') ? 'audio/mpeg' : 'application/octet-stream');
+        if (range) {
+            const parts = range.replace(/bytes=/, "").split("-");
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+            const chunkSize = (end - start) + 1;
+            const fileStream = fs.createReadStream(filePath, { start, end });
+            const headers = { 'Content-Range': `bytes ${start}-${end}/${fileSize}`, 'Accept-Ranges': 'bytes', 'Content-Length': chunkSize, 'Content-Type': contentType, 'Cache-Control': 'no-cache' };
+            res.writeHead(206, headers);
+            fileStream.pipe(res);
+        } else {
+            const headers = { 'Content-Length': fileSize, 'Content-Type': contentType, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache' };
+            res.writeHead(200, headers);
+            fs.createReadStream(filePath).pipe(res);
+        }
+    } catch (error) {
+        if (!res.headersSent) res.status(500).json({ error: 'Error en streaming' });
+    }
+});
 // === FIN: index.js ===
