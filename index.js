@@ -1591,7 +1591,110 @@ const user = await usersCollection.findOne({ _id: req.user._id }, { projection: 
 res.json({ user });
 } catch (e) { res.status(500).json({ error: 'Error cargando perfil: ' + e.message }); }
 });
+// 📊 ANALYTICS FINANCIERO: RUTAS BACKEND
+app.get('/api/analytics/financial', authenticate, async(req, res) => {
+    try {
+        const { period = '30d' } = req.query;
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        
+        // Calcular fechas
+        const now = new Date();
+        const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+        const startDate = new Date(now - days * 24 * 60 * 60 * 1000);
+        
+        // Ingresos totales (ventas + afiliados)
+        const salesAgg = await transactionsCollection?.aggregate([
+            { $match: { seller: user.uid, type: 'sale', createdAt: { $gte: startDate } } },
+            { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+        ]).toArray() || [];
+        
+        const affiliateAgg = await transactionsCollection?.aggregate([
+            { $match: { userId: user._id, type: 'affiliate', createdAt: { $gte: startDate } } },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]).toArray() || [];
+        
+        // Ingresos por día (para gráfico)
+        const revenueByDay = await transactionsCollection?.aggregate([
+            { $match: { $or: [{ seller: user.uid, type: 'sale' }, { userId: user._id, type: 'affiliate' }], createdAt: { $gte: startDate } } },
+            { $group: { 
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                amount: { $sum: '$amount' }
+            }},
+            { $sort: { _id: 1 } }
+        ]).toArray() || [];
+        
+        // Ventas por categoría
+        const salesByCategory = await secretsCollection?.aggregate([
+            { $match: { userId: user._id, isForSale: true, sales: { $gt: 0 } } },
+            { $group: { _id: '$categoria', count: { $sum: '$sales' } }},
+            { $sort: { count: -1 } },
+            { $limit: 5 }
+        ]).toArray() || [];
+        
+        // Top productos
+        const topProducts = await secretsCollection?.find(
+            { userId: user._id, isForSale: true, sales: { $gt: 0 } },
+            { projection: { titulo: 1, sales: 1, price: 1 } }
+        ).sort({ sales: -1 }).limit(5).toArray() || [];
+        
+        // Historial de afiliados
+        const affiliateHistory = await transactionsCollection?.find(
+            { userId: user._id, type: 'affiliate', createdAt: { $gte: startDate } },
+            { projection: { amount: 1, item: 1, date: '$createdAt' } }
+        ).sort({ createdAt: -1 }).limit(20).toArray() || [];
+        
+        // Productos activos
+        const activeProducts = await secretsCollection?.countDocuments({ userId: user._id, isForSale: true }) || 0;
+        
+        res.json({
+            success: true,
+            data: {
+                totalRevenue: (salesAgg[0]?.total || 0) + (affiliateAgg[0]?.total || 0),
+                totalSales: salesAgg[0]?.count || 0,
+                affiliateEarnings: affiliateAgg[0]?.total || 0,
+                activeProducts,
+                revenueByDay: revenueByDay.map(d => ({ date: d._id, amount: d.amount })),
+                salesByCategory: salesByCategory.map(c => ({ category: c._id || 'Sin categoría', count: c.count })),
+                topProducts: topProducts.map(p => ({ titulo: p.titulo, sales: p.sales, revenue: p.sales * (p.price || 0) })),
+                affiliateHistory: affiliateHistory.map(h => ({ amount: h.amount, item: h.item, date: h.date }))
+            }
+        });
+    } catch (e) {
+        logger.error('❌ Analytics error: ' + e.message);
+        res.status(500).json({ error: 'Error cargando analytics: ' + e.message });
+    }
+});
 
+app.get('/api/analytics/financial/export', authenticate, async(req, res) => {
+    try {
+        const { format = 'csv' } = req.query;
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        
+        const transactions = await transactionsCollection?.find({ 
+            $or: [{ seller: user.uid }, { userId: user._id }] 
+        }).sort({ createdAt: -1 }).limit(100).toArray() || [];
+        
+        if (format === 'csv') {
+            const headers = ['Fecha', 'Tipo', 'Monto', 'Item', 'Estado'];
+            const rows = transactions.map(t => [
+                new Date(t.createdAt).toLocaleDateString(),
+                t.type,
+                t.amount?.toFixed(2) || '0.00',
+                t.item || '-',
+                t.status || 'completado'
+            ]);
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            res.json({ success: true, data: { csv } });
+        } else {
+            res.json({ success: true, data: { json: transactions } });
+        }
+    } catch (e) {
+        logger.error('❌ Export error: ' + e.message);
+        res.status(500).json({ error: 'Error exportando: ' + e.message });
+    }
+});
 // ============================================
 // 🔐 STREAMING SEGURO CON CIFRADO ENVELOPE
 // ============================================
