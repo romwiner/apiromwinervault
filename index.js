@@ -1329,61 +1329,48 @@ await logAudit('vault_sync_push', { userId: user.uid, synced: syncedCount, creat
 res.json({ success: true, message: `${syncedCount} cambios sincronizados`, summary: { synced: syncedCount, created: created.length, updated: updated.length, errors: errors.length, total: changes.length }, created: created.length > 0 ? created : undefined, updated: updated.length > 0 ? updated : undefined, errors: errors.length > 0 ? errors : undefined, nextSteps: ['Sube el contenido cifrado de nuevos archivos vía POST /vault', 'Verifica sincronización con GET /api/vault/sync/check', FEATURES.ZERO_KNOWLEDGE ? 'Contenido local debe cifrarse con tu clave antes de subir' : null].filter(Boolean) });
 } catch (e) { logger.error('❌ Sync push error: ' + e.message); res.status(500).json({ error: 'Error sincronizando cambios: ' + e.message }); }
 });
-// === 🚀 NUEVAS FUNCIONES: WEB3 LOGIN + IPFS BACKUP ===
-app.post('/api/web3/login', async(req, res) => {
+// === 🚀 NUEVAS FUNCIONES: EXPORT/IMPORT/SYNC (PORTABLE) ===
+app.post('/api/vault/:id/version', authenticate, async(req, res) => {
 try {
-if (!FEATURES.WEB3_LOGIN) return res.status(404).json({ error: 'Web3 login no habilitado' });
-const { address, signature, message } = req.body;
-if (!address || !signature || !message) return res.status(400).json({ error: 'address, signature y message requeridos' });
-const recoveredAddress = ethers.verifyMessage(message, signature);
-if (recoveredAddress.toLowerCase() !== address.toLowerCase()) return res.status(401).json({ error: 'Firma inválida' });
-let user = await usersCollection.findOne({ walletAddress: address });
-if (!user && mongoReady) {
-const newUser = { walletAddress: address, uid: 'rom_' + crypto.randomBytes(8).toString('hex'), tier: 'personal', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
-const r = await usersCollection.insertOne(newUser);
-await profilesCollection.insertOne({ userId: r.insertedId, uid: newUser.uid, displayName: '', avatarUrl: '', bio: '', isPublic: false, createdAt: new Date() });
-await walletCollection.insertOne({ userId: r.insertedId, balance: 0, currency: 'USD', history: [], createdAt: new Date() });
-await affiliatesCollection.insertOne({ userId: r.insertedId, refCode: newUser.refCode, level: 'bronce', createdAt: new Date() });
-user = newUser; await logAudit('web3_register', { address });
-} else if (!user) { user = { uid: 'demo_web3', walletAddress: address, tier: 'personal' }; }
-const token = jwt.sign({ uid: user.uid, wallet: address, authMethod: 'web3' }, JWT_SECRET, { expiresIn: '7d' });
-await logAudit('web3_login', { address });
-res.json({ success: true, token, user: { uid: user.uid, wallet: address, tier: user.tier } });
-} catch (e) { logger.error('❌ Web3 login error: ' + e.message); res.status(500).json({ error: 'Error login Web3: ' + e.message }); }
-});
-app.post('/api/vault/:id/backup', authenticate, async(req, res) => {
-try {
-if (!FEATURES.IPFS_BACKUP) return res.status(404).json({ error: 'Backup IPFS no habilitado' });
-const { id } = req.params; const user = await usersCollection.findOne({ uid: req.user.uid });
-const secret = await secretsCollection.findOne({ _id: new ObjectId(id), userId: user._id });
-if (!secret) return res.status(404).json({ error: 'Archivo no encontrado' });
-let content = null;
-if (user.encryptedUserKey) {
-const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
-if (secret.tipo === 'texto' && secret.contenido) content = EnvelopeEncryption.open(secret.contenido, userDEK);
-else if (secret.tipo === 'archivo' && secret.encrypted) content = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64');
+const { content } = req.body;
+if (!content) return res.status(400).json({ error: 'Contenido requerido' });
+const userCheck = await usersCollection.findOne({ uid: req.user.uid });
+const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
+if (!secret) return res.status(404).json({ error: 'No encontrado' });
+const user = await usersCollection.findOne({ uid: req.user.uid });
+
+// ✅ VALIDAR QUE EL USUARIO TENGA CLAVE DE CIFRADO
+if (!user || !user.encryptedUserKey) {
+return res.status(400).json({ error: 'Clave de cifrado no disponible' });
 }
-if (!content) return res.status(400).json({ error: 'No se pudo descifrar el contenido' });
-const fs = await initHelia(); if (!fs) return res.status(500).json({ error: 'IPFS no disponible' });
-const result = await fs.addBytes(content instanceof Buffer ? content : new TextEncoder().encode(content));
-const cid = result.toString(); const ipfsUrl = `https://ipfs.io/ipfs/${cid}`;
-await secretsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { backupCid: cid, backupUrl: ipfsUrl, backupAt: new Date() } });
-await logAudit('vault.backup', { fileId: id, cid, userId: user.uid, system: 'helia' });
-res.json({ success: true, cid, url: ipfsUrl, message: 'Backup en IPFS creado vía Helia. Contenido sigue cifrado con tu clave.' });
-} catch (e) { logger.error('❌ Helia backup error: ' + e.message); res.status(500).json({ error: 'Error creando backup IPFS: ' + e.message }); }
+
+const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
+const last = await versionsCollection.findOne({ fileId: secret._id }, { sort: { versionNumber: -1 } });
+const next = ((last && last.versionNumber) || 0) + 1;
+await versionsCollection.insertOne({ fileId: secret._id, versionNumber: next, content: EnvelopeEncryption.seal(content, userDEK), createdBy: req.user.uid, createdAt: new Date() });
+res.json({ success: true, version: next });
+} catch (e) { res.status(500).json({ error: 'Error versión: ' + e.message }); }
 });
-app.get('/api/vault/:id/restore', authenticate, async(req, res) => {
+
+app.post('/api/vault/import', authenticate, async(req, res) => {
 try {
-if (!FEATURES.IPFS_BACKUP) return res.status(404).json({ error: 'Backup IPFS no habilitado' });
-const { id } = req.params; const user = await usersCollection.findOne({ uid: req.user.uid });
-const secret = await secretsCollection.findOne({ _id: new ObjectId(id), userId: user._id });
-if (!(secret && secret.backupCid)) return res.status(404).json({ error: 'No hay backup en IPFS para este archivo' });
-const fs = await initHelia(); if (!fs) return res.status(500).json({ error: 'IPFS no disponible' });
-const chunks = []; for await (const chunk of fs.cat(secret.backupCid)) chunks.push(chunk);
-await secretsCollection.updateOne({ _id: new ObjectId(id) }, { $set: { restoredFromBackup: new Date(), backupRestored: true } });
-await logAudit('vault.restore', { fileId: id, cid: secret.backupCid, userId: user.uid });
-res.json({ success: true, message: 'Archivo restaurado desde IPFS. Contenido sigue cifrado con tu clave.' });
-} catch (e) { logger.error('❌ Helia restore error: ' + e.message); res.status(500).json({ error: 'Error restaurando desde IPFS: ' + e.message }); }
+const { exportData, options = {} } = req.body;
+if (!exportData || !exportData.version || !Array.isArray(exportData.items)) return res.status(400).json({ error: 'Datos de exportación inválidos. Falta "version" o "items" array.', expected: { version: '1.0', items: 'array' } });
+if (!FEATURES.PORTABLE_EXPORT || !mongoReady || !secretsCollection) return res.json({ success: true, message: 'Modo demo: importación simulada', demo: true, imported: exportData.items.length });
+const user = await usersCollection.findOne({ uid: req.user.uid });
+if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+if (exportData.userId && exportData.userId !== user.uid && !options.forceImport) return res.status(403).json({ error: 'Exportación pertenece a otro usuario.', exportUserId: exportData.userId, yourUserId: user.uid, solution: 'Usa forceImport:true para importar como nueva bóveda' });
+let importedCount = 0; const errors = []; const skipped = [];
+for (const item of (exportData.items || [])) {
+try {
+if (!item.titulo) { skipped.push({ reason: 'missing titulo', item }); continue; }
+const newItem = { userId: user._id, userUid: user.uid, titulo: item.titulo, categoria: item.categoria || 'imported', folderId: 'imported', tipo: item.tipo || (item.fileName ? 'archivo' : 'texto'), fileName: item.fileName || null, fileType: item.fileType || null, fileSize: item.fileSize || 0, encrypted: null, contenido: null, isForSale: false, price: 0, sales: 0, buyers: [], createdAt: new Date(item.createdAt) || new Date(), importedFrom: exportData.exportedAt || new Date().toISOString(), originalId: item.id, metadata: { imported: true, importDate: new Date().toISOString() } };
+await secretsCollection.insertOne(newItem); importedCount++;
+} catch (itemError) { errors.push({ itemId: item.id, titulo: item.titulo, error: itemError.message }); logger.warn(`⚠️ Import item failed: ${item.id} - ${itemError.message}`); }
+}
+await logAudit('vault_import', { userId: user.uid, importedCount, errorCount: errors.length, skippedCount: skipped.length, sourceExport: exportData.exportedAt, zeroKnowledge: FEATURES.ZERO_KNOWLEDGE });
+res.json({ success: true, message: `Importación completada: ${importedCount} items restaurados`, summary: { imported: importedCount, errors: errors.length, skipped: skipped.length, total: exportData.items.length }, errors: errors.length > 0 ? errors : undefined, skipped: skipped.length > 0 ? skipped : undefined, nextSteps: ['Sube el contenido cifrado de cada archivo vía POST /vault normal', 'O usa el frontend con zero-knowledge para restaurar contenido completo', 'Verifica tus archivos en GET /vault'] });
+} catch (e) { logger.error('❌ Import error: ' + e.message); res.status(500).json({ error: 'Error importando bóveda: ' + e.message }); }
 });
 // ============================================
 // 🛍️ MARKETPLACE INTEGRADO + RECOMENDACIONES
