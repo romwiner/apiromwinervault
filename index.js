@@ -195,7 +195,7 @@ const PORT = process.env.PORT || 10000;
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://..."; // ← Agregar fallback solo para desarrollo
 let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
-let reviewsCollection, favoritesCollection;
+let reviewsCollection, favoritesCollection, commitsCollection; // ← AGREGAR ", commitsCollection" AQUÍ
 let mongoReady = false;
 async function connectToMongo() {
 try {
