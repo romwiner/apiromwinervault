@@ -407,6 +407,11 @@ next();
 };
 // ✅ AUDITORÍA
 const createImmutableLog = async(data) => {
+// ✅ MODO DEMO: Si no hay DB, devolver log simulado
+if (!mongoReady || !auditCollection) {
+return {...data, eventId: crypto.randomUUID(), timestamp: new Date(), note: 'demo_mode' };
+}
+// ✅ FIN MODO DEMO
 const eventId = crypto.randomUUID();
 const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
 const last = await auditCollection.findOne({}, { sort: { createdAt: -1 }, projection: { currentHash: 1 } });
@@ -420,6 +425,12 @@ if (mongoReady && auditCollection) { try { await auditCollection.insertOne(await
 };
 // ✅ GDPR/SOC2
 const generateGDPRReport = async(userId, start, end) => {
+// ✅ MODO DEMO: Si no hay DB, devolver reporte simulado
+if (!mongoReady || !usersCollection || !auditCollection) {
+return { reportType: 'GDPR_ARTICLE_15', generatedAt: new Date().toISOString(), subject: { uid: userId }, data: [], demo: true };
+}
+// ✅ FIN MODO DEMO
+
 const user = await usersCollection.findOne({ uid: userId });
 const logs = await auditCollection.find({ userId, timestamp: { $gte: new Date(start), $lte: new Date(end) } }).sort({ timestamp: 1 }).toArray();
 return { reportType: 'GDPR_ARTICLE_15', generatedAt: new Date().toISOString(), subject: { uid: (user && user.uid), email: (user && user.email) }, data: logs };
