@@ -192,7 +192,7 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT || 10000;
 // 🔐 MONGODB
 // Cambiar esta línea:
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://..."; // ← Agregar fallback solo para desarrollo
+const MONGODB_URI = process.env.MONGODB_URI;
 let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
 let reviewsCollection, favoritesCollection, commitsCollection; // ← AGREGAR ", commitsCollection" AQUÍ
@@ -284,7 +284,7 @@ const allowedOrigins = [
 if (origin.endsWith('.onrender.com') || origin.endsWith('.romwinervault.com') || allowedOrigins.includes(origin)) {
 callback(null, true);
 } else {
-console.warn('⚠️ Origen no en lista permitida:', origin);
+logger.warn('⚠️ Origen no en lista permitida:', origin);
 callback(null, true);
 }
 },
