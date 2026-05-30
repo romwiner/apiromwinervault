@@ -224,7 +224,12 @@ favoritesCollection = db.collection('favorites');
  // ✅ NUEVO: Colecciones para publicidad
 adsCollection = db.collection('ads');
 adImpressionsCollection = db.collection('adImpressions');   
-commitsCollection = db.collection('vaultCommits'); // ← AGREGAR ESTA LÍNEA
+commitsCollection = db.collection('vaultCommits');
+// ✅ Índices para publicidad
+await adsCollection.createIndex({ active: 1, budget: -1, startDate: 1, endDate: 1 });
+await adsCollection.createIndex({ advertiserId: 1, createdAt: -1 });
+await adImpressionsCollection.createIndex({ userId: 1, watchedAt: -1 });
+await adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 }); // ← AGREGAR ESTA LÍNEA
 await usersCollection.createIndex({ email: 1 }, { unique: true });
 await usersCollection.createIndex({ uid: 1 }, { unique: true });
 await usersCollection.createIndex({ tier: 1 });
