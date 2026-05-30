@@ -1049,7 +1049,12 @@ await versionsCollection.insertOne({ fileId: secret._id, versionNumber: next, co
 res.json({ success: true, version: next });
 } catch (e) { res.status(500).json({ error: 'Error versión: ' + e.message }); }
 });
-
+const user = await usersCollection.findOne({ uid: req.user.uid });
+// ✅ Validar que el usuario tenga clave de cifrado
+if (!user || !user.encryptedUserKey) {
+return res.status(400).json({ error: 'Clave de cifrado no disponible' });
+}
+const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
 app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
 try {
 const userCheck = await usersCollection.findOne({ uid: req.user.uid });
