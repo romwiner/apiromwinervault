@@ -936,7 +936,13 @@ res.json(result);
 app.delete('/api/admin/webhooks/:url', authenticate, requireAdmin, async(req, res) => {
 try {
 if (!mongoReady) return res.json({ success: true, message: 'Demo: webhook eliminado', demo: true });
-await webhooksCollection.deleteOne({ userId: req.user.uid, url: decodeURIComponent(req.params.url) });
+// ✅ Validar que la URL sea válida antes de decodificar
+try {
+const decodedUrl = decodeURIComponent(req.params.url);
+await webhooksCollection.deleteOne({ userId: req.user.uid, url: decodedUrl });
+} catch (e) {
+return res.status(400).json({ error: 'URL inválida' });
+}
 res.json({ success: true, message: 'Webhook eliminado' });
 } catch (e) { res.status(500).json({ error: 'Error eliminando webhook: ' + e.message }); }
 });
