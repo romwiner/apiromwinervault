@@ -346,6 +346,16 @@ next();
 };
 const requireAdmin = async(req, res, next) => {
 try {
+// ✅ MODO DEMO: Si no hay DB, verificar email directamente
+if (!mongoReady || !usersCollection) {
+if (ADMIN_EMAILS.includes(req.user.email)) {
+req.admin = { email: req.user.email, uid: req.user.uid };
+return next();
+}
+return res.status(403).json({ error: 'Acceso denegado' });
+}
+// ✅ FIN MODO DEMO
+
 const user = await usersCollection.findOne({ uid: req.user.uid });
 if (!user || !ADMIN_EMAILS.includes(user.email)) return res.status(403).json({ error: 'Acceso denegado' });
 req.admin = user;
