@@ -748,7 +748,8 @@ const user = await usersCollection.findOne({ uid: req.user.uid });
 if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
 if (!secret) return res.status(404).json({ error: 'Contenido no encontrado' });
-if (secret.userId.toString() !== user._id.toString() && secret.buyers.indexOf(user.uid) === -1 && !secret.isForSale) return res.status(403).json({ error: 'Acceso denegado: no tienes permiso para este contenido' });
+const hasBought = Array.isArray(secret.buyers) && secret.buyers.includes(user.uid);
+if (secret.userId.toString() !== user._id.toString() && !hasBought && !secret.isForSale) return res.status(403).json({ error: 'Acceso denegado: no tienes permiso para este contenido' });
 let contenido = null;
 if (user.encryptedUserKey) {
 try {
