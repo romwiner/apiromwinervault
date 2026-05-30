@@ -1857,366 +1857,409 @@ if (!res.headersSent) res.status(500).json({ error: 'Error al servir archivo cif
 });
 
 // ... (todo tu código anterior: marketplace, identity, analytics, streaming) ...
-
 // ============================================
 // 🌿 CONTROL DE VERSIONES GIT-LIKE
 // ============================================
-const commitsCollection = mongoReady ? db.collection('vaultCommits') : null;
+// ✅ commitsCollection ya está declarada globalmente y asignada en connectToMongo()
 
 app.post('/api/vault/:id/commit', authenticate, async(req, res) => {
-  // ... tu código de commit ...
+  try {
+    const { message, branch = 'main', tags = [] } = req.body;
+    if (!message || message.trim().length < 2) return res.status(400).json({ error: 'Mensaje requerido (mín. 2 caracteres)' });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    const file = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
+    if (!file) return res.status(404).json({ error: 'Archivo no encontrado' });
+    const commit = {
+      fileId: file._id,
+      message: message.trim(),
+      author: { uid: user.uid, email: user.email },
+      branch, tags,
+      version: (file.currentVersion || 0) + 1,
+      timestamp: new Date(),
+      hash: crypto.createHash('sha256').update(req.params.id + message + Date.now()).digest('hex').slice(0, 8)
+    };
+    if (commitsCollection) await commitsCollection.insertOne(commit);
+    await secretsCollection.updateOne({ _id: file._id }, { $set: { currentVersion: commit.version, lastCommitHash: commit.hash, updatedAt: new Date() } });
+    await logAudit('vault_commit', { fileId: req.params.id, message: commit.message, hash: commit.hash });
+    res.json({ success: true, message: '✅ Commit creado', commit: { hash: commit.hash, message: commit.message, branch, version: commit.version } });
+  } catch (e) { res.status(500).json({ error: 'Error creando commit: ' + e.message }); }
 });
 
 app.get('/api/vault/:id/log', authenticate, async(req, res) => {
-  // ... tu código de log ...
+  try {
+    const { branch = 'main', limit = 20 } = req.query;
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    const file = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
+    if (!file) return res.status(404).json({ error: 'Archivo no encontrado' });
+    if (!commitsCollection) return res.json({ success: true, log: [], branch, total: 0, demo: true });
+    const commits = await commitsCollection.find({ fileId: file._id, branch }).sort({ timestamp: -1 }).limit(parseInt(limit) || 20).toArray();
+    res.json({ success: true, log: commits.map(c => ({ hash: c.hash, message: c.message, author: c.author.email, branch: c.branch, tags: c.tags, date: c.timestamp, version: c.version })), branch, total: commits.length });
+  } catch (e) { res.status(500).json({ error: 'Error listando historial: ' + e.message }); }
 });
 
 app.post('/api/vault/:id/checkout/:version', authenticate, async(req, res) => {
-  // ... tu código de checkout ...
+  try {
+    const version = parseInt(req.params.version);
+    if (!version || version < 1) return res.status(400).json({ error: 'Versión inválida' });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    const file = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
+    if (!file) return res.status(404).json({ error: 'Archivo no encontrado' });
+    if (commitsCollection) {
+      const targetCommit = await commitsCollection.findOne({ fileId: file._id, version });
+      if (!targetCommit) return res.status(404).json({ error: 'Versión no encontrada' });
+      await secretsCollection.updateOne({ _id: file._id }, { $set: { currentVersion: version, lastCheckout: new Date(), updatedAt: new Date() } });
+      await logAudit('vault_checkout', { fileId: req.params.id, restoredToVersion: version, by: user.uid });
+      res.json({ success: true, message: `✅ Restaurado a versión ${version}`, version, timestamp: new Date() });
+    } else {
+      res.json({ success: true, message: '⚠️ Modo demo: historial no activo aún' });
+    }
+  } catch (e) { res.status(500).json({ error: 'Error restaurando versión: ' + e.message }); }
 });
+
 // ============================================
 // 📢 SISTEMA DE PUBLICIDAD CON RECOMPENSAS
 // ============================================
 
 // 👁️ Obtener anuncios disponibles para ver
 app.get('/api/ads/available', authenticate, async(req, res) => {
-try {
-if (!mongoReady || !adsCollection) return res.json({ success: true, ads: [], demo: true });
-const user = await usersCollection.findOne({ uid: req.user.uid });
-if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+  try {
+    if (!mongoReady || !adsCollection) return res.json({ success: true, ads: [], demo: true });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-// Límite: máximo 20 anuncios por día por usuario
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-const watchedToday = await adImpressionsCollection.countDocuments({ 
-userId: user._id, 
-watchedAt: { $gte: today } 
-});
+    // Límite: máximo 20 anuncios por día por usuario
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const watchedToday = await adImpressionsCollection.countDocuments({ 
+      userId: user._id, 
+      watchedAt: { $gte: today } 
+    });
 
-if (watchedToday >= 20) {
-return res.json({ success: true, ads: [], message: 'Límite diario alcanzado. Vuelve mañana.', remaining: 0 });
-}
+    if (watchedToday >= 20) {
+      return res.json({ success: true, ads: [], message: 'Límite diario alcanzado. Vuelve mañana.', remaining: 0 });
+    }
 
-// Obtener anuncios activos, no vistos por este usuario, con presupuesto disponible
-const ads = await adsCollection.find({
-active: true,
-budget: { $gt: 0 },
-startDate: { $lte: new Date() },
-endDate: { $gte: new Date() },
-_targetId: { $ne: user._id.toString() } // No mostrar anuncios del mismo usuario
-})
-.sort({ reward: -1, createdAt: -1 })
-.limit(10)
-.toArray();
+    // Obtener anuncios activos, no vistos por este usuario, con presupuesto disponible
+    const ads = await adsCollection.find({
+      active: true,
+      budget: { $gt: 0 },
+      startDate: { $lte: new Date() },
+      endDate: { $gte: new Date() },
+      advertiserId: { $ne: user._id } // No mostrar anuncios del mismo usuario
+    })
+    .sort({ reward: -1, createdAt: -1 })
+    .limit(10)
+    .toArray();
 
-res.json({ 
-success: true, 
-ads: ads.map(ad => ({
-id: ad._id.toString(),
-title: ad.title,
-description: ad.description,
-imageUrl: ad.imageUrl,
-reward: ad.reward,
-advertiser: ad.advertiserName,
-type: ad.type // 'banner', 'video', 'text'
-})),
-watchedToday,
-remaining: 20 - watchedToday
-});
-} catch (e) {
-logger.error('❌ Ads available error: ' + e.message);
-res.status(500).json({ error: 'Error cargando anuncios: ' + e.message });
-}
+    res.json({ 
+      success: true, 
+      ads: ads.map(ad => ({
+        id: ad._id.toString(),
+        title: ad.title,
+        description: ad.description,
+        imageUrl: ad.imageUrl,
+        reward: ad.reward,
+        advertiser: ad.advertiserName,
+        type: ad.type // 'banner', 'video', 'text'
+      })),
+      watchedToday,
+      remaining: 20 - watchedToday
+    });
+  } catch (e) {
+    logger.error('❌ Ads available error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando anuncios: ' + e.message });
+  }
 });
 
 // 👁️ Registrar vista de anuncio y pagar recompensa
 app.post('/api/ads/watch/:id', authenticate, async(req, res) => {
-try {
-if (!mongoReady || !adsCollection || !adImpressionsCollection) {
-return res.json({ success: true, message: 'Recompensa demo: $0.01', demo: true, earned: 0.01 });
-}
+  try {
+    if (!mongoReady || !adsCollection || !adImpressionsCollection) {
+      return res.json({ success: true, message: 'Recompensa demo: $0.01', demo: true, earned: 0.01 });
+    }
 
-const { id } = req.params;
-const { watchTime } = req.body; // tiempo en segundos que el usuario vio el anuncio
+    const { id } = req.params;
+    const { watchTime } = req.body; // tiempo en segundos que el usuario vio el anuncio
 
-// Validación anti-fraude: mínimo 15 segundos para contar como vista válida
-if (!watchTime || watchTime < 15) {
-return res.status(400).json({ error: 'Debes ver el anuncio al menos 15 segundos para ganar la recompensa' });
-}
+    // Validación anti-fraude: mínimo 15 segundos para contar como vista válida
+    if (!watchTime || watchTime < 15) {
+      return res.status(400).json({ error: 'Debes ver el anuncio al menos 15 segundos para ganar la recompensa' });
+    }
 
-const user = await usersCollection.findOne({ uid: req.user.uid });
-if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-const ad = await adsCollection.findOne({ _id: new ObjectId(id), active: true, budget: { $gt: 0 } });
-if (!ad) return res.status(404).json({ error: 'Anuncio no disponible' });
+    const ad = await adsCollection.findOne({ _id: new ObjectId(id), active: true, budget: { $gt: 0 } });
+    if (!ad) return res.status(404).json({ error: 'Anuncio no disponible' });
 
-// Verificar que el usuario no haya visto este anuncio hoy
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-const alreadyWatched = await adImpressionsCollection.findOne({
-userId: user._id,
-adId: ad._id,
-watchedAt: { $gte: today }
-});
-if (alreadyWatched) {
-return res.status(400).json({ error: 'Ya viste este anuncio hoy. ¡Vuelve mañana para ganar más!' });
-}
+    // Verificar que el usuario no haya visto este anuncio hoy
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const alreadyWatched = await adImpressionsCollection.findOne({
+      userId: user._id,
+      adId: ad._id,
+      watchedAt: { $gte: today }
+    });
+    if (alreadyWatched) {
+      return res.status(400).json({ error: 'Ya viste este anuncio hoy. ¡Vuelve mañana para ganar más!' });
+    }
 
-// Verificar límite diario de vistas (20 máximo)
-const watchedToday = await adImpressionsCollection.countDocuments({
-userId: user._id,
-watchedAt: { $gte: today }
-});
-if (watchedToday >= 20) {
-return res.status(400).json({ error: 'Límite diario de anuncios alcanzado' });
-}
+    // Verificar límite diario de vistas (20 máximo)
+    const watchedToday = await adImpressionsCollection.countDocuments({
+      userId: user._id,
+      watchedAt: { $gte: today }
+    });
+    if (watchedToday >= 20) {
+      return res.status(400).json({ error: 'Límite diario de anuncios alcanzado' });
+    }
 
-// Procesar recompensa
-const reward = parseFloat(ad.reward) || 0.01;
+    // Procesar recompensa
+    const reward = parseFloat(ad.reward) || 0.01;
 
-// Actualizar wallet del usuario
-await walletCollection.updateOne({ userId: user._id }, {
-$inc: { balance: reward },
-$push: { history: { type: 'ad_reward', amount: reward, adId: ad._id.toString(), date: new Date() } }
-});
+    // Actualizar wallet del usuario
+    await walletCollection.updateOne({ userId: user._id }, {
+      $inc: { balance: reward },
+      $push: { history: { type: 'ad_reward', amount: reward, adId: ad._id.toString(), date: new Date() } }
+    });
 
-// Actualizar presupuesto del anunciante
-await adsCollection.updateOne({ _id: ad._id }, {
-$inc: { budget: -reward, views: 1 },
-$set: { active: { $gt: ['$budget', 0] } }
-});
+    // Actualizar presupuesto del anunciante
+    await adsCollection.updateOne({ _id: ad._id }, {
+      $inc: { budget: -reward, views: 1 }
+    });
 
-// Registrar la impresión
-await adImpressionsCollection.insertOne({
-userId: user._id,
-adId: ad._id,
-watchTime,
-reward,
-watchedAt: new Date(),
-ip: req.ip
-});
+    // Registrar la impresión
+    await adImpressionsCollection.insertOne({
+      userId: user._id,
+      adId: ad._id,
+      watchTime,
+      reward,
+      watchedAt: new Date(),
+      ip: req.ip
+    });
 
-// Registrar auditoría
-await logAudit('ad_watched', { userId: user.uid, adId: id, reward, watchTime });
+    // Registrar auditoría
+    await logAudit('ad_watched', { userId: user.uid, adId: id, reward, watchTime });
 
-res.json({
-success: true,
-message: `✅ ¡Ganaste $${reward.toFixed(2)} USD por ver este anuncio!`,
-earned: reward,
-newBalance: (await walletCollection.findOne({ userId: user._id }))?.balance || 0,
-remainingDaily: 20 - watchedToday - 1
-});
+    res.json({
+      success: true,
+      message: `✅ ¡Ganaste $${reward.toFixed(2)} USD por ver este anuncio!`,
+      earned: reward,
+      newBalance: (await walletCollection.findOne({ userId: user._id }))?.balance || 0,
+      remainingDaily: 20 - watchedToday - 1
+    });
 
-} catch (e) {
-logger.error('❌ Ad watch error: ' + e.message);
-res.status(500).json({ error: 'Error procesando recompensa: ' + e.message });
-}
+  } catch (e) {
+    logger.error('❌ Ad watch error: ' + e.message);
+    res.status(500).json({ error: 'Error procesando recompensa: ' + e.message });
+  }
 });
 
 // 📢 Crear campaña publicitaria (usuarios pueden anunciarse)
 app.post('/api/ads/create', authenticate, async(req, res) => {
-try {
-const { title, description, imageUrl, targetUrl, reward, budget, type = 'banner', startDate, endDate } = req.body;
+  try {
+    const { title, description, imageUrl, targetUrl, reward, budget, type = 'banner', startDate, endDate } = req.body;
 
-// Validaciones básicas
-if (!title || title.length < 5) return res.status(400).json({ error: 'Título requerido (mín. 5 caracteres)' });
-if (!description || description.length < 20) return res.status(400).json({ error: 'Descripción requerida (mín. 20 caracteres)' });
-if (!imageUrl || !imageUrl.startsWith('http')) return res.status(400).json({ error: 'URL de imagen válida requerida' });
-if (!reward || reward < 0.01 || reward > 1) return res.status(400).json({ error: 'Recompensa debe estar entre $0.01 y $1.00' });
-if (!budget || budget < 1) return res.status(400).json({ error: 'Presupuesto mínimo: $1.00 USD' });
+    // Validaciones básicas
+    if (!title || title.length < 5) return res.status(400).json({ error: 'Título requerido (mín. 5 caracteres)' });
+    if (!description || description.length < 20) return res.status(400).json({ error: 'Descripción requerida (mín. 20 caracteres)' });
+    if (!imageUrl || !imageUrl.startsWith('http')) return res.status(400).json({ error: 'URL de imagen válida requerida' });
+    if (!reward || reward < 0.01 || reward > 1) return res.status(400).json({ error: 'Recompensa debe estar entre $0.01 y $1.00' });
+    if (!budget || budget < 1) return res.status(400).json({ error: 'Presupuesto mínimo: $1.00 USD' });
 
-const user = await usersCollection.findOne({ uid: req.user.uid });
-if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-// Verificar que el usuario tenga saldo suficiente en wallet
-const wallet = await walletCollection.findOne({ userId: user._id });
-if (!wallet || wallet.balance < budget) {
-return res.status(400).json({ error: `Saldo insuficiente. Necesitas $${budget} USD. Tu saldo: $${(wallet?.balance || 0).toFixed(2)}` });
-}
+    // Verificar que el usuario tenga saldo suficiente en wallet
+    const wallet = await walletCollection.findOne({ userId: user._id });
+    if (!wallet || wallet.balance < budget) {
+      return res.status(400).json({ error: `Saldo insuficiente. Necesitas $${budget} USD. Tu saldo: $${(wallet?.balance || 0).toFixed(2)}` });
+    }
 
-// Crear el anuncio
-const newAd = {
-advertiserId: user._id,
-advertiserName: (await profilesCollection.findOne({ userId: user._id }))?.displayName || user.email,
-advertiserUid: user.uid,
-title,
-description,
-imageUrl,
-targetUrl,
-reward: parseFloat(reward),
-budget: parseFloat(budget),
-spent: 0,
-views: 0,
-clicks: 0,
-type,
-active: true,
-startDate: startDate ? new Date(startDate) : new Date(),
-endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días por defecto
-createdAt: new Date(),
-updatedAt: new Date()
-};
+    // Crear el anuncio
+    const newAd = {
+      advertiserId: user._id,
+      advertiserName: (await profilesCollection.findOne({ userId: user._id }))?.displayName || user.email,
+      advertiserUid: user.uid,
+      title,
+      description,
+      imageUrl,
+      targetUrl,
+      reward: parseFloat(reward),
+      budget: parseFloat(budget),
+      spent: 0,
+      views: 0,
+      clicks: 0,
+      type,
+      active: true,
+      startDate: startDate ? new Date(startDate) : new Date(),
+      endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días por defecto
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-const result = await adsCollection.insertOne(newAd);
+    const result = await adsCollection.insertOne(newAd);
 
-// Descontar presupuesto de la wallet del anunciante
-await walletCollection.updateOne({ userId: user._id }, {
-$inc: { balance: -budget },
-$push: { history: { type: 'ad_campaign', amount: -budget, adId: result.insertedId.toString(), date: new Date() } }
-});
+    // Descontar presupuesto de la wallet del anunciante
+    await walletCollection.updateOne({ userId: user._id }, {
+      $inc: { balance: -budget },
+      $push: { history: { type: 'ad_campaign', amount: -budget, adId: result.insertedId.toString(), date: new Date() } }
+    });
 
-await logAudit('ad_created', { userId: user.uid, adId: result.insertedId.toString(), budget, reward });
+    await logAudit('ad_created', { userId: user.uid, adId: result.insertedId.toString(), budget, reward });
 
-res.status(201).json({
-success: true,
-message: '✅ Campaña publicitaria creada exitosamente',
-ad: {
-id: result.insertedId.toString(),
-title: newAd.title,
-budget: newAd.budget,
-reward: newAd.reward,
-startDate: newAd.startDate,
-endDate: newAd.endDate
-}
-});
+    res.status(201).json({
+      success: true,
+      message: '✅ Campaña publicitaria creada exitosamente',
+      ad: {
+        id: result.insertedId.toString(),
+        title: newAd.title,
+        budget: newAd.budget,
+        reward: newAd.reward,
+        startDate: newAd.startDate,
+        endDate: newAd.endDate
+      }
+    });
 
-} catch (e) {
-logger.error('❌ Ad create error: ' + e.message);
-res.status(500).json({ error: 'Error creando campaña: ' + e.message });
-}
+  } catch (e) {
+    logger.error('❌ Ad create error: ' + e.message);
+    res.status(500).json({ error: 'Error creando campaña: ' + e.message });
+  }
 });
 
 // 📊 Ver mis campañas publicitarias
 app.get('/api/ads/my-campaigns', authenticate, async(req, res) => {
-try {
-if (!mongoReady || !adsCollection) return res.json({ success: true, campaigns: [], demo: true });
+  try {
+    if (!mongoReady || !adsCollection) return res.json({ success: true, campaigns: [], demo: true });
 
-const user = await usersCollection.findOne({ uid: req.user.uid });
-if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-const campaigns = await adsCollection.find({ advertiserId: user._id })
-.sort({ createdAt: -1 })
-.limit(50)
-.toArray();
+    const campaigns = await adsCollection.find({ advertiserId: user._id })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .toArray();
 
-res.json({
-success: true,
-campaigns: campaigns.map(c => ({
-id: c._id.toString(),
-title: c.title,
-budget: c.budget,
-spent: c.spent,
-remaining: c.budget - c.spent,
-views: c.views,
-reward: c.reward,
-active: c.active,
-startDate: c.startDate,
-endDate: c.endDate,
-type: c.type
-}))
-});
+    res.json({
+      success: true,
+      campaigns: campaigns.map(c => ({
+        id: c._id.toString(),
+        title: c.title,
+        budget: c.budget,
+        spent: c.spent,
+        remaining: c.budget - c.spent,
+        views: c.views,
+        reward: c.reward,
+        active: c.active,
+        startDate: c.startDate,
+        endDate: c.endDate,
+        type: c.type
+      }))
+    });
 
-} catch (e) {
-logger.error('❌ My campaigns error: ' + e.message);
-res.status(500).json({ error: 'Error cargando campañas: ' + e.message });
-}
+  } catch (e) {
+    logger.error('❌ My campaigns error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando campañas: ' + e.message });
+  }
 });
 
 // ⏸️ Pausar/reanudar campaña
 app.patch('/api/ads/:id/toggle', authenticate, async(req, res) => {
-try {
-const { id } = req.params;
-const user = await usersCollection.findOne({ uid: req.user.uid });
-if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+  try {
+    const { id } = req.params;
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-const ad = await adsCollection.findOne({ _id: new ObjectId(id), advertiserId: user._id });
-if (!ad) return res.status(404).json({ error: 'Campaña no encontrada o no tienes permiso' });
+    const ad = await adsCollection.findOne({ _id: new ObjectId(id), advertiserId: user._id });
+    if (!ad) return res.status(404).json({ error: 'Campaña no encontrada o no tienes permiso' });
 
-const newStatus = !ad.active;
-await adsCollection.updateOne({ _id: ad._id }, { $set: { active: newStatus, updatedAt: new Date() } });
-await logAudit('ad_toggled', { userId: user.uid, adId: id, newStatus });
+    const newStatus = !ad.active;
+    await adsCollection.updateOne({ _id: ad._id }, { $set: { active: newStatus, updatedAt: new Date() } });
+    await logAudit('ad_toggled', { userId: user.uid, adId: id, newStatus });
 
-res.json({
-success: true,
-message: newStatus ? '✅ Campaña reanudada' : '⏸️ Campaña pausada',
-active: newStatus
+    res.json({
+      success: true,
+      message: newStatus ? '✅ Campaña reanudada' : '⏸️ Campaña pausada',
+      active: newStatus
+    });
+
+  } catch (e) {
+    logger.error('❌ Ad toggle error: ' + e.message);
+    res.status(500).json({ error: 'Error actualizando campaña: ' + e.message });
+  }
 });
 
-} catch (e) {
-logger.error('❌ Ad toggle error: ' + e.message);
-res.status(500).json({ error: 'Error actualizando campaña: ' + e.message });
-}
-});
 // ============================================
 // 🆔 RUTAS DE IDENTIDAD DIGITAL: Avatar, Firma, Recuperación, Multifirma
 // ============================================
 
 app.post('/api/identity/avatar', authenticate, async(req, res) => {
-try {
-const { av } = req.body;
-if (!av) return res.status(400).json({ error: 'Falta avatar' });
-await usersCollection.updateOne({ _id: req.user._id }, { $set: { avatar: av } });
-res.json({ ok: true, message: 'Avatar actualizado' });
-} catch (e) { res.status(500).json({ error: 'Error guardando avatar: ' + e.message }); }
+  try {
+    const { av } = req.body;
+    if (!av) return res.status(400).json({ error: 'Falta avatar' });
+    await usersCollection.updateOne({ _id: req.user._id }, { $set: { avatar: av } });
+    res.json({ ok: true, message: 'Avatar actualizado' });
+  } catch (e) { res.status(500).json({ error: 'Error guardando avatar: ' + e.message }); }
 });
 
 app.post('/api/identity/signature', authenticate, async(req, res) => {
-try {
-const { sig } = req.body;
-if (!sig) return res.status(400).json({ error: 'Falta firma' });
-const masterKey = CryptoJS.PBKDF2(req.user.passwordHash || 'tmp', req.user.salt || 'tmp', { keySize: 8, iterations: 1000 }).toString(CryptoJS.enc.Hex);
-const enc = CryptoJS.AES.encrypt(sig, masterKey).toString();
-await usersCollection.updateOne({ _id: req.user._id }, { $set: { signature: enc } });
-res.json({ ok: true, message: 'Firma guardada y cifrada' });
-} catch (e) { res.status(500).json({ error: 'Error guardando firma: ' + e.message }); }
+  try {
+    const { sig } = req.body;
+    if (!sig) return res.status(400).json({ error: 'Falta firma' });
+    const masterKey = CryptoJS.PBKDF2(req.user.passwordHash || 'tmp', req.user.salt || 'tmp', { keySize: 8, iterations: 1000 }).toString(CryptoJS.enc.Hex);
+    const enc = CryptoJS.AES.encrypt(sig, masterKey).toString();
+    await usersCollection.updateOne({ _id: req.user._id }, { $set: { signature: enc } });
+    res.json({ ok: true, message: 'Firma guardada y cifrada' });
+  } catch (e) { res.status(500).json({ error: 'Error guardando firma: ' + e.message }); }
 });
 
 app.post('/api/identity/contacts', authenticate, async(req, res) => {
-try {
-const { email } = req.body;
-if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
-const exists = await usersCollection.findOne({ email });
-if (!exists) return res.status(400).json({ error: 'El contacto debe tener cuenta en ApiRomwiner' });
-const user = await usersCollection.findOne({ _id: req.user._id });
-const contacts = user.recoveryContacts || [];
-if (contacts.length >= 5) return res.status(400).json({ error: 'Máximo 5 contactos permitidos' });
-if (contacts.some(c => c.email === email)) return res.status(400).json({ error: 'Contacto ya agregado' });
-contacts.push({ email, ts: new Date(), verified: false });
-await usersCollection.updateOne({ _id: req.user._id }, { $set: { recoveryContacts: contacts } });
-res.json({ ok: true, contacts });
-} catch (e) { res.status(500).json({ error: 'Error agregando contacto: ' + e.message }); }
+  try {
+    const { email } = req.body;
+    if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
+    const exists = await usersCollection.findOne({ email });
+    if (!exists) return res.status(400).json({ error: 'El contacto debe tener cuenta en ApiRomwiner' });
+    const user = await usersCollection.findOne({ _id: req.user._id });
+    const contacts = user.recoveryContacts || [];
+    if (contacts.length >= 5) return res.status(400).json({ error: 'Máximo 5 contactos permitidos' });
+    if (contacts.some(c => c.email === email)) return res.status(400).json({ error: 'Contacto ya agregado' });
+    contacts.push({ email, ts: new Date(), verified: false });
+    await usersCollection.updateOne({ _id: req.user._id }, { $set: { recoveryContacts: contacts } });
+    res.json({ ok: true, contacts });
+  } catch (e) { res.status(500).json({ error: 'Error agregando contacto: ' + e.message }); }
 });
 
 app.get('/api/identity/contacts', authenticate, async(req, res) => {
-try {
-const user = await usersCollection.findOne({ _id: req.user._id }, { projection: { recoveryContacts: 1 } });
-res.json({ contacts: user.recoveryContacts || [] });
-} catch (e) { res.status(500).json({ error: 'Error cargando contactos: ' + e.message }); }
+  try {
+    const user = await usersCollection.findOne({ _id: req.user._id }, { projection: { recoveryContacts: 1 } });
+    res.json({ contacts: user.recoveryContacts || [] });
+  } catch (e) { res.status(500).json({ error: 'Error cargando contactos: ' + e.message }); }
 });
 
 app.delete('/api/identity/contacts/:id', authenticate, async(req, res) => {
-try {
-const { id } = req.params;
-const user = await usersCollection.findOne({ _id: req.user._id });
-const updated = (user.recoveryContacts || []).filter(x => (x._id?.toString() !== id && x.email !== id));
-await usersCollection.updateOne({ _id: req.user._id }, { $set: { recoveryContacts: updated } });
-res.json({ ok: true, contacts: updated });
-} catch (e) { res.status(500).json({ error: 'Error eliminando contacto: ' + e.message }); }
+  try {
+    const { id } = req.params;
+    const user = await usersCollection.findOne({ _id: req.user._id });
+    const updated = (user.recoveryContacts || []).filter(x => (x._id?.toString() !== id && x.email !== id));
+    await usersCollection.updateOne({ _id: req.user._id }, { $set: { recoveryContacts: updated } });
+    res.json({ ok: true, contacts: updated });
+  } catch (e) { res.status(500).json({ error: 'Error eliminando contacto: ' + e.message }); }
 });
 
 app.post('/api/identity/multisig', authenticate, async(req, res) => {
-try {
-const { enabled } = req.body;
-await usersCollection.updateOne({ _id: req.user._id }, { $set: { multisig: !!enabled } });
-res.json({ ok: true, message: enabled ? 'Multifirma activada' : 'Multifirma desactivada' });
-} catch (e) { res.status(500).json({ error: 'Error actualizando multifirma: ' + e.message }); }
+  try {
+    const { enabled } = req.body;
+    await usersCollection.updateOne({ _id: req.user._id }, { $set: { multisig: !!enabled } });
+    res.json({ ok: true, message: enabled ? 'Multifirma activada' : 'Multifirma desactivada' });
+  } catch (e) { res.status(500).json({ error: 'Error actualizando multifirma: ' + e.message }); }
 });
 
 app.get('/api/profile', authenticate, async(req, res) => {
-try {
-const user = await usersCollection.findOne({ _id: req.user._id }, { projection: { password: 0, passwordHash: 0, salt: 0 } });
-res.json({ user });
-} catch (e) { res.status(500).json({ error: 'Error cargando perfil: ' + e.message }); }
+  try {
+    const user = await usersCollection.findOne({ _id: req.user._id }, { projection: { password: 0, passwordHash: 0, salt: 0 } });
+    res.json({ user });
+  } catch (e) { res.status(500).json({ error: 'Error cargando perfil: ' + e.message }); }
 });
+
 // ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL
 // ============================================
@@ -2238,9 +2281,9 @@ async function startServer() {
     if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
     if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA (sin dependencias externas)');
   });
+}
 startServer().catch(function(err) {
   logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
   process.exit(1);
 });
-// === FIN: index.js ===
 // === FIN: index.js ===
