@@ -220,6 +220,9 @@ versionsCollection = db.collection('fileVersions');
 commentsCollection = db.collection('comments');
 reviewsCollection = db.collection('reviews');
 favoritesCollection = db.collection('favorites');
+ // ✅ NUEVO: Colecciones para publicidad
+adsCollection = db.collection('ads');
+adImpressionsCollection = db.collection('adImpressions');   
 commitsCollection = db.collection('vaultCommits'); // ← AGREGAR ESTA LÍNEA
 await usersCollection.createIndex({ email: 1 }, { unique: true });
 await usersCollection.createIndex({ uid: 1 }, { unique: true });
