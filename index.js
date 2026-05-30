@@ -1044,22 +1044,7 @@ await versionsCollection.insertOne({ fileId: secret._id, versionNumber: next, co
 res.json({ success: true, version: next });
 } catch (e) { res.status(500).json({ error: 'Error versión: ' + e.message }); }
 });
-app.get('/api/vault/:id/versions', authenticate, async(req, res) => {
-try {
-const userCheck = await usersCollection.findOne({ uid: req.user.uid });
-const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
-if (!secret) return res.status(404).json({ error: 'No encontrado' });
-const vers = await versionsCollection.find({ fileId: secret._id }).sort({ versionNumber: -1 }).toArray();
-res.json({ success: true, versions: vers.map(v => ({ v: v.versionNumber, date: v.createdAt, user: v.createdBy })) });
-} catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
-try {
-const userCheck = await usersCollection.findOne({ uid: req.user.uid });
-const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
-if (!secret) return res.status(404).json({ error: 'No encontrado' });
-const user = await usersCollection.findOne({ uid: req.user.uid });
-const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
+
 app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
 try {
 const userCheck = await usersCollection.findOne({ uid: req.user.uid });
@@ -1078,41 +1063,11 @@ return res.status(400).json({ error: 'Versión inválida. Usa números enteros p
 const v1 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: v1Num });
 const v2 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: v2Num });
 if (!v1 || !v2) return res.status(404).json({ error: 'Versión no encontrada' });
+
 const c1 = EnvelopeEncryption.open(v1.content, userDEK);
 const c2 = EnvelopeEncryption.open(v2.content, userDEK);
 const patch = diffLib.createPatch('doc', c1, c2, 'v' + req.params.v1, 'v' + req.params.v2);
 res.json({ success: true, diff: patch });
-} catch (e) { res.status(500).json({ error: e.message }); }
-});
-const v2 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: parseInt(req.params.v2) });
-if (!v1 || !v2) return res.status(404).json({ error: 'Versión no encontrada' });
-const c1 = EnvelopeEncryption.open(v1.content, userDEK);
-const c2 = EnvelopeEncryption.open(v2.content, userDEK);
-const patch = diffLib.createPatch('doc', c1, c2, 'v' + req.params.v1, 'v' + req.params.v2);
-res.json({ success: true, diff: patch });
-} catch (e) { res.status(500).json({ error: e.message }); }
-});
-// 💬 COMMENTS
-app.post('/api/vault/:id/comments', authenticate, async(req, res) => {
-try {
-const { content } = req.body;
-if (!(content && content.trim())) return res.status(400).json({ error: 'Texto requerido' });
-const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
-if (!secret) return res.status(404).json({ error: 'No encontrado' });
-const user = await usersCollection.findOne({ uid: req.user.uid });
-const enc = EnvelopeEncryption.seal(content.trim(), EnvelopeEncryption.unwrapDEK(user.encryptedUserKey));
-await commentsCollection.insertOne({ fileId: secret._id, userId: req.user.uid, content: enc, createdAt: new Date() });
-res.json({ success: true });
-} catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/vault/:id/comments', authenticate, async(req, res) => {
-try {
-const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
-if (!secret) return res.status(404).json({ error: 'No encontrado' });
-const user = await usersCollection.findOne({ uid: req.user.uid });
-const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
-const coms = await commentsCollection.find({ fileId: secret._id }).sort({ createdAt: -1 }).limit(50).toArray();
-res.json({ success: true, comments: coms.map(c => ({ id: c._id, text: EnvelopeEncryption.open(c.content, userDEK), date: c.createdAt, userId: c.userId })) });
 } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // 👑 SUPER ADMIN FUNCTIONS
