@@ -587,7 +587,12 @@ app.post('/api/wallet/deposit', authenticate, async(req, res) => {
 try {
 const amount = parseFloat(req.body.amount);
 if (!amount || amount < 5) return res.status(400).json({ error: 'Mínimo $5 USD para depósito' });
-if (STRIPE_SECRET_KEY.includes('placeholder')) return res.json({ success: true, message: 'Modo demo: configura STRIPE_SECRET_KEY en .env', demo: true, clientSecret: 'demo' });
+if (!STRIPE_SECRET_KEY || STRIPE_SECRET_KEY.includes('placeholder')) {
+if (process.env.NODE_ENV === 'production') {
+return res.status(500).json({ error: 'Stripe no configurado. Contacta al administrador.' });
+}
+return res.json({ success: true, message: 'Modo demo: configura STRIPE_SECRET_KEY en .env', demo: true, clientSecret: 'demo' });
+}
 const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', { method: 'POST', headers: { 'Authorization': 'Bearer ' + STRIPE_SECRET_KEY, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ amount: Math.round(amount * 100), currency: 'usd', metadata: JSON.stringify({ uid: req.user.uid, type: 'deposit' }) }) });
 const data = await stripeRes.json();
 if (!data.client_secret) return res.status(500).json({ error: 'Error de Stripe: ' + ((data.error && data.error.message) || 'Cliente secreto no generado') });
