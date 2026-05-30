@@ -631,8 +631,28 @@ user = newUser;
 } else {
 if (tier && ['personal', 'business', 'enterprise'].includes(tier)) await usersCollection.updateOne({ _id: user._id }, { $set: { tier, updatedAt: new Date() } });
 }
-const bal = parseFloat(initialBalance) || 0;
-await walletCollection.updateOne({ userId: user._id }, { $setOnInsert: { balance: bal, currency: 'USD', history: [] }, $inc: { balance: bal }, $push: { history: { type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() } } }, { upsert: true });
+// ✅ Validar que el monto sea válido y no negativo
+const bal = parseFloat(initialBalance);
+if (isNaN(bal) || bal < 0) {
+return res.status(400).json({ error: 'Monto inicial debe ser un número válido no negativo' });
+}
+// ✅ CORREGIDO: Evitar balance duplicado
+const existingWallet = await walletCollection.findOne({ userId: user._id });
+if (existingWallet) {
+// Si ya existe, solo sumar el saldo
+await walletCollection.updateOne({ userId: user._id }, { 
+$inc: { balance: bal }, 
+$push: { history: { type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() } } 
+});
+} else {
+// Si no existe, crear con el saldo inicial
+await walletCollection.insertOne({ 
+userId: user._id, 
+balance: bal, 
+currency: 'USD', 
+history: [{ type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() }] 
+});
+}
 await transactionsCollection.insertOne({ type: 'admin_gift', amount: bal, admin: req.admin.uid, recipient: user.email, note: note || '', createdAt: new Date() });
 await logAudit('gift', { recipientEmail, bal, by: req.admin.uid, tier: tier || user.tier });
 res.json({ success: true, recipientEmail: user.email, uid: user.uid, tempPassword, balance: bal, tier: tier || user.tier, message: tempPassword ? 'Cuenta creada con contraseña temporal' : 'Saldo agregado a cuenta existente' });
@@ -674,7 +694,13 @@ const dek = EnvelopeEncryption.generateDEK();
 wrappedDEK = EnvelopeEncryption.wrapDEK(dek);
 await usersCollection.updateOne({ _id: user._id }, { $set: { encryptedUserKey: wrappedDEK } });
 }
-const userDEK = EnvelopeEncryption.unwrapDEK(wrappedDEK);
+let userDEK;
+try {
+userDEK = EnvelopeEncryption.unwrapDEK(wrappedDEK);
+} catch (e) {
+logger.error('❌ Error desencriptando DEK: ' + e.message);
+return res.status(500).json({ error: 'Error de cifrado: clave de usuario inválida' });
+}
 if (req.file) {
 data.fileName = path.basename(req.file.filename);
 data.fileType = req.file.mimetype;
