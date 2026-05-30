@@ -829,7 +829,10 @@ if (!mongoReady || !affiliatesCollection || !walletCollection) return res.json({
 const user = await usersCollection.findOne({ uid: req.user.uid });
 if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 const aff = await affiliatesCollection.findOne({ userId: user._id });
-if (!aff || aff.availableBalance < 10) return res.status(400).json({ error: 'Mínimo $10 USD para retiro de afiliados. Balance actual: $' + ((aff && aff.availableBalance) || 0).toFixed(2) });
+// ✅ Validar que el balance sea válido y cumpla el mínimo
+if (!aff || isNaN(aff.availableBalance) || aff.availableBalance < 10) {
+return res.status(400).json({ error: 'Mínimo $10 USD para retiro de afiliados. Balance actual: $' + ((aff && !isNaN(aff.availableBalance) ? aff.availableBalance : 0) || 0).toFixed(2) });
+}
 const w = await walletCollection.findOne({ userId: user._id });
 if (w) await walletCollection.updateOne({ _id: w._id }, { $inc: { availableBalance: -aff.availableBalance, withdrawnBalance: aff.availableBalance }, $push: { history: { type: 'affiliate_withdraw', amount: aff.availableBalance, method, date: new Date() } } });
 await transactionsCollection.insertOne({ userId: user._id, type: 'affiliate_payout', amount: aff.availableBalance, method, status: 'pending', createdAt: new Date() });
@@ -876,7 +879,18 @@ app.get('/api/identity/qr', authenticate, async(req, res) => {
 try {
 const user = await usersCollection.findOne({ uid: req.user.uid });
 if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+app.get('/api/identity/qr', authenticate, async(req, res) => {
+try {
+const user = await usersCollection.findOne({ uid: req.user.uid });
+if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 const qrData = JSON.stringify({ uid: user.uid, email: user.email, ref: user.refCode });
+const encodedData = encodeURIComponent(qrData);
+res.json({ success: true, qrPayload: qrData, qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodedData });
+} catch (e) {
+logger.error('❌ QR generation error: ' + e.message);
+res.status(500).json({ error: 'Error al generar QR: ' + e.message });
+}
+});
 res.json({ success: true, qrPayload: qrData, qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(qrData) });
 } catch (e) { res.status(500).json({ error: 'Error al generar QR: ' + e.message }); }
 });
