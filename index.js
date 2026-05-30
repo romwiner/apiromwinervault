@@ -1049,18 +1049,19 @@ await versionsCollection.insertOne({ fileId: secret._id, versionNumber: next, co
 res.json({ success: true, version: next });
 } catch (e) { res.status(500).json({ error: 'Error versión: ' + e.message }); }
 });
-const user = await usersCollection.findOne({ uid: req.user.uid });
-// ✅ Validar que el usuario tenga clave de cifrado
-if (!user || !user.encryptedUserKey) {
-return res.status(400).json({ error: 'Clave de cifrado no disponible' });
-}
-const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
+
 app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
 try {
 const userCheck = await usersCollection.findOne({ uid: req.user.uid });
 const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
 if (!secret) return res.status(404).json({ error: 'No encontrado' });
 const user = await usersCollection.findOne({ uid: req.user.uid });
+
+// ✅ VALIDAR QUE EL USUARIO TENGA CLAVE DE CIFRADO
+if (!user || !user.encryptedUserKey) {
+return res.status(400).json({ error: 'Clave de cifrado no disponible' });
+}
+
 const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
 
 // ✅ VALIDAR QUE v1 y v2 SEAN NÚMEROS VÁLIDOS
