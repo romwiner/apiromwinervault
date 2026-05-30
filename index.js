@@ -200,73 +200,75 @@ let reviewsCollection, favoritesCollection, commitsCollection, adsCollection, ad
 let mongoReady = false;
 
 async function connectToMongo() {
-try {
-const client = new MongoClient(MONGODB_URI);
-await client.connect();
-db = client.db('apiromwinervault');
+  try {
+    const client = new MongoClient(MONGODB_URI);
+    await client.connect();
+    db = client.db('apiromwinervault');
 
-// ✅ Asignar TODAS las colecciones
-usersCollection = db.collection('users');
-secretsCollection = db.collection('secrets');
-affiliatesCollection = db.collection('affiliates');
-identityCollection = db.collection('identity');
-transactionsCollection = db.collection('transactions');
-profilesCollection = db.collection('profiles');
-walletCollection = db.collection('wallet');
-auditCollection = db.collection('audit_logs');
-webhooksCollection = db.collection('webhooks');
-promoCollection = db.collection('promo_codes');
-cryptoKeysCollection = db.collection('cryptoKeys');
-verifiedIdentitiesCollection = db.collection('verifiedIdentities');
-sharedLinksCollection = db.collection('sharedLinks');
-thumbnailsCollection = db.collection('thumbnails');
-versionsCollection = db.collection('fileVersions');
-commentsCollection = db.collection('comments');
-reviewsCollection = db.collection('reviews');
-favoritesCollection = db.collection('favorites');
-commitsCollection = db.collection('vaultCommits');
-// ✅ NUEVO: Colecciones para publicidad
-adsCollection = db.collection('ads');
-adImpressionsCollection = db.collection('adImpressions');
+    // ✅ Asignar TODAS las colecciones
+    usersCollection = db.collection('users');
+    secretsCollection = db.collection('secrets');
+    affiliatesCollection = db.collection('affiliates');
+    identityCollection = db.collection('identity');
+    transactionsCollection = db.collection('transactions');
+    profilesCollection = db.collection('profiles');
+    walletCollection = db.collection('wallet');
+    auditCollection = db.collection('audit_logs');
+    webhooksCollection = db.collection('webhooks');
+    promoCollection = db.collection('promo_codes');
+    cryptoKeysCollection = db.collection('cryptoKeys');
+    verifiedIdentitiesCollection = db.collection('verifiedIdentities');
+    sharedLinksCollection = db.collection('sharedLinks');
+    thumbnailsCollection = db.collection('thumbnails');
+    versionsCollection = db.collection('fileVersions');
+    commentsCollection = db.collection('comments');
+    reviewsCollection = db.collection('reviews');
+    favoritesCollection = db.collection('favorites');
+    commitsCollection = db.collection('vaultCommits');
+    // ✅ NUEVO: Colecciones para publicidad
+    adsCollection = db.collection('ads');
+    adImpressionsCollection = db.collection('adImpressions');
 
-// ✅ Índices para publicidad
-await adsCollection.createIndex({ active: 1, budget: -1, startDate: 1, endDate: 1 });
-await adsCollection.createIndex({ advertiserId: 1, createdAt: -1 });
-await adImpressionsCollection.createIndex({ userId: 1, watchedAt: -1 });
-await adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 });
+    // ✅ Índices para publicidad
+    await adsCollection.createIndex({ active: 1, budget: -1, startDate: 1, endDate: 1 });
+    await adsCollection.createIndex({ advertiserId: 1, createdAt: -1 });
+    await adImpressionsCollection.createIndex({ userId: 1, watchedAt: -1 });
+    await adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 });
 
-// ✅ Índices existentes
-await usersCollection.createIndex({ email: 1 }, { unique: true });
-await usersCollection.createIndex({ uid: 1 }, { unique: true });
-await usersCollection.createIndex({ tier: 1 });
-await secretsCollection.createIndex({ userId: 1 });
-await secretsCollection.createIndex({ isForSale: 1 });
-await secretsCollection.createIndex({ titulo: 'text' });
-await profilesCollection.createIndex({ userId: 1 }, { unique: true });
-await walletCollection.createIndex({ userId: 1 }, { unique: true });
-await auditCollection.createIndex({ createdAt: -1 });
-await auditCollection.createIndex({ userId: 1, timestamp: -1 });
-await sharedLinksCollection.createIndex({ token: 1 }, { unique: true });
-await sharedLinksCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-await versionsCollection.createIndex({ fileId: 1, versionNumber: -1 });
-await commentsCollection.createIndex({ fileId: 1, createdAt: -1 });
-await webhooksCollection.createIndex({ userId: 1 });
-await promoCollection.createIndex({ code: 1 }, { unique: true });
-await cryptoKeysCollection.createIndex({ publicKey: 1 }, { unique: true });
-await cryptoKeysCollection.createIndex({ userId: 1 });
-await verifiedIdentitiesCollection.createIndex({ userId: 1 }, { unique: true });
-await verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, sparse: true });
-await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true });
-await reviewsCollection.createIndex({ itemId: 1, createdAt: -1 });
-await favoritesCollection.createIndex({ userId: 1, itemId: 1 }, { unique: true });
+    // ✅ Índices existentes
+    await usersCollection.createIndex({ email: 1 }, { unique: true });
+    await usersCollection.createIndex({ uid: 1 }, { unique: true });
+    await usersCollection.createIndex({ tier: 1 });
+    await secretsCollection.createIndex({ userId: 1 });
+    await secretsCollection.createIndex({ isForSale: 1 });
+    await secretsCollection.createIndex({ titulo: 'text' });
+    await profilesCollection.createIndex({ userId: 1 }, { unique: true });
+    await walletCollection.createIndex({ userId: 1 }, { unique: true });
+    await auditCollection.createIndex({ createdAt: -1 });
+    await auditCollection.createIndex({ userId: 1, timestamp: -1 });
+    await sharedLinksCollection.createIndex({ token: 1 }, { unique: true });
+    await sharedLinksCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+    await versionsCollection.createIndex({ fileId: 1, versionNumber: -1 });
+    await commentsCollection.createIndex({ fileId: 1, createdAt: -1 });
+    await webhooksCollection.createIndex({ userId: 1 });
+    await promoCollection.createIndex({ code: 1 }, { unique: true });
+    await cryptoKeysCollection.createIndex({ publicKey: 1 }, { unique: true });
+    await cryptoKeysCollection.createIndex({ userId: 1 });
+    await verifiedIdentitiesCollection.createIndex({ userId: 1 }, { unique: true });
+    await verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, sparse: true });
+    await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true });
+    await reviewsCollection.createIndex({ itemId: 1, createdAt: -1 });
+    await favoritesCollection.createIndex({ userId: 1, itemId: 1 }, { unique: true });
 
-mongoReady = true;
-logger.info('✅ MongoDB Atlas conectado');
-} catch (err) {
-logger.error('⚠️ MongoDB fallback activo: ' + err.message);
-mongoReady = false;
+    mongoReady = true;
+    logger.info('✅ MongoDB Atlas conectado');
+  } catch (err) {
+    logger.error('⚠️ MongoDB fallback activo: ' + err.message);
+    mongoReady = false;
+  }
+} // ← ✅ AQUÍ FALTABA EL CIERRE DE LA FUNCIÓN
 }
-}
+
 // 🔐 SEGURIDAD
 app.use(helmet({
 contentSecurityPolicy: {
