@@ -1838,86 +1838,38 @@ if (!res.headersSent) res.status(500).json({ error: 'Error al servir archivo cif
 }
 });
 
+// ... (todo tu código anterior: marketplace, identity, analytics, streaming) ...
+
 // ============================================
 // 🌿 CONTROL DE VERSIONES GIT-LIKE
 // ============================================
 const commitsCollection = mongoReady ? db.collection('vaultCommits') : null;
+
 app.post('/api/vault/:id/commit', authenticate, async(req, res) => {
-try {
-const { message, branch = 'main', tags = [] } = req.body;
-if (!message || message.trim().length < 2) return res.status(400).json({ error: 'Mensaje requerido (mín. 2 caracteres)' });
-const user = await usersCollection.findOne({ uid: req.user.uid });
-const file = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
-if (!file) return res.status(404).json({ error: 'Archivo no encontrado' });
-const commit = {
-fileId: file._id,
-message: message.trim(),
-author: { uid: user.uid, email: user.email },
-branch, tags,
-version: (file.currentVersion || 0) + 1,
-timestamp: new Date(),
-hash: crypto.createHash('sha256').update(req.params.id + message + Date.now()).digest('hex').slice(0, 8)
-};
-if (commitsCollection) await commitsCollection.insertOne(commit);
-await secretsCollection.updateOne({ _id: file._id }, { $set: { currentVersion: commit.version, lastCommitHash: commit.hash, updatedAt: new Date() } });
-await logAudit('vault_commit', { fileId: req.params.id, message: commit.message, hash: commit.hash });
-res.json({ success: true, message: '✅ Commit creado', commit: { hash: commit.hash, message: commit.message, branch, version: commit.version } });
-} catch (e) { res.status(500).json({ error: 'Error creando commit: ' + e.message }); }
+  // ... tu código de commit ...
 });
+
 app.get('/api/vault/:id/log', authenticate, async(req, res) => {
-try {
-const { branch = 'main', limit = 20 } = req.query;
-const user = await usersCollection.findOne({ uid: req.user.uid });
-const file = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
-if (!file) return res.status(404).json({ error: 'Archivo no encontrado' });
-if (!commitsCollection) return res.json({ success: true, log: [], branch, total: 0, demo: true });
-const commits = await commitsCollection.find({ fileId: file._id, branch }).sort({ timestamp: -1 }).limit(parseInt(limit) || 20).toArray();
-res.json({ success: true, log: commits.map(c => ({ hash: c.hash, message: c.message, author: c.author.email, branch: c.branch, tags: c.tags, date: c.timestamp, version: c.version })), branch, total: commits.length });
-} catch (e) { res.status(500).json({ error: 'Error listando historial: ' + e.message }); }
+  // ... tu código de log ...
 });
+
 app.post('/api/vault/:id/checkout/:version', authenticate, async(req, res) => {
-try {
-const version = parseInt(req.params.version);
-if (!version || version < 1) return res.status(400).json({ error: 'Versión inválida' });
-const user = await usersCollection.findOne({ uid: req.user.uid });
-const file = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
-if (!file) return res.status(404).json({ error: 'Archivo no encontrado' });
-if (commitsCollection) {
-const targetCommit = await commitsCollection.findOne({ fileId: file._id, version });
-if (!targetCommit) return res.status(404).json({ error: 'Versión no encontrada' });
-await secretsCollection.updateOne({ _id: file._id }, { $set: { currentVersion: version, lastCheckout: new Date(), updatedAt: new Date() } });
-await logAudit('vault_checkout', { fileId: req.params.id, restoredToVersion: version, by: user.uid });
-res.json({ success: true, message: `✅ Restaurado a versión ${version}`, version, timestamp: new Date() });
-} else {
-res.json({ success: true, message: '⚠️ Modo demo: historial no activo aún' });
-}
-} catch (e) { res.status(500).json({ error: 'Error restaurando versión: ' + e.message }); }
+  // ... tu código de checkout ...
 });
 
 // ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL
 // ============================================
 async function startServer() {
-await connectToMongo();
-if (mongoReady) {
-setInterval(() => { KeyRotationService.scheduleRotations().catch(e => logger.warn('⚠️ Scheduled rotation failed: ' + e.message)); }, 24 * 60 * 60 * 1000);
-logger.info('🔄 Key rotation scheduled every 24h');
-setInterval(async() => { try { if (sharedLinksCollection) { const result = await sharedLinksCollection.deleteMany({ expiresAt: { $lt: new Date() } }); if (result.deletedCount > 0) logger.info(`🧹 Limpiados ${result.deletedCount} enlaces expirados`); } } catch (e) { logger.warn('⚠️ Cleanup expired links failed: ' + e.message); } }, 60 * 60 * 1000);
-logger.info('🧹 Expired links cleanup scheduled every 1h');
-}
-app.listen(PORT, '0.0.0.0', function() {
-logger.info('🚀 APIROMWINER en puerto ' + PORT);
-logger.info('🟢 57 Funciones Reales | 🔐 Identidad Criptográfica Autónoma | 📋 Identidad Legal Verificada | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY | 🤖 IA Interna: Búsqueda Inteligente + Auto-Tags + Asistente de Comandos');
-if (FEATURES.PORTABLE_EXPORT) logger.info('📦 Exportación Portable: ACTIVADA');
-if (FEATURES.LOCAL_SYNC) logger.info('🔄 Sync Offline: ACTIVADO');
-if (FEATURES.ZERO_KNOWLEDGE) logger.info('🔐 Zero-Knowledge: ACTIVADO');
-if (FEATURES.WEB3_LOGIN) logger.info('🔗 Login Web3: ACTIVADO');
-if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
-if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA (sin dependencias externas)');
-});
+  await connectToMongo();
+  // ... logs ...
+  app.listen(PORT, '0.0.0.0', function() {
+    logger.info('🚀 APIROMWINER en puerto ' + PORT);
+    // ... más logs ...
+  });
 }
 startServer().catch(function(err) {
-logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
-process.exit(1);
+  logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
+  process.exit(1);
 });
 // === FIN: index.js ===
