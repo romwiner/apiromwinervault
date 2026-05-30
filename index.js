@@ -193,6 +193,7 @@ const PORT = process.env.PORT || 10000;
 // 🔐 MONGODB
 // Cambiar esta línea:
 const MONGODB_URI = process.env.MONGODB_URI;
+let adsCollection, adImpressionsCollection;
 let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
 let reviewsCollection, favoritesCollection, commitsCollection; // ← AGREGAR ", commitsCollection" AQUÍ
