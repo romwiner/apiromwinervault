@@ -430,7 +430,6 @@ if (!mongoReady || !usersCollection || !auditCollection) {
 return { reportType: 'GDPR_ARTICLE_15', generatedAt: new Date().toISOString(), subject: { uid: userId }, data: [], demo: true };
 }
 // ✅ FIN MODO DEMO
-
 const user = await usersCollection.findOne({ uid: userId });
 const logs = await auditCollection.find({ userId, timestamp: { $gte: new Date(start), $lte: new Date(end) } }).sort({ timestamp: 1 }).toArray();
 return { reportType: 'GDPR_ARTICLE_15', generatedAt: new Date().toISOString(), subject: { uid: (user && user.uid), email: (user && user.email) }, data: logs };
@@ -487,6 +486,12 @@ features: ['🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma'
 // 🤖 IA: ENDPOINT PARA COMANDOS DE USUARIO
 app.post('/api/ai/command', authenticate, async(req, res) => {
 try {
+// ✅ MODO DEMO: Si no hay DB, responder sin consultar colecciones
+if (!mongoReady || !usersCollection || !walletCollection || !secretsCollection) {
+const response = processCommand(command, { affiliates: { availableBalance: 0 }, wallet: { balance: 0 }, vault: [] });
+return res.json({ success: true, response, command, timestamp: new Date().toISOString(), demo: true });
+}
+// ✅ FIN MODO DEMO
 const { command } = req.body;
 if (!command) return res.status(400).json({ error: 'Comando requerido' });
 if (!FEATURES.AI_INTERNAL) {
