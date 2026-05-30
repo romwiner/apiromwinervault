@@ -191,18 +191,21 @@ const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 10000;
 // 🔐 MONGODB
-// Cambiar esta línea:
 const MONGODB_URI = process.env.MONGODB_URI;
-let adsCollection, adImpressionsCollection;
+
+// ✅ Declaración de TODAS las colecciones (incluyendo nuevas)
 let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
-let reviewsCollection, favoritesCollection, commitsCollection; // ← AGREGAR ", commitsCollection" AQUÍ
+let reviewsCollection, favoritesCollection, commitsCollection, adsCollection, adImpressionsCollection;
 let mongoReady = false;
+
 async function connectToMongo() {
 try {
 const client = new MongoClient(MONGODB_URI);
 await client.connect();
 db = client.db('apiromwinervault');
+
+// ✅ Asignar TODAS las colecciones
 usersCollection = db.collection('users');
 secretsCollection = db.collection('secrets');
 affiliatesCollection = db.collection('affiliates');
@@ -221,15 +224,18 @@ versionsCollection = db.collection('fileVersions');
 commentsCollection = db.collection('comments');
 reviewsCollection = db.collection('reviews');
 favoritesCollection = db.collection('favorites');
- // ✅ NUEVO: Colecciones para publicidad
-adsCollection = db.collection('ads');
-adImpressionsCollection = db.collection('adImpressions');   
 commitsCollection = db.collection('vaultCommits');
+// ✅ NUEVO: Colecciones para publicidad
+adsCollection = db.collection('ads');
+adImpressionsCollection = db.collection('adImpressions');
+
 // ✅ Índices para publicidad
 await adsCollection.createIndex({ active: 1, budget: -1, startDate: 1, endDate: 1 });
 await adsCollection.createIndex({ advertiserId: 1, createdAt: -1 });
 await adImpressionsCollection.createIndex({ userId: 1, watchedAt: -1 });
-await adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 }); // ← AGREGAR ESTA LÍNEA
+await adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 });
+
+// ✅ Índices existentes
 await usersCollection.createIndex({ email: 1 }, { unique: true });
 await usersCollection.createIndex({ uid: 1 }, { unique: true });
 await usersCollection.createIndex({ tier: 1 });
@@ -253,6 +259,7 @@ await verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, spa
 await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true });
 await reviewsCollection.createIndex({ itemId: 1, createdAt: -1 });
 await favoritesCollection.createIndex({ userId: 1, itemId: 1 }, { unique: true });
+
 mongoReady = true;
 logger.info('✅ MongoDB Atlas conectado');
 } catch (err) {
