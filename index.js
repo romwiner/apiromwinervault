@@ -1060,7 +1060,30 @@ const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id
 if (!secret) return res.status(404).json({ error: 'No encontrado' });
 const user = await usersCollection.findOne({ uid: req.user.uid });
 const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
-const v1 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: parseInt(req.params.v1) });
+app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
+try {
+const userCheck = await usersCollection.findOne({ uid: req.user.uid });
+const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
+if (!secret) return res.status(404).json({ error: 'No encontrado' });
+const user = await usersCollection.findOne({ uid: req.user.uid });
+const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
+
+// ✅ VALIDAR QUE v1 y v2 SEAN NÚMEROS VÁLIDOS
+const v1Num = parseInt(req.params.v1);
+const v2Num = parseInt(req.params.v2);
+if (isNaN(v1Num) || isNaN(v2Num) || v1Num < 1 || v2Num < 1) {
+return res.status(400).json({ error: 'Versión inválida. Usa números enteros positivos' });
+}
+
+const v1 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: v1Num });
+const v2 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: v2Num });
+if (!v1 || !v2) return res.status(404).json({ error: 'Versión no encontrada' });
+const c1 = EnvelopeEncryption.open(v1.content, userDEK);
+const c2 = EnvelopeEncryption.open(v2.content, userDEK);
+const patch = diffLib.createPatch('doc', c1, c2, 'v' + req.params.v1, 'v' + req.params.v2);
+res.json({ success: true, diff: patch });
+} catch (e) { res.status(500).json({ error: e.message }); }
+});
 const v2 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: parseInt(req.params.v2) });
 if (!v1 || !v2) return res.status(404).json({ error: 'Versión no encontrada' });
 const c1 = EnvelopeEncryption.open(v1.content, userDEK);
