@@ -1009,6 +1009,11 @@ const userCheck = await usersCollection.findOne({ uid: req.user.uid });
 const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
 if (!(secret && secret.encrypted)) return res.status(400).json({ error: 'Archivo no soporta thumbnail' });
 const user = await usersCollection.findOne({ uid: req.user.uid });
+// ✅ Validar que el usuario tenga clave de cifrado
+if (!user || !user.encryptedUserKey) {
+return res.status(400).json({ error: 'Clave de cifrado no disponible' });
+}
+const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
 if (!(user && user.encryptedUserKey)) return res.status(400).json({ error: 'Clave no disponible' });
 const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
 const img = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64');
