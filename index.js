@@ -331,6 +331,8 @@ cb(new Error('Archivo no permitido: ' + file.mimetype));
 } catch (e) { 
 cb(new Error('Error validando archivo: ' + e.message)); 
 }
+}
+});    
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Demasiadas solicitudes' } }));
 // 🔐 AUTH
 const authenticate = (req, res, next) => {
