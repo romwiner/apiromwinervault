@@ -311,15 +311,26 @@ storage,
 limits: { fileSize: 10 * 1024 * 1024 },
 fileFilter: async(req, file, cb) => {
 try {
-const buffer = await fs.readFile(file.path);
-const type = await fileType.fromBuffer(buffer);
-const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'rar', 'zip', '7z', 'epub', 'mobi'];
-const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain', 'video/mp4', 'video/webm', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'application/x-rar-compressed', 'application/zip', 'application/x-7z-compressed', 'application/epub+zip', 'application/x-mobipocket-ebook'];
-if ((type && allowedExts.includes(type.ext)) || allowedMimes.includes(file.mimetype)) cb(null, true);
-else cb(new Error('Archivo no permitido'));
-} catch (e) { cb(new Error('Error validando archivo: ' + e.message)); }
+// Validar por mimetype directamente (más seguro y rápido)
+const allowedMimes = [
+'image/jpeg', 'image/png', 'image/gif', 
+'application/pdf', 'application/msword', 
+'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+'text/plain', 'video/mp4', 'video/webm', 
+'audio/mpeg', 'audio/wav', 'audio/ogg', 
+'application/x-rar-compressed', 'application/zip', 
+'application/x-7z-compressed', 'application/epub+zip', 
+'application/x-mobipocket-ebook'
+];
+if (allowedMimes.includes(file.mimetype)) {
+cb(null, true);
+} else {
+cb(new Error('Archivo no permitido: ' + file.mimetype));
 }
-});
+} catch (e) { 
+cb(new Error('Error validando archivo: ' + e.message)); 
+}
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Demasiadas solicitudes' } }));
 // 🔐 AUTH
 const authenticate = (req, res, next) => {
