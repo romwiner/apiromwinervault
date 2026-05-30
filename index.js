@@ -1243,26 +1243,27 @@ res.json({ success: true, status: identity.status, fullName: identity.fullName, 
 } catch (e) { res.status(500).json({ error: 'Error consultando estado: ' + e.message }); }
 });
 // === 🚀 NUEVAS FUNCIONES: EXPORT/IMPORT/SYNC (PORTABLE) ===
-app.post('/api/vault/export', authenticate, async(req, res) => {
+app.post('/api/vault/:id/version', authenticate, async(req, res) => {
 try {
-if (!FEATURES.PORTABLE_EXPORT || !mongoReady || !secretsCollection) return res.json({ success: true, message: 'Modo demo: estructura de exportación vacía', demo: true, exportToken: 'demo_export_' + Date.now(), note: 'Configura ENABLE_EXPORT=true y MongoDB para exportación real' });
+const { content } = req.body;
+if (!content) return res.status(400).json({ error: 'Contenido requerido' });
+const userCheck = await usersCollection.findOne({ uid: req.user.uid });
+const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
+if (!secret) return res.status(404).json({ error: 'No encontrado' });
 const user = await usersCollection.findOne({ uid: req.user.uid });
-if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-const items = await secretsCollection.find({ userId: user._id }, { projection: { encrypted: 0, contenido: 0, _id: 1, titulo: 1, categoria: 1, fileName: 1, fileType: 1, fileSize: 1, createdAt: 1, isForSale: 1, tipo: 1 } }).toArray();
-const vaultExport = { version: '1.0', exportedAt: new Date().toISOString(), userId: user.uid, email: user.email, tier: user.tier, metadata: { totalItems: items.length, categories: [...new Set(items.map(i => i.categoria).filter(Boolean))], totalSize: items.reduce((sum, i) => sum + (i.fileSize || 0), 0), zeroKnowledge: FEATURES.ZERO_KNOWLEDGE }, items: items.map(item => ({ id: item._id.toString(), titulo: item.titulo, categoria: item.categoria, tipo: item.tipo, fileName: item.fileName, fileType: item.fileType, fileSize: item.fileSize, createdAt: item.createdAt, isForSale: item.isForSale, note: 'Contenido cifrado: descargar individualmente para backup completo' })) };
-const exportToken = crypto.randomBytes(32).toString('hex');
-await logAudit('vault_export', { userId: user.uid, itemCount: items.length, zeroKnowledge: FEATURES.ZERO_KNOWLEDGE, exportToken: exportToken.slice(0, 8) + '...', metadata: ZeroKnowledgeUtils.createZKMetadata('export', user.uid) });
-res.json({ success: true, message: FEATURES.ZERO_KNOWLEDGE ? 'Exportación generada. Cifra este JSON con tu clave maestra antes de guardar.' : 'Exportación generada. Descarga archivos individualmente para backup completo.', exportToken, expiresAt: new Date(Date.now() + 3600000).toISOString(), data: vaultExport, instructions: { downloadContent: 'GET /vault/:id para cada archivo', importLater: 'POST /api/vault/import con este JSON', zeroKnowledge: FEATURES.ZERO_KNOWLEDGE ? 'Usa deriveUserKey(password, salt) en frontend para cifrar este JSON' : null } });
-} catch (e) { logger.error('❌ Export error: ' + e.message); res.status(500).json({ error: 'Error exportando bóveda: ' + e.message }); }
+
+// ✅ VALIDAR QUE EL USUARIO TENGA CLAVE DE CIFRADO
+if (!user || !user.encryptedUserKey) {
+return res.status(400).json({ error: 'Clave de cifrado no disponible' });
+}
+
+const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
+const last = await versionsCollection.findOne({ fileId: secret._id }, { sort: { versionNumber: -1 } });
+const next = ((last && last.versionNumber) || 0) + 1;
+await versionsCollection.insertOne({ fileId: secret._id, versionNumber: next, content: EnvelopeEncryption.seal(content, userDEK), createdBy: req.user.uid, createdAt: new Date() });
+res.json({ success: true, version: next });
+} catch (e) { res.status(500).json({ error: 'Error versión: ' + e.message }); }
 });
-app.get('/api/vault/export/:token', authenticate, async(req, res) => {
-try {
-if (!FEATURES.PORTABLE_EXPORT) return res.status(404).json({ error: 'Exportación portable no habilitada' });
-if (!mongoReady && !req.params.token.startsWith('demo_export_')) return res.status(404).json({ error: 'Token de exportación no válido' });
-res.setHeader('Content-Type', 'application/json');
-res.setHeader('Content-Disposition', `attachment; filename="romwiner-vault-export-${Date.now()}.json"`);
-res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-res.setHeader('Pragma', 'no-cache');
 const user = await usersCollection.findOne({ uid: req.user.uid });
 if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 const items = await secretsCollection.find({ userId: user._id }, { projection: { encrypted: 0, contenido: 0, _id: 1, titulo: 1, categoria: 1, fileName: 1, createdAt: 1 } }).toArray();
