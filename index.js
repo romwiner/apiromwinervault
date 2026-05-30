@@ -2217,12 +2217,26 @@ const user = await usersCollection.findOne({ _id: req.user._id }, { projection: 
 res.json({ user });
 } catch (e) { res.status(500).json({ error: 'Error cargando perfil: ' + e.message }); }
 });
-
+// ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL
+// ============================================
 async function startServer() {
   await connectToMongo();
+  if (mongoReady) {
+    setInterval(() => { KeyRotationService.scheduleRotations().catch(e => logger.warn('⚠️ Scheduled rotation failed: ' + e.message)); }, 24 * 60 * 60 * 1000);
+    logger.info('🔄 Key rotation scheduled every 24h');
+    setInterval(async() => { try { if (sharedLinksCollection) { const result = await sharedLinksCollection.deleteMany({ expiresAt: { $lt: new Date() } }); if (result.deletedCount > 0) logger.info(`🧹 Limpiados ${result.deletedCount} enlaces expirados`); } } catch (e) { logger.warn('⚠️ Cleanup expired links failed: ' + e.message); } }, 60 * 60 * 1000);
+    logger.info('🧹 Expired links cleanup scheduled every 1h');
+  }
   app.listen(PORT, '0.0.0.0', function() {
     logger.info('🚀 APIROMWINER en puerto ' + PORT);
+    logger.info('🟢 57 Funciones Reales | 🔐 Identidad Criptográfica Autónoma | 📋 Identidad Legal Verificada | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY | 🤖 IA Interna: Búsqueda Inteligente + Auto-Tags + Asistente de Comandos');
+    if (FEATURES.PORTABLE_EXPORT) logger.info('📦 Exportación Portable: ACTIVADA');
+    if (FEATURES.LOCAL_SYNC) logger.info('🔄 Sync Offline: ACTIVADO');
+    if (FEATURES.ZERO_KNOWLEDGE) logger.info('🔐 Zero-Knowledge: ACTIVADO');
+    if (FEATURES.WEB3_LOGIN) logger.info('🔗 Login Web3: ACTIVADO');
+    if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
+    if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA (sin dependencias externas)');
   });
 }
 startServer().catch(function(err) {
