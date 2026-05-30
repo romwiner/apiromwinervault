@@ -191,7 +191,8 @@ const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 10000;
 // 🔐 MONGODB
-const MONGODB_URI = "mongodb+srv://apiromwinervault:Grup%40selen2000@cluster0.f83xnse.mongodb.net/apiromwinervault?retryWrites=true&w=majority&appName=Cluster0&tls=true&tlsAllowInvalidCertificates=true";
+// Cambiar esta línea:
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://..."; // ← Agregar fallback solo para desarrollo
 let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
 let reviewsCollection, favoritesCollection;
