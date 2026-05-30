@@ -376,6 +376,13 @@ enterprise: { id: 'enterprise', name: 'Enterprise', storageLimitGB: -1, maxFileS
 };
 const requireTier = (...allowed) => async(req, res, next) => {
 try {
+// ✅ MODO DEMO: Si no hay DB, permitir acceso básico
+if (!mongoReady || !usersCollection) {
+req.userTier = 'personal';
+return next();
+}
+// ✅ FIN MODO DEMO
+
 const user = await usersCollection.findOne({ uid: req.user.uid });
 const tier = (user && user.tier) || 'personal';
 if (!allowed.includes(tier)) return res.status(403).json({ error: 'Acceso denegado para tu plan' });
@@ -385,6 +392,9 @@ next();
 };
 const checkQuota = async(req, res, next) => {
 try {
+// ✅ Si no hay DB, saltar verificación de cuota
+if (!mongoReady || !usersCollection || !secretsCollection) return next();
+
 const user = await usersCollection.findOne({ uid: req.user.uid });
 const tier = USER_TIERS[(user && user.tier) || 'personal'];
 if (!tier) return next();
