@@ -1867,17 +1867,17 @@
         showNotification('❌ ' + e.message, 'error');
       }
     }
-
-    async function handleAvatar(e) {
-      const f = e.target.files[0];
-      if (!f) return;
-      if (f.size > 2 * 1024 * 1024) return showNotification('⚠️ Máx 2MB', 'error');
-      const r = new FileReader();
-      r.onload = ev => {
-        document.getElementById('userAvatar').src = ev.target.result;
-        req('/api/identity/avatar', 'POST', { av: ev.target.result }).catch(() => {});
-      };
-      r.readAsDataURL(f);
+     async function handleAvatar(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    // ✅ Guarda la imagen en la memoria del navegador para que no se pierda
+    const reader = new FileReader();
+    reader.onload = ev => {
+      document.getElementById('userAvatar').src = ev.target.result;
+      localStorage.setItem('romwiner_avatar', ev.target.result);
+    };
+    reader.readAsDataURL(f);
+    showNotification('✅ Foto guardada en tu dispositivo', 'success');
     }
 
     async function addContact() {
