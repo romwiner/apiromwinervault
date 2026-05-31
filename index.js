@@ -1050,20 +1050,25 @@ res.type('image/png').send(Buffer.from(dec, 'base64'));
 } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // 📜 VERSIONS + DIFF
-app.post('/api/vault/:id/version', authenticate, async(req, res) => {
-try {
-const { content } = req.body;
-if (!content) return res.status(400).json({ error: 'Contenido requerido' });
-const userCheck = await usersCollection.findOne({ uid: req.user.uid });
-const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
-if (!secret) return res.status(404).json({ error: 'No encontrado' });
-const user = await usersCollection.findOne({ uid: req.user.uid });
-const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
-const last = await versionsCollection.findOne({ fileId: secret._id }, { sort: { versionNumber: -1 } });
-const next = ((last && last.versionNumber) || 0) + 1;
-await versionsCollection.insertOne({ fileId: secret._id, versionNumber: next, content: EnvelopeEncryption.seal(content, userDEK), createdBy: req.user.uid, createdAt: new Date() });
-res.json({ success: true, version: next });
-} catch (e) { res.status(500).json({ error: 'Error versión: ' + e.message }); }
+app.post('/api/vault/:id/thumbnail', authenticate, async(req, res) => {
+  try {
+    const userCheck = await usersCollection.findOne({ uid: req.user.uid });
+    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
+    if (!(secret && secret.encrypted)) return res.status(400).json({ error: 'Archivo no soporta thumbnail' });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    
+    // ✅ VALIDAR QUE EL USUARIO TENGA CLAVE DE CIFRADO (una sola vez)
+    if (!(user && user.encryptedUserKey)) return res.status(400).json({ error: 'Clave no disponible' });
+    
+    // ✅ DECLARAR userDEK UNA SOLA VEZ
+    const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
+    
+    const img = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64');
+    const thumb = await sharp(img).resize(300, 300, { fit: 'inside' }).png().toBuffer();
+    const encThumb = EnvelopeEncryption.seal(thumb.toString('base64'), userDEK);
+    await thumbnailsCollection.updateOne({ fileId: secret._id }, { $set: { encrypted: encThumb, updatedAt: new Date() } }, { upsert: true });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Error thumbnail: ' + e.message }); }
 });
 
 app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
