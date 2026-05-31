@@ -480,6 +480,37 @@ app.get('/api/status', (req, res) => res.json({
   api: 'ApiRomwiner Vault', status: 'online', database: mongoReady ? 'connected' : 'fallback',
   features: ['🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos', '🟢 IA Interna (Búsqueda Inteligente + Auto-Tags)', FEATURES.PORTABLE_EXPORT && '🟢 Exportación Portable', FEATURES.LOCAL_SYNC && '🟢 Sync Offline', FEATURES.ZERO_KNOWLEDGE && '🟢 Zero-Knowledge Ready', FEATURES.WEB3_LOGIN && '🟢 Login Web3', FEATURES.IPFS_BACKUP && '🟢 Backup IPFS (Helia)'].filter(Boolean)
 }));
+}); // ← ← ← CIERRRE DE /api/integrations/me
+
+// 🎬 YOUTUBE EMBED: Permitir previews seguros en productos
+app.post('/api/products/:id/preview', authenticate, async(req, res) => {
+  try {
+    const { youtubeUrl } = req.body;
+    if (!youtubeUrl) return res.status(400).json({ error: 'URL de YouTube requerida' });
+    
+    // Extraer ID del video de YouTube (soporta varios formatos)
+    const videoId = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:.*v=|.*\/)|youtu\.be\/)([^&?/]+)/)?.[1];
+    if (!videoId) return res.status(400).json({ error: 'URL de YouTube no válida' });
+    
+    // Validar que el producto pertenece al usuario
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    const product = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userUid: user.uid });
+    if (!product) return res.status(404).json({ error: 'Producto no encontrado o no eres el dueño' });
+    
+    // Guardar el ID del video como preview (NUNCA el contenido)
+    await secretsCollection.updateOne({ _id: product._id }, { 
+      $set: { previewYoutubeId: videoId, previewUpdatedAt: new Date() } 
+    });
+    
+    await logAudit('preview_updated', { userId: user.uid, productId: req.params.id, youtubeId: videoId });
+    
+    res.json({ 
+      success: true, 
+      message: '✅ Vista previa de YouTube agregada', 
+      embedUrl: `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${process.env.APP_URL || 'https://tu-api.onrender.com'}` 
+    });
+  } catch (e) { res.status(500).json({ error: 'Error guardando preview: ' + e.message }); }
+});
 // 📊 DASHBOARD ANALÍTICO: Ventas, vistas y comisiones del vendedor
 app.get('/api/analytics/seller', authenticate, async(req, res) => {
   try {
