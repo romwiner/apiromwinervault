@@ -32,42 +32,6 @@
     </style>
 </head>
 <body>
-    <!-- 📤 MODAL DE SUBIDA AL VAULT -->
-<div id="uploadModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center;">
-  <div style="background:#111827; padding:20px; border-radius:12px; width:90%; max-width:420px; color:#fff; font-family:sans-serif; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
-    <h3 style="margin:0 0 15px;">📤 Subir Archivo al Vault</h3>
-    <form id="uploadForm">
-      <label style="font-size:13px; color:#9ca3af;">Título *</label>
-      <input type="text" id="vaultTitle" required placeholder="Ej: Contrato_Firmado_2024" style="width:100%; padding:10px; margin:4px 0 10px; background:#1f2937; border:1px solid #374151; color:#fff; border-radius:6px;">
-      
-      <label style="font-size:13px; color:#9ca3af;">Categoría</label>
-      <select id="vaultCategory" style="width:100%; padding:10px; margin:4px 0 10px; background:#1f2937; border:1px solid #374151; color:#fff; border-radius:6px;">
-        <option value="general">📁 General</option>
-        <option value="fotos">📷 Fotos</option>
-        <option value="documentos">📄 Documentos</option>
-        <option value="musica">🎵 Música</option>
-        <option value="videos">🎬 Videos</option>
-      </select>
-      
-      <label style="font-size:13px; color:#9ca3af;">Archivo *</label>
-      <input type="file" id="vaultFile" required style="width:100%; padding:10px; margin:4px 0 10px; background:#1f2937; border:1px solid #374151; color:#fff; border-radius:6px;">
-      
-      <label style="display:flex; align-items:center; gap:8px; margin:12px 0; font-size:14px; cursor:pointer;">
-        <input type="checkbox" id="vaultForSale" style="width:16px; height:16px;"> Marcar para vender públicamente
-      </label>
-      
-      <div id="priceBox" style="display:none;">
-        <label style="font-size:13px; color:#9ca3af;">Precio (USD)</label>
-        <input type="number" id="vaultPrice" step="0.01" value="10.00" style="width:100%; padding:10px; margin:4px 0 10px; background:#1f2937; border:1px solid #374151; color:#fff; border-radius:6px;">
-      </div>
-
-      <div style="display:flex; gap:10px; margin-top:15px;">
-        <button type="submit" id="submitUpload" style="flex:1; padding:11px; background:#3b82f6; color:#fff; border:none; border-radius:6px; font-weight:bold; cursor:pointer; transition:0.2s;">✅ Subir y Cifrar</button>
-        <button type="button" onclick="closeUpload()" style="flex:1; padding:11px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-weight:bold; cursor:pointer; transition:0.2s;">❌ Cancelar</button>
-      </div>
-    </form>
-  </div>
-</div>
     <div id="landingView">
         <div class="glass green" style="text-align:center;padding:24px 18px">
             <h1>🔐 ApiRomwiner Vault</h1>
@@ -314,7 +278,39 @@
 
     <div id="createModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px"><h2>📤 Publicar Activo (Texto)</h2><label style="display:block;margin:10px 0 5px;font-weight:bold">Título del contenido *</label><input id="itemTitle" placeholder="Ej: Mi guía de inversión" style="margin-bottom:10px"><label style="display:block;margin:10px 0 5px">Precio</label><input id="itemPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px"><span style="font-size:0.7rem;color:#8b95a5;display:block;margin-bottom:10px">💵 Se mostrará como: $XX.XX USD</span><select id="itemCat"><option value="general">General</option><option value="finanzas">Finanzas</option><option value="tech">Tecnología</option><option value="educacion">Educación</option><option value="personal">Personal</option></select><label style="display:block;margin:10px 0;font-size:0.8rem;color:#8b95a5"><input type="checkbox" id="itemForSale"> Marcar para vender públicamente</label><button onclick="publish()">✅ Publicar en Venta</button><button onclick="closeCreate()" class="btn-sec">Cancelar</button></div></div>
 
-    <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:340px"><h2>📤 Subir Archivo al Vault</h2><label style="display:block;margin:10px 0 5px;font-weight:bold">Título del archivo *</label><input id="uploadTitle" placeholder="Ej: Mi foto de vacaciones" style="margin-bottom:10px" required><label style="display:block;margin:10px 0 5px">Categoría</label><select id="uploadCat" style="margin-bottom:10px"><option value="general">📁 General</option><option value="fotos">📷 Fotos</option><option value="videos">🎬 Videos</option><option value="libros">📚 Libros</option><option value="documentos">📄 Documentos</option><option value="textos">✍️ Textos</option><option value="audio">🎵 Audio</option><option value="otros">📦 Otros</option></select><label style="display:block;margin:10px 0 5px">Selecciona archivo</label><input id="uploadFile" type="file" style="background:#1a1f2a;padding:10px;border-radius:8px;margin-bottom:10px" required><label style="display:block;margin:15px 0 5px;font-weight:bold"><input type="checkbox" id="uploadForSale" style="width:auto;margin-right:8px"> Marcar para vender públicamente</label><div id="priceSection" style="display:none;margin:10px 0"><label style="display:block;margin:0 0 5px">Precio</label><input id="uploadPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px"><span style="font-size:0.8rem;color:#8b95a5">💵 Se mostrará como: $XX.XX USD</span></div><div class="progress-bar hidden" id="uploadProgress"><div class="progress-fill" id="uploadProgressFill"></div></div><p id="uploadStatus" style="font-size:0.75rem;color:#00e676;margin-top:8px;min-height:1.2em"></p><button onclick="doUpload()" id="uploadBtn">✅ Subir y Cifrar</button><button onclick="closeUpload()" class="btn-sec">Cancelar</button></div></div>
+    <!-- 📤 MODAL DE SUBIDA AL VAULT (CORREGIDO - UN SOLO MODAL) -->
+    <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+        <div class="glass" style="max-width:340px">
+            <h2>📤 Subir Archivo al Vault</h2>
+            <label style="display:block;margin:10px 0 5px;font-weight:bold">Título del archivo *</label>
+            <input id="uploadTitle" placeholder="Ej: Mi foto de vacaciones" style="margin-bottom:10px" required>
+            <label style="display:block;margin:10px 0 5px">Categoría</label>
+            <select id="uploadCat" style="margin-bottom:10px">
+                <option value="general">📁 General</option>
+                <option value="fotos">📷 Fotos</option>
+                <option value="videos">🎬 Videos</option>
+                <option value="libros">📚 Libros</option>
+                <option value="documentos">📄 Documentos</option>
+                <option value="textos">✍️ Textos</option>
+                <option value="audio">🎵 Audio</option>
+                <option value="otros">📦 Otros</option>
+            </select>
+            <label style="display:block;margin:10px 0 5px">Selecciona archivo</label>
+            <input id="uploadFile" type="file" style="background:#1a1f2a;padding:10px;border-radius:8px;margin-bottom:10px" required>
+            <label style="display:block;margin:15px 0 5px;font-weight:bold">
+                <input type="checkbox" id="uploadForSale" style="width:auto;margin-right:8px"> Marcar para vender públicamente
+            </label>
+            <div id="priceSection" style="display:none;margin:10px 0">
+                <label style="display:block;margin:0 0 5px">Precio</label>
+                <input id="uploadPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px">
+                <span style="font-size:0.8rem;color:#8b95a5">💵 Se mostrará como: $XX.XX USD</span>
+            </div>
+            <div class="progress-bar hidden" id="uploadProgress"><div class="progress-fill" id="uploadProgressFill"></div></div>
+            <p id="uploadStatus" style="font-size:0.75rem;color:#00e676;margin-top:8px;min-height:1.2em"></p>
+            <button onclick="doUpload()" id="uploadBtn">✅ Subir y Cifrar</button>
+            <button onclick="closeUpload()" class="btn-sec">Cancelar</button>
+        </div>
+    </div>
 
     <div id="exportModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px"><div class="glass" style="max-width:400px;text-align:center"><h2>📦 Exportar Bóveda</h2><p style="font-size:0.8rem;color:#8b95a5;margin:12px 0">Se generará un archivo JSON con los metadatos de tu bóveda.<b id="zkExportWarning" class="hidden" style="color:#00e676;display:block;margin:8px 0">🔐 Modo Zero-Knowledge: cifra este archivo con tu clave maestra antes de guardarlo.</b></p><button onclick="doExportVault()" id="exportBtn">✅ Generar Exportación</button><button onclick="closeExportModal()" class="btn-sec">Cancelar</button><div id="exportStatus" style="font-size:0.75rem;color:#00e676;margin-top:12px;min-height:1.2em"></div></div></div>
 
@@ -389,9 +385,29 @@
         function closeCreate(){document.getElementById('createModal').classList.add('hidden');document.getElementById('itemTitle').value='';document.getElementById('itemPrice').value='';document.getElementById('itemForSale').checked=false;}
         async function publish(){const titulo=document.getElementById('itemTitle').value?.trim();const price=parseFloat(document.getElementById('itemPrice').value)||0;const categoria=document.getElementById('itemCat').value;const forSale=document.getElementById('itemForSale').checked;if(!titulo)return log('⚠️ Agrega un título');try{const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='📤 Publicando...';}await req('/vault','POST',{titulo,price,categoria,forSale,contenido:'Contenido cifrado con Envelope Encryption'});log('📦 Activo publicado y cifrado');closeCreate();refresh();showNotification('✅ Contenido publicado','success');}catch(e){log('❌ '+e.message);showNotification('❌ '+e.message,'error');}finally{const btn=event?.target;if(btn){btn.disabled=false;btn.textContent='✅ Publicar en Venta';}}}
 
-        function openUpload(){document.getElementById('uploadModal').classList.remove('hidden');document.getElementById('priceSection').style.display='none';document.getElementById('uploadStatus').textContent='';document.getElementById('uploadProgress').classList.add('hidden');document.getElementById('uploadProgressFill').style.width='0%';document.getElementById('uploadBtn').disabled=false;const titleInput=document.getElementById('uploadTitle');if(titleInput){titleInput.value='';titleInput.classList.remove('error');titleInput.focus();}}
-        function closeUpload(){document.getElementById('uploadModal').classList.add('hidden');document.getElementById('uploadFile').value='';document.getElementById('uploadTitle').value='';document.getElementById('uploadTitle').classList.remove('error');document.getElementById('uploadStatus').textContent='';}
-        document.getElementById('uploadForSale')?.addEventListener('change',function(e){document.getElementById('priceSection').style.display=e.target.checked?'block':'none';});
+        // ✅ FUNCIONES DE SUBIDA AL VAULT (CORREGIDAS - UN SOLO MODAL)
+        function openUpload(){
+            const modal = document.getElementById('uploadModal');
+            if(modal) {
+                modal.classList.remove('hidden');
+                document.getElementById('uploadTitle').value = '';
+                document.getElementById('uploadTitle').classList.remove('error');
+                document.getElementById('uploadFile').value = '';
+                document.getElementById('uploadStatus').textContent = '';
+                document.getElementById('uploadProgress').classList.add('hidden');
+                document.getElementById('uploadProgressFill').style.width = '0%';
+                document.getElementById('uploadBtn').disabled = false;
+                document.getElementById('priceSection').style.display = 'none';
+                document.getElementById('uploadTitle').focus();
+            }
+        }
+        function closeUpload(){
+            const modal = document.getElementById('uploadModal');
+            if(modal) modal.classList.add('hidden');
+        }
+        document.getElementById('uploadForSale')?.addEventListener('change',function(e){
+            document.getElementById('priceSection').style.display = e.target.checked ? 'block' : 'none';
+        });
         
         async function doUpload(){
             const titleInput = document.getElementById('uploadTitle');
@@ -402,15 +418,34 @@
             const file = document.getElementById('uploadFile').files?.[0];
             const forSale = document.getElementById('uploadForSale').checked;
             const price = parseFloat(document.getElementById('uploadPrice').value) || 0;
-            if(!title || title.length < 2){ showNotification('⚠️ El título debe tener al menos 2 caracteres','error'); if(titleInput){ titleInput.classList.add('error'); titleInput.focus(); setTimeout(()=>titleInput.classList.remove('error'),2000); } return; }
-            if(!file){ showNotification('⚠️ Selecciona un archivo','error'); return; }
+            if(!title || title.length < 2){ 
+                showNotification('⚠️ El título debe tener al menos 2 caracteres','error'); 
+                if(titleInput){ 
+                    titleInput.classList.add('error'); 
+                    titleInput.focus(); 
+                    setTimeout(()=>titleInput.classList.remove('error'),2000); 
+                } 
+                return; 
+            }
+            if(!file){ 
+                showNotification('⚠️ Selecciona un archivo','error'); 
+                return; 
+            }
             const maxSizeMB={personal:100,business:500,enterprise:5000}[userTier]||100;
             const fileMB=file.size/(1024*1024);
-            if(fileMB>maxSizeMB){ showNotification(`⚠️ Archivo muy grande. Tu plan permite hasta ${maxSizeMB}MB`,'error'); return; }
+            if(fileMB>maxSizeMB){ 
+                showNotification(`⚠️ Archivo muy grande. Tu plan permite hasta ${maxSizeMB}MB`,'error'); 
+                return; 
+            }
             const progress=document.getElementById('uploadProgress'), progressFill=document.getElementById('uploadProgressFill');
             const status=document.getElementById('uploadStatus'), btn=document.getElementById('uploadBtn');
-            progress.classList.remove('hidden'); btn.disabled=true; let prog=0;
-            const interval=setInterval(()=>{ prog=Math.min(90,prog+10); progressFill.style.width=prog+'%'; }, 200);
+            progress.classList.remove('hidden'); 
+            btn.disabled=true; 
+            let prog=0;
+            const interval=setInterval(()=>{ 
+                prog=Math.min(90,prog+10); 
+                progressFill.style.width=prog+'%'; 
+            }, 200);
             try{
                 const formData=new FormData();
                 formData.append('titulo', title);
@@ -420,19 +455,30 @@
                 formData.append('archivo', file);
                 const headers={'Authorization':`Bearer ${token}`};
                 const r=await fetch(API+'/vault',{method:'POST',headers,body:formData});
-                clearInterval(interval); progressFill.style.width='100%';
+                clearInterval(interval); 
+                progressFill.style.width='100%';
                 const j=await r.json?.()||{};
                 if(!r.ok) throw new Error(j.error||'Error al subir');
-                status.textContent='✅ Archivo subido y cifrado'; status.style.color='#00e676';
+                status.textContent='✅ Archivo subido y cifrado'; 
+                status.style.color='#00e676';
                 log(`📦 ${title} guardado • ${fileMB.toFixed(1)}MB`);
                 showNotification('✅ Archivo subido','success');
-                setTimeout(()=>{ closeUpload(); refresh(); showVault(); }, 1200);
+                setTimeout(()=>{ 
+                    closeUpload(); 
+                    refresh(); 
+                    showVault(); 
+                }, 1200);
             }catch(e){
-                clearInterval(interval); progressFill.style.width='0%';
-                status.textContent='❌ Error: '+e.message; status.style.color='#ff5252';
-                log('❌ Upload: '+e.message); showNotification('❌ '+e.message,'error');
+                clearInterval(interval); 
+                progressFill.style.width='0%';
+                status.textContent='❌ Error: '+e.message; 
+                status.style.color='#ff5252';
+                log('❌ Upload: '+e.message); 
+                showNotification('❌ '+e.message,'error');
                 console.error('Upload error:',e);
-            }finally{ btn.disabled=false; }
+            }finally{ 
+                btn.disabled=false; 
+            }
         }
 
         async function showVault(){try{const modal=document.getElementById('vaultModal'),list=document.getElementById('vaultList');modal.classList.remove('hidden');list.innerHTML='<p style="text-align:center;color:#8b95a5">🔄 Cargando...</p>';const res=await req('/vault'),items=res.items||[];if(items.length===0){list.innerHTML='<p style="text-align:center;color:#8b95a5">📭 Tu vault está vacío</p>';return;}list.innerHTML=items.map(item=>{const isMedia = item.fileName && (item.fileName.toLowerCase().endsWith('.mp4') || item.fileName.toLowerCase().endsWith('.mp3') || item.fileName.toLowerCase().endsWith('.wav') || item.fileName.toLowerCase().endsWith('.ogg'));return`<div class="vault-item"><div class="vault-item-header"><span class="vault-item-title">${item.titulo||'Sin título'}</span>${item.isForSale?`<span class="encryption-badge">💰 $${item.price}</span>`:''}</div><div class="vault-item-meta">${item.tipo==='archivo'?`📁 ${item.fileName}`:'📝 Texto'} • ${item.categoria} • <span class="encryption-badge">🔐 Cifrado</span></div><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">${isMedia?`<button onclick="playMedia('${item._id}','${item.fileName.toLowerCase().includes('mp4')?'video':'audio'}')" class="play-btn">▶️ Reproducir</button>`:''}<button onclick="shareFile('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #29b6f6;color:#29b6f6">🔗 Compartir</button><button onclick="showGitLog('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #8ab4f8;color:#8ab4f8">🌿 Git</button><button onclick="genThumb('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #66bb6a;color:#66bb6a">🖼️ Thumb</button><button onclick="showVersions('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #ffa726;color:#ffa726">📜 Historial</button><button onclick="addComment('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #ab47bc;color:#ab47bc">💬 Comentar</button><button onclick="loadComments('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #8b95a5;color:#8b95a5">👁️ Ver</button></div>${item.sales>0?`<div class="vault-item-meta">📈 ${item.sales} ventas</div>`:''}</div>`}).join('');log(`🗄️ Vault: ${items.length} activos`);}catch(e){log('❌ Vault: '+e.message);document.getElementById('vaultList').innerHTML=`<p style="color:#ff5252">Error: ${e.message}</p>`;showNotification('❌ Error cargando vault','error');}}
@@ -440,7 +486,7 @@
         
         async function shareFile(fileId){try{const pass=prompt('🔒 Contraseña opcional (Enter para ninguna):');const hours=prompt('⏱️ Expirar en horas (24):','24')||24;const res=await req(`/api/vault/${fileId}/share`,'POST',{password:pass||null,expiresInHours:parseInt(hours)});if(navigator.clipboard)await navigator.clipboard.writeText(res.link);showNotification('✅ Enlace copiado','success');log(`🔗 Share: ${res.link}`);}catch(e){log('❌ Share: '+e.message);showNotification('❌ '+e.message,'error');}}
         async function genThumb(fileId){try{log('🖼️ Generando thumbnail...');await req(`/api/vault/${fileId}/thumbnail`,'POST');showNotification('✅ Thumbnail generado','success');log('✅ Thumbnail listo');}catch(e){log('❌ Thumb: '+e.message);showNotification('❌ '+e.message,'error');}}
-        async function showVersions(fileId){try{const res=await req(`/api/vault/${fileId}/versions`);const list=res.versions?.map(v=>`v${v.v} • ${new Date(v.date).toLocaleString()}`).join('\n')||'(vacío)';alert('📜 Historial de versiones:\n'+list);}catch(e){log('❌ Versiones: '+e.message);showNotification('❌ '+e.message,'error');}}
+        async function showVersions(fileId){try{const res=await req(`/api/vault/${fileId}/versions`);const list=res.versions?.map(v=>`v${v.v} • ${new Date(v.date).toLocaleString()`).join('\n')||'(vacío)';alert('📜 Historial de versiones:\n'+list);}catch(e){log('❌ Versiones: '+e.message);showNotification('❌ '+e.message,'error');}}
         async function addComment(fileId){const txt=prompt('💬 Escribe tu comentario:');if(!txt?.trim())return;try{await req(`/api/vault/${fileId}/comments`,'POST',{content:txt});showNotification('✅ Comentario enviado','success');log('✅ Comentario cifrado');}catch(e){log('❌ Comment: '+e.message);showNotification('❌ '+e.message,'error');}}
         async function loadComments(fileId){try{const res=await req(`/api/vault/${fileId}/comments`);const txt=res.comments?.map(c=>`[${new Date(c.date).toLocaleTimeString()}] ${c.text}`).join('\n')||'(vacío)';alert('💬 Comentarios:\n'+txt);}catch(e){log('❌ LoadComments: '+e.message);showNotification('❌ '+e.message,'error');}}
 
@@ -679,104 +725,6 @@
             }
         }
     </script>
-<script>
-// 🔓 Abrir/Cerrar Modal de Subida
-function openUpload() {
-  const modal = document.getElementById('uploadModal');
-  if (modal) {
-    modal.style.display = 'flex';
-    document.getElementById('uploadForm')?.reset();
-    document.getElementById('priceBox').style.display = 'none';
-  }
-}
-function closeUpload() {
-  const modal = document.getElementById('uploadModal');
-  if (modal) modal.style.display = 'none';
-}
-
-// 💡 Mostrar caja de precio solo si activa "vender"
-document.addEventListener('DOMContentLoaded', function() {
-  const forSaleCheckbox = document.getElementById('vaultForSale');
-  if (forSaleCheckbox) {
-    forSaleCheckbox.addEventListener('change', function() {
-      const priceBox = document.getElementById('priceBox');
-      if (priceBox) priceBox.style.display = this.checked ? 'block' : 'none';
-    });
-  }
-});
-
-// 📤 Enviar al servidor
-document.addEventListener('DOMContentLoaded', function() {
-  const uploadForm = document.getElementById('uploadForm');
-  if (!uploadForm) return;
-
-  uploadForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('submitUpload');
-    if (!btn) return;
-    
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = '⏳ Cifrando y subiendo...';
-
-    try {
-      const formData = new FormData();
-      const titulo = document.getElementById('vaultTitle')?.value?.trim() || '';
-      const categoria = document.getElementById('vaultCategory')?.value || 'general';
-      const fileInput = document.getElementById('vaultFile');
-      const forSale = document.getElementById('vaultForSale')?.checked || false;
-      const price = parseFloat(document.getElementById('vaultPrice')?.value) || 0;
-
-      // ✅ Validaciones antes de enviar
-      if (!titulo) { alert('❌ El título es obligatorio'); resetBtn(); return; }
-      if (!fileInput?.files?.length) { alert('❌ Selecciona un archivo'); resetBtn(); return; }
-
-      // ✅ Construir payload EXACTO que espera tu backend
-      formData.append('titulo', titulo);
-      formData.append('categoria', categoria);
-      formData.append('forSale', forSale);
-      formData.append('price', price);
-      formData.append('contenido', fileInput.files[0]);
-
-      // 🔑 Busca tu token en los lugares comunes
-      const token = localStorage.getItem('vault_token') || localStorage.getItem('token') || sessionStorage.getItem('token');
-      
-      if (!token) {
-        alert('❌ No hay sesión activa. Inicia sesión primero.');
-        resetBtn();
-        return;
-      }
-      
-      const res = await fetch('/vault', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        alert('✅ ' + (data.message || 'Archivo guardado y cifrado correctamente'));
-        closeUpload();
-        location.reload();
-      } else {
-        alert('❌ ' + (data.error || 'Error al subir el archivo'));
-      }
-    } catch (err) {
-      alert('❌ Error de conexión: ' + err.message);
-    } finally {
-      resetBtn();
-    }
-
-    function resetBtn() {
-      const btn = document.getElementById('submitUpload');
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    }
-  });
-});
-</script>    
 </body>
 </html>
  
