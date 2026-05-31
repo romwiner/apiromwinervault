@@ -1093,6 +1093,24 @@ app.post('/api/marketplace/seller/premium/subscribe', authenticate, async(req, r
     res.json({ success: true, message: '✅ Seller Premium activado', benefits: ['📊 Analytics avanzado', '🎯 Productos destacados', '🏷️ Cupones personalizados', '📦 +50 GB almacenamiento', '🤝 Soporte prioritario', '💰 Comisión 10%'], expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() });
   } catch (e) { logger.error('❌ Seller premium error: ' + e.message); res.status(500).json({ error: 'Error activando Seller Premium: ' + e.message }); }
 });
+// ✅ SELLER PREMIUM: Suscribirse como vendedor premium
+app.post('/api/marketplace/seller/premium/subscribe', authenticate, async(req, res) => {
+  try {
+    if (!mongoReady) return res.json({ success: true, message: 'Demo: Seller Premium activado', demo: true });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const wallet = await walletCollection.findOne({ userId: user._id });
+    const price = 19.99;
+    if (wallet && wallet.balance >= price) {
+      await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -price }, $push: { history: { type: 'seller_premium', amount: -price, date: new Date() } } });
+    } else {
+      return res.status(400).json({ error: 'Saldo insuficiente. Agrega fondos para Seller Premium', currentBalance: wallet?.balance || 0, required: price });
+    }
+    await profilesCollection.updateOne({ userId: user._id }, { $set: { sellerPremium: true, premiumSince: new Date(), premiumExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), commissionRate: 0.10, storageBonusGB: 50 } });
+    await logAudit('seller_premium_subscribed', { userId: user.uid, amount: price });
+    res.json({ success: true, message: '✅ Seller Premium activado', benefits: ['📊 Analytics avanzado', '🎯 Productos destacados', '🏷️ Cupones personalizados', '📦 +50 GB almacenamiento', '🤝 Soporte prioritario', '💰 Comisión 10%'], expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() });
+  } catch (e) { logger.error('❌ Seller premium error: ' + e.message); res.status(500).json({ error: 'Error activando Seller Premium: ' + e.message }); }
+});
 // === FUNCIONES EXISTENTES: SHARE, THUMBNAIL, VERSIONS, COMMENTS, ADMIN ===
 // 🔗 SHARE LINKS
 app.post('/api/vault/:id/share', authenticate, async(req, res) => {
