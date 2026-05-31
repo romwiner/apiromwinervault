@@ -2348,6 +2348,50 @@ document.addEventListener('contextmenu', e => { if (e.target.id === 'secureVideo
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSecurePlayer(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && securePlayerActive) document.getElementById('secureVideo').pause(); });
   </script>
+  <!-- 📊 DASHBOARD ANALÍTICO: Ventas, Vistas y Comisiones -->
+<div id="analyticsPanel" class="glass" style="margin:16px 0; padding:16px; border-left:4px solid #8b5cf6; display:none;">
+  <h4 style="margin:0 0 12px 0; color:#8b5cf6;">📊 Tu Rendimiento (Últimos 30 días)</h4>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:16px;">
+    <div style="background:#1a1f2a; padding:12px; border-radius:8px; text-align:center;">
+      <div style="font-size:1.5rem; color:#fff; font-weight:700;" id="statSales">0</div>
+      <div style="color:#8b95a5; font-size:0.8rem;">Ventas</div>
+    </div>
+    <div style="background:#1a1f2a; padding:12px; border-radius:8px; text-align:center;">
+      <div style="font-size:1.5rem; color:#00e676; font-weight:700;" id="statEarnings">$0.00</div>
+      <div style="color:#8b95a5; font-size:0.8rem;">Ganancias</div>
+    </div>
+    <div style="background:#1a1f2a; padding:12px; border-radius:8px; text-align:center;">
+      <div style="font-size:1.5rem; color:#f59e0b; font-weight:700;" id="statViews">0</div>
+      <div style="color:#8b95a5; font-size:0.8rem;">Vistas/Descargas</div>
+    </div>
+  </div>
+  <div style="background:#1a1f2a; padding:12px; border-radius:8px;">
+    <div style="color:#fff; font-size:0.9rem; margin-bottom:8px;">🔥 Productos más vendidos</div>
+    <div id="topProductsList" style="color:#8b95a5; font-size:0.85rem;">Cargando...</div>
+  </div>
+</div>
+<script>
+async function loadAnalytics() {
+  try {
+    const res = await fetch('/api/analytics/seller', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    if (!data.success) return;
+    document.getElementById('statSales').textContent = data.totalSales;
+    document.getElementById('statEarnings').textContent = '$' + data.totalEarnings;
+    document.getElementById('statViews').textContent = data.views;
+    const topDiv = document.getElementById('topProductsList');
+    if (data.topProducts && data.topProducts.length === 0) {
+      topDiv.textContent = '📦 Aún sin ventas. ¡Sube tu primer producto!';
+    } else if (data.topProducts) {
+      topDiv.innerHTML = data.topProducts.map((p, i) => '<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #2a2f3a;"><span>' + (i+1) + '. ' + p.title + '</span><span style="color:#00e676;">' + p.sales + ' ventas ($' + p.price + ')</span></div>').join('');
+    }
+    document.getElementById('analyticsPanel').style.display = 'block';
+  } catch (e) { console.warn('Analytics load error:', e); }
+}
+const origDash = window.showDashboard;
+window.showDashboard = function() { if (origDash) origDash(); setTimeout(loadAnalytics, 1100); };
+</script>
+
 </body>
 </html>
        
