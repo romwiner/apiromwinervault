@@ -1855,10 +1855,12 @@ app.get('/api/vault/:id/stream/secure', async(req, res) => {
     if (!res.headersSent) res.status(500).json({ error: 'Error al servir archivo cifrado' });
   }
 });
-
 // ============================================
 // 🌿 CONTROL DE VERSIONES GIT-LIKE
 // ============================================
+// ✅ commitsCollection ya está declarada globalmente y asignada en connectToMongo()
+// ✅ NO agregues 'const commitsCollection = ...' aquí — eso causa el error de duplicado
+
 app.post('/api/vault/:id/commit', authenticate, async(req, res) => {
   try {
     const { message, branch = 'main', tags = [] } = req.body;
@@ -1912,7 +1914,6 @@ app.post('/api/vault/:id/checkout/:version', authenticate, async(req, res) => {
     }
   } catch (e) { res.status(500).json({ error: 'Error restaurando versión: ' + e.message }); }
 });
-
 // ============================================
 // 📢 SISTEMA DE PUBLICIDAD CON RECOMPENSAS
 // ============================================
