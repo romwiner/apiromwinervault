@@ -254,6 +254,82 @@
         <div class="card"><div class="label">📈 Ventas Completadas</div><div class="val" id="ventas">0</div></div>
         <div class="card"><div class="label">🤝 Ganancias Afiliados</div><div class="val" id="afiliados">$0.00</div></div>
       </div>
+            </div>  <!-- ← CIERRA .grid -->
+
+      <!-- 💰 BANNER: TU CUENTA PUEDE PAGARSE SOLA -->
+      <div id="autoPayBanner" class="glass" style="margin:16px 0; padding:16px; border-left:4px solid #00e676; display:none;">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div style="font-size:1.5rem;">🔄</div>
+          <div style="flex:1; min-width:200px;">
+            <h4 style="margin:0 0 4px 0; color:#fff;">Tu cuenta puede pagarse sola</h4>
+            <p style="margin:0 0 8px 0; color:#8b95a5; font-size:0.9rem;">Gana saldo viendo anuncios o vendiendo → paga tu Premium automáticamente</p>
+            <div style="background:#1a1f2a; border-radius:6px; padding:8px 12px;">
+              <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:4px;">
+                <span style="color:#8b95a5;">Saldo actual:</span>
+                <span id="autoPayBalance" style="color:#00e676; font-weight:600;">$0.00</span>
+              </div>
+              <div style="height:6px; background:#2a2f3a; border-radius:3px; overflow:hidden;">
+                <div id="autoPayProgress" style="height:100%; width:0%; background:linear-gradient(90deg, #00e676, #00c853); transition:width 0.3s;"></div>
+              </div>
+              <div id="autoPayStatus" style="font-size:0.8rem; color:#8b95a5; margin-top:4px;">Te faltan $9.99 para activar</div>
+            </div>
+          </div>
+          <button id="btnActivateAutoPay" onclick="activateAutoPay()" disabled style="padding:10px 16px; background:#2a2f3a; color:#8b95a5; border:none; border-radius:6px; cursor:not-allowed; font-weight:500; white-space:nowrap;">
+            🔁 Activar auto-pago
+          </button>
+        </div>
+      </div>
+
+      <script>
+      async function updateAutoPayBanner() {
+        try {
+          const res = await fetch('/api/wallet', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+          const data = await res.json();
+          if (!data.success) return;
+          const balance = data.wallet.balance || 0;
+          const required = 9.99;
+          const pct = Math.min(100, (balance / required) * 100);
+          const missing = Math.max(0, required - balance).toFixed(2);
+          document.getElementById('autoPayBalance').textContent = '$' + balance.toFixed(2);
+          document.getElementById('autoPayProgress').style.width = pct + '%';
+          const status = document.getElementById('autoPayStatus');
+          const btn = document.getElementById('btnActivateAutoPay');
+          const banner = document.getElementById('autoPayBanner');
+          banner.style.display = 'block';
+          if (balance >= required) {
+            status.textContent = '✅ ¡Listo para activar auto-pago!';
+            status.style.color = '#00e676';
+            btn.disabled = false;
+            btn.style.background = '#00e676'; btn.style.color = '#000'; btn.style.cursor = 'pointer';
+            btn.innerHTML = '🔁 Activar ahora';
+          } else {
+            status.textContent = 'Te faltan $' + missing + ' para activar';
+            status.style.color = '#8b95a5';
+            btn.disabled = true;
+            btn.style.background = '#2a2f3a'; btn.style.color = '#8b95a5'; btn.style.cursor = 'not-allowed';
+            btn.innerHTML = '🔁 Sigue ganando saldo';
+          }
+        } catch (e) { console.warn('AutoPay banner error:', e); }
+      }
+      async function activateAutoPay() {
+        const btn = document.getElementById('btnActivateAutoPay');
+        btn.disabled = true; btn.innerHTML = '⏳ Activando...';
+        try {
+          const res = await fetch('/api/wallet/auto-subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: JSON.stringify({ tier: 'business' }) });
+          const data = await res.json();
+          if (data.success) {
+            alert('✅ ' + data.message + '\nPróxima renovación: ' + new Date(data.nextBilling).toLocaleDateString());
+            document.getElementById('autoPayBanner').style.display = 'none';
+            if (typeof refresh === 'function') refresh();
+          } else { alert('❌ ' + (data.error || 'Error activando auto-pago')); btn.disabled = false; btn.innerHTML = '🔁 Activar auto-pago'; }
+        } catch (e) { alert('❌ Error de conexión'); btn.disabled = false; btn.innerHTML = '🔁 Activar auto-pago'; }
+      }
+      const origShowDash = window.showDashboard;
+      window.showDashboard = function() { if (origShowDash) origShowDash(); setTimeout(updateAutoPayBanner, 800); };
+      </script>
+
+    </div>  <!-- ← CIERRA div class="glass green" -->
+  </div>    <!-- ← CIERRA div id="dashboardView" -->
           <!-- 📢 SECCIÓN DE ANUNCIOS CON RECOMPENSAS -->
     <div id="adsSection" class="glass" style="display:none; margin-top:16px; padding:16px;">
       <h3 style="margin:0 0 12px 0; color:#00e676;">🎁 Gana Saldo Viendo Anuncios</h3>
