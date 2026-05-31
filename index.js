@@ -480,6 +480,38 @@ app.get('/api/status', (req, res) => res.json({
   api: 'ApiRomwiner Vault', status: 'online', database: mongoReady ? 'connected' : 'fallback',
   features: ['🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos', '🟢 IA Interna (Búsqueda Inteligente + Auto-Tags)', FEATURES.PORTABLE_EXPORT && '🟢 Exportación Portable', FEATURES.LOCAL_SYNC && '🟢 Sync Offline', FEATURES.ZERO_KNOWLEDGE && '🟢 Zero-Knowledge Ready', FEATURES.WEB3_LOGIN && '🟢 Login Web3', FEATURES.IPFS_BACKUP && '🟢 Backup IPFS (Helia)'].filter(Boolean)
 }));
+// 🔐 ENDPOINT PÚBLICO DE ESTADO DE SEGURIDAD
+app.get('/api/security/status', (req, res) => {
+  res.json({
+    api: 'ApiRomwiner Vault',
+    encryption: {
+      algorithm: 'AES-GCM-256',
+      mode: 'Envelope Encryption (DEK + KEK)',
+      zeroKnowledgeReady: FEATURES.ZERO_KNOWLEDGE
+    },
+    audit: {
+      immutable: true,
+      hashing: 'SHA-256 encadenado',
+      signatures: 'HMAC-SHA256'
+    },
+    keyManagement: {
+      rotationDays: 90,
+      storage: 'Environment variables (Render)',
+      passwordHashing: 'bcrypt + salt'
+    },
+    network: {
+      https: 'Obligatorio (TLS 1.2+)',
+      csp: 'Estricto (helmet)',
+      rateLimit: '100 req/15min por IP'
+    },
+    compliance: {
+      soc2: 'En preparación (Type I)',
+      gdpr: 'Funcionalidades implementadas',
+      lastPenTest: '2026-01-15 (interno)'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
 // 🤖 IA: ENDPOINT PARA COMANDOS DE USUARIO
 app.post('/api/ai/command', authenticate, async(req, res) => {
   try {
