@@ -679,6 +679,104 @@
             }
         }
     </script>
+<script>
+// 🔓 Abrir/Cerrar Modal de Subida
+function openUpload() {
+  const modal = document.getElementById('uploadModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    document.getElementById('uploadForm')?.reset();
+    document.getElementById('priceBox').style.display = 'none';
+  }
+}
+function closeUpload() {
+  const modal = document.getElementById('uploadModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// 💡 Mostrar caja de precio solo si activa "vender"
+document.addEventListener('DOMContentLoaded', function() {
+  const forSaleCheckbox = document.getElementById('vaultForSale');
+  if (forSaleCheckbox) {
+    forSaleCheckbox.addEventListener('change', function() {
+      const priceBox = document.getElementById('priceBox');
+      if (priceBox) priceBox.style.display = this.checked ? 'block' : 'none';
+    });
+  }
+});
+
+// 📤 Enviar al servidor
+document.addEventListener('DOMContentLoaded', function() {
+  const uploadForm = document.getElementById('uploadForm');
+  if (!uploadForm) return;
+
+  uploadForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitUpload');
+    if (!btn) return;
+    
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Cifrando y subiendo...';
+
+    try {
+      const formData = new FormData();
+      const titulo = document.getElementById('vaultTitle')?.value?.trim() || '';
+      const categoria = document.getElementById('vaultCategory')?.value || 'general';
+      const fileInput = document.getElementById('vaultFile');
+      const forSale = document.getElementById('vaultForSale')?.checked || false;
+      const price = parseFloat(document.getElementById('vaultPrice')?.value) || 0;
+
+      // ✅ Validaciones antes de enviar
+      if (!titulo) { alert('❌ El título es obligatorio'); resetBtn(); return; }
+      if (!fileInput?.files?.length) { alert('❌ Selecciona un archivo'); resetBtn(); return; }
+
+      // ✅ Construir payload EXACTO que espera tu backend
+      formData.append('titulo', titulo);
+      formData.append('categoria', categoria);
+      formData.append('forSale', forSale);
+      formData.append('price', price);
+      formData.append('contenido', fileInput.files[0]);
+
+      // 🔑 Busca tu token en los lugares comunes
+      const token = localStorage.getItem('vault_token') || localStorage.getItem('token') || sessionStorage.getItem('token');
+      
+      if (!token) {
+        alert('❌ No hay sesión activa. Inicia sesión primero.');
+        resetBtn();
+        return;
+      }
+      
+      const res = await fetch('/vault', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert('✅ ' + (data.message || 'Archivo guardado y cifrado correctamente'));
+        closeUpload();
+        location.reload();
+      } else {
+        alert('❌ ' + (data.error || 'Error al subir el archivo'));
+      }
+    } catch (err) {
+      alert('❌ Error de conexión: ' + err.message);
+    } finally {
+      resetBtn();
+    }
+
+    function resetBtn() {
+      const btn = document.getElementById('submitUpload');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+  });
+});
+</script>    
 </body>
 </html>
  
