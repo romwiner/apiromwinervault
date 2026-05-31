@@ -2252,6 +2252,34 @@ async function processAutoRenewals() {
 }
 // Ejecutar cada 24h
 if (mongoReady) { setInterval(processAutoRenewals, 24 * 60 * 60 * 1000); logger.info('🔄 Auto-renovales programados cada 24h'); }
+// 💳 STRIPE: Webhook para confirmar pagos automáticamente
+app.post('/api/webhooks/stripe', async(req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+  } catch (e) { return res.status(400).json({ error: 'Webhook error: ' + e.message }); }
+  
+  if (event.type === 'payment_intent.succeeded') {
+    const pi = event.data.object;
+    const { uid, type } = pi.metadata;
+    const amount = pi.amount / 100;
+    
+    if (type === 'deposit' && mongoReady && walletCollection) {
+      const user = await usersCollection.findOne({ uid });
+      if (user) {
+        await walletCollection.updateOne({ userId: user._id }, { 
+          $inc: { balance: amount }, 
+          $push: { history: { type: 'deposit_stripe', amount, date: new Date(), paymentId: pi.id } } 
+        });
+        await logAudit('deposit_confirmed', { uid, amount, method: 'stripe', paymentId: pi.id });
+        logger.info(`💳 Depósito confirmado: $${amount} para ${uid}`);
+      }
+    }
+  }
+  res.json({ received: true });
+});
+
 // ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL
 // ============================================
