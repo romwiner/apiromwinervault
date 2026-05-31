@@ -224,6 +224,7 @@ async function connectToMongo() {
     commentsCollection = db.collection('comments');
     reviewsCollection = db.collection('reviews');
     favoritesCollection = db.collection('favorites');
+    commitsCollection = db.collection('vaultCommits');
    // ✅ NUEVO: Colecciones para publicidad
     adsCollection = db.collection('ads');
     adImpressionsCollection = db.collection('adImpressions');
@@ -258,16 +259,14 @@ async function connectToMongo() {
     await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true });
     await reviewsCollection.createIndex({ itemId: 1, createdAt: -1 });
     await favoritesCollection.createIndex({ userId: 1, itemId: 1 }, { unique: true });
-
     mongoReady = true;
     logger.info('✅ MongoDB Atlas conectado');
   } catch (err) {
     logger.error('⚠️ MongoDB fallback activo: ' + err.message);
     mongoReady = false;
   }
-} // ← ✅ AQUÍ FALTABA EL CIERRE DE LA FUNCIÓN
-}
-
+} // ← ✅ Solo UNA llave aquí, que cierra connectToMongo()
+   
 // 🔐 SEGURIDAD
 app.use(helmet({
 contentSecurityPolicy: {
