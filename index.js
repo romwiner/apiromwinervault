@@ -263,22 +263,22 @@ async function connectToMongo() {
 } // ← ✅ Solo UNA llave aquí, que cierra connectToMongo()
 // 🔐 SEGURIDAD
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'", "https:", "http:"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrcAttr: ["'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:", "http:"],
-      connectSrc: ["'self'", "https://apiromwinervault.onrender.com", "https://checkout.stripe.com", "https://api.qrserver.com", "http://localhost:3000", "http://127.0.0.1:3000"],
-      fontSrc: ["'self'", "https:", "data:"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      frameSrc: ["https://checkout.stripe.com"],
-      workerSrc: ["'self'", "blob:"],
-      upgradeInsecureRequests: []
-    }
-  },
+contentSecurityPolicy: {
+  directives: {
+    defaultSrc: ["'self'", "https:", "http:"],
+    styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+    scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],  // ← CDN agregado aquí
+    scriptSrcAttr: ["'unsafe-inline'"],
+    imgSrc: ["'self'", "data:", "https:", "http:"],
+    connectSrc: ["'self'", "https://apiromwinervault.onrender.com", "https://checkout.stripe.com", "https://api.qrserver.com", "http://localhost:3000", "http://127.0.0.1:3000"],
+    fontSrc: ["'self'", "https:", "data:"],
+    objectSrc: ["'none'"],
+    mediaSrc: ["'self'"],
+    frameSrc: ["https://checkout.stripe.com"],
+    workerSrc: ["'self'", "blob:"],
+    upgradeInsecureRequests: []
+  }
+},
   crossOriginEmbedderPolicy: false,
   crossOriginOpenerPolicy: false,
   crossOriginResourcePolicy: false
