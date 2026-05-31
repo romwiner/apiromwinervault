@@ -551,6 +551,12 @@
       <div class="market-search">
         <input type="text" id="marketSearch" placeholder="Buscar por título o tag...">
         <select id="marketCategory"><option value="">Todas las categorías</option></select>
+        <!-- 🎬 BOTÓN DE PRUEBA: REPRODUCTOR SEGURO -->
+<div style="margin:16px 0; padding:12px; background:#1a1f2a; border-radius:8px; text-align:center; border:1px dashed #00e676;">
+  <p style="color:#fff; margin:0 0 8px 0; font-size:0.9rem;">🎥 ¿Tienes videos? Prueba el reproductor seguro</p>
+  <button onclick="openSecurePlayer('/api/files/download/TU_ID_REAL', 'prueba.mp4')" style="padding:10px 20px; background:#00e676; color:#000; border:none; border-radius:6px; cursor:pointer; font-weight:600;">🎬 Abrir reproductor</button>
+  <p style="color:#8b95a5; margin:6px 0 0 0; font-size:0.75rem;">⚠️ Cambia TU_ID_REAL por un ID real cuando tengas un video subido</p>
+</div>
         <select id="marketPriceFilter">
           <option value="">Cualquier precio</option>
           <option value="0-10">Menos de $10</option>
