@@ -809,7 +809,7 @@ app.delete('/vault/:id', authenticate, async(req, res) => {
     res.json({ success: true, message: 'Contenido eliminado permanentemente' });
   } catch (e) { res.status(500).json({ error: 'Error al eliminar: ' + e.message }); }
 });
-// 💰 BUY
+ // 💰 BUY
 app.post('/api/buy/:id', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !secretsCollection || !walletCollection) return res.json({ success: true, message: 'Compra demo: configura MongoDB y wallet', demo: true });
@@ -831,13 +831,56 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
     if (sWallet) await walletCollection.updateOne({ _id: sWallet._id }, { $inc: { balance: sellerAmount }, $push: { history: { type: 'sale', amount: sellerAmount, item: secret.titulo, date: new Date() } } });
     if (affCommission > 0) { const ref = await usersCollection.findOne({ refCode: buyer.referredBy }); if (ref) { const rWallet = await walletCollection.findOne({ userId: ref._id }); if (rWallet) await walletCollection.updateOne({ _id: rWallet._id }, { $inc: { balance: affCommission }, $push: { history: { type: 'affiliate', amount: affCommission, item: 'Ref: ' + secret.titulo, date: new Date() } } }); } }
     await secretsCollection.updateOne({ _id: secret._id }, { $inc: { sales: 1 }, $push: { buyers: buyer.uid } });
-    await transactionsCollection.insertOne({ type: 'sale', amount: price, seller: secret.userUid, buyer: buyer.uid, item: secret.titulo, createdAt: new Date() });
+    await transactionsCollection.insertOne({ 
+      type: 'sale', 
+      amount: price, 
+      seller: secret.userUid, 
+      buyer: buyer.uid, 
+      item: secret.titulo,
+      status: 'pending_confirmation', // ← AGREGADO: estado inicial para escrow suave
+      deliveredAt: new Date(),        // ← AGREGADO: se considera entregado al comprar (contenido digital)
+      confirmedAt: null,              // ← AGREGADO: pendiente de confirmación
+      createdAt: new Date() 
+    });
     await logAudit('purchase', { buyer: buyer.uid, item: secret.titulo, price, seller: secret.userUid });
-    res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault.' });
+    res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault. Por favor confirma recepción en 24h.', nextStep: 'confirm_delivery' });
   } catch (e) { res.status(500).json({ error: 'Error procesando compra: ' + e.message }); }
-});    res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault.' });
-  } catch (e) { res.status(500).json({ error: 'Error procesando compra: ' + e.message 
-  });   
+}); 
+// ✅ POST /api/buy/:id/confirm (CONFIRMAR RECEPCIÓN - ESCROW SUAVE)
+app.post('/api/buy/:id/confirm', authenticate, async(req, res) => {
+  try {
+    const tx = await transactionsCollection.findOne({ 
+      itemId: new ObjectId(req.params.id), 
+      buyer: req.user.uid,
+      status: { $in: ['pending_confirmation', 'completed'] }
+    });
+    
+    if (!tx) return res.status(400).json({ error: 'Transacción no encontrada o ya confirmada' });
+    if (tx.status === 'completed') return res.json({ success: true, message: '✅ Ya confirmada anteriormente', alreadyConfirmed: true });
+    
+    // ✅ Actualizar a completado
+    await transactionsCollection.updateOne({ _id: tx._id }, {
+      $set: { status: 'completed', confirmedAt: new Date() }
+    });
+    
+    // ✅ Opcional: bonificación por entrega rápida (menos de 24h)
+    if (tx.deliveredAt) {
+      const hours = (new Date() - new Date(tx.deliveredAt)) / 36e5;
+      if (hours < 24) {
+        await logAudit('fast_delivery', { txId: tx._id, hours, buyer: req.user.uid });
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      message: '✅ Recepción confirmada. ¡Gracias por tu confianza!', 
+      confirmedAt: new Date().toISOString() 
+    });
+  } catch (e) { 
+    logger.error('❌ Confirm delivery error: ' + e.message); 
+    res.status(500).json({ error: 'Error confirmando entrega: ' + e.message }); 
+  }
+});
 // 🤝 AFFILIATES DASHBOARD
 app.get('/api/affiliates/dashboard', authenticate, async(req, res) => {
   try {
