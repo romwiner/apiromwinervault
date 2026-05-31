@@ -661,6 +661,23 @@ app.post('/api/wallet/withdraw', authenticate, async(req, res) => {
     res.json({ success: true, message: 'Solicitud de retiro enviada. Te contactaremos para confirmar.' });
   } catch (e) { res.status(500).json({ error: 'Error al procesar retiro: ' + e.message }); }
 });
+// ✅ AUTO-PAY: Usar saldo para renovar suscripción
+app.post('/api/wallet/auto-subscribe', authenticate, async(req, res) => {
+  try {
+    if (!mongoReady || !usersCollection || !walletCollection) return res.json({ success: true, message: 'Demo: auto-suscripción activada', demo: true });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const wallet = await walletCollection.findOne({ userId: user._id });
+    const tierPrice = { personal: 0, business: 9.99, enterprise: 49.99 };
+    const nextTier = req.body.tier || 'business';
+    const price = tierPrice[nextTier] || 0;
+    if (!wallet || wallet.balance < price) return res.status(400).json({ error: 'Saldo insuficiente', currentBalance: wallet?.balance || 0, required: price, hint: 'Gana saldo viendo anuncios o vendiendo en el Marketplace' });
+    await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -price }, $push: { history: { type: 'auto_subscription', amount: -price, tier: nextTier, date: new Date() } } });
+    await usersCollection.updateOne({ _id: user._id }, { $set: { tier: nextTier, autoRenew: true, updatedAt: new Date() } });
+    await logAudit('auto_subscribe', { userId: user.uid, tier: nextTier, amount: price });
+    res.json({ success: true, message: `✅ Suscripción a ${nextTier} activada. Se renovará automáticamente cada mes.`, newTier: nextTier, nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), remainingBalance: (wallet.balance - price).toFixed(2) });
+  } catch (e) { logger.error('❌ Auto-subscribe error: ' + e.message); res.status(500).json({ error: 'Error procesando auto-suscripción: ' + e.message }); }
+});
 // 👑 ADMIN: GIFT ACCOUNT
 app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) => {
   try {
