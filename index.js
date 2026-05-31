@@ -1798,70 +1798,67 @@ app.get('/api/analytics/financial/export', authenticate, async(req, res) => {
 // 🔐 STREAMING SEGURO CON CIFRADO ENVELOPE
 // ============================================
 app.get('/api/vault/:id/stream/secure', async(req, res) => {
-try {
-const authToken = req.query.token;
-const userPassword = req.query.passwordHash;
-if (!authToken || !userPassword) return res.status(401).json({ error: 'Autenticación requerida' });
-let user;
-try {
-const decoded = jwt.verify(authToken, process.env.JWT_SECRET || JWT_SECRET);
-user = await usersCollection.findOne({ uid: decoded.uid });
-} catch (e) { return res.status(401).json({ error: 'Token inválido' }); }
-if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-const fileId = req.params.id;
-if (!ObjectId.isValid(fileId)) return res.status(400).json({ error: 'ID inválido' });
-const fileRecord = await secretsCollection.findOne({ _id: new ObjectId(fileId) });
-if (!fileRecord) return res.status(404).json({ error: 'Archivo no encontrado' });
-const isOwner = fileRecord.userId.toString() === user._id.toString();
-const hasBought = fileRecord.buyers?.includes(user.uid);
-const isPublic = fileRecord.isForSale && fileRecord.price === 0;
-if (!isOwner && !hasBought && !isPublic) return res.status(403).json({ error: 'Acceso denegado' });
-const encryptedFileKey = fileRecord.encryptedKey;
-if (!encryptedFileKey) return res.status(500).json({ error: 'Clave de archivo no disponible' });
-const masterKey = CryptoJS.PBKDF2(userPassword, user.salt, { keySize: 8, iterations: 1000 }).toString(CryptoJS.enc.Hex);
-const bytes = CryptoJS.AES.decrypt(encryptedFileKey, masterKey);
-const fileKey = bytes.toString(CryptoJS.enc.Utf8);
-if (!fileKey) return res.status(500).json({ error: 'No se pudo desencriptar la clave del archivo' });
-const encryptedFilePath = path.join(__dirname, 'uploads', fileRecord.fileName + '.enc');
-if (!fs.existsSync(encryptedFilePath)) return res.status(404).json({ error: 'Archivo cifrado no encontrado' });
-const stat = fs.statSync(encryptedFilePath);
-const encryptedFileSize = stat.size;
-const range = req.headers.range;
-const contentType = fileRecord.fileType || 'application/octet-stream';
-res.setHeader('Content-Type', contentType);
-res.setHeader('Accept-Ranges', 'bytes');
-res.setHeader('Cache-Control', 'no-cache');
-if (range) {
-const parts = range.replace(/bytes=/, "").split("-");
-const start = parseInt(parts[0], 10);
-const end = parts[1] ? parseInt(parts[1], 10) : encryptedFileSize - 1;
-const chunkSize = (end - start) + 1;
-const encryptedChunk = fs.readFileSync(encryptedFilePath, { start, end });
-const decryptedChunk = CryptoJS.AES.decrypt({ ciphertext: CryptoJS.enc.Hex.parse(encryptedChunk.toString('hex')) }, CryptoJS.enc.Utf8.parse(fileKey), { mode: CryptoJS.mode.CTR, padding: CryptoJS.pad.NoPadding }).toString(CryptoJS.enc.Latin1);
-res.setHeader('Content-Range', `bytes ${start}-${end}/${encryptedFileSize}`);
-res.setHeader('Content-Length', Buffer.byteLength(decryptedChunk, 'latin1'));
-res.writeHead(206);
-res.end(decryptedChunk, 'latin1');
-} else {
-const encryptedData = fs.readFileSync(encryptedFilePath);
-const decryptedData = CryptoJS.AES.decrypt({ ciphertext: CryptoJS.enc.Hex.parse(encryptedData.toString('hex')) }, CryptoJS.enc.Utf8.parse(fileKey), { mode: CryptoJS.mode.CTR, padding: CryptoJS.pad.NoPadding }).toString(CryptoJS.enc.Latin1);
-res.setHeader('Content-Length', Buffer.byteLength(decryptedData, 'latin1'));
-res.writeHead(200);
-res.end(decryptedData, 'latin1');
-}
-logger.info(`🔐 Streaming seguro: ${fileRecord.fileName} • Usuario: ${user.uid}`);
-} catch (error) {
-logger.error('❌ Error en streaming seguro:', error);
-if (!res.headersSent) res.status(500).json({ error: 'Error al servir archivo cifrado' });
-}
+  try {
+    const authToken = req.query.token;
+    const userPassword = req.query.passwordHash;
+    if (!authToken || !userPassword) return res.status(401).json({ error: 'Autenticación requerida' });
+    let user;
+    try {
+      const decoded = jwt.verify(authToken, process.env.JWT_SECRET || JWT_SECRET);
+      user = await usersCollection.findOne({ uid: decoded.uid });
+    } catch (e) { return res.status(401).json({ error: 'Token inválido' }); }
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const fileId = req.params.id;
+    if (!ObjectId.isValid(fileId)) return res.status(400).json({ error: 'ID inválido' });
+    const fileRecord = await secretsCollection.findOne({ _id: new ObjectId(fileId) });
+    if (!fileRecord) return res.status(404).json({ error: 'Archivo no encontrado' });
+    const isOwner = fileRecord.userId.toString() === user._id.toString();
+    const hasBought = fileRecord.buyers?.includes(user.uid);
+    const isPublic = fileRecord.isForSale && fileRecord.price === 0;
+    if (!isOwner && !hasBought && !isPublic) return res.status(403).json({ error: 'Acceso denegado' });
+    const encryptedFileKey = fileRecord.encryptedKey;
+    if (!encryptedFileKey) return res.status(500).json({ error: 'Clave de archivo no disponible' });
+    const masterKey = CryptoJS.PBKDF2(userPassword, user.salt, { keySize: 8, iterations: 1000 }).toString(CryptoJS.enc.Hex);
+    const bytes = CryptoJS.AES.decrypt(encryptedFileKey, masterKey);
+    const fileKey = bytes.toString(CryptoJS.enc.Utf8);
+    if (!fileKey) return res.status(500).json({ error: 'No se pudo desencriptar la clave del archivo' });
+    const encryptedFilePath = path.join(__dirname, 'uploads', fileRecord.fileName + '.enc');
+    if (!fs.existsSync(encryptedFilePath)) return res.status(404).json({ error: 'Archivo cifrado no encontrado' });
+    const stat = fs.statSync(encryptedFilePath);
+    const encryptedFileSize = stat.size;
+    const range = req.headers.range;
+    const contentType = fileRecord.fileType || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'no-cache');
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : encryptedFileSize - 1;
+      const chunkSize = (end - start) + 1;
+      const encryptedChunk = fs.readFileSync(encryptedFilePath, { start, end });
+      const decryptedChunk = CryptoJS.AES.decrypt({ ciphertext: CryptoJS.enc.Hex.parse(encryptedChunk.toString('hex')) }, CryptoJS.enc.Utf8.parse(fileKey), { mode: CryptoJS.mode.CTR, padding: CryptoJS.pad.NoPadding }).toString(CryptoJS.enc.Latin1);
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${encryptedFileSize}`);
+      res.setHeader('Content-Length', Buffer.byteLength(decryptedChunk, 'latin1'));
+      res.writeHead(206);
+      res.end(decryptedChunk, 'latin1');
+    } else {
+      const encryptedData = fs.readFileSync(encryptedFilePath);
+      const decryptedData = CryptoJS.AES.decrypt({ ciphertext: CryptoJS.enc.Hex.parse(encryptedData.toString('hex')) }, CryptoJS.enc.Utf8.parse(fileKey), { mode: CryptoJS.mode.CTR, padding: CryptoJS.pad.NoPadding }).toString(CryptoJS.enc.Latin1);
+      res.setHeader('Content-Length', Buffer.byteLength(decryptedData, 'latin1'));
+      res.writeHead(200);
+      res.end(decryptedData, 'latin1');
+    }
+    logger.info(`🔐 Streaming seguro: ${fileRecord.fileName} • Usuario: ${user.uid}`);
+  } catch (error) {
+    logger.error('❌ Error en streaming seguro:', error);
+    if (!res.headersSent) res.status(500).json({ error: 'Error al servir archivo cifrado' });
+  }
 });
 
-// ... (todo tu código anterior: marketplace, identity, analytics, streaming) ...
 // ============================================
 // 🌿 CONTROL DE VERSIONES GIT-LIKE
 // ============================================
-// ✅ commitsCollection ya está declarada globalmente y asignada en connectToMongo()
-
 app.post('/api/vault/:id/commit', authenticate, async(req, res) => {
   try {
     const { message, branch = 'main', tags = [] } = req.body;
@@ -1919,38 +1916,24 @@ app.post('/api/vault/:id/checkout/:version', authenticate, async(req, res) => {
 // ============================================
 // 📢 SISTEMA DE PUBLICIDAD CON RECOMPENSAS
 // ============================================
-
-// 👁️ Obtener anuncios disponibles para ver
 app.get('/api/ads/available', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !adsCollection) return res.json({ success: true, ads: [], demo: true });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-    // Límite: máximo 20 anuncios por día por usuario
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const watchedToday = await adImpressionsCollection.countDocuments({ 
-      userId: user._id, 
-      watchedAt: { $gte: today } 
-    });
-
+    const watchedToday = await adImpressionsCollection.countDocuments({ userId: user._id, watchedAt: { $gte: today } });
     if (watchedToday >= 20) {
       return res.json({ success: true, ads: [], message: 'Límite diario alcanzado. Vuelve mañana.', remaining: 0 });
     }
-
-    // Obtener anuncios activos, no vistos por este usuario, con presupuesto disponible
     const ads = await adsCollection.find({
       active: true,
       budget: { $gt: 0 },
       startDate: { $lte: new Date() },
       endDate: { $gte: new Date() },
-      advertiserId: { $ne: user._id } // No mostrar anuncios del mismo usuario
-    })
-    .sort({ reward: -1, createdAt: -1 })
-    .limit(10)
-    .toArray();
-
+      advertiserId: { $ne: user._id }
+    }).sort({ reward: -1, createdAt: -1 }).limit(10).toArray();
     res.json({ 
       success: true, 
       ads: ads.map(ad => ({
@@ -1960,7 +1943,7 @@ app.get('/api/ads/available', authenticate, async(req, res) => {
         imageUrl: ad.imageUrl,
         reward: ad.reward,
         advertiser: ad.advertiserName,
-        type: ad.type // 'banner', 'video', 'text'
+        type: ad.type
       })),
       watchedToday,
       remaining: 20 - watchedToday
@@ -1971,75 +1954,38 @@ app.get('/api/ads/available', authenticate, async(req, res) => {
   }
 });
 
-// 👁️ Registrar vista de anuncio y pagar recompensa
 app.post('/api/ads/watch/:id', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !adsCollection || !adImpressionsCollection) {
       return res.json({ success: true, message: 'Recompensa demo: $0.01', demo: true, earned: 0.01 });
     }
-
     const { id } = req.params;
-    const { watchTime } = req.body; // tiempo en segundos que el usuario vio el anuncio
-
-    // Validación anti-fraude: mínimo 15 segundos para contar como vista válida
+    const { watchTime } = req.body;
     if (!watchTime || watchTime < 15) {
       return res.status(400).json({ error: 'Debes ver el anuncio al menos 15 segundos para ganar la recompensa' });
     }
-
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
     const ad = await adsCollection.findOne({ _id: new ObjectId(id), active: true, budget: { $gt: 0 } });
     if (!ad) return res.status(404).json({ error: 'Anuncio no disponible' });
-
-    // Verificar que el usuario no haya visto este anuncio hoy
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const alreadyWatched = await adImpressionsCollection.findOne({
-      userId: user._id,
-      adId: ad._id,
-      watchedAt: { $gte: today }
-    });
+    const alreadyWatched = await adImpressionsCollection.findOne({ userId: user._id, adId: ad._id, watchedAt: { $gte: today } });
     if (alreadyWatched) {
       return res.status(400).json({ error: 'Ya viste este anuncio hoy. ¡Vuelve mañana para ganar más!' });
     }
-
-    // Verificar límite diario de vistas (20 máximo)
-    const watchedToday = await adImpressionsCollection.countDocuments({
-      userId: user._id,
-      watchedAt: { $gte: today }
-    });
+    const watchedToday = await adImpressionsCollection.countDocuments({ userId: user._id, watchedAt: { $gte: today } });
     if (watchedToday >= 20) {
       return res.status(400).json({ error: 'Límite diario de anuncios alcanzado' });
     }
-
-    // Procesar recompensa
     const reward = parseFloat(ad.reward) || 0.01;
-
-    // Actualizar wallet del usuario
     await walletCollection.updateOne({ userId: user._id }, {
       $inc: { balance: reward },
       $push: { history: { type: 'ad_reward', amount: reward, adId: ad._id.toString(), date: new Date() } }
     });
-
-    // Actualizar presupuesto del anunciante
-    await adsCollection.updateOne({ _id: ad._id }, {
-      $inc: { budget: -reward, views: 1 }
-    });
-
-    // Registrar la impresión
-    await adImpressionsCollection.insertOne({
-      userId: user._id,
-      adId: ad._id,
-      watchTime,
-      reward,
-      watchedAt: new Date(),
-      ip: req.ip
-    });
-
-    // Registrar auditoría
+    await adsCollection.updateOne({ _id: ad._id }, { $inc: { budget: -reward, views: 1 } });
+    await adImpressionsCollection.insertOne({ userId: user._id, adId: ad._id, watchTime, reward, watchedAt: new Date(), ip: req.ip });
     await logAudit('ad_watched', { userId: user.uid, adId: id, reward, watchTime });
-
     res.json({
       success: true,
       message: `✅ ¡Ganaste $${reward.toFixed(2)} USD por ver este anuncio!`,
@@ -2047,35 +1993,26 @@ app.post('/api/ads/watch/:id', authenticate, async(req, res) => {
       newBalance: (await walletCollection.findOne({ userId: user._id }))?.balance || 0,
       remainingDaily: 20 - watchedToday - 1
     });
-
   } catch (e) {
     logger.error('❌ Ad watch error: ' + e.message);
     res.status(500).json({ error: 'Error procesando recompensa: ' + e.message });
   }
 });
 
-// 📢 Crear campaña publicitaria (usuarios pueden anunciarse)
 app.post('/api/ads/create', authenticate, async(req, res) => {
   try {
     const { title, description, imageUrl, targetUrl, reward, budget, type = 'banner', startDate, endDate } = req.body;
-
-    // Validaciones básicas
     if (!title || title.length < 5) return res.status(400).json({ error: 'Título requerido (mín. 5 caracteres)' });
     if (!description || description.length < 20) return res.status(400).json({ error: 'Descripción requerida (mín. 20 caracteres)' });
     if (!imageUrl || !imageUrl.startsWith('http')) return res.status(400).json({ error: 'URL de imagen válida requerida' });
     if (!reward || reward < 0.01 || reward > 1) return res.status(400).json({ error: 'Recompensa debe estar entre $0.01 y $1.00' });
     if (!budget || budget < 1) return res.status(400).json({ error: 'Presupuesto mínimo: $1.00 USD' });
-
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-    // Verificar que el usuario tenga saldo suficiente en wallet
     const wallet = await walletCollection.findOne({ userId: user._id });
     if (!wallet || wallet.balance < budget) {
       return res.status(400).json({ error: `Saldo insuficiente. Necesitas $${budget} USD. Tu saldo: $${(wallet?.balance || 0).toFixed(2)}` });
     }
-
-    // Crear el anuncio
     const newAd = {
       advertiserId: user._id,
       advertiserName: (await profilesCollection.findOne({ userId: user._id }))?.displayName || user.email,
@@ -2092,21 +2029,16 @@ app.post('/api/ads/create', authenticate, async(req, res) => {
       type,
       active: true,
       startDate: startDate ? new Date(startDate) : new Date(),
-      endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días por defecto
+      endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       createdAt: new Date(),
       updatedAt: new Date()
     };
-
     const result = await adsCollection.insertOne(newAd);
-
-    // Descontar presupuesto de la wallet del anunciante
     await walletCollection.updateOne({ userId: user._id }, {
       $inc: { balance: -budget },
       $push: { history: { type: 'ad_campaign', amount: -budget, adId: result.insertedId.toString(), date: new Date() } }
     });
-
     await logAudit('ad_created', { userId: user.uid, adId: result.insertedId.toString(), budget, reward });
-
     res.status(201).json({
       success: true,
       message: '✅ Campaña publicitaria creada exitosamente',
@@ -2119,26 +2051,18 @@ app.post('/api/ads/create', authenticate, async(req, res) => {
         endDate: newAd.endDate
       }
     });
-
   } catch (e) {
     logger.error('❌ Ad create error: ' + e.message);
     res.status(500).json({ error: 'Error creando campaña: ' + e.message });
   }
 });
 
-// 📊 Ver mis campañas publicitarias
 app.get('/api/ads/my-campaigns', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !adsCollection) return res.json({ success: true, campaigns: [], demo: true });
-
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-    const campaigns = await adsCollection.find({ advertiserId: user._id })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .toArray();
-
+    const campaigns = await adsCollection.find({ advertiserId: user._id }).sort({ createdAt: -1 }).limit(50).toArray();
     res.json({
       success: true,
       campaigns: campaigns.map(c => ({
@@ -2155,33 +2079,27 @@ app.get('/api/ads/my-campaigns', authenticate, async(req, res) => {
         type: c.type
       }))
     });
-
   } catch (e) {
     logger.error('❌ My campaigns error: ' + e.message);
     res.status(500).json({ error: 'Error cargando campañas: ' + e.message });
   }
 });
 
-// ⏸️ Pausar/reanudar campaña
 app.patch('/api/ads/:id/toggle', authenticate, async(req, res) => {
   try {
     const { id } = req.params;
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
     const ad = await adsCollection.findOne({ _id: new ObjectId(id), advertiserId: user._id });
     if (!ad) return res.status(404).json({ error: 'Campaña no encontrada o no tienes permiso' });
-
     const newStatus = !ad.active;
     await adsCollection.updateOne({ _id: ad._id }, { $set: { active: newStatus, updatedAt: new Date() } });
     await logAudit('ad_toggled', { userId: user.uid, adId: id, newStatus });
-
     res.json({
       success: true,
       message: newStatus ? '✅ Campaña reanudada' : '⏸️ Campaña pausada',
       active: newStatus
     });
-
   } catch (e) {
     logger.error('❌ Ad toggle error: ' + e.message);
     res.status(500).json({ error: 'Error actualizando campaña: ' + e.message });
@@ -2191,7 +2109,6 @@ app.patch('/api/ads/:id/toggle', authenticate, async(req, res) => {
 // ============================================
 // 🆔 RUTAS DE IDENTIDAD DIGITAL: Avatar, Firma, Recuperación, Multifirma
 // ============================================
-
 app.post('/api/identity/avatar', authenticate, async(req, res) => {
   try {
     const { av } = req.body;
@@ -2281,6 +2198,7 @@ async function startServer() {
     if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
     if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA (sin dependencias externas)');
   });
+} // ← ✅ ESTA LLAVE CIERRA startServer()
 startServer().catch(function(err) {
   logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
   process.exit(1);
