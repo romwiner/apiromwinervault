@@ -2416,6 +2416,121 @@ async function startServer() {
     if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA (sin dependencias externas)');
   });
 } // ← ✅ ESTA LLAVE CIERRA startServer()
+// 💰 SUBSCRIPCIONES ENTRE USUARIOS + DONACIONES
+
+// 👤 Activar perfil "Premium" para recibir suscripciones
+app.post('/api/profiles/premium/activate', authenticate, async(req, res) => {
+  try {
+    const { monthlyPrice, description, perks = [] } = req.body;
+    if (!monthlyPrice || monthlyPrice < 1) return res.status(400).json({ error: 'Precio mínimo $1 USD' });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    await profilesCollection.updateOne({ userId: user._id }, {
+      $set: { isPremiumProfile: true, premiumMonthlyPrice: parseFloat(monthlyPrice), premiumDescription: description?.substring(0, 500), premiumPerks: perks.slice(0, 5), premiumActivatedAt: new Date() }
+    });
+    await logAudit('profile_premium_activated', { userId: user.uid, price: monthlyPrice });
+    res.json({ success: true, message: '✅ Perfil Premium activado. ¡Ahora puedes recibir suscripciones!' });
+  } catch (e) { res.status(500).json({ error: 'Error activando perfil: ' + e.message }); }
+});
+
+// 💳 Suscribirse al perfil Premium de otro usuario
+app.post('/api/profiles/:targetUid/subscribe', authenticate, async(req, res) => {
+  try {
+    const { months = 1 } = req.body;
+    if (months < 1 || months > 12) return res.status(400).json({ error: 'Suscripción de 1 a 12 meses' });
+    const subscriber = await usersCollection.findOne({ uid: req.user.uid });
+    const creator = await usersCollection.findOne({ uid: req.params.targetUid });
+    if (!creator) return res.status(404).json({ error: 'Creador no encontrado' });
+    const creatorProfile = await profilesCollection.findOne({ userId: creator._id });
+    if (!creatorProfile?.isPremiumProfile) return res.status(400).json({ error: 'Este perfil no acepta suscripciones' });
+    if (creator.uid === subscriber.uid) return res.status(400).json({ error: 'No puedes suscribirte a ti mismo' });
+    const pricePerMonth = creatorProfile.premiumMonthlyPrice;
+    const totalPrice = pricePerMonth * months;
+    const subWallet = await walletCollection.findOne({ userId: subscriber._id });
+    if (!subWallet || subWallet.balance < totalPrice) return res.status(400).json({ error: 'Saldo insuficiente', currentBalance: subWallet?.balance || 0, required: totalPrice });
+    const creatorAmount = totalPrice * 0.80;
+    const platformFee = totalPrice * 0.15;
+    let referralAmount = 0;
+    if (subscriber.referredBy) {
+      const referrer = await usersCollection.findOne({ uid: subscriber.referredBy });
+      if (referrer && referrer.uid !== creator.uid) {
+        referralAmount = totalPrice * 0.05;
+        const refWallet = await walletCollection.findOne({ userId: referrer._id });
+        if (refWallet) await walletCollection.updateOne({ userId: referrer._id }, { $inc: { balance: referralAmount }, $push: { history: { type: 'referral_subscription', amount: referralAmount, from: subscriber.uid, date: new Date() } } });
+      }
+    }
+    await walletCollection.updateOne({ userId: subscriber._id }, { $inc: { balance: -totalPrice }, $push: { history: { type: 'profile_subscription', amount: -totalPrice, to: creator.uid, months, date: new Date() } } });
+    await walletCollection.updateOne({ userId: creator._id }, { $inc: { balance: creatorAmount }, $push: { history: { type: 'profile_subscription_received', amount: creatorAmount, from: subscriber.uid, months, date: new Date() } } });
+    await subscriptionsCollection?.insertOne({ subscriberUid: subscriber.uid, creatorUid: creator.uid, months, totalPrice, startDate: new Date(), endDate: new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000), status: 'active' });
+    await logAudit('profile_subscribed', { subscriber: subscriber.uid, creator: creator.uid, amount: totalPrice, months });
+    res.json({ success: true, message: `✅ Suscripción de ${months} mes(es) activada. Acceso inmediato al contenido exclusivo.`, breakdown: { total: totalPrice, toCreator: creatorAmount, toPlatform: platformFee, toReferral: referralAmount }, endDate: new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString() });
+  } catch (e) { res.status(500).json({ error: 'Error procesando suscripción: ' + e.message }); }
+});
+
+// 🎁 Enviar donación a usuario o empresa
+app.post('/api/donations/send', authenticate, async(req, res) => {
+  try {
+    const { targetUid, amount, message } = req.body;
+    if (!targetUid || !amount || amount < 1) return res.status(400).json({ error: 'Monto mínimo $1 USD' });
+    const donor = await usersCollection.findOne({ uid: req.user.uid });
+    const recipient = await usersCollection.findOne({ uid: targetUid });
+    if (!recipient) return res.status(404).json({ error: 'Destinatario no encontrado' });
+    if (donor.uid === recipient.uid) return res.status(400).json({ error: 'No puedes donarte a ti mismo' });
+    const donorWallet = await walletCollection.findOne({ userId: donor._id });
+    if (!donorWallet || donorWallet.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente', currentBalance: donorWallet?.balance || 0, required: amount });
+    const recipientAmount = amount * 0.95;
+    const platformFee = amount * 0.05;
+    await walletCollection.updateOne({ userId: donor._id }, { $inc: { balance: -amount }, $push: { history: { type: 'donation_sent', amount: -amount, to: recipient.uid, message: message?.substring(0, 200), date: new Date() } } });
+    await walletCollection.updateOne({ userId: recipient._id }, { $inc: { balance: recipientAmount }, $push: { history: { type: 'donation_received', amount: recipientAmount, from: donor.uid, message: message?.substring(0, 200), date: new Date() } } });
+    await logAudit('donation_sent', { donor: donor.uid, recipient: recipient.uid, amount, message: message?.substring(0, 100) });
+    res.json({ success: true, message: '✅ Donación enviada. ¡Gracias por apoyar!', breakdown: { total: amount, toRecipient: recipientAmount, toPlatform: platformFee } });
+  } catch (e) { res.status(500).json({ error: 'Error enviando donación: ' + e.message }); }
+});
+
+// 📊 Obtener estadísticas de ingresos del perfil
+app.get('/api/profiles/income', authenticate, async(req, res) => {
+  try {
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const wallet = await walletCollection.findOne({ userId: user._id });
+    const subscriptions = await subscriptionsCollection?.find({ creatorUid: user.uid, status: 'active' }).toArray() || [];
+    const donations = await wallet?.history?.filter(h => h.type === 'donation_received') || [];
+    const totalSubscribers = subscriptions.length;
+    const monthlyRecurring = subscriptions.reduce((sum, s) => sum + (s.totalPrice / s.months), 0);
+    const totalDonations = donations.reduce((sum, d) => sum + d.amount, 0);
+    res.json({ success: true, isPremium: (await profilesCollection.findOne({ userId: user._id }))?.isPremiumProfile || false, stats: { totalSubscribers, monthlyRecurring: monthlyRecurring.toFixed(2), totalDonations: totalDonations.toFixed(2), currentBalance: wallet?.balance?.toFixed(2) || '0.00' } });
+
+  } catch (e) { res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message }); }
+});
+    res.json({ success: true, isPremium: ..., stats: {...} });
+  } catch (e) { res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message }); }
+}); // ← ← ← CIERRRE DEL ÚLTIMO ENDPOINT (UNA SOLA VEZ)
+    res.json({ success: true, isPremium: (await profilesCollection.findOne({ userId: user._id }))?.isPremiumProfile || false, stats: { totalSubscribers, monthlyRecurring: monthlyRecurring.toFixed(2), totalDonations: totalDonations.toFixed(2), currentBalance: wallet?.balance?.toFixed(2) || '0.00' } });
+  } catch (e) { res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message }); }
+});
+
+// ============================================
+// 🚀 START SERVER - SOLO UNA VEZ, AL FINAL
+// ============================================
+async function startServer() {
+  await connectToMongo();
+  if (mongoReady) {
+    setInterval(() => { KeyRotationService.scheduleRotations().catch(e => logger.warn('⚠️ Scheduled rotation failed: ' + e.message)); }, 24 * 60 * 60 * 1000);
+    logger.info('🔄 Key rotation scheduled every 24h');
+    setInterval(async() => { try { if (sharedLinksCollection) { const result = await sharedLinksCollection.deleteMany({ expiresAt: { $lt: new Date() } }); if (result.deletedCount > 0) logger.info(`🧹 Limpiados ${result.deletedCount} enlaces expirados`); } } catch (e) { logger.warn('⚠️ Cleanup expired links failed: ' + e.message); } }, 60 * 60 * 1000);
+    logger.info('🧹 Expired links cleanup scheduled every 1h');
+  }
+  app.listen(PORT, '0.0.0.0', function() {
+    logger.info('🚀 APIROMWINER en puerto ' + PORT);
+    logger.info('🟢 57 Funciones Reales | 🔐 Identidad Criptográfica Autónoma | 📋 Identidad Legal Verificada | 💰 Wallet | 👑 Dueño | 🤝 Afiliados | 🔐 Vault + Envelope Encryption | 📦 RAR/MP3/ZIP | 🏦 Enterprise Tiers + Audit + Key Rotation | ✅ Listo para vender HOY | 🤖 IA Interna: Búsqueda Inteligente + Auto-Tags + Asistente de Comandos');
+    if (FEATURES.PORTABLE_EXPORT) logger.info('📦 Exportación Portable: ACTIVADA');
+    if (FEATURES.LOCAL_SYNC) logger.info('🔄 Sync Offline: ACTIVADO');
+    if (FEATURES.ZERO_KNOWLEDGE) logger.info('🔐 Zero-Knowledge: ACTIVADO');
+    if (FEATURES.WEB3_LOGIN) logger.info('🔗 Login Web3: ACTIVADO');
+    if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
+    if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA (sin dependencias externas)');
+  });
+}
 startServer().catch(function(err) {
   logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
   process.exit(1);
