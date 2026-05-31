@@ -821,12 +821,16 @@
     }
 
     function showDashboard() {
-      document.getElementById('landingView').classList.add('hidden');
-      document.getElementById('dashboardView').classList.remove('hidden');
-      refresh();
-      window.scrollTo(0, 0);
-      showProfileSection();
-    }
+  // ✅ Cargar avatar guardado en memoria del navegador
+  const savedAvatar = localStorage.getItem('romwiner_avatar');
+  if (savedAvatar) document.getElementById('userAvatar').src = savedAvatar;
+  
+  document.getElementById('landingView').classList.add('hidden');
+  document.getElementById('dashboardView').classList.remove('hidden');
+  refresh();
+  window.scrollTo(0, 0);
+  showProfileSection();
+}
 
     function logout() {
       token = '';
