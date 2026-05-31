@@ -2391,7 +2391,53 @@ async function loadAnalytics() {
 const origDash = window.showDashboard;
 window.showDashboard = function() { if (origDash) origDash(); setTimeout(loadAnalytics, 1100); };
 </script>
+<!-- 🤖 PANEL DE ANÁLISIS IA (aparece tras seleccionar archivo) -->
+<div id="aiAnalysisPanel" class="glass" style="display:none; margin:12px 0; padding:12px; border-left:4px solid #00e676;">
+  <div style="font-size:0.9rem; color:#fff; margin-bottom:8px;">🤖 Análisis automático</div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <span style="background:#1a1f2a; padding:4px 8px; border-radius:4px; color:#8b95a5; font-size:0.8rem;">🏷️ Etiquetas: <span id="aiTags">-</span></span>
+    <span style="background:#1a1f2a; padding:4px 8px; border-radius:4px; color:#00e676; font-size:0.8rem;">💰 Precio sugerido: $<span id="aiPrice">-</span></span>
+    <span id="aiFraud" style="background:#1a1f2a; padding:4px 8px; border-radius:4px; color:#f59e0b; font-size:0.8rem; display:none;">⚠️ <span id="aiFraudText"></span></span>
+  </div>
+</div>
 
+<script>
+async function analyzeFileForUpload(fileName, fileType, fileSize) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const res = await fetch('/api/ai/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+      body: JSON.stringify({ fileName, fileType, fileSize, sellerUid: user.uid })
+    });
+    const data = await res.json();
+    if (!data.success) return;
+    
+    document.getElementById('aiTags').textContent = data.tags.join(', ') || 'básico';
+    document.getElementById('aiPrice').textContent = data.suggestedPrice;
+    const panel = document.getElementById('aiAnalysisPanel');
+    panel.style.display = 'block';
+    
+    if (data.fraudFlags && data.fraudFlags.length > 0) {
+      document.getElementById('aiFraud').style.display = 'inline';
+      document.getElementById('aiFraudText').textContent = data.fraudFlags.join(' • ');
+    } else {
+      document.getElementById('aiFraud').style.display = 'none';
+    }
+  } catch(e) { console.warn('AI analysis error:', e); }
+}
+
+// Conectar al input de archivo (ajusta el ID si es diferente)
+document.addEventListener('DOMContentLoaded', () => {
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) {
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (f) analyzeFileForUpload(f.name, f.type, f.size);
+    });
+  }
+});
+</script>
 </body>
 </html>
        
