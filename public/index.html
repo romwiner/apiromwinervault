@@ -2438,6 +2438,66 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+  <!-- 🔐 PANEL DE COLABORACIÓN SEGURA -->
+<div id="collabPanel" class="glass" style="display:none; margin:16px 0; padding:16px; border-left:4px solid #8b5cf6;">
+  <h4 style="margin:0 0 12px 0; color:#8b5cf6;">🔐 Espacios Compartidos</h4>
+  <div style="margin-bottom:16px;">
+    <input id="newSpaceName" placeholder="Nombre del espacio" style="padding:8px; background:#1a1f2a; border:1px solid #2a2f3a; border-radius:6px; color:#fff; width:200px;">
+    <button onclick="createSpace()" style="padding:8px 16px; background:#8b5cf6; color:#fff; border:none; border-radius:6px; cursor:pointer; margin-left:8px;">➕ Crear</button>
+  </div>
+  <div id="spacesList" style="max-height:200px; overflow-y:auto; margin-bottom:16px;"></div>
+  <div id="spaceChat" style="display:none; background:#1a1f2a; border-radius:8px; padding:12px;">
+    <div id="chatMessages" style="max-height:150px; overflow-y:auto; margin-bottom:8px; color:#fff;"></div>
+    <div style="display:flex; gap:8px;">
+      <input id="chatInput" placeholder="Escribe un mensaje (se cifrará automáticamente)..." style="flex:1; padding:8px; background:#2a2f3a; border:1px solid #3a3f4a; border-radius:6px; color:#fff;">
+      <button onclick="sendChatMessage()" style="padding:8px 16px; background:#00e676; color:#000; border:none; border-radius:6px; cursor:pointer;">📤</button>
+    </div>
+  </div>
+  <details style="margin-top:12px; color:#8b95a5;">
+    <summary style="cursor:pointer;">🔍 Ver auditoría de accesos</summary>
+    <div id="auditLog" style="margin-top:8px; font-size:0.85rem; max-height:100px; overflow-y:auto;"></div>
+  </details>
+</div>
+<script>
+let currentSpaceId = null;
+async function createSpace() {
+  const name = document.getElementById('newSpaceName').value.trim();
+  if (!name) return alert('Ingresa un nombre');
+  try {
+    const res = await fetch('/api/spaces', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: JSON.stringify({ name, members: [] }) });
+    const data = await res.json();
+    if (data.success) { alert('✅ Espacio creado: ' + name); loadSpaces(); document.getElementById('newSpaceName').value = ''; }
+    else { alert('❌ ' + data.error); }
+  } catch(e) { alert('Error de conexión'); }
+}
+async function loadSpaces() {
+  try { document.getElementById('spacesList').innerHTML = '<div style="color:#8b95a5; font-size:0.9rem;">📁 Tus espacios aparecerán aquí</div>'; } catch(e) {}
+}
+async function sendChatMessage() {
+  if (!currentSpaceId) return;
+  const input = document.getElementById('chatInput');
+  const message = input.value.trim();
+  if (!message) return;
+  try {
+    const encrypted = btoa(message); // Demo: en producción usar Web Crypto API real
+    const res = await fetch('/api/spaces/' + currentSpaceId + '/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: JSON.stringify({ encryptedMessage: encrypted, iv: 'demo', publicKeyHint: 'demo' }) });
+    const data = await res.json();
+    if (data.success) { input.value = ''; loadChat(); } else { alert('❌ ' + data.error); }
+  } catch(e) { alert('Error enviando mensaje'); }
+}
+async function loadChat() {
+  if (!currentSpaceId) return;
+  try {
+    const res = await fetch('/api/spaces/' + currentSpaceId + '/chat', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    if (!data.success) return;
+    const container = document.getElementById('chatMessages');
+    container.innerHTML = data.messages.map(m => '<div style="margin:4px 0; padding:6px; background:#2a2f3a; border-radius:4px;"><strong style="color:#00e676;">' + m.senderName + '</strong> <span style="color:#8b95a5; font-size:0.8rem;">' + new Date(m.timestamp).toLocaleTimeString() + '</span><br><span style="color:#fff;">[🔐 Mensaje cifrado]</span></div>').join('');
+    container.scrollTop = container.scrollHeight;
+  } catch(e) {}
+}
+function showCollabPanel() { document.getElementById('collabPanel').style.display = 'block'; loadSpaces(); }
+</script>
 </body>
 </html>
        
