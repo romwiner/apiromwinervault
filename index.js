@@ -927,6 +927,8 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
       createdAt: new Date() 
     });
     await logAudit('purchase', { buyer: buyer.uid, item: secret.titulo, price, seller: secret.userUid });
+        // 🎁 Recompensar referidor si el comprador fue referido
+    if (buyer.referredBy) await rewardReferral(buyer.referredBy, 4.00);
     res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault. Por favor confirma recepción en 24h.', nextStep: 'confirm_delivery' });
   } catch (e) { res.status(500).json({ error: 'Error procesando compra: ' + e.message }); }
 }); 
