@@ -2124,6 +2124,26 @@ app.patch('/api/ads/:id/toggle', authenticate, async(req, res) => {
     res.status(500).json({ error: 'Error actualizando campaña: ' + e.message });
   }
 });
+// ✅ CHECK DIARIO: Renovar suscripciones con saldo disponible
+async function processAutoRenewals() {
+  if (!mongoReady) return;
+  const today = new Date();
+  const users = await usersCollection.find({ autoRenew: true, tier: { $ne: 'personal' } }).toArray();
+  for (const user of users) {
+    try {
+      const wallet = await walletCollection.findOne({ userId: user._id });
+      const tierPrice = { business: 9.99, enterprise: 49.99 };
+      const price = tierPrice[user.tier] || 0;
+      if (wallet && wallet.balance >= price) {
+        await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -price }, $push: { history: { type: 'auto_renewal', amount: -price, tier: user.tier, date: today } } });
+        await logAudit('auto_renewal', { userId: user.uid, tier: user.tier, amount: price });
+        logger.info(`🔄 Auto-renovado: ${user.email} → ${user.tier}`);
+      }
+    } catch (e) { logger.warn(`⚠️ Auto-renewal failed for ${user.uid}: ${e.message}`); }
+  }
+}
+// Ejecutar cada 24h
+if (mongoReady) { setInterval(processAutoRenewals, 24 * 60 * 60 * 1000); logger.info('🔄 Auto-renovales programados cada 24h'); }
 // ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL
 // ============================================
