@@ -224,8 +224,7 @@ async function connectToMongo() {
     commentsCollection = db.collection('comments');
     reviewsCollection = db.collection('reviews');
     favoritesCollection = db.collection('favorites');
-    commitsCollection = db.collection('vaultCommits');
-    // ✅ NUEVO: Colecciones para publicidad
+   // ✅ NUEVO: Colecciones para publicidad
     adsCollection = db.collection('ads');
     adImpressionsCollection = db.collection('adImpressions');
 
