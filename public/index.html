@@ -2498,6 +2498,54 @@ async function loadChat() {
 }
 function showCollabPanel() { document.getElementById('collabPanel').style.display = 'block'; loadSpaces(); }
 </script>
+  <!-- 🎬 SECCIÓN DE PREVIEW DE YOUTUBE (para formularios de producto) -->
+<div id="youtubePreviewSection" style="margin:12px 0; padding:12px; background:#1a1f2a; border-radius:8px; display:none;">
+  <label style="color:#fff; font-size:0.9rem; display:block; margin-bottom:6px;">🎬 Vista previa de YouTube (opcional)</label>
+  <input id="youtubeUrlInput" type="url" placeholder="https://youtu.be/... o https://youtube.com/watch?v=..." style="width:100%; padding:8px; background:#2a2f3a; border:1px solid #3a3f4a; border-radius:6px; color:#fff; margin-bottom:8px;">
+  <button id="savePreviewBtn" onclick="saveYoutubePreview()" style="padding:8px 16px; background:#ff0000; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:500;">💾 Guardar preview</button>
+  <div id="previewStatus" style="color:#8b95a5; font-size:0.85rem; margin-top:6px;"></div>
+</div>
+
+<!-- 🎬 REPRODUCTOR DE PREVIEW (se muestra en la card del producto) -->
+<div id="productPreviewPlayer" style="display:none; margin:8px 0;">
+  <iframe id="previewIframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%; height:200px; border-radius:8px;"></iframe>
+</div>
+
+<script>
+async function saveYoutubePreview() {
+  const url = document.getElementById('youtubeUrlInput').value.trim();
+  const productId = window.currentProductId || ''; // Ajusta según tu flujo
+  if (!url || !productId) return alert('Ingresa una URL y asegúrate de estar editando un producto');
+  
+  const status = document.getElementById('previewStatus');
+  status.textContent = '⏳ Guardando...';
+  
+  try {
+    const res = await fetch(`/api/products/${productId}/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+      body: JSON.stringify({ youtubeUrl: url })
+    });
+    const data = await res.json();
+    if (data.success) {
+      status.textContent = '✅ Preview guardado';
+      status.style.color = '#00e676';
+      document.getElementById('previewIframe').src = data.embedUrl;
+      document.getElementById('productPreviewPlayer').style.display = 'block';
+    } else {
+      status.textContent = '❌ ' + data.error;
+      status.style.color = '#f59e0b';
+    }
+  } catch(e) {
+    status.textContent = '❌ Error de conexión';
+    status.style.color = '#f59e0b';
+  }
+}
+function showYoutubePreviewSection() {
+  document.getElementById('youtubePreviewSection').style.display = 'block';
+}
+</script>
 </body>
 </html>
+
        
