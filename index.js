@@ -2281,7 +2281,6 @@ async function startServer() {
     if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
     if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA (sin dependencias externas)');
   });
-}
 startServer().catch(function(err) {
   logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
   process.exit(1);
