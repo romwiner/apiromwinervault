@@ -1163,6 +1163,67 @@ app.post('/api/marketplace/seller/premium/subscribe', authenticate, async(req, r
     res.json({ success: true, message: '✅ Seller Premium activado', benefits: ['📊 Analytics avanzado', '🎯 Productos destacados', '🏷️ Cupones personalizados', '📦 +50 GB almacenamiento', '🤝 Soporte prioritario', '💰 Comisión 10%'], expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() });
   } catch (e) { logger.error('❌ Seller premium error: ' + e.message); res.status(500).json({ error: 'Error activando Seller Premium: ' + e.message }); }
 });
+// 🤖 IA INTEGRADA: Auto-etiquetado, recomendación de precio y detección de fraude
+app.post('/api/ai/analyze', authenticate, async(req, res) => {
+  try {
+    const { fileName, fileType, fileSize, sellerUid } = req.body;
+    if (!fileName) return res.status(400).json({ error: 'Nombre de archivo requerido' });
+
+    // 🏷️ 1. Auto-etiquetado por reglas
+    const name = fileName.toLowerCase();
+    const ext = fileType?.split('/')[1] || name.split('.').pop();
+    const tags = new Set();
+    
+    // Reglas básicas por extensión y nombre
+    if (['mp4','mov','avi','webm'].includes(ext)) tags.add('video');
+    if (['mp3','wav','flac','ogg'].includes(ext)) tags.add('audio');
+    if (['pdf','doc','docx','txt','md'].includes(ext)) tags.add('documento');
+    if (['zip','rar','7z','tar'].includes(ext)) tags.add('comprimido');
+    if (['jpg','png','svg','webp','gif'].includes(ext)) tags.add('imagen');
+    
+    // Palabras clave por contexto en el nombre
+    const keywords = ['tutorial','curso','plantilla','reporte','diseño','foto','música','ebook','código','datos','template','pack'];
+    keywords.forEach(k => { if (name.includes(k)) tags.add(k); });
+
+    // 💰 2. Recomendación de precio (basada en histórico)
+    let suggestedPrice = 5.00; // Base
+    if (fileSize > 100 * 1024 * 1024) suggestedPrice += 3; // >100MB
+    if (['video','curso','tutorial'].some(t => tags.has(t))) suggestedPrice += 7;
+    if (['plantilla','diseño','código'].some(t => tags.has(t))) suggestedPrice += 5;
+    
+    // Ajuste por reputación del vendedor (si existe)
+    if (sellerUid && mongoReady) {
+      const seller = await usersCollection.findOne({ uid: sellerUid });
+      if (seller) {
+        const profile = await profilesCollection.findOne({ userId: seller._id });
+        const rep = parseFloat(profile?.reputation) || 0;
+        if (rep >= 4.5) suggestedPrice *= 1.2; // +20% para vendedores top
+      }
+    }
+
+    // 🔍 3. Detección de duplicados/fraude
+    const fraudFlags = [];
+    if (mongoReady && secretsCollection) {
+      const existing = await secretsCollection.countDocuments({ fileName: fileName, userUid: sellerUid });
+      if (existing > 0) fraudFlags.push('posible_duplicado_exacto');
+      
+      // Patrón sospechoso: mismo nombre en múltiples cuentas en <24h
+      const recentSameName = await secretsCollection.countDocuments({ 
+        fileName, 
+        createdAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } 
+      });
+      if (recentSameName >= 3) fraudFlags.push('subida_masiva_sospechosa');
+    }
+
+    res.json({
+      success: true,
+      tags: Array.from(tags),
+      suggestedPrice: Math.max(1, suggestedPrice).toFixed(2),
+      fraudFlags,
+      message: fraudFlags.length > 0 ? '⚠️ Revisión de seguridad activada' : '✅ Archivo verificado'
+    });
+  } catch (e) { res.status(500).json({ error: 'Error en análisis IA: ' + e.message }); }
+});
 // ✅ SELLER PREMIUM: Suscribirse como vendedor premium
 app.post('/api/marketplace/seller/premium/subscribe', authenticate, async(req, res) => {
   try {
