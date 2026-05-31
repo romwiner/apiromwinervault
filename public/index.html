@@ -2113,50 +2113,42 @@ async function loadAvailableAds() {
       </div>
     `).join('');
   } catch (e) { status.textContent = '❌ Error de conexión'; }
+    
+ <!-- 📢 SCRIPTS DE ANUNCIOS -->
+<script>
+async function loadAvailableAds() {
+  const container = document.getElementById('adsContainer');
+  const status = document.getElementById('adsStatus');
+  const section = document.getElementById('adsSection');
+  if (!container || !status) return;
+  try {
+    const res = await fetch('/api/ads/available', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    if (!data.success) { status.textContent = '❌ Error'; return; }
+    if (data.ads.length === 0) { status.textContent = '🎉 Sin anuncios hoy'; section.style.display = 'block'; return; }
+    section.style.display = 'block';
+    status.textContent = '✅ ' + data.remaining + ' disponibles';
+    container.innerHTML = data.ads.map(ad => '<div style="flex:1;min-width:280px;max-width:320px;background:#1a1f2a;border-radius:10px;padding:12px;border:1px solid #2a2f3a;margin:6px;"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><img src="'+ad.imageUrl+'" style="width:60px;height:60px;border-radius:8px;object-fit:cover;"><div><strong style="color:#fff;">'+ad.title+'</strong><div style="color:#00e676;font-weight:600;">+$'+ad.reward+'</div><div style="color:#8b95a5;font-size:0.8rem;">'+ad.advertiser+'</div></div></div><p style="color:#b8c1d1;font-size:0.9rem;margin:0 0 12px 0;">'+ad.description+'</p><button onclick="watchAd(\''+ad.id+'\')" style="width:100%;padding:10px;background:#00e676;color:#000;border:none;border-radius:6px;cursor:pointer;">👁️ Ver (+$'+ad.reward+')</button></div>').join('');
+  } catch (e) { status.textContent = '❌ Error de conexión'; }
 }
-
-// ✅ VER ANUNCIO Y GANAR
 async function watchAd(adId) {
   const btn = event.target;
   if (!btn || btn.disabled) return;
   btn.disabled = true;
-  btn.innerHTML = '⏳ Viendo... (15s)';
+  btn.innerHTML = '⏳ 15s...';
   let s = 15;
-  const timer = setInterval(() => {
-    s--;
-    btn.innerHTML = `⏳ Viendo... (${s}s)`;
-    if (s <= 0) { clearInterval(timer); completeAdWatch(adId, btn); }
-  }, 1000);
+  const timer = setInterval(() => { s--; btn.innerHTML = '⏳ ' + s + 's'; if (s <= 0) { clearInterval(timer); completeAdWatch(adId, btn); } }, 1000);
 }
-
 async function completeAdWatch(adId, btn) {
   try {
-    const res = await fetch(`/api/ads/watch/${adId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-      body: JSON.stringify({ watchTime: 15 })
-    });
+    const res = await fetch('/api/ads/watch/' + adId, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: JSON.stringify({ watchTime: 15 }) });
     const data = await res.json();
-    if (data.success) {
-      btn.innerHTML = '✅ ¡Ganaste!';
-      btn.style.background = '#00c853';
-      alert(`🎉 ${data.message}\nNuevo saldo: $${data.newBalance.toFixed(2)}`);
-      setTimeout(() => loadAvailableAds(), 1500);
-      if (typeof refresh === 'function') refresh();
-    } else {
-      alert(`❌ ${data.error}`);
-      btn.disabled = false;
-      btn.innerHTML = '👁️ Ver anuncio';
-    }
-  } catch (e) { alert('❌ Error de conexión'); btn.disabled = false; }
+    if (data.success) { btn.innerHTML = '✅ ¡Ganaste!'; btn.style.background = '#00c853'; alert('🎉 ' + data.message + '\nSaldo: $' + data.newBalance.toFixed(2)); setTimeout(() => loadAvailableAds(), 1500); if (typeof refresh === 'function') refresh(); }
+    else { alert('❌ ' + data.error); btn.disabled = false; btn.innerHTML = '👁️ Ver'; }
+  } catch (e) { alert('❌ Error'); btn.disabled = false; }
 }
-
-// ✅ Cargar al mostrar dashboard
-window.showDashboard = (function(orig) {
-  return function() { if (orig) orig(); setTimeout(loadAvailableAds, 500); };
-})(window.showDashboard);
+window.showDashboard = (function(orig) { return function() { if (orig) orig(); setTimeout(loadAvailableAds, 500); }; })(window.showDashboard);
 </script>
-
 <style>
 #adsSection { animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
@@ -2164,4 +2156,4 @@ window.showDashboard = (function(orig) {
 #adsSection button:disabled { opacity:0.6; cursor:not-allowed; }
 </style>
 </body>
-</html>
+</html>   
