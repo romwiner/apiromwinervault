@@ -1402,6 +1402,49 @@ app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
     res.json({ success: true, message: '¡Gracias por tu reseña!', review: {...review, id: review._id } });
   } catch (e) { logger.error('❌ Review error: ' + e.message); res.status(500).json({ error: 'Error guardando reseña: ' + e.message }); }
 });
+// ✅ GET /api/marketplace/item/:id/reviews (LISTAR RESEÑAS CON FILTROS)
+app.get('/api/marketplace/item/:id/reviews', async(req, res) => {
+  try {
+    const { page = 1, limit = 10, sortBy = 'recent', verifiedOnly = 'false' } = req.query;
+    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), isForSale: true });
+    if (!secret) return res.status(404).json({ error: 'Producto no encontrado' });
+    
+    if (!mongoReady) return res.json({ success: true, reviews: [], demo: true });
+    
+    let filter = { itemId: secret._id };
+    if (verifiedOnly === 'true') filter.verifiedPurchase = true;
+    
+    let sort = { createdAt: -1 };
+    if (sortBy === 'rating_high') sort = { rating: -1, createdAt: -1 };
+    if (sortBy === 'rating_low') sort = { rating: 1, createdAt: -1 };
+    if (sortBy === 'helpful') sort = { helpful: -1, createdAt: -1 };
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [reviews, total] = await Promise.all([
+      reviewsCollection.find(filter).sort(sort).skip(skip).limit(parseInt(limit)).toArray(),
+      reviewsCollection.countDocuments(filter)
+    ]);
+    
+    res.json({
+      success: true,
+      reviews: reviews.map(r => ({
+        id: r._id,
+        rating: r.rating,
+        comment: r.comment,
+        buyerName: r.buyerName,
+        date: r.createdAt,
+        verified: r.verifiedPurchase,
+        helpful: r.helpful
+      })),
+      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) },
+      summary: {
+        average: secret.rating?.average || 0,
+        count: secret.rating?.count || 0,
+        verifiedCount: await reviewsCollection.countDocuments({ itemId: secret._id, verifiedPurchase: true })
+      }
+    });
+  } catch (e) { logger.error('❌ Reviews fetch error: ' + e.message); res.status(500).json({ error: 'Error cargando reseñas: ' + e.message }); }
+});
 app.get('/api/marketplace/item/:id/reviews', async(req, res) => {
   try {
     const { page = 1, limit = 10, sortBy = 'recent' } = req.query;
