@@ -648,6 +648,52 @@ app.post('/api/wallet/auto-subscribe', authenticate, async(req, res) => {
     res.json({ success: true, message: `✅ Suscripción a ${nextTier} activada. Se renovará automáticamente cada mes.`, newTier: nextTier, nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), remainingBalance: (wallet.balance - price).toFixed(2) });
   } catch (e) { logger.error('❌ Auto-subscribe error: ' + e.message); res.status(500).json({ error: 'Error procesando auto-suscripción: ' + e.message }); }
 });
+// 🎁 PROGRAMA DE REFERIDOS: Generar código y registrar referido
+app.post('/api/referrals/register', authenticate, async(req, res) => {
+  try {
+    const { referralCode } = req.body;
+    if (!referralCode) return res.status(400).json({ error: 'Código de referido requerido' });
+    const referrer = await usersCollection.findOne({ referralCode: referralCode.toUpperCase() });
+    if (!referrer) return res.status(400).json({ error: 'Código de referido inválido' });
+    if (referrer.uid === req.user.uid) return res.status(400).json({ error: 'No puedes referirte a ti mismo' });
+    
+    await usersCollection.updateOne({ uid: req.user.uid }, { $set: { referredBy: referrer.uid, referredAt: new Date() } });
+    await logAudit('referral_registered', { referrer: referrer.uid, referred: req.user.uid });
+    res.json({ success: true, message: '✅ Referido registrado correctamente' });
+  } catch (e) { res.status(500).json({ error: 'Error registrando referido: ' + e.message }); }
+});
+
+// 🎁 RECOMPENSAR AL REFERIDOR (se llama tras primera compra o depósito del referido)
+async function rewardReferral(referrerUid, amount = 5.00) {
+  if (!mongoReady || !usersCollection || !walletCollection) return;
+  const referrer = await usersCollection.findOne({ uid: referrerUid });
+  if (!referrer) return;
+  const refWallet = await walletCollection.findOne({ userId: referrer._id }) || { balance: 0 };
+  
+  await walletCollection.updateOne({ userId: referrer._id }, { 
+    $inc: { balance: amount }, 
+    $push: { history: { type: 'referral_reward', amount, date: new Date() } } 
+  });
+  await logAudit('referral_rewarded', { referrer: referrerUid, amount });
+  logger.info(`🎁 Recompensa de referido: $${amount} para ${referrer.email}`);
+}
+
+// 🎁 GET: Mis referidos y ganancias
+app.get('/api/referrals/me', authenticate, async(req, res) => {
+  try {
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const myCode = user.referralCode || `ROM-${user.uid.slice(-6).toUpperCase()}`;
+    if (!user.referralCode) await usersCollection.updateOne({ _id: user._id }, { $set: { referralCode: myCode } });
+    
+    const referredUsers = await usersCollection.countDocuments({ referredBy: user.uid });
+    const rewards = await walletCollection.findOne({ userId: user._id }, { projection: { history: { $elemMatch: { type: 'referral_reward' } } } });
+    const totalEarned = rewards?.history?.reduce((sum, h) => sum + h.amount, 0) || 0;
+    
+    res.json({ success: true, code: myCode, link: `${process.env.APP_URL || 'https://tu-api.onrender.com'}/?ref=${myCode}`, referred: referredUsers, earned: totalEarned });
+  } catch (e) { res.status(500).json({ error: 'Error cargando referidos: ' + e.message }); }
+});
+
 app.post('/api/wallet/withdraw', authenticate, async(req, res) => {
   try {
     const amount = parseFloat(req.body.amount), method = req.body.method || 'bank';
