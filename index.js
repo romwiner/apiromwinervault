@@ -835,7 +835,9 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
     await logAudit('purchase', { buyer: buyer.uid, item: secret.titulo, price, seller: secret.userUid });
     res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault.' });
   } catch (e) { res.status(500).json({ error: 'Error procesando compra: ' + e.message }); }
-});
+});    res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault.' });
+  } catch (e) { res.status(500).json({ error: 'Error procesando compra: ' + e.message 
+  });   
 // 🤝 AFFILIATES DASHBOARD
 app.get('/api/affiliates/dashboard', authenticate, async(req, res) => {
   try {
