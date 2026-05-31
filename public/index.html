@@ -254,6 +254,19 @@
         <div class="card"><div class="label">📈 Ventas Completadas</div><div class="val" id="ventas">0</div></div>
         <div class="card"><div class="label">🤝 Ganancias Afiliados</div><div class="val" id="afiliados">$0.00</div></div>
       </div>
+          <!-- 📢 SECCIÓN DE ANUNCIOS CON RECOMPENSAS -->
+    <div id="adsSection" class="glass" style="display:none; margin-top:16px; padding:16px;">
+      <h3 style="margin:0 0 12px 0; color:#00e676;">🎁 Gana Saldo Viendo Anuncios</h3>
+      <p style="margin:0 0 12px 0; color:#8b95a5; font-size:0.9rem;">Mira anuncios de patrocinadores y gana hasta $0.50 USD diarios. Límite: 20 anuncios/día.</p>
+      
+      <div id="adsContainer" style="display:flex; flex-wrap:wrap; gap:12px;"></div>
+      
+      <div id="adsStatus" style="margin-top:12px; font-size:0.85rem; color:#8b95a5;">Cargando anuncios...</div>
+      
+      <button onclick="loadAvailableAds()" style="margin-top:12px; padding:8px 16px; background:#00e676; color:#000; border:none; border-radius:6px; cursor:pointer; font-weight:500;">
+        🔄 Recargar anuncios
+      </button>
+    </div>
     </div>
 
     <!-- 👑 Panel Admin (solo admins) -->
