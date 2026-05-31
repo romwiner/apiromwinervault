@@ -480,6 +480,28 @@ app.get('/api/status', (req, res) => res.json({
   api: 'ApiRomwiner Vault', status: 'online', database: mongoReady ? 'connected' : 'fallback',
   features: ['🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos', '🟢 IA Interna (Búsqueda Inteligente + Auto-Tags)', FEATURES.PORTABLE_EXPORT && '🟢 Exportación Portable', FEATURES.LOCAL_SYNC && '🟢 Sync Offline', FEATURES.ZERO_KNOWLEDGE && '🟢 Zero-Knowledge Ready', FEATURES.WEB3_LOGIN && '🟢 Login Web3', FEATURES.IPFS_BACKUP && '🟢 Backup IPFS (Helia)'].filter(Boolean)
 }));
+// 📊 DASHBOARD ANALÍTICO: Ventas, vistas y comisiones del vendedor
+app.get('/api/analytics/seller', authenticate, async(req, res) => {
+  try {
+    if (!mongoReady) return res.json({ success: true, demo: true, totalSales: 0, totalEarnings: 0, views: 0, topProducts: [] });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // 1. Ventas completadas y ganancias netas
+    const txs = await transactionsCollection.find({ seller: user.uid, status: { $in: ['completed', 'pending_confirmation'] } }).toArray();
+    const totalSales = txs.length;
+    const totalEarnings = txs.reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    // 2. Vistas estimadas (descargas + logs de reproducción)
+    const views = await transactionsCollection.countDocuments({ $or: [{ seller: user.uid, type: 'view' }, { seller: user.uid, status: 'pending_confirmation' }] });
+
+    // 3. Productos más vendidos
+    const topProducts = await secretsCollection.find({ userId: user._id, isForSale: true }).sort({ sales: -1 }).limit(3).toArray();
+    const topFormatted = topProducts.map(p => ({ title: p.titulo, sales: p.sales || 0, price: p.price || 0 }));
+
+    res.json({ success: true, totalSales, totalEarnings: totalEarnings.toFixed(2), views, topProducts: topFormatted, period: '30d' });
+  } catch (e) { res.status(500).json({ error: 'Error cargando analytics: ' + e.message }); }
+});
 // 🔐 ENDPOINT PÚBLICO DE ESTADO DE SEGURIDAD
 app.get('/api/security/status', (req, res) => {
   res.json({
