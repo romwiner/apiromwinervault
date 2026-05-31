@@ -263,22 +263,22 @@ async function connectToMongo() {
 } // ← ✅ Solo UNA llave aquí, que cierra connectToMongo()
 // 🔐 SEGURIDAD
 app.use(helmet({
-contentSecurityPolicy: {
-  directives: {
-    defaultSrc: ["'self'", "https:", "http:"],
-    styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-    scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],  // ← CDN agregado aquí
-    scriptSrcAttr: ["'unsafe-inline'"],
-    imgSrc: ["'self'", "data:", "https:", "http:"],
-    connectSrc: ["'self'", "https://apiromwinervault.onrender.com", "https://checkout.stripe.com", "https://api.qrserver.com", "http://localhost:3000", "http://127.0.0.1:3000"],
-    fontSrc: ["'self'", "https:", "data:"],
-    objectSrc: ["'none'"],
-    mediaSrc: ["'self'"],
-    frameSrc: ["https://checkout.stripe.com"],
-    workerSrc: ["'self'", "blob:"],
-    upgradeInsecureRequests: []
-  }
-},
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'", "https:", "http:"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"], // ✅ FIX: CDN permitido
+      scriptSrcAttr: ["'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      connectSrc: ["'self'", "https://apiromwinervault.onrender.com", "https://checkout.stripe.com", "https://api.qrserver.com", "http://localhost:3000", "http://127.0.0.1:3000"],
+      fontSrc: ["'self'", "https:", "data:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["https://checkout.stripe.com"],
+      workerSrc: ["'self'", "blob:"],
+      upgradeInsecureRequests: []
+    }
+  },
   crossOriginEmbedderPolicy: false,
   crossOriginOpenerPolicy: false,
   crossOriginResourcePolicy: false
@@ -321,7 +321,6 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: async(req, file, cb) => {
     try {
-      // Validar por mimetype directamente (más seguro y rápido)
       const allowedMimes = [
         'image/jpeg', 'image/png', 'image/gif',
         'application/pdf', 'application/msword',
@@ -356,7 +355,6 @@ const authenticate = (req, res, next) => {
 };
 const requireAdmin = async(req, res, next) => {
   try {
-    // ✅ MODO DEMO: Si no hay DB, verificar email directamente
     if (!mongoReady || !usersCollection) {
       if (ADMIN_EMAILS.includes(req.user.email)) {
         req.admin = { email: req.user.email, uid: req.user.uid };
@@ -364,7 +362,6 @@ const requireAdmin = async(req, res, next) => {
       }
       return res.status(403).json({ error: 'Acceso denegado' });
     }
-    // ✅ FIN MODO DEMO
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user || !ADMIN_EMAILS.includes(user.email)) return res.status(403).json({ error: 'Acceso denegado' });
     req.admin = user;
@@ -385,12 +382,10 @@ const USER_TIERS = {
 };
 const requireTier = (...allowed) => async(req, res, next) => {
   try {
-    // ✅ MODO DEMO: Si no hay DB, permitir acceso básico
     if (!mongoReady || !usersCollection) {
       req.userTier = 'personal';
       return next();
     }
-    // ✅ FIN MODO DEMO
     const user = await usersCollection.findOne({ uid: req.user.uid });
     const tier = (user && user.tier) || 'personal';
     if (!allowed.includes(tier)) return res.status(403).json({ error: 'Acceso denegado para tu plan' });
@@ -400,7 +395,6 @@ const requireTier = (...allowed) => async(req, res, next) => {
 };
 const checkQuota = async(req, res, next) => {
   try {
-    // ✅ Si no hay DB, saltar verificación de cuota
     if (!mongoReady || !usersCollection || !secretsCollection) return next();
     const user = await usersCollection.findOne({ uid: req.user.uid });
     const tier = USER_TIERS[(user && user.tier) || 'personal'];
@@ -414,11 +408,9 @@ const checkQuota = async(req, res, next) => {
 };
 // ✅ AUDITORÍA
 const createImmutableLog = async(data) => {
-  // ✅ MODO DEMO: Si no hay DB, devolver log simulado
   if (!mongoReady || !auditCollection) {
     return {...data, eventId: crypto.randomUUID(), timestamp: new Date(), note: 'demo_mode' };
   }
-  // ✅ FIN MODO DEMO
   const eventId = crypto.randomUUID();
   const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
   const last = await auditCollection.findOne({}, { sort: { createdAt: -1 }, projection: { currentHash: 1 } });
@@ -432,11 +424,9 @@ const logAudit = async(action, data) => {
 };
 // ✅ GDPR/SOC2
 const generateGDPRReport = async(userId, start, end) => {
-  // ✅ MODO DEMO: Si no hay DB, devolver reporte simulado
   if (!mongoReady || !usersCollection || !auditCollection) {
     return { reportType: 'GDPR_ARTICLE_15', generatedAt: new Date().toISOString(), subject: { uid: userId }, data: [], demo: true };
   }
-  // ✅ FIN MODO DEMO
   const user = await usersCollection.findOne({ uid: userId });
   const logs = await auditCollection.find({ userId, timestamp: { $gte: new Date(start), $lte: new Date(end) } }).sort({ timestamp: 1 }).toArray();
   return { reportType: 'GDPR_ARTICLE_15', generatedAt: new Date().toISOString(), subject: { uid: (user && user.uid), email: (user && user.email) }, data: logs };
@@ -493,13 +483,11 @@ app.get('/api/status', (req, res) => res.json({
 // 🤖 IA: ENDPOINT PARA COMANDOS DE USUARIO
 app.post('/api/ai/command', authenticate, async(req, res) => {
   try {
-    // ✅ MODO DEMO: Si no hay DB, responder sin consultar colecciones
     if (!mongoReady || !usersCollection || !walletCollection || !secretsCollection) {
-      const { command } = req.body;
+      const { command } = req.body || {};
       const response = processCommand(command, { affiliates: { availableBalance: 0 }, wallet: { balance: 0 }, vault: [] });
       return res.json({ success: true, response, command, timestamp: new Date().toISOString(), demo: true });
     }
-    // ✅ FIN MODO DEMO
     const { command } = req.body;
     if (!command) return res.status(400).json({ error: 'Comando requerido' });
     if (!FEATURES.AI_INTERNAL) {
@@ -639,21 +627,17 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
     } else {
       if (tier && ['personal', 'business', 'enterprise'].includes(tier)) await usersCollection.updateOne({ _id: user._id }, { $set: { tier, updatedAt: new Date() } });
     }
-    // ✅ Validar que el monto sea válido y no negativo
     const bal = parseFloat(initialBalance);
     if (isNaN(bal) || bal < 0) {
       return res.status(400).json({ error: 'Monto inicial debe ser un número válido no negativo' });
     }
-    // ✅ CORREGIDO: Evitar balance duplicado
     const existingWallet = await walletCollection.findOne({ userId: user._id });
     if (existingWallet) {
-      // Si ya existe, solo sumar el saldo
       await walletCollection.updateOne({ userId: user._id }, {
         $inc: { balance: bal },
         $push: { history: { type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() } }
       });
     } else {
-      // Si no existe, crear con el saldo inicial
       await walletCollection.insertOne({
         userId: user._id,
         balance: bal,
@@ -666,8 +650,8 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
     res.json({ success: true, recipientEmail: user.email, uid: user.uid, tempPassword, balance: bal, tier: tier || user.tier, message: tempPassword ? 'Cuenta creada con contraseña temporal' : 'Saldo agregado a cuenta existente' });
   } catch (e) { res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message }); }
 });
-// 📦 VAULT CREATE (CON IA: AUTO-TAGS)
-app.post('/vault', authenticate, checkQuota, async(req, res) => {
+// 📦 VAULT CREATE (CON IA: AUTO-TAGS) ✅ FIX: Agregado upload.single('archivo')
+app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async(req, res) => {
   try {
     const { titulo, categoria = 'general', folderId = 'general', contenido, price = 0, forSale = false, licenseDays = null, tags: userTags } = req.body;
     if (!titulo) return res.status(400).json({ error: 'Título requerido para el contenido' });
@@ -837,7 +821,6 @@ app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const aff = await affiliatesCollection.findOne({ userId: user._id });
-    // ✅ Validar que el balance sea válido y cumpla el mínimo
     if (!aff || isNaN(aff.availableBalance) || aff.availableBalance < 10) {
       return res.status(400).json({ error: 'Mínimo $10 USD para retiro de afiliados. Balance actual: $' + ((aff && !isNaN(aff.availableBalance) ? aff.availableBalance : 0) || 0).toFixed(2) });
     }
@@ -883,7 +866,7 @@ app.delete('/api/identity/revoke/all', authenticate, async(req, res) => {
     res.json({ success: true, message: 'Todos los accesos de apps revocados exitosamente' });
   } catch (e) { res.status(500).json({ error: 'Error al revocar accesos: ' + e.message }); }
 });
-// ✅ QR ROUTE CORREGIDA (sin anidación inválida)
+// ✅ FIX: Eliminada duplicación de app.get('/api/identity/qr')
 app.get('/api/identity/qr', authenticate, async(req, res) => {
   try {
     const user = await usersCollection.findOne({ uid: req.user.uid });
@@ -938,7 +921,6 @@ app.post('/api/admin/webhooks', authenticate, requireAdmin, async(req, res) => {
 app.delete('/api/admin/webhooks/:url', authenticate, requireAdmin, async(req, res) => {
   try {
     if (!mongoReady) return res.json({ success: true, message: 'Demo: webhook eliminado', demo: true });
-    // ✅ Validar que la URL sea válida antes de decodificar
     try {
       const decodedUrl = decodeURIComponent(req.params.url);
       await webhooksCollection.deleteOne({ userId: req.user.uid, url: decodedUrl });
@@ -1004,18 +986,14 @@ app.get('/s/:token', async(req, res) => {
     res.json({ success: true, title: secret.titulo, isFile: secret.tipo === 'archivo', requiresPassword: !!link.passwordHash });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
-// 🖼️ THUMBNAILS
+// 🖼️ THUMBNAILS ✅ FIX: Eliminada duplicación de validación y userDEK
 app.post('/api/vault/:id/thumbnail', authenticate, async(req, res) => {
   try {
     const userCheck = await usersCollection.findOne({ uid: req.user.uid });
     const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
     if (!(secret && secret.encrypted)) return res.status(400).json({ error: 'Archivo no soporta thumbnail' });
     const user = await usersCollection.findOne({ uid: req.user.uid });
-    // ✅ Validar que el usuario tenga clave de cifrado
-    if (!user || !user.encryptedUserKey) {
-      return res.status(400).json({ error: 'Clave de cifrado no disponible' });
-    }
-    // ✅ DECLARAR userDEK UNA SOLA VEZ (fix aplicado)
+    if (!user || !user.encryptedUserKey) return res.status(400).json({ error: 'Clave de cifrado no disponible' });
     const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
     const img = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64');
     const thumb = await sharp(img).resize(300, 300, { fit: 'inside' }).png().toBuffer();
@@ -1043,10 +1021,7 @@ app.post('/api/vault/:id/version', authenticate, async(req, res) => {
     const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
     if (!secret) return res.status(404).json({ error: 'No encontrado' });
     const user = await usersCollection.findOne({ uid: req.user.uid });
-    // ✅ VALIDAR QUE EL USUARIO TENGA CLAVE DE CIFRADO
-    if (!user || !user.encryptedUserKey) {
-      return res.status(400).json({ error: 'Clave de cifrado no disponible' });
-    }
+    if (!user || !user.encryptedUserKey) return res.status(400).json({ error: 'Clave de cifrado no disponible' });
     const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
     const last = await versionsCollection.findOne({ fileId: secret._id }, { sort: { versionNumber: -1 } });
     const next = ((last && last.versionNumber) || 0) + 1;
@@ -1060,17 +1035,11 @@ app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
     const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
     if (!secret) return res.status(404).json({ error: 'No encontrado' });
     const user = await usersCollection.findOne({ uid: req.user.uid });
-    // ✅ VALIDAR QUE EL USUARIO TENGA CLAVE DE CIFRADO
-    if (!user || !user.encryptedUserKey) {
-      return res.status(400).json({ error: 'Clave de cifrado no disponible' });
-    }
+    if (!user || !user.encryptedUserKey) return res.status(400).json({ error: 'Clave de cifrado no disponible' });
     const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
-    // ✅ VALIDAR QUE v1 y v2 SEAN NÚMEROS VÁLIDOS
     const v1Num = parseInt(req.params.v1);
     const v2Num = parseInt(req.params.v2);
-    if (isNaN(v1Num) || isNaN(v2Num) || v1Num < 1 || v2Num < 1) {
-      return res.status(400).json({ error: 'Versión inválida. Usa números enteros positivos' });
-    }
+    if (isNaN(v1Num) || isNaN(v2Num) || v1Num < 1 || v2Num < 1) return res.status(400).json({ error: 'Versión inválida. Usa números enteros positivos' });
     const v1 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: v1Num });
     const v2 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: v2Num });
     if (!v1 || !v2) return res.status(404).json({ error: 'Versión no encontrada' });
@@ -1242,7 +1211,6 @@ app.get('/api/identity/verification-status', authenticate, async(req, res) => {
   } catch (e) { res.status(500).json({ error: 'Error consultando estado: ' + e.message }); }
 });
 // === 🚀 NUEVAS FUNCIONES: EXPORT/IMPORT/SYNC (PORTABLE) ===
-// ✅ RUTA EXPORT CORREGIDA (reconstruida con app.get y try/catch)
 app.get('/api/vault/export/:token', authenticate, async(req, res) => {
   try {
     const user = await usersCollection.findOne({ uid: req.user.uid });
@@ -1251,10 +1219,7 @@ app.get('/api/vault/export/:token', authenticate, async(req, res) => {
     const exportData = { version: '1.0', exportedAt: new Date().toISOString(), userId: user.uid, email: user.email, items: items.map(i => ({ id: i._id.toString(), titulo: i.titulo, categoria: i.categoria, fileName: i.fileName, createdAt: i.createdAt })) };
     res.send(JSON.stringify(exportData, null, 2));
     await logAudit('vault_export_download', { userId: user.uid, token: req.params.token.slice(0, 8) + '...' });
-  } catch (e) { 
-    logger.error('❌ Export download error: ' + e.message); 
-    res.status(500).json({ error: 'Error descargando exportación: ' + e.message }); 
-  }
+  } catch (e) { logger.error('❌ Export download error: ' + e.message); res.status(500).json({ error: 'Error descargando exportación: ' + e.message }); }
 });
 app.post('/api/vault/import', authenticate, async(req, res) => {
   try {
@@ -1618,11 +1583,9 @@ app.get('/api/analytics/financial', authenticate, async(req, res) => {
     const { period = '30d' } = req.query;
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    // Calcular fechas
     const now = new Date();
     const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
     const startDate = new Date(now - days * 24 * 60 * 60 * 1000);
-    // Ingresos totales (ventas + afiliados)
     const salesAgg = await transactionsCollection?.aggregate([
       { $match: { seller: user.uid, type: 'sale', createdAt: { $gte: startDate } } },
       { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
@@ -1631,7 +1594,6 @@ app.get('/api/analytics/financial', authenticate, async(req, res) => {
       { $match: { userId: user._id, type: 'affiliate', createdAt: { $gte: startDate } } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]).toArray() || [];
-    // Ingresos por día (para gráfico)
     const revenueByDay = await transactionsCollection?.aggregate([
       { $match: { $or: [{ seller: user.uid, type: 'sale' }, { userId: user._id, type: 'affiliate' }], createdAt: { $gte: startDate } } },
       { $group: {
@@ -1640,24 +1602,20 @@ app.get('/api/analytics/financial', authenticate, async(req, res) => {
       }},
       { $sort: { _id: 1 } }
     ]).toArray() || [];
-    // Ventas por categoría
     const salesByCategory = await secretsCollection?.aggregate([
       { $match: { userId: user._id, isForSale: true, sales: { $gt: 0 } } },
       { $group: { _id: '$categoria', count: { $sum: '$sales' } }},
       { $sort: { count: -1 } },
       { $limit: 5 }
     ]).toArray() || [];
-    // Top productos
     const topProducts = await secretsCollection?.find(
       { userId: user._id, isForSale: true, sales: { $gt: 0 } },
       { projection: { titulo: 1, sales: 1, price: 1 } }
     ).sort({ sales: -1 }).limit(5).toArray() || [];
-    // Historial de afiliados
     const affiliateHistory = await transactionsCollection?.find(
       { userId: user._id, type: 'affiliate', createdAt: { $gte: startDate } },
       { projection: { amount: 1, item: 1, date: '$createdAt' } }
     ).sort({ createdAt: -1 }).limit(20).toArray() || [];
-    // Productos activos
     const activeProducts = await secretsCollection?.countDocuments({ userId: user._id, isForSale: true }) || 0;
     res.json({
       success: true,
@@ -1768,8 +1726,6 @@ app.get('/api/vault/:id/stream/secure', async(req, res) => {
 // ============================================
 // 🌿 CONTROL DE VERSIONES GIT-LIKE
 // ============================================
-// ✅ commitsCollection ya está declarada globalmente y asignada en connectToMongo()
-// ✅ NO agregues 'const commitsCollection = ...' aquí — eso causa el error de duplicado
 app.post('/api/vault/:id/commit', authenticate, async(req, res) => {
   try {
     const { message, branch = 'main', tags = [] } = req.body;
@@ -2008,70 +1964,6 @@ app.patch('/api/ads/:id/toggle', authenticate, async(req, res) => {
     logger.error('❌ Ad toggle error: ' + e.message);
     res.status(500).json({ error: 'Error actualizando campaña: ' + e.message });
   }
-});
-// ============================================
-// 🆔 RUTAS DE IDENTIDAD DIGITAL: Avatar, Firma, Recuperación, Multifirma
-// ============================================
-app.post('/api/identity/avatar', authenticate, async(req, res) => {
-  try {
-    const { av } = req.body;
-    if (!av) return res.status(400).json({ error: 'Falta avatar' });
-    await usersCollection.updateOne({ _id: req.user._id }, { $set: { avatar: av } });
-    res.json({ ok: true, message: 'Avatar actualizado' });
-  } catch (e) { res.status(500).json({ error: 'Error guardando avatar: ' + e.message }); }
-});
-app.post('/api/identity/signature', authenticate, async(req, res) => {
-  try {
-    const { sig } = req.body;
-    if (!sig) return res.status(400).json({ error: 'Falta firma' });
-    const masterKey = CryptoJS.PBKDF2(req.user.passwordHash || 'tmp', req.user.salt || 'tmp', { keySize: 8, iterations: 1000 }).toString(CryptoJS.enc.Hex);
-    const enc = CryptoJS.AES.encrypt(sig, masterKey).toString();
-    await usersCollection.updateOne({ _id: req.user._id }, { $set: { signature: enc } });
-    res.json({ ok: true, message: 'Firma guardada y cifrada' });
-  } catch (e) { res.status(500).json({ error: 'Error guardando firma: ' + e.message }); }
-});
-app.post('/api/identity/contacts', authenticate, async(req, res) => {
-  try {
-    const { email } = req.body;
-    if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
-    const exists = await usersCollection.findOne({ email });
-    if (!exists) return res.status(400).json({ error: 'El contacto debe tener cuenta en ApiRomwiner' });
-    const user = await usersCollection.findOne({ _id: req.user._id });
-    const contacts = user.recoveryContacts || [];
-    if (contacts.length >= 5) return res.status(400).json({ error: 'Máximo 5 contactos permitidos' });
-    if (contacts.some(c => c.email === email)) return res.status(400).json({ error: 'Contacto ya agregado' });
-    contacts.push({ email, ts: new Date(), verified: false });
-    await usersCollection.updateOne({ _id: req.user._id }, { $set: { recoveryContacts: contacts } });
-    res.json({ ok: true, contacts });
-  } catch (e) { res.status(500).json({ error: 'Error agregando contacto: ' + e.message }); }
-});
-app.get('/api/identity/contacts', authenticate, async(req, res) => {
-  try {
-    const user = await usersCollection.findOne({ _id: req.user._id }, { projection: { recoveryContacts: 1 } });
-    res.json({ contacts: user.recoveryContacts || [] });
-  } catch (e) { res.status(500).json({ error: 'Error cargando contactos: ' + e.message }); }
-});
-app.delete('/api/identity/contacts/:id', authenticate, async(req, res) => {
-  try {
-    const { id } = req.params;
-    const user = await usersCollection.findOne({ _id: req.user._id });
-    const updated = (user.recoveryContacts || []).filter(x => (x._id?.toString() !== id && x.email !== id));
-    await usersCollection.updateOne({ _id: req.user._id }, { $set: { recoveryContacts: updated } });
-    res.json({ ok: true, contacts: updated });
-  } catch (e) { res.status(500).json({ error: 'Error eliminando contacto: ' + e.message }); }
-});
-app.post('/api/identity/multisig', authenticate, async(req, res) => {
-  try {
-    const { enabled } = req.body;
-    await usersCollection.updateOne({ _id: req.user._id }, { $set: { multisig: !!enabled } });
-    res.json({ ok: true, message: enabled ? 'Multifirma activada' : 'Multifirma desactivada' });
-  } catch (e) { res.status(500).json({ error: 'Error actualizando multifirma: ' + e.message }); }
-});
-app.get('/api/profile', authenticate, async(req, res) => {
-  try {
-    const user = await usersCollection.findOne({ _id: req.user._id }, { projection: { password: 0, passwordHash: 0, salt: 0 } });
-    res.json({ user });
-  } catch (e) { res.status(500).json({ error: 'Error cargando perfil: ' + e.message }); }
 });
 // ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL
