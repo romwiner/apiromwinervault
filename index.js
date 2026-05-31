@@ -1518,9 +1518,34 @@ app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
     const stats = await reviewsCollection.aggregate([{ $match: { itemId: secret._id } }, { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } }]).toArray();
     await secretsCollection.updateOne({ _id: secret._id }, { $set: { 'rating.average': stats[0]?.avg?.toFixed(2) || 0, 'rating.count': stats[0]?.count || 0 } });
     await logAudit('review_created', { itemId: req.params.id, buyer: req.user.uid, rating, verified: true });
+    await updateSellerReputation(secret.userId.toString());
     res.json({ success: true, message: '¡Gracias por tu reseña!', review: {...review, id: review._id } });
   } catch (e) { logger.error('❌ Review error: ' + e.message); res.status(500).json({ error: 'Error guardando reseña: ' + e.message }); }
 });
+// 🌟 CALCULAR Y ACTUALIZAR REPUTACIÓN DEL VENDEDOR
+async function updateSellerReputation(sellerUserId) {
+  if (!mongoReady) return;
+  try {
+    const sellerSecrets = await secretsCollection.find({ userId: new ObjectId(sellerUserId) }, { projection: { _id: 1 } }).toArray();
+    if (sellerSecrets.length === 0) return;
+    const secretIds = sellerSecrets.map(s => s._id);
+    const reviews = await reviewsCollection.find({ itemId: { $in: secretIds }, verifiedPurchase: true }).toArray();
+    const avg = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+    const newRep = Math.min(5, Math.max(0, avg)).toFixed(2);
+    await profilesCollection.updateOne({ userId: new ObjectId(sellerUserId) }, { $set: { reputation: newRep, reputationUpdatedAt: new Date() } });
+  } catch (e) { logger.warn('⚠️ Error actualizando reputación: ' + e.message); }
+}
+
+// 🌟 GET /api/users/:uid/reputation
+app.get('/api/users/:uid/reputation', async(req, res) => {
+  try {
+    const user = await usersCollection.findOne({ uid: req.params.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const profile = await profilesCollection.findOne({ userId: user._id });
+    res.json({ success: true, reputation: profile?.reputation || '0.00', badges: profile?.badges || [], updatedAt: profile?.reputationUpdatedAt || null });
+  } catch (e) { res.status(500).json({ error: 'Error cargando reputación: ' + e.message }); }
+});
+
 // ✅ GET /api/marketplace/item/:id/reviews (LISTAR RESEÑAS CON FILTROS)
 app.get('/api/marketplace/item/:id/reviews', async(req, res) => {
   try {
