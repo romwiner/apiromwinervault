@@ -377,74 +377,79 @@
       <button class="btn-enterprise" onclick="rotateKeys()">🔄 Rotar Claves Ahora</button>
     </div>
 
-    <!-- 🚀 Acciones Rápidas -->
-    <div class="glass">
-      <h2>🚀 Acciones Rápidas</h2>
-      <button onclick="refresh()">🔄 Actualizar Métricas</button>
-      <button onclick="openUpload()">📤 Subir Archivo al Vault</button>
-      <button onclick="openCreate()">📤 Publicar Texto en Venta</button>
-      <button onclick="showVault()">🗄️ Ver mi Vault</button>
-      <button class="btn-sec" onclick="showMarketplace()">🛍️ Marketplace</button>
-      <button onclick="showIdentityQR()">🆔 Mi QR de Identidad Digital</button>
-      <button onclick="withdraw()">💸 Solicitar Retiro a Cuenta</button>
-      <button class="btn-sec" onclick="showAuditLog()">📋 Ver Auditoría</button>
-      <button class="btn-danger" onclick="logout()">🚪 Cerrar Sesión</button>
-    </div>
+    <!-- 🗄️ CONTENEDOR PRINCIPAL DE LA BÓVEDA (ID para control de visibilidad) -->
+<div id="vaultSection">
 
-    <!-- 🆔 Identidad Digital -->
-    <div class="glass" id="digitalIdentityPanel">
-      <h2>🆔 Mi Identidad Digital Absoluta</h2>
-      <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Tu cuenta es tu ID. Sin apps externas. Sin terceros.</p>
-      
-      <!-- Avatar -->
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-        <img id="userAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" 
-             style="width:64px;height:64px;border-radius:50%;border:2px solid #00e676;background:#000;object-fit:cover">
-        <div>
-          <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatar(event)">
-          <button onclick="document.getElementById('avatarInput').click()" 
-                  style="padding:6px 12px;background:transparent;border:1px solid #29b6f6;color:#29b6f6;border-radius:8px;font-size:0.8rem">📷 Cambiar foto</button>
+  <!-- 🚀 Acciones Rápidas -->
+  <div class="glass">
+    <h2>🚀 Acciones Rápidas</h2>
+    <button onclick="refresh()">🔄 Actualizar Métricas</button>
+    <button onclick="openUpload()">📤 Subir Archivo al Vault</button>
+    <button onclick="openCreate()">📤 Publicar Texto en Venta</button>
+    <button onclick="showVault()">🗄️ Ver mi Vault</button>
+    <button class="btn-sec" onclick="showMarketplace()">🛍️ Marketplace</button>
+    <button onclick="showIdentityQR()">🆔 Mi QR de Identidad Digital</button>
+    <button onclick="withdraw()">💸 Solicitar Retiro a Cuenta</button>
+    <button class="btn-sec" onclick="showAuditLog()">📋 Ver Auditoría</button>
+    <button class="btn-danger" onclick="logout()">🚪 Cerrar Sesión</button>
+  </div>
+
+  <!-- 🆔 Identidad Digital -->
+  <div class="glass" id="digitalIdentityPanel">
+    <h2>🆔 Mi Identidad Digital Absoluta</h2>
+    <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Tu cuenta es tu ID. Sin apps externas. Sin terceros.</p>
+    
+    <!-- Avatar -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <img id="userAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" 
+           style="width:64px;height:64px;border-radius:50%;border:2px solid #00e676;background:#000;object-fit:cover">
+      <div>
+        <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatar(event)">
+        <button onclick="document.getElementById('avatarInput').click()" 
+                style="padding:6px 12px;background:transparent;border:1px solid #29b6f6;color:#29b6f6;border-radius:8px;font-size:0.8rem">📷 Cambiar foto</button>
         <p style="font-size:0.7rem;color:#8b95a5;margin:4px 0 0">JPG/PNG • Recomendado para mejor rendimiento</p>
-        </div>
-      </div>
-
-      <!-- Firma Digital -->
-      <div style="margin:16px 0">
-        <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">✍️ Firma Digital (dibuja con dedo/mouse)</label>
-        <canvas id="sigCanvas" width="280" height="100" style="border:1px solid #2a2f3a;border-radius:8px;background:#000;cursor:crosshair;touch-action:none;width:100%"></canvas>
-        <div style="display:flex;gap:8px;margin-top:6px">
-          <button onclick="clearSig()" style="flex:1;padding:6px;background:transparent;border:1px solid #ff5252;color:#ff5252;border-radius:6px;font-size:0.75rem">🗑️ Borrar</button>
-          <button onclick="saveSig()" style="flex:1;padding:6px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;font-size:0.75rem;font-weight:600">💾 Guardar</button>
-        </div>
-      </div>
-
-      <!-- Recuperación Social -->
-      <div style="margin:16px 0;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
-        <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">🤝 Contactos de Recuperación (mín. 3)</label>
-        <div id="contactsList" style="margin-bottom:8px"></div>
-        <div style="display:flex;gap:6px">
-          <input type="email" id="contactEmail" placeholder="correo@ejemplo.com" 
-                 style="flex:1;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#151922;color:#fff;font-size:0.8rem">
-          <button onclick="addContact()" style="padding:8px 12px;background:#ab47bc;color:#fff;border:none;border-radius:6px;font-size:0.8rem">➕</button>
-        </div>
-      </div>
-
-      <!-- QR Identidad -->
-      <div style="margin-top:16px;text-align:center">
-        <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">📱 Escanea para verificar identidad</p>
-        <img id="idQR" src="" style="max-width:140px;border-radius:8px;border:2px solid #00e676">
-        <button onclick="genQR()" style="margin-top:8px;padding:6px 12px;background:transparent;border:1px solid #00e676;color:#00e676;border-radius:6px;font-size:0.8rem">🔄 Generar QR Actualizado</button>
-      </div>
-
-      <!-- Multifirma -->
-      <div style="margin-top:16px;padding:12px;background:rgba(126,87,194,0.1);border-radius:10px;border-left:3px solid #7e57c2">
-        <h3 style="font-size:1rem;color:#ce93d8;margin-bottom:6px">🔐 Multifirma (Acciones Críticas)</h3>
-        <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">Retiros, eliminar cuenta o cambiar clave requieren aprobación de <b>2 de 3 contactos</b>.</p>
-        <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#fff">
-          <input type="checkbox" id="multisigToggle" onchange="toggleMultisig()"> Activar multifirma para acciones críticas
-        </label>
       </div>
     </div>
+
+    <!-- Firma Digital -->
+    <div style="margin:16px 0">
+      <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">✍️ Firma Digital (dibuja con dedo/mouse)</label>
+      <canvas id="sigCanvas" width="280" height="100" style="border:1px solid #2a2f3a;border-radius:8px;background:#000;cursor:crosshair;touch-action:none;width:100%"></canvas>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button onclick="clearSig()" style="flex:1;padding:6px;background:transparent;border:1px solid #ff5252;color:#ff5252;border-radius:6px;font-size:0.75rem">🗑️ Borrar</button>
+        <button onclick="saveSig()" style="flex:1;padding:6px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;font-size:0.75rem;font-weight:600">💾 Guardar</button>
+      </div>
+    </div>
+
+    <!-- Recuperación Social -->
+    <div style="margin:16px 0;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
+      <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">🤝 Contactos de Recuperación (mín. 3)</label>
+      <div id="contactsList" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:6px">
+        <input type="email" id="contactEmail" placeholder="correo@ejemplo.com" 
+               style="flex:1;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#151922;color:#fff;font-size:0.8rem">
+        <button onclick="addContact()" style="padding:8px 12px;background:#ab47bc;color:#fff;border:none;border-radius:6px;font-size:0.8rem">➕</button>
+      </div>
+    </div>
+
+    <!-- QR Identidad -->
+    <div style="margin-top:16px;text-align:center">
+      <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">📱 Escanea para verificar identidad</p>
+      <img id="idQR" src="" style="max-width:140px;border-radius:8px;border:2px solid #00e676">
+      <button onclick="genQR()" style="margin-top:8px;padding:6px 12px;background:transparent;border:1px solid #00e676;color:#00e676;border-radius:6px;font-size:0.8rem">🔄 Generar QR Actualizado</button>
+    </div>
+
+    <!-- Multifirma -->
+    <div style="margin-top:16px;padding:12px;background:rgba(126,87,194,0.1);border-radius:10px;border-left:3px solid #7e57c2">
+      <h3 style="font-size:1rem;color:#ce93d8;margin-bottom:6px">🔐 Multifirma (Acciones Críticas)</h3>
+      <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">Retiros, eliminar cuenta o cambiar clave requieren aprobación de <b>2 de 3 contactos</b>.</p>
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#fff">
+        <input type="checkbox" id="multisigToggle" onchange="toggleMultisig()"> Activar multifirma para acciones críticas
+      </label>
+    </div>
+  </div>
+  
+</div> <!-- ✅ CIERRE DEL CONTENEDOR PRINCIPAL #vaultSection -->
 
     <!-- 📊 Analytics Financiero -->
     <div class="glass" id="financialAnalyticsPanel" style="display:none">
