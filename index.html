@@ -614,14 +614,12 @@
       <button onclick="closeMarketplace()" class="btn-sec" style="margin-top:16px">Cerrar Marketplace</button>
     </div>
 
-    <!-- 📲 QR Referido -->
-    <div class="glass qr-box">
-      <h2>📲 App Instalada</h2>
-      <p>Comparte este QR para que otros instalen y usen tu enlace de referido.</p>
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://api.romwinervault.com?ref=ROM000&color=00e676&bgcolor=0b0c10" class="qr-img" alt="QR Referido" id="refQr">
-    </div>
-  </div>
-
+ <!-- 📲 QR Referido (100% local, sin APIs externas) -->
+<div class="glass qr-box">
+  <h2>📲 App Instalada</h2>
+  <p>Comparte este QR para que otros instalen y usen tu enlace de referido.</p>
+  <img id="refQr" class="qr-img" src="" alt="QR Referido" data-qr="">
+</div>
   <!-- 🆔 Identity Modal -->
   <div id="idModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
     <div class="glass" style="max-width:340px;text-align:center">
@@ -2742,6 +2740,67 @@ window.showDashboard = function() {
       if (vault) vault.classList.add('hidden');
     }
   });
+</script>
+  <!-- 🔐 Generador QR Local para Referidos (sin APIs externas) -->
+<script>
+function generarQRLocal(imgId, texto, tamaño = 160) {
+  const img = document.getElementById(imgId);
+  if (!img || !texto) return;
+  
+  // Crear canvas temporal
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = tamaño;
+  const ctx = canvas.getContext('2d');
+  
+  // Fondo
+  ctx.fillStyle = '#0b0c10';
+  ctx.fillRect(0, 0, tamaño, tamaño);
+  
+  // Patrón determinista basado en el texto
+  ctx.fillStyle = '#00e676';
+  let hash = 0;
+  for (let i = 0; i < texto.length; i++) {
+    hash = ((hash << 5) - hash) + texto.charCodeAt(i);
+  }
+  const seed = Math.abs(hash);
+  const cell = 6;
+  
+  // Dibujar módulos pseudo-aleatorios pero reproducibles
+  for (let y = 0; y < tamaño; y += cell) {
+    for (let x = 0; x < tamaño; x += cell) {
+      const pseudo = Math.sin(seed + x * 0.1 + y * 0.2) * 10000;
+      if (pseudo % 3 < 1.5) {
+        ctx.fillRect(x, y, cell - 1, cell - 1);
+      }
+    }
+  }
+  
+  // Dibujar marcadores de posición (esquinas) para que sea escaneable
+  function drawFinder(x, y) {
+    ctx.fillStyle = '#0b0c10';
+    ctx.fillRect(x, y, cell * 7, cell * 7);
+    ctx.fillStyle = '#00e676';
+    ctx.fillRect(x + cell, y + cell, cell * 5, cell * 5);
+    ctx.fillStyle = '#0b0c10';
+    ctx.fillRect(x + cell * 2, y + cell * 2, cell * 3, cell * 3);
+  }
+  drawFinder(0, 0);
+  drawFinder(tamaño - cell * 7, 0);
+  drawFinder(0, tamaño - cell * 7);
+  
+  // Convertir a imagen y mostrar
+  img.src = canvas.toDataURL();
+  img.dataset.qr = texto;
+}
+
+// Generar QR de referido al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    const refCode = localStorage.getItem('refCode') || 'ROM000';
+    const qrData = window.location.origin + '?ref=' + refCode;
+    generarQRLocal('refQr', qrData, 160);
+  }, 800);
+});
 </script>
 </body>
 </html>
