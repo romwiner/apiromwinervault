@@ -2499,15 +2499,75 @@ app.get('/api/profiles/income', authenticate, async(req, res) => {
     const totalDonations = donations.reduce((sum, d) => sum + d.amount, 0);
     res.json({ success: true, isPremium: (await profilesCollection.findOne({ userId: user._id }))?.isPremiumProfile || false, stats: { totalSubscribers, monthlyRecurring: monthlyRecurring.toFixed(2), totalDonations: totalDonations.toFixed(2), currentBalance: wallet?.balance?.toFixed(2) || '0.00' } });
 
-  } catch (e) { res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message }); }
-});
-    res.json({ success: true, isPremium: false, stats: {} });
-  } catch (e) { res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message }); }
-}); // ← ← ← CIERRRE DEL ÚLTIMO ENDPOINT (UNA SOLA VEZ)
-    res.json({ success: true, isPremium: (await profilesCollection.findOne({ userId: user._id }))?.isPremiumProfile || false, stats: { totalSubscribers, monthlyRecurring: monthlyRecurring.toFixed(2), totalDonations: totalDonations.toFixed(2), currentBalance: wallet?.balance?.toFixed(2) || '0.00' } });
-  } catch (e) { res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message });
+app.get('/api/stats', async (req, res) => {
+  try {
+    // Obtener datos del usuario (ajusta según tu lógica real)
+    const user = req.user; // o como obtengas el usuario en tu app
+    
+    // Calcular estadísticas (ejemplo - adapta a tus variables reales)
+    const totalSubscribers = 0; // ← Reemplaza con tu lógica real
+    const monthlyRecurring = 0;
+    const totalDonations = 0;
+    const wallet = { balance: 0 };
+
+    // Respuesta exitosa
+    res.json({ 
+      success: true, 
+      isPremium: (await profilesCollection.findOne({ userId: user._id }))?.isPremiumProfile || false, 
+      stats: { 
+        totalSubscribers, 
+        monthlyRecurring: monthlyRecurring.toFixed(2), 
+        totalDonations: totalDonations.toFixed(2), 
+        currentBalance: wallet?.balance?.toFixed(2) || '0.00' 
+ // 👇 1. APERTURA DE LA RUTA (¿Esto está antes de tu código?)
+app.get('/api/stats', async (req, res) => {
+  try {
+    // 👇 2. DECLARACIÓN DE VARIABLES (ejemplo - adapta a tu lógica)
+    const user = req.user; 
+    const totalSubscribers = 0; 
+    const monthlyRecurring = 0;
+    const totalDonations = 0;
+    const wallet = { balance: 0 };
+
+ // ============================================
+// 📊 ENDPOINT: Obtener estadísticas del usuario
+// ============================================
+app.get('/api/stats', async (req, res) => {
+  try {
+    // 🔹 Obtener usuario (ajusta según tu sistema de autenticación)
+    const user = req.user || { _id: 'demo-user' };
+    
+    // 🔹 Variables de estadísticas (reemplaza con tu lógica real cuando la tengas)
+    const totalSubscribers = 0;
+    const monthlyRecurring = 0;
+    const totalDonations = 0;
+    const wallet = { balance: 0 };
+    
+    // 🔹 Verificar si es usuario premium (ajusta la colección según tu BD)
+    let isPremium = false;
+    if (typeof profilesCollection !== 'undefined') {
+      const profile = await profilesCollection.findOne({ userId: user._id });
+      isPremium = profile?.isPremiumProfile || false;
+    }
+
+    // 🔹 Enviar respuesta exitosa
+    res.json({ 
+      success: true, 
+      isPremium: isPremium, 
+      stats: { 
+        totalSubscribers: totalSubscribers, 
+        monthlyRecurring: monthlyRecurring.toFixed(2), 
+        totalDonations: totalDonations.toFixed(2), 
+        currentBalance: wallet?.balance?.toFixed(2) || '0.00' 
+      } 
+    });
+
+  } catch (e) { 
+    // 🔹 Manejo de error seguro
+    res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message }); 
   }
-});
+}); // ← ✅ Un solo cierre para toda la ruta
+// ============================================
 
 // ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL
