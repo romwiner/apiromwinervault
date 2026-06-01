@@ -217,13 +217,13 @@
         <div class="card"><div class="feature-icon">🌍</div><div class="label">Sin plataformas que se quedan con tu margen</div></div>
       </div>
     </div>
-
-    <div class="glass qr-box">
-      <h2>📱 Instala la App en tu Celular</h2>
-      <p>Escanea para abrir, instalar y empezar a ganar desde cualquier dispositivo.</p>
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://api.romwinervault.com&color=00e676&bgcolor=0b0c10" class="qr-img" alt="QR Instalar App">
-      <button id="installBtn" class="btn-sec" onclick="installApp()" style="display:none;max-width:200px;margin:8px auto">📲 Instalar App</button>
-    </div>
+<div class="glass qr-box">
+  <h2>📱 Instala la App en tu Celular</h2>
+  <p>Escanea para abrir, instalar y empezar a ganar desde cualquier dispositivo.</p>
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://api.romwinervault.com&color=00e676&bgcolor=0b0c10" class="qr-img" alt="QR Instalar App">
+  <button id="installBtn" class="btn-sec" onclick="installApp()" style="display:none;max-width:200px;margin:8px auto">📲 Instalar App</button>
+</div>
+    
 <!-- 📱 Banner de instalación PWA (Aparece automáticamente en Android) -->
 <div id="pwaBanner" class="glass" style="display:none;text-align:center;padding:12px;margin:12px auto;max-width:480px;border-left:4px solid #29b6f6">
   <p style="margin:0 0 8px;font-size:0.9rem">📱 <b>¿Quieres ApiRomwiner como app?</b></p>
@@ -942,7 +942,7 @@
           adminPanel.style.display = 'none';
         }
         const refCode = currentUser?.refCode || localStorage.getItem('refCode') || 'ROM000';
-        document.getElementById('refQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(API + '?ref=' + refCode)}&color=00e676&bgcolor=0b0c10`;
+      generarQRLocal('refQr', (API || window.location.origin) + '?ref=' + refCode, 160);
         if (p.quota) userQuota = p.quota;
       } catch (e) {
         log('⚠️ Perfil: ' + e.message);
@@ -2054,21 +2054,8 @@
         showNotification('❌ ' + e.message, 'error');
       }
     }
-
-// 🔐 Generador QR 100% local (sin APIs externas ni CryptoJS)
-async function genQR() {
-  const u = currentUser || {};
-  const d = {
-    id: u.uid || 'ROM' + Date.now(),
-    name: document.getElementById('uEmail')?.textContent || 'Usuario',
-    avatar: document.getElementById('userAvatar')?.src || '',
-    // ✅ Hash nativo con Web Crypto API (sin CryptoJS)
-    sigHash: sigData ? await hashLocal(sigData) : 'none',
-    recov: (document.querySelectorAll('.contact-row').length),
-    multisig: document.getElementById('multisigToggle')?.checked || false
-  };
-  
 // 🔐 Función auxiliar: hash SHA-256 nativo (reemplaza a CryptoJS)
+// Debe estar DEFINIDA UNA SOLA VEZ, fuera de cualquier otra función
 async function hashLocal(data) {
   if (!data || typeof crypto === 'undefined' || !crypto.subtle) return 'none';
   try {
@@ -2083,7 +2070,8 @@ async function hashLocal(data) {
   }
 }
 
-// 🔐 Generador QR 100% local (sin APIs externas)
+// 🔐 Generador QR 100% local para Identidad (sin APIs externas)
+// También definida UNA SOLA VEZ
 async function genQR() {
   const u = currentUser || {};
   const d = {
@@ -2095,7 +2083,7 @@ async function genQR() {
     multisig: document.getElementById('multisigToggle')?.checked || false
   };
   
-  // ✅ Generar QR con canvas nativo (el código que me mostraste)
+  // Generar QR con canvas nativo
   const img = document.getElementById('idQR');
   if (!img) return;
   
@@ -2127,6 +2115,25 @@ async function genQR() {
       }
     }
   }
+  
+  // Dibujar marcadores de posición (esquinas) para que sea escaneable
+  function drawFinder(x, y) {
+    ctx.fillStyle = '#0b0c10';
+    ctx.fillRect(x, y, cell * 7, cell * 7);
+    ctx.fillStyle = '#00e676';
+    ctx.fillRect(x + cell, y + cell, cell * 5, cell * 5);
+    ctx.fillStyle = '#0b0c10';
+    ctx.fillRect(x + cell * 2, y + cell * 2, cell * 3, cell * 3);
+  }
+  drawFinder(0, 0);
+  drawFinder(size - cell * 7, 0);
+  drawFinder(0, size - cell * 7);
+  
+  // Convertir a imagen y mostrar
+  img.src = canvas.toDataURL();
+  img.alt = 'QR Identidad';
+  log('🆔 QR generado (100% local, sin APIs externas)');
+}
   
   // Dibujar marcadores de posición (esquinas) para que sea escaneable
   function drawFinder(x, y) {
