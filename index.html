@@ -225,21 +225,23 @@
       <button id="installBtn" class="btn-sec" onclick="installApp()" style="display:none;max-width:200px;margin:8px auto">📲 Instalar App</button>
     </div>
 
-    <div id="authSection" class="glass">
-      <h2>🔐 Acceso a tu Bóveda</h2>
-      <input id="email" type="email" placeholder="Correo electrónico" autocomplete="email">
-      <input id="pass" type="password" placeholder="Contraseña (8+ chars, 1 mayúscula, 1 número, 1 símbolo)" autocomplete="current-password">
-      <button onclick="login()">🔓 Iniciar Sesión</button>
-      <button class="btn-sec" onclick="register()">✨ Registrar Cuenta Nueva</button>
-      <label style="display:block;margin:12px 0;font-size:0.8rem;color:#8b95a5">
-        <input type="checkbox" id="acceptTerms" required> Acepto los <a href="/terms.html" target="_blank" style="color:#00e676">Términos</a> y <a href="/privacy.html" target="_blank" style="color:#00e676">Privacidad</a>
-      </label>
-      <div class="legal-links">
-        <a href="/privacy.html" target="_blank">🔐 Privacidad</a> | 
-        <a href="/terms.html" target="_blank">📜 Términos</a>
-      </div>
-    </div>
+    <!-- 🔐 SECCIÓN DE AUTENTICACIÓN -->
+<div id="authSection" class="glass">
+  <h2>🔐 Acceso a tu Bóveda</h2>
+  <input id="email" type="email" placeholder="Correo electrónico" autocomplete="email">
+  <input id="pass" type="password" placeholder="Contraseña (8+ chars, 1 mayúscula, 1 número, 1 símbolo)" autocomplete="current-password">
+  <button onclick="login()">🔓 Iniciar Sesión</button>
+  <button class="btn-sec" onclick="register()">✨ Registrar Cuenta Nueva</button>
+  <label style="display:block;margin:12px 0;font-size:0.8rem;color:#8b95a5">
+    <input type="checkbox" id="acceptTerms" required> 
+    Acepto los <a href="/terms.html" target="_blank" style="color:#00e676">Términos</a> y <a href="/privacy.html" target="_blank" style="color:#00e676">Privacidad</a>
+  </label>
+  <div class="legal-links">
+    <a href="/privacy.html" target="_blank">🔐 Privacidad</a> | 
+    <a href="/terms.html" target="_blank">📜 Términos</a>
   </div>
+</div>
+<!-- ✅ Fin de authSection (un solo cierre) --> 
 
   <!-- 🟢 DASHBOARD VIEW (después de login) -->
   <div id="dashboardView" class="hidden">
