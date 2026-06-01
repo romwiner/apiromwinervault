@@ -2485,108 +2485,50 @@ app.post('/api/donations/send', authenticate, async(req, res) => {
     res.json({ success: true, message: '✅ Donación enviada. ¡Gracias por apoyar!', breakdown: { total: amount, toRecipient: recipientAmount, toPlatform: platformFee } });
   } catch (e) { res.status(500).json({ error: 'Error enviando donación: ' + e.message }); }
 });
-// 📊 Endpoint: Estadísticas de ingresos del perfil
-app.get('/api/profiles/income', authenticate, async (req, res) => {
+// 📊 Endpoint: Estadísticas del usuario (versión única y segura)
+app.get('/api/stats', authenticate, async (req, res) => {
   try {
+    // Fallback seguro si MongoDB no está listo
+    if (!mongoReady || !profilesCollection) {
+      return res.json({ 
+        success: true, 
+        isPremium: false, 
+        stats: { 
+          totalSubscribers: 0, 
+          monthlyRecurring: '0.00', 
+          totalDonations: '0.00', 
+          currentBalance: '0.00' 
+        },
+        demo: true 
+      });
+    }
+    
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     
+    const profile = await profilesCollection.findOne({ userId: user._id });
     const wallet = await walletCollection.findOne({ userId: user._id });
-    const subscriptions = await subscriptionsCollection?.find({ creatorUid: user.uid, status: 'active' }).toArray() || [];
-    const donations = await wallet?.history?.filter(h => h.type === 'donation_received') || [];
     
-    const totalSubscribers = subscriptions.length;
-    const monthlyRecurring = subscriptions.reduce((sum, s) => sum + (s.totalPrice / s.months), 0);
-    const totalDonations = donations.reduce((sum, d) => sum + d.amount, 0);
-    
-    const profile = await profilesCollection.findOne({ userId: user._id });
-    
-    res.json({ 
-      success: true, 
-      isPremium: profile?.isPremiumProfile || false, 
-      stats: { 
-        totalSubscribers, 
-        monthlyRecurring: monthlyRecurring.toFixed(2), 
-        totalDonations: totalDonations.toFixed(2), 
-        currentBalance: (wallet?.balance ?? 0).toFixed(2) 
-      } 
-    });
-  } catch (err) {
-    console.error('❌ Error en /api/profiles/income:', err);
-    res.status(500).json({ success: false, error: 'Error interno del servidor' });
-  }
-}); // ← ✅ CIERRE CORRECTO DE LA PRIMERA FUNCIÓN
-
-// 📊 Endpoint: Estadísticas generales (fallback seguro)
-app.get('/api/stats', authenticate, async (req, res) => {
-  try {
-    const user = req.user;
-    if (!user) return res.status(401).json({ error: 'No autorizado' });
-    
-    // Estadísticas por defecto (adapta con tu lógica real)
+    // Estadísticas reales (adapta con tu lógica)
     const totalSubscribers = 0;
     const monthlyRecurring = 0;
     const totalDonations = 0;
-    const wallet = { balance: 0 };
-
-    const profile = await profilesCollection.findOne({ userId: user._id });
     
-    res.json({ 
-      success: true, 
-      isPremium: profile?.isPremiumProfile || false, 
-      stats: { 
-        totalSubscribers, 
-        monthlyRecurring: monthlyRecurring.toFixed(2), 
-        totalDonations: totalDonations.toFixed(2), 
-        currentBalance: (wallet?.balance ?? 0).toFixed(2) 
-      } 
+    res.json({
+      success: true,
+      isPremium: profile?.isPremiumProfile || false,
+      stats: {
+        totalSubscribers,
+        monthlyRecurring: monthlyRecurring.toFixed(2),
+        totalDonations: totalDonations.toFixed(2),
+        currentBalance: (wallet?.balance ?? 0).toFixed(2)
+      }
     });
   } catch (err) {
-    console.error('❌ Error en /api/stats:', err);
+    logger.error('❌ Error en /api/stats:', err);
     res.status(500).json({ success: false, error: 'Error interno del servidor' });
   }
-}); // ← ✅ CIERRE CORRECTO DE LA SEGUNDA FUNCIÓN
-
-
- // ============================================
-// 📊 ENDPOINT: Obtener estadísticas del usuario
-// ============================================
-app.get('/api/stats', async (req, res) => {
-  try {
-    // 🔹 Obtener usuario (ajusta según tu sistema de autenticación)
-    const user = req.user || { _id: 'demo-user' };
-    
-    // 🔹 Variables de estadísticas (reemplaza con tu lógica real cuando la tengas)
-    const totalSubscribers = 0;
-    const monthlyRecurring = 0;
-    const totalDonations = 0;
-    const wallet = { balance: 0 };
-    
-    // 🔹 Verificar si es usuario premium (ajusta la colección según tu BD)
-    let isPremium = false;
-    if (typeof profilesCollection !== 'undefined') {
-      const profile = await profilesCollection.findOne({ userId: user._id });
-      isPremium = profile?.isPremiumProfile || false;
-    }
-
-    // 🔹 Enviar respuesta exitosa
-    res.json({ 
-      success: true, 
-      isPremium: isPremium, 
-      stats: { 
-        totalSubscribers: totalSubscribers, 
-        monthlyRecurring: monthlyRecurring.toFixed(2), 
-        totalDonations: totalDonations.toFixed(2), 
-        currentBalance: wallet?.balance?.toFixed(2) || '0.00' 
-      } 
-    });
-
-  } catch (e) { 
-    // 🔹 Manejo de error seguro
-    res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message }); 
-  }
-}); // ← ✅ Un solo cierre para toda la ruta
-// ============================================
+});
 
 // ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL ABSOLUTO
