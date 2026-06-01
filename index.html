@@ -479,51 +479,51 @@
   
 </div> <!-- ✅ CIERRE DEL CONTENEDOR PRINCIPAL #vaultSection -->
 
-    <!-- 📊 Analytics Financiero -->
-    <div class="glass" id="financialAnalyticsPanel" style="display:none">
-      <h2>📊 Analytics Financiero</h2>
-      <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Visualiza tus ingresos, ventas y ganancias de afiliados.</p>
-      
-      <!-- Filtros de fecha -->
-      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button onclick="loadFinancialData('7d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 7 días</button>
-        <button onclick="loadFinancialData('30d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 30 días</button>
-        <button onclick="loadFinancialData('90d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 90 días</button>
-        <button onclick="exportFinancialData('csv')" style="width:auto;padding:6px 12px;font-size:0.75rem;background:transparent;border:1px solid #00e676;color:#00e676">📤 Exportar CSV</button>
-      </div>
-      
-      <!-- Tarjetas de resumen -->
-      <div class="grid" style="margin-bottom:16px">
-        <div class="card"><div class="label">💰 Ingresos Totales</div><div class="val" id="totalRevenue">$0.00</div></div>
-        <div class="card"><div class="label">🛍️ Ventas Completadas</div><div class="val" id="totalSales">0</div></div>
-        <div class="card"><div class="label">🤝 Ganancias Afiliados</div><div class="val" id="affiliateEarnings">$0.00</div></div>
-        <div class="card"><div class="label">📦 Productos Activos</div><div class="val" id="activeProducts">0</div></div>
-      </div>
-      
-      <!-- Gráfico de ingresos -->
-      <div style="margin:16px 0">
-        <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">📈 Ingresos por Día</h3>
-        <canvas id="revenueChart" height="120"></canvas>
-      </div>
-      
-      <!-- Ventas por categoría -->
-      <div style="margin:16px 0">
-        <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🥧 Ventas por Categoría</h3>
-        <canvas id="categoryChart" height="120"></canvas>
-      </div>
-      
-      <!-- Top productos -->
-      <div style="margin:16px 0">
-        <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🏆 Top 5 Productos</h3>
-        <div id="topProducts" style="font-size:0.8rem;color:#b0b8c4"></div>
-      </div>
-      
-      <!-- Timeline de afiliados -->
-      <div style="margin:16px 0">
-        <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🤝 Historial de Afiliados</h3>
-        <div id="affiliateTimeline" style="max-height:150px;overflow-y:auto;font-size:0.8rem;color:#b0b8c4"></div>
-      </div>
-    </div>
+  <!-- 📊 Analytics Financiero -->
+<div class="glass" id="financialAnalyticsPanel" style="display:none">
+  <h2>📊 Analytics Financiero</h2>
+  <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Visualiza tus ingresos, ventas y ganancias de afiliados.</p>
+  
+  <!-- Filtros de fecha -->
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <button onclick="loadFinancialData('7d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 7 días</button>
+    <button onclick="loadFinancialData('30d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 30 días</button>
+    <button onclick="loadFinancialData('90d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 90 días</button>
+    <button onclick="exportFinancialData('csv')" style="width:auto;padding:6px 12px;font-size:0.75rem;background:transparent;border:1px solid #00e676;color:#00e676">📤 Exportar CSV</button>
+  </div>
+  
+  <!-- Tarjetas de resumen -->
+  <div class="grid" style="margin-bottom:16px">
+    <div class="card"><div class="label">💰 Ingresos Totales</div><div class="val" id="totalRevenue">$0.00</div></div>
+    <div class="card"><div class="label">🛍️ Ventas Completadas</div><div class="val" id="totalSales">0</div></div>
+    <div class="card"><div class="label">🤝 Ganancias Afiliados</div><div class="val" id="affiliateEarnings">$0.00</div></div>
+    <div class="card"><div class="label">📦 Productos Activos</div><div class="val" id="activeProducts">0</div></div>
+  </div>
+  
+  <!-- 📈 Ingresos por Día (versión nativa, sin Chart.js) -->
+  <div style="margin:16px 0">
+    <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">📈 Ingresos por Día</h3>
+    <div id="revenueChartNative" style="display:flex;align-items:flex-end;gap:4px;height:120px;background:rgba(0,0,0,0.2);border-radius:8px;padding:8px;overflow-x:auto"></div>
+  </div>
+  
+  <!-- 🥧 Ventas por Categoría (versión nativa) -->
+  <div style="margin:16px 0">
+    <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🥧 Ventas por Categoría</h3>
+    <div id="categoryChartNative" style="font-size:0.85rem;color:#b0b8c4"></div>
+  </div>
+  
+  <!-- Top productos -->
+  <div style="margin:16px 0">
+    <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🏆 Top 5 Productos</h3>
+    <div id="topProducts" style="font-size:0.8rem;color:#b0b8c4"></div>
+  </div>
+  
+  <!-- Timeline de afiliados -->
+  <div style="margin:16px 0">
+    <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🤝 Historial de Afiliados</h3>
+    <div id="affiliateTimeline" style="max-height:150px;overflow-y:auto;font-size:0.8rem;color:#b0b8c4"></div>
+  </div>
+</div>
 
     <!-- 🗄️ Vault Modal -->
     <div id="vaultModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
