@@ -1,125 +1,299 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ Seguridad y Confianza | ApiRomwiner Vault</title>
+    <title>🛡️ Seguridad, Privacidad y Términos Legales | ApiRomwiner Vault</title>
+    <meta name="description" content="Políticas de seguridad, privacidad y términos legales de ApiRomwiner Vault. Arquitectura Zero-Knowledge, 100% local, sin dependencias externas.">
     <style>
-        body {
-            background: #0b0c10;
-            color: #e8eaed;
-            font-family: system-ui, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6
-        }
-        
-        h1 {
-            color: #00e676;
-            border-bottom: 2px solid #00e676;
-            padding-bottom: 10px
-        }
-        
-        h2 {
-            color: #8ab4f8;
-            margin-top: 24px
-        }
-        
-        .badge {
-            display: inline-block;
-            background: rgba(0, 230, 118, 0.15);
-            color: #00e676;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            margin: 4px 0
-        }
-        
-        .warning {
-            background: rgba(255, 183, 77, 0.15);
-            color: #ffb74d;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 16px 0
-        }
-        
-        code {
-            background: #1a1f2a;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace
-        }
+        body { background: #0b0c10; color: #e8eaed; font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; line-height: 1.7 }
+        h1 { color: #00e676; border-bottom: 2px solid #00e676; padding-bottom: 12px; margin-top: 0 }
+        h2 { color: #8ab4f8; margin-top: 32px; margin-bottom: 12px }
+        h3 { color: #b0b8c4; margin-top: 20px; font-size: 1.1rem }
+        .badge { display: inline-block; background: rgba(0,230,118,0.15); color: #00e676; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin: 4px 4px 4px 0; border: 1px solid rgba(0,230,118,0.3) }
+        .badge-warning { background: rgba(255,183,77,0.15); color: #ffb74d; border-color: rgba(255,183,77,0.3) }
+        .badge-info { background: rgba(41,182,246,0.15); color: #81d4fa; border-color: rgba(41,182,246,0.3) }
+        .warning, .legal-notice { background: rgba(255,183,77,0.1); color: #ffb74d; padding: 16px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #ffb74d; font-size: 0.9rem }
+        .legal-notice { background: rgba(144,202,249,0.1); color: #90caf9; border-left-color: #81d4fa }
+        code { background: #1a1f2a; padding: 2px 8px; border-radius: 4px; font-family: 'SF Mono', Monaco, monospace; font-size: 0.9em }
+        pre { background: #1a1f2a; padding: 16px; border-radius: 8px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.1) }
+        pre code { background: none; padding: 0 }
+        ul { padding-left: 24px; margin: 12px 0 }
+        li { margin: 8px 0 }
+        a { color: #81d4fa; text-decoration: none; transition: color 0.2s }
+        a:hover { color: #00e676 }
+        .section { margin: 32px 0; padding: 20px; background: rgba(30,35,45,0.4); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05) }
+        .footer-note { margin-top: 48px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; color: #6a7585 }
+        .last-updated { text-align: right; font-size: 0.85rem; color: #8b95a5; margin-top: 8px }
+        .toc { background: rgba(0,230,118,0.08); padding: 16px; border-radius: 10px; margin: 20px 0; border: 1px solid rgba(0,230,118,0.2) }
+        .toc a { display: block; color: #b0b8c4; padding: 4px 0; font-size: 0.9rem }
+        .toc a:hover { color: #00e676; padding-left: 4px; transition: all 0.2s }
+        @media (max-width: 600px) { body { padding: 16px } .section { padding: 16px } }
     </style>
 </head>
-
 <body>
-    <h1>🛡️ Seguridad y Confianza</h1>
-
-    <p>En ApiRomwiner Vault, tu privacidad y la integridad de tus datos son nuestra prioridad. Esta página detalla nuestras prácticas de seguridad.</p>
-
-    <h2>🔐 Cifrado y Protección de Datos</h2>
-    <span class="badge">✅ AES-GCM-256</span>
-    <span class="badge">✅ Envelope Encryption</span>
-    <span class="badge">✅ Claves únicas por usuario</span>
-    <ul>
-        <li>Tus archivos se cifran con <strong>Envelope Encryption</strong>: una clave única (DEK) por usuario, a su vez cifrada con una clave maestra (KEK).</li>
-        <li>Algoritmo: <code>AES-GCM-256</code> (estándar NIST, FIPS 140-2 validado).</li>
-        <li>Modo Zero-Knowledge opcional: cifra en tu dispositivo antes de enviar.</li>
-    </ul>
-
-    <h2>📋 Auditoría y Transparencia</h2>
-    <span class="badge">✅ Logs inmutables</span>
-    <span class="badge">✅ Hashing encadenado SHA-256</span>
-    <span class="badge">✅ Firmas HMAC</span>
-    <ul>
-        <li>Cada acción crítica genera un log con hash encadenado: imposible modificar sin romper la cadena.</li>
-        <li>Firmas HMAC garantizan integridad de los logs.</li>
-        <li>Exportación GDPR/SOC2 disponible para planes Business/Enterprise.</li>
-    </ul>
-
-    <h2>🔑 Gestión de Claves</h2>
-    <span class="badge">✅ Rotación automática</span>
-    <span class="badge">✅ Almacenamiento seguro</span>
-    <ul>
-        <li>Rotación de claves cada 90 días (Enterprise).</li>
-        <li>Claves maestras almacenadas en variables de entorno cifradas (Render).</li>
-        <li>Nunca almacenamos contraseñas en texto plano (bcrypt + salt).</li>
-    </ul>
-
-    <h2>🌐 Infraestructura</h2>
-    <span class="badge">✅ HTTPS obligatorio</span>
-    <span class="badge">✅ CSP estricto</span>
-    <span class="badge">✅ Rate limiting</span>
-    <ul>
-        <li>Todas las comunicaciones usan TLS 1.2+.</li>
-        <li>Política de Seguridad de Contenido (CSP) para prevenir XSS.</li>
-        <li>Rate limiting para prevenir abuso de API.</li>
-    </ul>
-
-    <h2>🔍 Verificación en Tiempo Real</h2>
-    <p>Consulta el estado técnico de seguridad de tu cuenta:</p>
-    <pre><code>GET https://api.romwinervault.com/api/security/status</code></pre>
-
-    <h2>📞 Contacto de Seguridad</h2>
-    <p>¿Encontraste una vulnerabilidad? Repórtala responsablemente:</p>
-    <ul>
-        <li>📧 <a href="mailto:security@apiromwinervault.com">security@apiromwinervault.com</a></li>
-        <li>🕒 Respondemos en &lt; 24 horas</li>
-        <li>🎁 Programa de recompensas en desarrollo</li>
-    </ul>
-
-    <div class="warning">
-        <strong>⚠️ Nota:</strong> ApiRomwiner Vault está en fase de crecimiento. Estamos trabajando activamente en certificaciones SOC2 Type I. Para consultas enterprise, contacta a <a href="mailto:enterprise@apiromwinervault.com">enterprise@apiromwinervault.com</a>.
+    <h1>🛡️ Seguridad, Privacidad y Términos Legales</h1>
+    <p><strong>ApiRomwiner Vault</strong> — Tu identidad digital universal. Monétiza contenido, gana con referidos y controla tu información sin intermediarios.</p>
+    
+    <!-- Índice -->
+    <div class="toc">
+        <strong>📋 Contenido:</strong>
+        <a href="#arquitectura">1. Arquitectura Técnica</a>
+        <a href="#cifrado">2. Cifrado y Protección</a>
+        <a href="#privacidad">3. Privacidad y GDPR</a>
+        <a href="#auditoria">4. Auditoría y Transparencia</a>
+        <a href="#responsabilidades">5. Responsabilidades del Usuario</a>
+        <a href="#limitaciones">6. Limitaciones de Responsabilidad</a>
+        <a href="#jurisdiccion">7. Jurisdicción y Ley Aplicable</a>
+        <a href="#contacto">8. Contacto y Reporte de Vulnerabilidades</a>
     </div>
 
-    <p style="margin-top:40px;font-size:0.85rem;color:#8b95a5">
-        Última actualización: <span id="lastUpdate"></span><br>
-        <script>
-            document.getElementById('lastUpdate').textContent = new Date().toLocaleDateString('es-ES')
-        </script>
-    </p>
-</body>
+    <!-- Arquitectura Técnica -->
+    <div class="section" id="arquitectura">
+        <h2>🔧 1. Arquitectura Técnica: 100% Local, Cero Dependencias Externas</h2>
+        <span class="badge">✅ Sin CDNs</span>
+        <span class="badge">✅ Sin APIs de terceros</span>
+        <span class="badge">✅ Funciona offline</span>
+        <span class="badge badge-info">✅ Zero-Dependency</span>
+        
+        <p><strong>Principio fundamental:</strong> Todo el procesamiento crítico ocurre en tu dispositivo. ApiRomwiner Vault no depende de servidores externos para funcionar.</p>
+        
+        <h3>✅ Componentes 100% locales implementados:</h3>
+        <ul>
+            <li><strong>Generación de QRs:</strong> Canvas nativo + algoritmo determinista. Sin <code>api.qrserver.com</code>.</li>
+            <li><strong>Hash de firma:</strong> Web Crypto API (<code>crypto.subtle.digest('SHA-256')</code>). Sin <code>CryptoJS</code>.</li>
+            <li><strong>Avatar por defecto:</strong> SVG embebido en data URL. Sin <code>dicebear.com</code>.</li>
+            <li><strong>Analytics y gráficos:</strong> CSS Flexbox + Canvas nativo. Sin <code>Chart.js</code>.</li>
+            <li><strong>Almacenamiento local:</strong> <code>localStorage</code> y <code>sessionStorage</code> para preferencias y tokens de sesión.</li>
+            <li><strong>PWA:</strong> Service Worker registrado localmente para caché y funcionamiento offline.</li>
+        </ul>
+        
+        <div class="legal-notice">
+            <strong>🔍 Verificación independiente:</strong> Puedes auditar nuestro código fuente en <a href="https://github.com/romwiner/apiromwinervault" target="_blank">GitHub</a>. 
+            Para verificar que no hay llamadas externas: abre las DevTools de tu navegador (<code>F12</code> → pestaña <code>Network</code>), recarga la página y filtra por <code>qrserver</code>, <code>crypto-js</code>, <code>dicebear</code>, <code>chart</code>. 
+            <strong>Resultado esperado: "No results"</strong>.
+        </div>
+    </div>
 
+    <!-- Cifrado -->
+    <div class="section" id="cifrado">
+        <h2>🔐 2. Cifrado y Protección de Datos</h2>
+        <span class="badge">✅ AES-GCM-256</span>
+        <span class="badge">✅ Envelope Encryption</span>
+        <span class="badge">✅ Claves únicas por usuario</span>
+        <span class="badge badge-warning">⚠️ Zero-Knowledge opcional</span>
+        
+        <h3>Cómo protegemos tus archivos:</h3>
+        <ul>
+            <li><strong>Envelope Encryption:</strong> Cada usuario tiene una clave de cifrado única (DEK), que a su vez se cifra con una clave maestra (KEK) almacenada de forma segura en el backend.</li>
+            <li><strong>Algoritmo:</strong> <code>AES-GCM-256</code> (estándar NIST, compatible con FIPS 140-2).</li>
+            <li><strong>Modo Zero-Knowledge (opcional):</strong> Si activas esta opción en tu panel, el cifrado ocurre en tu navegador <em>antes</em> de enviar los datos. En este modo, <strong>ni siquiera nosotros podemos acceder a tu contenido</strong>.</li>
+        </ul>
+        
+        <h3>Protección de credenciales:</h3>
+        <ul>
+            <li>Contraseñas: Hash con <code>bcrypt</code> + salt único por usuario. Nunca almacenamos texto plano.</li>
+            <li>Tokens de sesión: JWT firmados con HS256, expiración configurable, revocación inmediata al cerrar sesión.</li>
+            <li>Autenticación de dos factores (2FA): Disponible para planes Business/Enterprise.</li>
+        </ul>
+        
+        <div class="warning">
+            <strong>⚠️ Limitación importante:</strong> El modo Zero-Knowledge es opcional. Si no lo activas, tus archivos se cifran en tránsito y en reposo, pero ApiRomwiner Vault posee las claves técnicas para acceder a ellos (por ejemplo, para recuperación de cuenta o cumplimiento legal). 
+            <strong>Recomendación:</strong> Activa Zero-Knowledge para máxima privacidad.
+        </div>
+    </div>
+
+    <!-- Privacidad -->
+    <div class="section" id="privacidad">
+        <h2>🔒 3. Privacidad y Cumplimiento GDPR</h2>
+        <span class="badge">✅ Minimización de datos</span>
+        <span class="badge">✅ Derecho al olvido</span>
+        <span class="badge">✅ Portabilidad de datos</span>
+        <span class="badge badge-info">✅ GDPR-ready</span>
+        
+        <h3>Datos que recopilamos:</h3>
+        <ul>
+            <li><strong>Para crear tu cuenta:</strong> Email (verificado), contraseña (hash), nombre de usuario opcional.</li>
+            <li><strong>Para funcionar:</strong> Token de sesión (almacenado en <code>localStorage</code>), preferencias de UI (tema, idioma), código de referido (si aplica).</li>
+            <li><strong>Para analytics internos:</strong> Logs de errores anónimos (sin PII), métricas de uso agregadas (ej: "100 usuarios activaron Zero-Knowledge esta semana").</li>
+        </ul>
+        
+        <h3>Datos que NO recopilamos:</h3>
+        <ul>
+            <li>🚫 Dirección IP (no la almacenamos en logs persistentes)</li>
+            <li>🚫 Ubicación geográfica</li>
+            <li>🚫 Dispositivo o navegador específico (más allá del user-agent para debugging)</li>
+            <li>🚫 Contenido de tus archivos (a menos que no uses Zero-Knowledge y sea necesario para soporte técnico)</li>
+            <li>🚫 Cookies de terceros ni trackers de analytics externos</li>
+        </ul>
+        
+        <h3>Tus derechos (GDPR/LOPDGDD):</h3>
+        <ul>
+            <li><strong>Acceso:</strong> Solicita una copia de tus datos personales.</li>
+            <li><strong>Rectificación:</strong> Corrige información inexacta.</li>
+            <li><strong>Eliminación ("Derecho al olvido"):</strong> Solicita la eliminación permanente de tu cuenta y datos asociados.</li>
+            <li><strong>Portabilidad:</strong> Exporta tus datos en formato JSON/CSV legible.</li>
+            <li><strong>Oposición:</strong> Opt-out de comunicaciones promocionales.</li>
+        </ul>
+        
+        <p><strong>Ejercicio de derechos:</strong> Envía tu solicitud a <a href="mailto:privacy@apiromwinervault.com">privacy@apiromwinervault.com</a> con asunto "Ejercicio de derechos GDPR". Respondemos en ≤ 30 días.</p>
+    </div>
+
+    <!-- Auditoría -->
+    <div class="section" id="auditoria">
+        <h2>🔍 4. Auditoría y Transparencia</h2>
+        <span class="badge">✅ Logs inmutables</span>
+        <span class="badge">✅ Hashing encadenado SHA-256</span>
+        <span class="badge">✅ Firmas HMAC</span>
+        
+        <h3>Integridad de logs:</h3>
+        <ul>
+            <li>Cada acción crítica (login, subida de archivo, cambio de configuración) genera un registro con: timestamp, ID de usuario (hash), acción, y hash del registro anterior.</li>
+            <li>Los logs forman una cadena: modificar un registro rompe el hash del siguiente → detectable inmediatamente.</li>
+            <li>Firmas HMAC-SHA256 garantizan que los logs no fueron alterados en tránsito.</li>
+        </ul>
+        
+        <h3>Transparencia para usuarios:</h3>
+        <ul>
+            <li><strong>Panel de actividad:</strong> En tu dashboard, revisa tu historial de acciones con timestamp y dispositivo.</li>
+            <li><strong>Exportación:</strong> Descarga tus logs personales en formato JSON (planes Business/Enterprise).</li>
+            <li><strong>API de estado:</strong> Consulta el estado técnico de seguridad de tu cuenta:
+                <pre><code>GET https://api.romwinervault.com/api/security/status
+Headers: Authorization: Bearer &lt;tu_token&gt;</code></pre>
+            </li>
+        </ul>
+        
+        <h3>Certificaciones en progreso:</h3>
+        <ul>
+            <li>🔄 SOC 2 Type I (en proceso de auditoría)</li>
+            <li>🔄 ISO 27001 (planificado para Q4 2026)</li>
+            <li>✅ Cumplimiento GDPR/LOPDGDD (implementado)</li>
+        </ul>
+    </div>
+
+    <!-- Responsabilidades -->
+    <div class="section" id="responsabilidades">
+        <h2>⚖️ 5. Responsabilidades del Usuario</h2>
+        
+        <h3>Tú eres responsable de:</h3>
+        <ul>
+            <li><strong>Guardar tu contraseña:</strong> ApiRomwiner Vault no puede recuperarla si la olvidas (especialmente en modo Zero-Knowledge). Usa un gestor de contraseñas.</li>
+            <li><strong>Proteger tu dispositivo:</strong> Si alguien accede a tu dispositivo desbloqueado, podrá acceder a tu cuenta. Usa bloqueo de pantalla y actualizaciones de seguridad.</li>
+            <li><strong>Verificar la URL:</strong> Asegúrate de estar en <code>https://api.romwinervault.com</code> (o tu dominio personalizado) para evitar phishing.</li>
+            <li><strong>Reportar accesos no autorizados:</strong> Si sospechas compromiso, cambia tu contraseña inmediatamente y contacta a seguridad.</li>
+        </ul>
+        
+        <h3>ApiRomwiner Vault se compromete a:</h3>
+        <ul>
+            <li>Notificarte en ≤ 72 horas si detectamos un acceso no autorizado a tu cuenta.</li>
+            <li>Proporcionar herramientas para revocar sesiones activas remotamente.</li>
+            <li>Mantener esta página de seguridad actualizada con cambios relevantes.</li>
+        </ul>
+        
+        <div class="warning">
+            <strong>⚠️ Advertencia legal:</strong> ApiRomwiner Vault no se hace responsable por pérdidas derivadas de: (a) contraseñas débiles o reutilizadas, (b) dispositivos comprometidos por malware, (c) ataques de phishing exitosos, (d) fuerza mayor (desastres naturales, interrupciones de internet masivas). 
+            <strong>Tu diligencia es la primera línea de defensa.</strong>
+        </div>
+    </div>
+
+    <!-- Limitaciones -->
+    <div class="section" id="limitaciones">
+        <h2>🚫 6. Limitaciones de Responsabilidad (Cláusula de Exoneración)</h2>
+        
+        <h3>El servicio se proporciona "TAL CUAL":</h3>
+        <p>ApiRomwiner Vault se proporciona <strong>"AS IS" y "AS AVAILABLE"</strong>, sin garantías de ningún tipo, expresas o implícitas, incluyendo pero no limitándose a: garantías de comerciabilidad, idoneidad para un propósito particular, o no infracción.</p>
+        
+        <h3>Exclusiones de responsabilidad:</h3>
+        <p>En la máxima medida permitida por la ley aplicable, ApiRomwiner Vault y sus operadores no serán responsables por:</p>
+        <ul>
+            <li>Daños indirectos, incidentales, especiales o consecuentes (incluyendo pérdida de beneficios, datos o uso).</li>
+            <li>Interrupciones del servicio por mantenimiento programado, fallos de terceros (proveedores de hosting, DNS), o fuerza mayor.</li>
+            <li>Contenido generado por usuarios que infrinja derechos de terceros (actuamos bajo notice-and-takedown DMCA/GDPR).</li>
+        </ul>
+        
+        <h3>Límite máximo de responsabilidad:</h3>
+        <p>En ningún caso la responsabilidad total de ApiRomwiner Vault excederá el monto que hayas pagado por el servicio en los últimos 12 meses, o <strong>$100 USD</strong> (lo que sea mayor), para usuarios gratuitos.</p>
+        
+        <div class="legal-notice">
+            <strong>📌 Nota sobre jurisdicciones:</strong> Algunas leyes (ej: derecho de consumo en UE) no permiten la exclusión de ciertas garantías o limitaciones de responsabilidad. En esos casos, las exclusiones anteriores se aplican solo en la medida permitida por tu ley local.
+        </div>
+    </div>
+
+    <!-- Jurisdicción -->
+    <div class="section" id="jurisdiccion">
+        <h2>🌍 7. Jurisdicción y Ley Aplicable</h2>
+        
+        <ul>
+            <li><strong>Ley aplicable:</strong> Estos términos se rigen por las leyes de [PAÍS/ESTADO DONDE ESTÁS REGISTRADO], sin considerar sus conflictos de leyes.</li>
+            <li><strong>Fuero competente:</strong> Cualquier disputa se someterá a los tribunales de [CIUDAD], renunciando a cualquier otro fuero que pudiera corresponder.</li>
+            <li><strong>Idioma:</strong> La versión en español de este documento prevalece sobre traducciones.</li>
+            <li><strong>Modificaciones:</strong> Nos reservamos el derecho de actualizar estos términos. Notificaremos cambios sustanciales con ≥ 30 días de antelación. El uso continuado implica aceptación.</li>
+        </ul>
+        
+        <h3>Para usuarios en la Unión Europea:</h3>
+        <p>De conformidad con el Reglamento (UE) 2022/2065 (Digital Services Act), designamos como representante legal en la UE a: <br>
+        <strong>[NOMBRE DEL REPRESENTANTE LEGAL EN UE]</strong> • <a href="mailto:legal-eu@apiromwinervault.com">legal-eu@apiromwinervault.com</a></p>
+    </div>
+
+    <!-- Contacto -->
+    <div class="section" id="contacto">
+        <h2>📬 8. Contacto y Reporte de Vulnerabilidades</h2>
+        
+        <h3>🔐 Programa de Divulgación Responsable:</h3>
+        <p>¿Encontraste una vulnerabilidad de seguridad? Ayúdanos a proteger a la comunidad:</p>
+        <ul>
+            <li>📧 Reporta a: <a href="mailto:security@apiromwinervault.com">security@apiromwinervault.com</a></li>
+            <li>🕒 Respuesta inicial: ≤ 24 horas (laborables)</li>
+            <li>🔍 Proceso: Confirmación → Evaluación → Corrección → Reconocimiento (con tu permiso)</li>
+            <li>🎁 Recompensas: Programa en desarrollo para hallazgos críticos (valor: $100-$5,000 USD según severidad)</li>
+        </ul>
+        
+        <h3>📋 Canales de soporte:</h3>
+        <ul>
+            <li>💬 Soporte técnico: <a href="mailto:support@apiromwinervault.com">support@apiromwinervault.com</a></li>
+            <li>🔒 Privacidad/GDPR: <a href="mailto:privacy@apiromwinervault.com">privacy@apiromwinervault.com</a></li>
+            <li>💼 Enterprise: <a href="mailto:enterprise@apiromwinervault.com">enterprise@apiromwinervault.com</a></li>
+            <li>📄 Legal/Contratos: <a href="mailto:legal@apiromwinervault.com">legal@apiromwinervault.com</a></li>
+        </ul>
+        
+        <h3>🚨 En caso de incidente de seguridad:</h3>
+        <p>Si crees que tu cuenta fue comprometida:</p>
+        <ol>
+            <li>Cambia tu contraseña inmediatamente desde un dispositivo seguro.</li>
+            <li>Revoca todas las sesiones activas en tu panel de seguridad.</li>
+            <li>Reporta el incidente a <a href="mailto:security@apiromwinervault.com">security@apiromwinervault.com</a> con detalles (sin incluir contraseñas).</li>
+            <li>Monitorea tus cuentas vinculadas por actividad sospechosa.</li>
+        </ol>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-note">
+        <p><strong>Última actualización:</strong> <span id="lastUpdate"></span></p>
+        <p><strong>Versión del documento:</strong> 2.1 • <strong>Próxima revisión:</strong> Q3 2026</p>
+        <p style="margin-top:16px">
+            <a href="/">← Volver a ApiRomwiner Vault</a> • 
+            <a href="/terms">Términos de Servicio</a> • 
+            <a href="/privacy">Política de Privacidad</a>
+        </p>
+    </div>
+
+    <script>
+        // Actualizar fecha automáticamente
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleDateString('es-ES', { 
+            year: 'numeric', month: 'long', day: 'numeric' 
+        });
+        
+        // Smooth scroll para enlaces del índice
+        document.querySelectorAll('.toc a').forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const target = document.querySelector(link.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    history.pushState(null, '', link.getAttribute('href'));
+                }
+            });
+        });
+    </script>
+</body>
 </html>
