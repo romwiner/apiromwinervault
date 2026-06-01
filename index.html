@@ -220,7 +220,8 @@
 <div class="glass qr-box">
   <h2>📱 Instala la App en tu Celular</h2>
   <p>Escanea para abrir, instalar y empezar a ganar desde cualquier dispositivo.</p>
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://api.romwinervault.com&color=00e676&bgcolor=0b0c10" class="qr-img" alt="QR Instalar App">
+  <!-- ✅ QR Instalación App (100% local, sin APIs externas) -->
+<img id="qr-instalar" class="qr-img" src="" alt="QR Instalar App" data-qr="">
   <button id="installBtn" class="btn-sec" onclick="installApp()" style="display:none;max-width:200px;margin:8px auto">📲 Instalar App</button>
 </div>
     
@@ -2811,5 +2812,6 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
 
        
