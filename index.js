@@ -479,8 +479,7 @@ const AlertWebhookService = {
 app.get('/api/status', (req, res) => res.json({
   api: 'ApiRomwiner Vault', status: 'online', database: mongoReady ? 'connected' : 'fallback',
   features: ['🟢 57 Funciones Reales', '🟢 Identidad Criptográfica Autónoma', '🟢 Identidad Legal Verificada', '🟢 Consentimiento Granular', '🟢 Enterprise Tiers', '🟢 Envelope Encryption', '🟢 Auditoría Inmutable', '🟢 GDPR/SOC2', '🟢 Rotación de Claves', '🟢 Webhooks', '🟢 Enlaces Seguros', '🟢 Thumbnails Cifrados', '🟢 Versionado+Diff', '🟢 Comentarios Cifrados', '🟢 Super Admin Powers', '🟢 Búsqueda en Vault', '🟢 Validación Real de Archivos', '🟢 IA Interna (Búsqueda Inteligente + Auto-Tags)', FEATURES.PORTABLE_EXPORT && '🟢 Exportación Portable', FEATURES.LOCAL_SYNC && '🟢 Sync Offline', FEATURES.ZERO_KNOWLEDGE && '🟢 Zero-Knowledge Ready', FEATURES.WEB3_LOGIN && '🟢 Login Web3', FEATURES.IPFS_BACKUP && '🟢 Backup IPFS (Helia)'].filter(Boolean)
-}));
-}); // ← ← ← CIERRRE DE /api/integrations/me
+})); 
 
 // 🎬 YOUTUBE EMBED: Permitir previews seguros en productos
 app.post('/api/products/:id/preview', authenticate, async(req, res) => {
