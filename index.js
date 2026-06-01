@@ -2485,49 +2485,68 @@ app.post('/api/donations/send', authenticate, async(req, res) => {
     res.json({ success: true, message: '✅ Donación enviada. ¡Gracias por apoyar!', breakdown: { total: amount, toRecipient: recipientAmount, toPlatform: platformFee } });
   } catch (e) { res.status(500).json({ error: 'Error enviando donación: ' + e.message }); }
 });
-
-// 📊 Obtener estadísticas de ingresos del perfil
-app.get('/api/profiles/income', authenticate, async(req, res) => {
+// 📊 Endpoint: Estadísticas de ingresos del perfil
+app.get('/api/profiles/income', authenticate, async (req, res) => {
   try {
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
     const wallet = await walletCollection.findOne({ userId: user._id });
     const subscriptions = await subscriptionsCollection?.find({ creatorUid: user.uid, status: 'active' }).toArray() || [];
     const donations = await wallet?.history?.filter(h => h.type === 'donation_received') || [];
+    
     const totalSubscribers = subscriptions.length;
     const monthlyRecurring = subscriptions.reduce((sum, s) => sum + (s.totalPrice / s.months), 0);
     const totalDonations = donations.reduce((sum, d) => sum + d.amount, 0);
-    res.json({ success: true, isPremium: (await profilesCollection.findOne({ userId: user._id }))?.isPremiumProfile || false, stats: { totalSubscribers, monthlyRecurring: monthlyRecurring.toFixed(2), totalDonations: totalDonations.toFixed(2), currentBalance: wallet?.balance?.toFixed(2) || '0.00' } });
-
-app.get('/api/stats', async (req, res) => {
-  try {
-    // Obtener datos del usuario (ajusta según tu lógica real)
-    const user = req.user; // o como obtengas el usuario en tu app
     
-    // Calcular estadísticas (ejemplo - adapta a tus variables reales)
-    const totalSubscribers = 0; // ← Reemplaza con tu lógica real
-    const monthlyRecurring = 0;
-    const totalDonations = 0;
-    const wallet = { balance: 0 };
-
-    // Respuesta exitosa
+    const profile = await profilesCollection.findOne({ userId: user._id });
+    
     res.json({ 
       success: true, 
-      isPremium: (await profilesCollection.findOne({ userId: user._id }))?.isPremiumProfile || false, 
+      isPremium: profile?.isPremiumProfile || false, 
       stats: { 
         totalSubscribers, 
         monthlyRecurring: monthlyRecurring.toFixed(2), 
         totalDonations: totalDonations.toFixed(2), 
-        currentBalance: wallet?.balance?.toFixed(2) || '0.00' 
- // 👇 1. APERTURA DE LA RUTA (¿Esto está antes de tu código?)
-app.get('/api/stats', async (req, res) => {
+        currentBalance: (wallet?.balance ?? 0).toFixed(2) 
+      } 
+    });
+  } catch (err) {
+    console.error('❌ Error en /api/profiles/income:', err);
+    res.status(500).json({ success: false, error: 'Error interno del servidor' });
+  }
+}); // ← ✅ CIERRE CORRECTO DE LA PRIMERA FUNCIÓN
+
+// 📊 Endpoint: Estadísticas generales (fallback seguro)
+app.get('/api/stats', authenticate, async (req, res) => {
   try {
-    // 👇 2. DECLARACIÓN DE VARIABLES (ejemplo - adapta a tu lógica)
-    const user = req.user; 
-    const totalSubscribers = 0; 
+    const user = req.user;
+    if (!user) return res.status(401).json({ error: 'No autorizado' });
+    
+    // Estadísticas por defecto (adapta con tu lógica real)
+    const totalSubscribers = 0;
     const monthlyRecurring = 0;
     const totalDonations = 0;
     const wallet = { balance: 0 };
+
+    const profile = await profilesCollection.findOne({ userId: user._id });
+    
+    res.json({ 
+      success: true, 
+      isPremium: profile?.isPremiumProfile || false, 
+      stats: { 
+        totalSubscribers, 
+        monthlyRecurring: monthlyRecurring.toFixed(2), 
+        totalDonations: totalDonations.toFixed(2), 
+        currentBalance: (wallet?.balance ?? 0).toFixed(2) 
+      } 
+    });
+  } catch (err) {
+    console.error('❌ Error en /api/stats:', err);
+    res.status(500).json({ success: false, error: 'Error interno del servidor' });
+  }
+}); // ← ✅ CIERRE CORRECTO DE LA SEGUNDA FUNCIÓN
+
 
  // ============================================
 // 📊 ENDPOINT: Obtener estadísticas del usuario
