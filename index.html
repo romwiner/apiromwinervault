@@ -1397,21 +1397,21 @@
       log('💸 Solicitud enviada. Te contactaremos para el pago seguro.');
       showNotification('💸 Solicitud de retiro enviada', 'info');
     }
-
-    // === IDENTITY QR ===
-    function showIdentityQR() {
-      if (!currentUser) return log('⚠️ Sesión no válida');
-      const data = JSON.stringify({
-        uid: currentUser.uid || 'demo',
-        email: document.getElementById('uEmail').textContent,
-        ref: currentUser.refCode || localStorage.getItem('refCode') || 'ROM000',
-        tier: userTier
-      });
-      document.getElementById('idQrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(data) + '&color=00e676&bgcolor=0b0c10';
-      document.getElementById('idQrData').textContent = data;
-      document.getElementById('idModal').classList.remove('hidden');
-      log('🆔 QR de identidad generado');
-    }
+// === IDENTITY QR ===
+function showIdentityQR() {
+  if (!currentUser) return log('⚠️ Sesión no válida');
+  const data = JSON.stringify({
+    uid: currentUser.uid || 'demo',
+    email: document.getElementById('uEmail').textContent,
+    ref: currentUser.refCode || localStorage.getItem('refCode') || 'ROM000',
+    tier: userTier
+  });
+  generarQRLocal('idQrImg', data, 200);
+  document.getElementById('idQrData').textContent = data;
+  document.getElementById('idModal').classList.remove('hidden');
+  log('🆔 QR de identidad generado (100% local)');
+}
+   
     function closeIdModal() {
       document.getElementById('idModal').classList.add('hidden');
     }
