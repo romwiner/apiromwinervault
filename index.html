@@ -2602,6 +2602,26 @@ window.showDashboard = function() {
   setTimeout(() => { document.getElementById('legalPanel').style.display = 'block'; }, 1300);
 };
 </script>
+  <!-- 🔐 Lógica para mostrar login O vault según sesión -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const auth = document.getElementById('authSection');
+    const vault = document.getElementById('vaultSection');
+    
+    // Verificar si hay sesión activa (ajusta 'authToken' si usas otra clave)
+    const isLoggedIn = localStorage.getItem('authToken') || localStorage.getItem('user');
+    
+    if (isLoggedIn) {
+      // ✅ Usuario logueado: mostrar vault, ocultar login
+      if (auth) auth.classList.add('hidden');
+      if (vault) vault.classList.remove('hidden');
+    } else {
+      // ❌ No logueado: mostrar login, ocultar vault
+      if (auth) auth.classList.remove('hidden');
+      if (vault) vault.classList.add('hidden');
+    }
+  });
+</script>
 </body>
 </html>
 
