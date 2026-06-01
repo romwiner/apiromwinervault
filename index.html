@@ -428,8 +428,8 @@
     
     <!-- Avatar -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-      <img id="userAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" 
-           style="width:64px;height:64px;border-radius:50%;border:2px solid #00e676;background:#000;object-fit:cover">
+    <!-- ✅ Avatar local (SVG embebido, sin peticiones externas) -->
+<img id="userAvatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23151922' stroke='%2300e676' stroke-width='4'/%3E%3Ctext x='50' y='65' font-size='30' fill='%2300e676' text-anchor='middle'%3E👤%3C/text%3E%3C/svg%3E" style="width:64px;height:64px;border-radius:50%;border:2px solid #00e676;background:#000;object-fit:cover">
       <div>
         <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatar(event)">
         <button onclick="document.getElementById('avatarInput').click()" 
