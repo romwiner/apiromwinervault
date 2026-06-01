@@ -224,8 +224,15 @@
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://api.romwinervault.com&color=00e676&bgcolor=0b0c10" class="qr-img" alt="QR Instalar App">
       <button id="installBtn" class="btn-sec" onclick="installApp()" style="display:none;max-width:200px;margin:8px auto">📲 Instalar App</button>
     </div>
+<!-- 📱 Banner de instalación PWA (Aparece automáticamente en Android) -->
+<div id="pwaBanner" class="glass" style="display:none;text-align:center;padding:12px;margin:12px auto;max-width:480px;border-left:4px solid #29b6f6">
+  <p style="margin:0 0 8px;font-size:0.9rem">📱 <b>¿Quieres ApiRomwiner como app?</b></p>
+  <button onclick="installPWA()" style="padding:8px 16px;background:#29b6f6;color:#0b0c10;border:none;border-radius:8px;font-weight:600;cursor:pointer">
+    ✨ Instalar ahora
+  </button>
+</div>
 
-    <!-- 🔐 SECCIÓN DE AUTENTICACIÓN -->
+<!-- 🔐 SECCIÓN DE AUTENTICACIÓN -->
 <div id="authSection" class="glass">
   <h2>🔐 Acceso a tu Bóveda</h2>
   <input id="email" type="email" placeholder="Correo electrónico" autocomplete="email">
@@ -241,6 +248,26 @@
     <a href="/terms.html" target="_blank">📜 Términos</a>
   </div>
 </div>
+
+<script>
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('pwaBanner').style.display = 'block';
+  });
+  
+  async function installPWA() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      document.getElementById('pwaBanner').style.display = 'none';
+    }
+    deferredPrompt = null;
+  }
+</script>
+
 <!-- ✅ Fin de authSection (un solo cierre) --> 
 
   <!-- 🟢 DASHBOARD VIEW (después de login) -->
