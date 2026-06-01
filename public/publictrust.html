@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Seguridad y Confianza | ApiRomwiner Vault</title>
+    <style>
+        body {
+            background: #0b0c10;
+            color: #e8eaed;
+            font-family: system-ui, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6
+        }
+        
+        h1 {
+            color: #00e676;
+            border-bottom: 2px solid #00e676;
+            padding-bottom: 10px
+        }
+        
+        h2 {
+            color: #8ab4f8;
+            margin-top: 24px
+        }
+        
+        .badge {
+            display: inline-block;
+            background: rgba(0, 230, 118, 0.15);
+            color: #00e676;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin: 4px 0
+        }
+        
+        .warning {
+            background: rgba(255, 183, 77, 0.15);
+            color: #ffb74d;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0
+        }
+        
+        code {
+            background: #1a1f2a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🛡️ Seguridad y Confianza</h1>
+
+    <p>En ApiRomwiner Vault, tu privacidad y la integridad de tus datos son nuestra prioridad. Esta página detalla nuestras prácticas de seguridad.</p>
+
+    <h2>🔐 Cifrado y Protección de Datos</h2>
+    <span class="badge">✅ AES-GCM-256</span>
+    <span class="badge">✅ Envelope Encryption</span>
+    <span class="badge">✅ Claves únicas por usuario</span>
+    <ul>
+        <li>Tus archivos se cifran con <strong>Envelope Encryption</strong>: una clave única (DEK) por usuario, a su vez cifrada con una clave maestra (KEK).</li>
+        <li>Algoritmo: <code>AES-GCM-256</code> (estándar NIST, FIPS 140-2 validado).</li>
+        <li>Modo Zero-Knowledge opcional: cifra en tu dispositivo antes de enviar.</li>
+    </ul>
+
+    <h2>📋 Auditoría y Transparencia</h2>
+    <span class="badge">✅ Logs inmutables</span>
+    <span class="badge">✅ Hashing encadenado SHA-256</span>
+    <span class="badge">✅ Firmas HMAC</span>
+    <ul>
+        <li>Cada acción crítica genera un log con hash encadenado: imposible modificar sin romper la cadena.</li>
+        <li>Firmas HMAC garantizan integridad de los logs.</li>
+        <li>Exportación GDPR/SOC2 disponible para planes Business/Enterprise.</li>
+    </ul>
+
+    <h2>🔑 Gestión de Claves</h2>
+    <span class="badge">✅ Rotación automática</span>
+    <span class="badge">✅ Almacenamiento seguro</span>
+    <ul>
+        <li>Rotación de claves cada 90 días (Enterprise).</li>
+        <li>Claves maestras almacenadas en variables de entorno cifradas (Render).</li>
+        <li>Nunca almacenamos contraseñas en texto plano (bcrypt + salt).</li>
+    </ul>
+
+    <h2>🌐 Infraestructura</h2>
+    <span class="badge">✅ HTTPS obligatorio</span>
+    <span class="badge">✅ CSP estricto</span>
+    <span class="badge">✅ Rate limiting</span>
+    <ul>
+        <li>Todas las comunicaciones usan TLS 1.2+.</li>
+        <li>Política de Seguridad de Contenido (CSP) para prevenir XSS.</li>
+        <li>Rate limiting para prevenir abuso de API.</li>
+    </ul>
+
+    <h2>🔍 Verificación en Tiempo Real</h2>
+    <p>Consulta el estado técnico de seguridad de tu cuenta:</p>
+    <pre><code>GET https://api.romwinervault.com/api/security/status</code></pre>
+
+    <h2>📞 Contacto de Seguridad</h2>
+    <p>¿Encontraste una vulnerabilidad? Repórtala responsablemente:</p>
+    <ul>
+        <li>📧 <a href="mailto:security@apiromwinervault.com">security@apiromwinervault.com</a></li>
+        <li>🕒 Respondemos en &lt; 24 horas</li>
+        <li>🎁 Programa de recompensas en desarrollo</li>
+    </ul>
+
+    <div class="warning">
+        <strong>⚠️ Nota:</strong> ApiRomwiner Vault está en fase de crecimiento. Estamos trabajando activamente en certificaciones SOC2 Type I. Para consultas enterprise, contacta a <a href="mailto:enterprise@apiromwinervault.com">enterprise@apiromwinervault.com</a>.
+    </div>
+
+    <p style="margin-top:40px;font-size:0.85rem;color:#8b95a5">
+        Última actualización: <span id="lastUpdate"></span><br>
+        <script>
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleDateString('es-ES')
+        </script>
+    </p>
+</body>
+
+</html>
