@@ -2506,7 +2506,8 @@ app.get('/api/profiles/income', authenticate, async(req, res) => {
   } catch (e) { res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message }); }
 }); // ← ← ← CIERRRE DEL ÚLTIMO ENDPOINT (UNA SOLA VEZ)
     res.json({ success: true, isPremium: (await profilesCollection.findOne({ userId: user._id }))?.isPremiumProfile || false, stats: { totalSubscribers, monthlyRecurring: monthlyRecurring.toFixed(2), totalDonations: totalDonations.toFixed(2), currentBalance: wallet?.balance?.toFixed(2) || '0.00' } });
-  } catch (e) { res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message }); }
+  } catch (e) { res.status(500).json({ error: 'Error cargando estadísticas: ' + e.message });
+  }
 });
 
 // ============================================
