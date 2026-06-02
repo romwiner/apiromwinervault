@@ -2919,11 +2919,4 @@ async function startServer() {
     if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA');
   });
 } // ← ✅ ESTA LLAVE CIERRA startServer()
-
-// ✅ LLAMAR startServer() UNA SOLA VEZ (FUERA de la función, al final absoluto)
-startServer().catch(function(err) {
-  logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
-  process.exit(1);
-});
-
 // === FIN: index.js ===
