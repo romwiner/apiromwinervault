@@ -2908,6 +2908,209 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 800);
 });
 </script>
+ // 📱 FUNCIONES DEL FEED SOCIAL
+let feedPage = 1;
+let followedOnly = false;
+
+async function loadFeed(filter = 'all', reset = true) {
+  if (reset) feedPage = 1;
+  
+  const container = document.getElementById('feedContainer');
+  if (!container) return;
+  
+  if (reset) container.innerHTML = '<div style="text-align:center;padding:40px;color:#8b95a5">Cargando...</div>';
+  
+  try {
+    const res = await fetch(`/api/feed?page=${feedPage}&limit=10&filter=${filter}&followedOnly=${followedOnly}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+    const data = await res.json();
+    
+    if (!data.success) throw new Error(data.error);
+    
+    if (reset && data.posts.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:#8b95a5">📭 Aún no hay productos en esta categoría. ¡Sé el primero en publicar!</div>';
+      return;
+    }
+    
+    // Renderizar posts
+    data.posts.forEach(post => {
+      const postEl = document.createElement('div');
+      postEl.className = 'glass';
+      postEl.style.padding = '16px';
+      postEl.style.borderRadius = '12px';
+      postEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <img src="${post.vendedor.avatarUrl || 'data:image/svg+xml,...'}" style="width:40px;height:40px;border-radius:50%;border:2px solid #00e676;object-fit:cover">
+          <div>
+            <strong style="color:#fff">${post.vendedor.displayName}</strong>
+            ${post.vendedor.verificado ? '<span style="color:#00e676;font-size:0.8rem"> ✓ Verificado</span>' : ''}
+            <div style="font-size:0.75rem;color:#8b95a5">${new Date(post.createdAt).toLocaleDateString()}</div>
+          </div>
+        </div>
+        
+        <h3 style="margin:0 0 8px;color:#fff">${post.titulo}</h3>
+        <p style="margin:0 0 12px;color:#b0b8c4;font-size:0.9rem">${post.descripcion}</p>
+        
+        ${post.multimedia.fileName ? `
+          <div style="margin:12px 0;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:#8b95a5">
+              📎 ${post.multimedia.fileName} • ${(post.multimedia.fileSize / 1024 / 1024).toFixed(2)} MB
+            </div>
+          </div>
+        ` : ''}
+        
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0">
+          <span style="font-size:1.2rem;font-weight:700;color:#00e676">$${post.precio} USD</span>
+          <span style="font-size:0.8rem;color:#8b95a5">📦 ${post.categoria}</span>
+        </div>
+        
+        <div style="display:flex;gap:8px;margin:12px 0">
+          <button onclick="likePost('${post.id}')" style="padding:6px 12px;background:transparent;border:1px solid #6a7585;color:#6a7585;border-radius:6px;font-size:0.8rem">❤️ ${post.engagement.likes}</button>
+          <button onclick="commentPost('${post.id}')" style="padding:6px 12px;background:transparent;border:1px solid #6a7585;color:#6a7585;border-radius:6px;font-size:0.8rem">💬 ${post.engagement.comments}</button>
+          <button onclick="sharePost('${post.id}')" style="padding:6px 12px;background:transparent;border:1px solid #6a7585;color:#6a7585;border-radius:6px;font-size:0.8rem">🔄 Compartir</button>
+        </div>
+        
+        <button onclick="window.location.href='/marketplace/item/${post.id}'" style="width:100%;padding:10px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:600;margin-top:8px">
+          👁️ Ver detalles y comprar
+        </button>
+      `;
+      container.appendChild(postEl);
+    });
+    
+    // Actualizar paginación
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) {
+      loadMoreBtn.style.display = data.pagination.hasNext ? 'inline-block' : 'none';
+    }
+    
+  } catch (e) {
+    console.error('❌ Error cargando feed:', e);
+    container.innerHTML = `<div style="text-align:center;padding:40px;color:#ffb74d">⚠️ Error cargando el feed. Intenta de nuevo.</div>`;
+  }
+}
+
+function loadMoreFeed() {
+  feedPage++;
+  loadFeed(document.querySelector('.btn-sec[onclick*="loadFeed"]')?.textContent.toLowerCase().includes('todo') ? 'all' : 'general', false);
+}
+
+function toggleFollowedOnly() {
+  followedOnly = !followedOnly;
+  document.getElementById('followedBtn').style.background = followedOnly ? '#00e676' : 'transparent';
+  document.getElementById('followedBtn').style.color = followedOnly ? '#000' : '#00e676';
+  loadFeed('all', true);
+}
+
+function openPublishModal() {
+  document.getElementById('publishModal').classList.remove('hidden');
+}
+
+function closePublishModal() {
+  document.getElementById('publishModal').classList.add('hidden');
+  document.getElementById('publishForm').reset();
+}
+
+async function publishProduct(e) {
+  e.preventDefault();
+  
+  const formData = new FormData();
+  formData.append('titulo', document.getElementById('pubTitulo').value);
+  formData.append('descripcion', document.getElementById('pubDescripcion').value);
+  formData.append('categoria', document.getElementById('pubCategoria').value);
+  formData.append('forSale', document.getElementById('pubForSale').checked);
+  formData.append('price', document.getElementById('pubPrecio').value);
+  
+  const file = document.getElementById('pubArchivo').files[0];
+  if (file) formData.append('archivo', file);
+  
+  try {
+    const res = await fetch('/vault', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      body: formData
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      alert('✅ ¡Producto publicado exitosamente!');
+      closePublishModal();
+      loadFeed('all', true); // Recargar feed
+    } else {
+      alert('❌ Error: ' + data.error);
+    }
+  } catch (err) {
+    alert('❌ Error de conexión: ' + err.message);
+  }
+}
+
+async function likePost(postId) {
+  try {
+    const res = await fetch(`/api/feed/${postId}/like`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await res.json();
+    if (data.success) {
+      // 🔹 Aquí podrías actualizar el contador visualmente
+      alert('❤️ ¡Te gusta este producto!');
+    }
+  } catch (e) {
+    console.error('Error dando like:', e);
+  }
+}
+
+async function commentPost(postId) {
+  const comment = prompt('Escribe tu comentario:');
+  if (!comment) return;
+  
+  try {
+    const res = await fetch(`/api/feed/${postId}/comment`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ comment })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('✅ Comentario publicado');
+      // 🔹 Aquí podrías recargar los comentarios del post
+    }
+  } catch (e) {
+    console.error('Error comentando:', e);
+  }
+}
+
+function sharePost(postId) {
+  const url = `${window.location.origin}/marketplace/item/${postId}`;
+  if (navigator.share) {
+    navigator.share({ title: 'Producto en ApiRomwiner', url });
+  } else {
+    navigator.clipboard.writeText(url);
+    alert('🔗 Enlace copiado al portapapeles');
+  }
+}
+
+// Cargar feed al iniciar (si el panel está visible)
+document.addEventListener('DOMContentLoaded', () => {
+  // 🔹 Conectar el botón del menú para mostrar el feed
+  const feedBtn = document.createElement('button');
+  feedBtn.textContent = '📱 Feed Social';
+  feedBtn.className = 'btn-sec';
+  feedBtn.onclick = () => {
+    document.getElementById('socialFeedPanel').style.display = 'block';
+    document.getElementById('marketplacePanel')?.style.setProperty('display', 'none');
+    loadFeed('all', true);
+  };
+  // 🔹 Agregar este botón a tu menú principal (ajusta el selector según tu UI)
+  const menu = document.querySelector('.menu') || document.querySelector('nav');
+  if (menu) menu.appendChild(feedBtn);
+}); 
 </body>
 </html>
 
