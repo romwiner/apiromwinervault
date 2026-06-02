@@ -2485,10 +2485,10 @@ app.post('/api/donations/send', authenticate, async(req, res) => {
     res.json({ success: true, message: '✅ Donación enviada. ¡Gracias por apoyar!', breakdown: { total: amount, toRecipient: recipientAmount, toPlatform: platformFee } });
   } catch (e) { res.status(500).json({ error: 'Error enviando donación: ' + e.message }); }
 });
+
 // 📊 Endpoint: Estadísticas del usuario (versión única y segura)
 app.get('/api/stats', authenticate, async (req, res) => {
   try {
-    // Fallback seguro si MongoDB no está listo
     if (!mongoReady || !profilesCollection) {
       return res.json({ 
         success: true, 
@@ -2509,7 +2509,6 @@ app.get('/api/stats', authenticate, async (req, res) => {
     const profile = await profilesCollection.findOne({ userId: user._id });
     const wallet = await walletCollection.findOne({ userId: user._id });
     
-    // Estadísticas reales (adapta con tu lógica)
     const totalSubscribers = 0;
     const monthlyRecurring = 0;
     const totalDonations = 0;
@@ -2537,7 +2536,6 @@ async function startServer() {
   await connectToMongo();
   
   if (mongoReady) {
-    // Rotación de claves cada 24h
     setInterval(() => { 
       KeyRotationService.scheduleRotations().catch(e => 
         logger.warn('⚠️ Scheduled rotation failed: ' + e.message)
@@ -2545,7 +2543,6 @@ async function startServer() {
     }, 24 * 60 * 60 * 1000);
     logger.info('🔄 Key rotation scheduled every 24h');
     
-    // Limpieza de enlaces expirados cada hora
     setInterval(async() => { 
       try { 
         if (sharedLinksCollection) { 
@@ -2561,7 +2558,6 @@ async function startServer() {
     }, 60 * 60 * 1000);
     logger.info('🧹 Expired links cleanup scheduled every 1h');
     
-    // Auto-renovales cada 24h
     setInterval(processAutoRenewals, 24 * 60 * 60 * 1000);
     logger.info('🔄 Auto-renewals scheduled every 24h');
   }
@@ -2576,9 +2572,9 @@ async function startServer() {
     if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
     if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA');
   });
-}
+} // ← ✅ ESTA LLAVE CIERRA startServer()
 
-// ✅ LLAMAR startServer() UNA SOLA VEZ
+// ✅ LLAMAR startServer() UNA SOLA VEZ (FUERA de la función, al final absoluto)
 startServer().catch(function(err) {
   logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
   process.exit(1);
