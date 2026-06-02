@@ -2882,6 +2882,7 @@ async function startServer() {
   await connectToMongo();
   
   if (mongoReady) {
+    // Rotación de claves cada 24h
     setInterval(() => { 
       KeyRotationService.scheduleRotations().catch(e => 
         logger.warn('⚠️ Scheduled rotation failed: ' + e.message)
@@ -2889,6 +2890,7 @@ async function startServer() {
     }, 24 * 60 * 60 * 1000);
     logger.info('🔄 Key rotation scheduled every 24h');
     
+    // Limpieza de enlaces expirados cada hora
     setInterval(async() => { 
       try { 
         if (sharedLinksCollection) { 
@@ -2904,6 +2906,7 @@ async function startServer() {
     }, 60 * 60 * 1000);
     logger.info('🧹 Expired links cleanup scheduled every 1h');
     
+    // Auto-renovales de suscripciones cada 24h
     setInterval(processAutoRenewals, 24 * 60 * 60 * 1000);
     logger.info('🔄 Auto-renewals scheduled every 24h');
   }
@@ -2919,4 +2922,11 @@ async function startServer() {
     if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA');
   });
 } // ← ✅ ESTA LLAVE CIERRA startServer()
+
+// ✅ LLAMAR startServer() UNA SOLA VEZ (FUERA de la función, al final absoluto)
+startServer().catch(function(err) {
+  logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
+  process.exit(1);
+});
+
 // === FIN: index.js ===
