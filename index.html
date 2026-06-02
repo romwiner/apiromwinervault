@@ -582,20 +582,22 @@
         <span class="zk-warning" id="zkWarning">⚠️ Cifra este archivo con tu clave maestra antes de guardarlo externamente.</span>
       </label>
     </div>
-
     <!-- 🛍️ Marketplace -->
     <div class="glass" id="marketplaceSection" style="display:none">
       <h2>🛍️ Marketplace Cifrado</h2>
       <p style="color:#8b95a5;margin-bottom:12px">Explora contenido en venta. Todo cifrado con Envelope Encryption.</p>
+      
       <div class="market-search">
         <input type="text" id="marketSearch" placeholder="Buscar por título o tag...">
         <select id="marketCategory"><option value="">Todas las categorías</option></select>
+        
         <!-- 🎬 BOTÓN DE PRUEBA: REPRODUCTOR SEGURO -->
-<div style="margin:16px 0; padding:12px; background:#1a1f2a; border-radius:8px; text-align:center; border:1px dashed #00e676;">
-  <p style="color:#fff; margin:0 0 8px 0; font-size:0.9rem;">🎥 ¿Tienes videos? Prueba el reproductor seguro</p>
-  <button onclick="openSecurePlayer('/api/files/download/TU_ID_REAL', 'prueba.mp4')" style="padding:10px 20px; background:#00e676; color:#000; border:none; border-radius:6px; cursor:pointer; font-weight:600;">🎬 Abrir reproductor</button>
-  <p style="color:#8b95a5; margin:6px 0 0 0; font-size:0.75rem;">⚠️ Cambia TU_ID_REAL por un ID real cuando tengas un video subido</p>
-</div>
+        <div style="margin:16px 0; padding:12px; background:#1a1f2a; border-radius:8px; text-align:center; border:1px dashed #00e676;">
+          <p style="color:#fff; margin:0 0 8px 0; font-size:0.9rem;">🎥 ¿Tienes videos? Prueba el reproductor seguro</p>
+          <button onclick="openSecurePlayer('/api/files/download/TU_ID_REAL', 'prueba.mp4')" style="padding:10px 20px; background:#00e676; color:#000; border:none; border-radius:6px; cursor:pointer; font-weight:600;">🎬 Abrir reproductor</button>
+          <p style="color:#8b95a5; margin:6px 0 0 0; font-size:0.75rem;">⚠️ Cambia TU_ID_REAL por un ID real cuando tengas un video subido</p>
+        </div>
+        
         <select id="marketPriceFilter">
           <option value="">Cualquier precio</option>
           <option value="0-10">Menos de $10</option>
@@ -605,90 +607,155 @@
         </select>
         <button onclick="loadMarketplace()" style="width:auto;padding:8px 16px">🔍 Buscar</button>
       </div>
+
       <div id="marketRecommendations" class="market-recommendations hidden">
         <h3>🎯 Recomendado para ti</h3>
         <div id="recommendationsGrid" class="market-grid"></div>
       </div>
+      
       <div id="marketGrid" class="market-grid"></div>
       <div id="marketLoading" class="market-loading hidden">⏳ Cargando marketplace...</div>
       <div id="marketEmpty" class="market-empty hidden">🔍 No se encontró contenido. ¡Sé el primero en vender!</div>
+      
       <button onclick="closeMarketplace()" class="btn-sec" style="margin-top:16px">Cerrar Marketplace</button>
-    </div>
+    </div> <!-- ✅ FIN: marketplaceSection -->
 
- <!-- 📲 QR Referido (100% local, sin APIs externas) -->
-<div class="glass qr-box">
-  <h2>📲 App Instalada</h2>
-  <p>Comparte este QR para que otros instalen y usen tu enlace de referido.</p>
-  <img id="refQr" class="qr-img" src="" alt="QR Referido" data-qr="">
-</div>
-  <!-- 🆔 Identity Modal -->
-  <div id="idModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
-    <div class="glass" style="max-width:340px;text-align:center">
-      <h2>🆔 Identidad Universal</h2>
-      <img id="idQrImg" class="qr-img" src="" alt="QR Identidad">
-      <p id="idQrData" style="font-size:0.8rem;color:#8b95a5;word-break:break-all;margin:8px 0"></p>
-      <button onclick="closeIdModal()" class="btn-sec">✅ Entendido</button>
-    </div>
-  </div>
-
-  <!-- 📤 Create Text Modal -->
-  <div id="createModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
-    <div class="glass" style="max-width:340px">
-      <h2>📤 Publicar Activo (Texto)</h2>
-      <label style="display:block;margin:10px 0 5px;font-weight:bold">Título del contenido *</label>
-      <input id="itemTitle" placeholder="Ej: Mi guía de inversión" style="margin-bottom:10px">
-      <label style="display:block;margin:10px 0 5px">Precio</label>
-      <input id="itemPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px">
-      <span style="font-size:0.7rem;color:#8b95a5;display:block;margin-bottom:10px">💵 Se mostrará como: $XX.XX USD</span>
-      <select id="itemCat">
-        <option value="general">General</option>
-        <option value="finanzas">Finanzas</option>
-        <option value="tech">Tecnología</option>
-        <option value="educacion">Educación</option>
-        <option value="personal">Personal</option>
-      </select>
-      <label style="display:block;margin:10px 0;font-size:0.8rem;color:#8b95a5">
-        <input type="checkbox" id="itemForSale"> Marcar para vender públicamente
-      </label>
-      <button onclick="publish()">✅ Publicar en Venta</button>
-      <button onclick="closeCreate()" class="btn-sec">Cancelar</button>
-    </div>
-  </div>
-
-  <!-- 📤 Upload File Modal -->
-  <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
-    <div class="glass" style="max-width:340px">
-      <h2>📤 Subir Archivo al Vault</h2>
-      <label style="display:block;margin:10px 0 5px;font-weight:bold">Título del archivo *</label>
-      <input id="uploadTitle" placeholder="Ej: Mi foto de vacaciones" style="margin-bottom:10px" required>
-      <label style="display:block;margin:10px 0 5px">Categoría</label>
-      <select id="uploadCat" style="margin-bottom:10px">
-        <option value="general">📁 General</option>
-        <option value="fotos">📷 Fotos</option>
-        <option value="videos">🎬 Videos</option>
-        <option value="libros">📚 Libros</option>
-        <option value="documentos">📄 Documentos</option>
-        <option value="textos">✍️ Textos</option>
-        <option value="audio">🎵 Audio</option>
-        <option value="otros">📦 Otros</option>
-      </select>
-      <label style="display:block;margin:10px 0 5px">Selecciona archivo</label>
-      <input id="uploadFile" type="file" style="background:#1a1f2a;padding:10px;border-radius:8px;margin-bottom:10px" required>
-      <label style="display:block;margin:15px 0 5px;font-weight:bold">
-        <input type="checkbox" id="uploadForSale" style="width:auto;margin-right:8px"> Marcar para vender públicamente
-      </label>
-      <div id="priceSection" style="display:none;margin:10px 0">
-        <label style="display:block;margin:0 0 5px">Precio</label>
-        <input id="uploadPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px">
-        <span style="font-size:0.8rem;color:#8b95a5">💵 Se mostrará como: $XX.XX USD</span>
+    <!-- 📱 PANEL CENTRAL: Feed Social de Productos (tipo Facebook) -->
+    <div class="glass" id="socialFeedPanel" style="display:none">
+      <h2>📱 Feed de Productos</h2>
+      <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Descubre productos de creadores que sigues y de toda la comunidad.</p>
+      
+      <!-- Filtros rápidos -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button onclick="loadFeed('all')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">🌍 Todo</button>
+        <button onclick="loadFeed('educacion')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">🎓 Educación</button>
+        <button onclick="loadFeed('software')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">💻 Software</button>
+        <button onclick="loadFeed('musica')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">🎵 Música</button>
+        <button onclick="toggleFollowedOnly()" id="followedBtn" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">👤 Solo seguidos</button>
       </div>
-      <div class="progress-bar hidden" id="uploadProgress"><div class="progress-fill" id="uploadProgressFill"></div></div>
-      <p id="uploadStatus" style="font-size:0.75rem;color:#00e676;margin-top:8px;min-height:1.2em"></p>
-      <button onclick="doUpload()" id="uploadBtn">✅ Subir y Cifrar</button>
-      <button onclick="closeUpload()" class="btn-sec">Cancelar</button>
-    </div>
-  </div>
+      
+      <!-- Botón para publicar nuevo producto -->
+      <button onclick="openPublishModal()" style="margin:0 0 16px;padding:10px 20px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:600;cursor:pointer">
+        📤 Publicar nuevo producto
+      </button>
+      
+      <!-- Contenedor del feed -->
+      <div id="feedContainer" style="display:flex;flex-direction:column;gap:16px">
+        <div style="text-align:center;padding:40px;color:#8b95a5">Cargando feed...</div>
+      </div>
+      
+      <!-- Paginación -->
+      <div id="feedPagination" style="text-align:center;margin-top:20px">
+        <button id="loadMoreBtn" onclick="loadMoreFeed()" style="padding:8px 24px;background:transparent;border:1px solid #00e676;color:#00e676;border-radius:8px">
+          Cargar más productos
+        </button>
+      </div>
+    </div> <!-- ✅ FIN: socialFeedPanel -->
 
+    <!-- 📤 Modal: Publicar nuevo producto (Nivel raíz para evitar conflictos de estilos) -->
+    <div id="publishModal" class="modal hidden">
+      <div class="modal-content glass" style="max-width:600px">
+        <h3>📤 Publicar nuevo producto</h3>
+        <form id="publishForm" onsubmit="publishProduct(event)" style="display:flex;flex-direction:column;gap:12px">
+          <input type="text" id="pubTitulo" placeholder="Título del producto *" required style="padding:10px;border-radius:6px;border:1px solid #2a2f3a;background:#1a1f2a;color:#fff">
+          <textarea id="pubDescripcion" placeholder="Descripción (máx. 500 caracteres)" maxlength="500" rows="3" style="padding:10px;border-radius:6px;border:1px solid #2a2f3a;background:#1a1f2a;color:#fff"></textarea>
+          <select id="pubCategoria" style="padding:10px;border-radius:6px;border:1px solid #2a2f3a;background:#1a1f2a;color:#fff">
+            <option value="general">📁 General</option>
+            <option value="educacion">🎓 Educación</option>
+            <option value="software">💻 Software</option>
+            <option value="musica">🎵 Música</option>
+            <option value="arte">🎨 Arte Digital</option>
+            <option value="datos">📊 Datos/Investigación</option>
+          </select>
+          <input type="file" id="pubArchivo" accept=".mp4,.mp3,.pdf,.zip,.rar,.jpg,.png,.gif,.doc,.docx" style="padding:8px;background:#1a1f2a;color:#fff;border-radius:6px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.9rem">
+              <input type="checkbox" id="pubForSale" checked> 💰 Poner en venta
+            </label>
+            <input type="number" id="pubPrecio" placeholder="Precio USD" min="1" step="0.01" value="5" style="width:100px;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#1a1f2a;color:#fff">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="submit" style="flex:1;padding:10px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:600">🚀 Publicar</button>
+            <button type="button" onclick="closePublishModal()" style="padding:10px 20px;background:transparent;border:1px solid #6a7585;color:#6a7585;border-radius:8px">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div> <!-- ✅ FIN: publishModal -->
+
+    <!-- 📲 QR Referido (100% local, sin APIs externas) -->
+    <div class="glass qr-box">
+      <h2>📲 App Instalada</h2>
+      <p>Comparte este QR para que otros instalen y usen tu enlace de referido.</p>
+      <img id="refQr" class="qr-img" src="" alt="QR Referido" data-qr="">
+    </div>
+
+    <!-- 🆔 Identity Modal -->
+    <div id="idModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+      <div class="glass" style="max-width:340px;text-align:center">
+        <h2>🆔 Identidad Universal</h2>
+        <img id="idQrImg" class="qr-img" src="" alt="QR Identidad">
+        <p id="idQrData" style="font-size:0.8rem;color:#8b95a5;word-break:break-all;margin:8px 0"></p>
+        <button onclick="closeIdModal()" class="btn-sec">✅ Entendido</button>
+      </div>
+    </div>
+
+    <!-- 📤 Create Text Modal -->
+    <div id="createModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+      <div class="glass" style="max-width:340px">
+        <h2>📤 Publicar Activo (Texto)</h2>
+        <label style="display:block;margin:10px 0 5px;font-weight:bold">Título del contenido *</label>
+        <input id="itemTitle" placeholder="Ej: Mi guía de inversión" style="margin-bottom:10px">
+        <label style="display:block;margin:10px 0 5px">Precio</label>
+        <input id="itemPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px">
+        <span style="font-size:0.7rem;color:#8b95a5;display:block;margin-bottom:10px">💵 Se mostrará como: $XX.XX USD</span>
+        <select id="itemCat">
+          <option value="general">General</option>
+          <option value="finanzas">Finanzas</option>
+          <option value="tech">Tecnología</option>
+          <option value="educacion">Educación</option>
+          <option value="personal">Personal</option>
+        </select>
+        <label style="display:block;margin:10px 0;font-size:0.8rem;color:#8b95a5">
+          <input type="checkbox" id="itemForSale"> Marcar para vender públicamente
+        </label>
+        <button onclick="publish()">✅ Publicar en Venta</button>
+        <button onclick="closeCreate()" class="btn-sec">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- 📤 Upload File Modal -->
+    <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+      <div class="glass" style="max-width:340px">
+        <h2>📤 Subir Archivo al Vault</h2>
+        <label style="display:block;margin:10px 0 5px;font-weight:bold">Título del archivo *</label>
+        <input id="uploadTitle" placeholder="Ej: Mi foto de vacaciones" style="margin-bottom:10px" required>
+        <label style="display:block;margin:10px 0 5px">Categoría</label>
+        <select id="uploadCat" style="margin-bottom:10px">
+          <option value="general">📁 General</option>
+          <option value="fotos">📷 Fotos</option>
+          <option value="videos">🎬 Videos</option>
+          <option value="libros">📚 Libros</option>
+          <option value="documentos">📄 Documentos</option>
+          <option value="textos">✍️ Textos</option>
+          <option value="audio">🎵 Audio</option>
+          <option value="otros">📦 Otros</option>
+        </select>
+        <label style="display:block;margin:10px 0 5px">Selecciona archivo</label>
+        <input id="uploadFile" type="file" style="background:#1a1f2a;padding:10px;border-radius:8px;margin-bottom:10px" required>
+        <label style="display:block;margin:15px 0 5px;font-weight:bold">
+          <input type="checkbox" id="uploadForSale" style="width:auto;margin-right:8px"> Marcar para vender públicamente
+        </label>
+        <div id="priceSection" style="display:none;margin:10px 0">
+          <label style="display:block;margin:0 0 5px">Precio</label>
+          <input id="uploadPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px">
+          <span style="font-size:0.8rem;color:#8b95a5">💵 Se mostrará como: $XX.XX USD</span>
+        </div>
+        <div class="progress-bar hidden" id="uploadProgress"><div class="progress-fill" id="uploadProgressFill"></div></div>
+        <p id="uploadStatus" style="font-size:0.75rem;color:#00e676;margin-top:8px;min-height:1.2em"></p>
+        <button onclick="doUpload()" id="uploadBtn">✅ Subir y Cifrar</button>
+        <button onclick="closeUpload()" class="btn-sec">Cancelar</button>
+      </div>
+    </div>
   <!-- 📦 Export Modal -->
   <div id="exportModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
     <div class="glass" style="max-width:400px;text-align:center">
