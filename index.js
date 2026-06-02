@@ -23,14 +23,17 @@ const { unixfs } = require('@helia/unixfs');
 // 🤖 IA INTERNA: Natural para NLP ligero
 const natural = require('natural');
 const tokenizer = new natural.WordTokenizer();
-const stemmer = natural.PorterStemmer; // 💳 Stripe para pagos (AGREGAR ESTA LÍNEA) ✅
-const stripe = require('stripe')(STRIPE_SECRET_KEY);
-// 🔐 CLAVES + ADMINS
+const stemmer = natural.PorterStemmer;
+
+// 🔐 CLAVES + ADMINS (definir constantes PRIMERO)
 const JWT_SECRET = process.env.JWT_SECRET || 'romwiner_jwt_secret_fallback';
 const MASTER_KEY = process.env.MASTER_KEY || 'romwiner_master_key_fallback';
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'rraygoza67@gmail.com,nubislosnubis@gmail.com,romraywiner@gmail.com').split(',').map(e => e.trim());
 const APP_URL = process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com';
+
+// 💳 Stripe para pagos (definir DESPUÉS de STRIPE_SECRET_KEY)
+const stripe = require('stripe')(STRIPE_SECRET_KEY);
 // 🚀 FEATURE FLAGS
 const FEATURES = {
   ZERO_KNOWLEDGE: process.env.ENABLE_ZERO_KNOWLEDGE === 'true',
