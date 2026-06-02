@@ -1594,99 +1594,42 @@ app.post('/api/vault/sync/push', authenticate, async(req, res) => {
 // ============================================
 // 🛍️ MARKETPLACE INTEGRADO + RECOMENDACIONES
 // ============================================
+
+// 🌟 FUNCIÓN AUXILIAR: Metadatos públicos de un ítem (definida PRIMERO para usarla después)
 const getPublicItemMetadata = (secret, sellerProfile = null) => ({
-  id: secret._id.toString(), titulo: secret.titulo,
+  id: secret._id.toString(), 
+  titulo: secret.titulo,
   descripcion: secret.descripcion?.substring(0, 300) + (secret.descripcion?.length > 300 ? '...' : ''),
-  categoria: secret.categoria || 'general', tags: secret.tags || [], precio: secret.price || 0, moneda: 'USD',
-  vendedor: { uid: secret.userUid, displayName: sellerProfile?.displayName || 'Creador', avatarUrl: sellerProfile?.avatarUrl || null, rating: sellerProfile?.rating?.average || 0, totalVentas: sellerProfile?.totalVentas || 0, verificado: sellerProfile?.identityVerified || false },
-  estadisticas: { ventas: secret.sales || 0, rating: secret.rating?.average || 0, reseñasCount: secret.rating?.count || 0, vistas: secret.views || 0 },
-  licencia: secret.licenseDays ? `${secret.licenseDays} días` : 'Permanente', tipo: secret.tipo, fileName: secret.fileName, fileType: secret.fileType, fileSize: secret.fileSize, createdAt: secret.createdAt, thumbnailUrl: secret.thumbnailUrl || null
+  categoria: secret.categoria || 'general', 
+  tags: secret.tags || [], 
+  precio: secret.price || 0, 
+  moneda: 'USD',
+  vendedor: { 
+    uid: secret.userUid, 
+    displayName: sellerProfile?.displayName || 'Creador', 
+    avatarUrl: sellerProfile?.avatarUrl || null, 
+    rating: sellerProfile?.rating?.average || 0, 
+    totalVentas: sellerProfile?.totalVentas || 0, 
+    verificado: sellerProfile?.identityVerified || false 
+  },
+  estadisticas: { 
+    ventas: secret.sales || 0, 
+    rating: secret.rating?.average || 0, 
+    reseñasCount: secret.rating?.count || 0, 
+    vistas: secret.views || 0 
+  },
+  licencia: secret.licenseDays ? `${secret.licenseDays} días` : 'Permanente', 
+  tipo: secret.tipo, 
+  fileName: secret.fileName, 
+  fileType: secret.fileType, 
+  fileSize: secret.fileSize, 
+  createdAt: secret.createdAt, 
+  thumbnailUrl: secret.thumbnailUrl || null
 });
-app.get('/api/marketplace', async(req, res) => {
-  try {
-    if (!mongoReady || !secretsCollection) return res.json({ success: true, items: [], total: 0, page: 1, demo: true });
-    const { categoria, maxPrice, minPrice, sortBy = 'popularity', page = 1, limit = 20, q, tags, verifiedOnly } = req.query;
-    const filter = { isForSale: true };
-    if (categoria) filter.categoria = categoria;
-    if (maxPrice) filter.price = {...filter.price, $lte: parseFloat(maxPrice) };
-    if (minPrice) filter.price = {...filter.price, $gte: parseFloat(minPrice) };
-    if (verifiedOnly === 'true') { const verifiedUsers = await profilesCollection.find({ identityVerified: true }, { projection: { userId: 1 } }).toArray(); filter.userId = { $in: verifiedUsers.map(p => p.userId) }; }
-    if (tags) { const tagList = tags.split(',').map(t => t.trim()); filter.tags = { $in: tagList }; }
-    if (q) filter.$text = { $search: q };
-    let sort = {};
-    switch(sortBy) {
-      case 'price_asc': sort = { price: 1 }; break;
-      case 'price_desc': sort = { price: -1 }; break;
-      case 'newest': sort = { createdAt: -1 }; break;
-      case 'rating': sort = { 'rating.average': -1, sales: -1 }; break;
-      default: sort = { sales: -1, 'rating.average': -1, createdAt: -1 };
-    }
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const [items, total] = await Promise.all([secretsCollection.find(filter).sort(sort).skip(skip).limit(parseInt(limit)).project({ encrypted: 0, contenido: 0, buyers: 0 }).toArray(), secretsCollection.countDocuments(filter)]);
-    const enrichedItems = [];
-    for (const item of items) { const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, { projection: { displayName: 1, avatarUrl: 1, rating: 1, totalVentas: 1, identityVerified: 1 } }); enrichedItems.push(getPublicItemMetadata(item, sellerProfile)); }
-    res.json({ success: true, items: enrichedItems, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }, filters: { categoria, maxPrice, minPrice, sortBy, q, tags } });
-  } catch (e) { logger.error('❌ Marketplace catalog error: ' + e.message); res.status(500).json({ error: 'Error cargando catálogo: ' + e.message }); }
-});
-app.get('/api/marketplace/search', async(req, res) => {
-  try {
-    const { q, categoria, limit = 10 } = req.query;
-    if (!q || q.length < 2) return res.status(400).json({ error: 'Término de búsqueda debe tener al menos 2 caracteres' });
-    if (!mongoReady) return res.json({ success: true, results: [], demo: true });
-    const filter = { isForSale: true, $text: { $search: q } };
-    if (categoria) filter.categoria = categoria;
-    const results = await secretsCollection.find(filter, { score: { $meta: 'textScore' }, projection: { encrypted: 0, contenido: 0, buyers: 0 } }).sort({ score: { $meta: 'textScore' } }).limit(parseInt(limit)).toArray();
-    const enriched = [];
-    for (const item of results) { const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, { projection: { displayName: 1, avatarUrl: 1 } }); enriched.push({...getPublicItemMetadata(item, sellerProfile), relevanceScore: item.score }); }
-    res.json({ success: true, query: q, results: enriched, count: enriched.length });
-  } catch (e) { logger.error('❌ Marketplace search error: ' + e.message); res.status(500).json({ error: 'Error en búsqueda: ' + e.message }); }
-});
-app.get('/api/marketplace/item/:id', async(req, res) => {
-  try {
-    if (!mongoReady) return res.json({ success: true, item: { id: req.params.id, titulo: 'Demo' }, demo: true });
-    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), isForSale: true }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } });
-    if (!secret) return res.status(404).json({ error: 'Producto no encontrado o no disponible' });
-    const sellerProfile = await profilesCollection.findOne({ userId: secret.userId }, { projection: { displayName: 1, avatarUrl: 1, bio: 1, rating: 1, totalVentas: 1, identityVerified: 1, createdAt: 1 } });
-    const recentReviews = await reviewsCollection?.find({ itemId: secret._id, createdAt: { $gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }).sort({ createdAt: -1 }).limit(3).toArray() || [];
-    res.json({ success: true, item: {...getPublicItemMetadata(secret, sellerProfile), descripcionCompleta: secret.descripcion, requisitos: secret.requisitos || null, preview: secret.preview || null, reseñasRecientes: recentReviews.map(r => ({ id: r._id, rating: r.rating, comment: r.comment?.substring(0, 200), buyerName: r.buyerName || 'Comprador', date: r.createdAt, verified: r.verifiedPurchase })) }, acciones: { comprar: '/api/buy/' + req.params.id, agregarFavoritos: req.user ? '/api/marketplace/favorites' : null, compartir: APP_URL + '/marketplace/item/' + req.params.id } });
-  } catch (e) { logger.error('❌ Marketplace item detail error: ' + e.message); res.status(500).json({ error: 'Error cargando producto: ' + e.message }); }
-});
-app.get('/api/marketplace/creator/:userId', async(req, res) => {
-  try {
-    if (!mongoReady) return res.json({ success: true, creator: { uid: req.params.userId, displayName: 'Demo' }, demo: true });
-    const user = await usersCollection.findOne({ uid: req.params.userId }, { projection: { password: 0, encryptedUserKey: 0, email: 0 } });
-    if (!user) return res.status(404).json({ error: 'Creador no encontrado' });
-    const profile = await profilesCollection.findOne({ userId: user._id });
-    const [totalItems, itemsForSale, totalVentas, ratingStats] = await Promise.all([secretsCollection.countDocuments({ userId: user._id }), secretsCollection.countDocuments({ userId: user._id, isForSale: true }), transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' }), secretsCollection.aggregate([{ $match: { userId: user._id, 'rating.count': { $gt: 0 } } }, { $group: { _id: null, avgRating: { $avg: '$rating.average' }, totalReviews: { $sum: '$rating.count' } } }]).toArray()]);
-    const featuredItems = await secretsCollection.find({ userId: user._id, isForSale: true }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } }).sort({ sales: -1, 'rating.average': -1 }).limit(6).toArray();
-    const enrichedItems = featuredItems.map(item => getPublicItemMetadata(item, profile));
-    res.json({ success: true, creator: { uid: user.uid, displayName: profile?.displayName || 'Creador', avatarUrl: profile?.avatarUrl, bio: profile?.bio, identityVerified: profile?.identityVerified || false, memberSince: user.createdAt, tier: user.tier }, estadisticas: { totalItems, itemsEnVenta: itemsForSale, totalVentas, ratingPromedio: ratingStats[0]?.avgRating?.toFixed(2) || 0, totalReseñas: ratingStats[0]?.totalReviews || 0 }, itemsDestacados: enrichedItems, acciones: { seguir: req.user ? '/api/marketplace/creator/' + req.params.userId + '/follow' : null, contactar: profile?.isPublic ? '/api/marketplace/creator/' + req.params.userId + '/contact' : null } });
-  } catch (e) { logger.error('❌ Marketplace creator profile error: ' + e.message); res.status(500).json({ error: 'Error cargando perfil: ' + e.message }); }
-});
-app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
-  try {
-    const { rating, comment } = req.body;
-    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating debe ser entre 1 y 5' });
-    if (!mongoReady) return res.json({ success: true, message: 'Reseña guardada (demo)', demo: true });
-    const buyer = await usersCollection.findOne({ uid: req.user.uid });
-    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
-    if (!secret) return res.status(404).json({ error: 'Producto no encontrado' });
-    if (secret.userId.toString() === buyer._id.toString()) return res.status(400).json({ error: 'No puedes reseñar tu propio producto' });
-    if (!secret.buyers?.includes(buyer.uid)) return res.status(403).json({ error: 'Solo compradores verificados pueden dejar reseñas' });
-    const existingReview = await reviewsCollection?.findOne({ itemId: secret._id, buyerUid: req.user.uid });
-    if (existingReview) return res.status(400).json({ error: 'Ya has dejado una reseña para este producto' });
-    const review = { itemId: secret._id, buyerUid: req.user.uid, buyerName: (await profilesCollection.findOne({ userId: buyer._id }))?.displayName || 'Comprador', rating: parseInt(rating), comment: comment?.substring(0, 1000), verifiedPurchase: true, createdAt: new Date(), helpful: 0, reported: false };
-    await reviewsCollection.insertOne(review);
-    const stats = await reviewsCollection.aggregate([{ $match: { itemId: secret._id } }, { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } }]).toArray();
-    await secretsCollection.updateOne({ _id: secret._id }, { $set: { 'rating.average': stats[0]?.avg?.toFixed(2) || 0, 'rating.count': stats[0]?.count || 0 } });
-    await logAudit('review_created', { itemId: req.params.id, buyer: req.user.uid, rating, verified: true });
-    await updateSellerReputation(secret.userId.toString());
-    res.json({ success: true, message: '¡Gracias por tu reseña!', review: {...review, id: review._id } });
-  } catch (e) { logger.error('❌ Review error: ' + e.message); res.status(500).json({ error: 'Error guardando reseña: ' + e.message }); }
-});
-// 🌟 CALCULAR Y ACTUALIZAR REPUTACIÓN DEL VENDEDOR
+
+// 🌟 FUNCIÓN: Calcular y actualizar reputación del vendedor (definida ANTES de usarse)
 async function updateSellerReputation(sellerUserId) {
-  if (!mongoReady) return;
+  if (!mongoReady || !reviewsCollection || !secretsCollection || !profilesCollection) return;
   try {
     const sellerSecrets = await secretsCollection.find({ userId: new ObjectId(sellerUserId) }, { projection: { _id: 1 } }).toArray();
     if (sellerSecrets.length === 0) return;
@@ -1695,8 +1638,235 @@ async function updateSellerReputation(sellerUserId) {
     const avg = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
     const newRep = Math.min(5, Math.max(0, avg)).toFixed(2);
     await profilesCollection.updateOne({ userId: new ObjectId(sellerUserId) }, { $set: { reputation: newRep, reputationUpdatedAt: new Date() } });
-  } catch (e) { logger.warn('⚠️ Error actualizando reputación: ' + e.message); }
+  } catch (e) { 
+    logger.warn('⚠️ Error actualizando reputación: ' + e.message); 
+  }
 }
+
+// 📦 CATÁLOGO DEL MARKETPLACE
+app.get('/api/marketplace', async(req, res) => {
+  try {
+    if (!mongoReady || !secretsCollection) return res.json({ success: true, items: [], total: 0, page: 1, demo: true });
+    const { categoria, maxPrice, minPrice, sortBy = 'popularity', page = 1, limit = 20, q, tags, verifiedOnly } = req.query;
+    const filter = { isForSale: true };
+    if (categoria) filter.categoria = categoria;
+    if (maxPrice) filter.price = {...filter.price, $lte: parseFloat(maxPrice) };
+    if (minPrice) filter.price = {...filter.price, $gte: parseFloat(minPrice) };
+    if (verifiedOnly === 'true') { 
+      const verifiedUsers = await profilesCollection.find({ identityVerified: true }, { projection: { userId: 1 } }).toArray(); 
+      filter.userId = { $in: verifiedUsers.map(p => p.userId) }; 
+    }
+    if (tags) { 
+      const tagList = tags.split(',').map(t => t.trim()); 
+      filter.tags = { $in: tagList }; 
+    }
+    if (q) filter.$text = { $search: q };
+    
+    let sort = {};
+    switch(sortBy) {
+      case 'price_asc': sort = { price: 1 }; break;
+      case 'price_desc': sort = { price: -1 }; break;
+      case 'newest': sort = { createdAt: -1 }; break;
+      case 'rating': sort = { 'rating.average': -1, sales: -1 }; break;
+      default: sort = { sales: -1, 'rating.average': -1, createdAt: -1 };
+    }
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [items, total] = await Promise.all([
+      secretsCollection.find(filter).sort(sort).skip(skip).limit(parseInt(limit)).project({ encrypted: 0, contenido: 0, buyers: 0 }).toArray(), 
+      secretsCollection.countDocuments(filter)
+    ]);
+    
+    const enrichedItems = [];
+    for (const item of items) { 
+      const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, { projection: { displayName: 1, avatarUrl: 1, rating: 1, totalVentas: 1, identityVerified: 1 } }); 
+      enrichedItems.push(getPublicItemMetadata(item, sellerProfile)); 
+    }
+    
+    res.json({ 
+      success: true, 
+      items: enrichedItems, 
+      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }, 
+      filters: { categoria, maxPrice, minPrice, sortBy, q, tags } 
+    });
+  } catch (e) { 
+    logger.error('❌ Marketplace catalog error: ' + e.message); 
+    res.status(500).json({ error: 'Error cargando catálogo: ' + e.message }); 
+  }
+});
+
+// 🔍 BÚSQUEDA EN MARKETPLACE
+app.get('/api/marketplace/search', async(req, res) => {
+  try {
+    const { q, categoria, limit = 10 } = req.query;
+    if (!q || q.length < 2) return res.status(400).json({ error: 'Término de búsqueda debe tener al menos 2 caracteres' });
+    if (!mongoReady) return res.json({ success: true, results: [], demo: true });
+    
+    const filter = { isForSale: true, $text: { $search: q } };
+    if (categoria) filter.categoria = categoria;
+    
+    const results = await secretsCollection.find(filter, { score: { $meta: 'textScore' }, projection: { encrypted: 0, contenido: 0, buyers: 0 } })
+      .sort({ score: { $meta: 'textScore' } })
+      .limit(parseInt(limit))
+      .toArray();
+    
+    const enriched = [];
+    for (const item of results) { 
+      const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, { projection: { displayName: 1, avatarUrl: 1 } }); 
+      enriched.push({...getPublicItemMetadata(item, sellerProfile), relevanceScore: item.score }); 
+    }
+    
+    res.json({ success: true, query: q, results: enriched, count: enriched.length });
+  } catch (e) { 
+    logger.error('❌ Marketplace search error: ' + e.message); 
+    res.status(500).json({ error: 'Error en búsqueda: ' + e.message }); 
+  }
+});
+
+// 📄 DETALLE DE PRODUCTO
+app.get('/api/marketplace/item/:id', async(req, res) => {
+  try {
+    if (!mongoReady) return res.json({ success: true, item: { id: req.params.id, titulo: 'Demo' }, demo: true });
+    
+    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), isForSale: true }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } });
+    if (!secret) return res.status(404).json({ error: 'Producto no encontrado o no disponible' });
+    
+    const sellerProfile = await profilesCollection.findOne({ userId: secret.userId }, { projection: { displayName: 1, avatarUrl: 1, bio: 1, rating: 1, totalVentas: 1, identityVerified: 1, createdAt: 1 } });
+    const recentReviews = await reviewsCollection?.find({ itemId: secret._id, createdAt: { $gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }).sort({ createdAt: -1 }).limit(3).toArray() || [];
+    
+    res.json({ 
+      success: true, 
+      item: {
+        ...getPublicItemMetadata(secret, sellerProfile), 
+        descripcionCompleta: secret.descripcion, 
+        requisitos: secret.requisitos || null, 
+        preview: secret.preview || null, 
+        reseñasRecientes: recentReviews.map(r => ({ 
+          id: r._id, 
+          rating: r.rating, 
+          comment: r.comment?.substring(0, 200), 
+          buyerName: r.buyerName || 'Comprador', 
+          date: r.createdAt, 
+          verified: r.verifiedPurchase 
+        })) 
+      }, 
+      acciones: { 
+        comprar: '/api/buy/' + req.params.id, 
+        agregarFavoritos: req.user ? '/api/marketplace/favorites' : null, 
+        compartir: APP_URL + '/marketplace/item/' + req.params.id 
+      } 
+    });
+  } catch (e) { 
+    logger.error('❌ Marketplace item detail error: ' + e.message); 
+    res.status(500).json({ error: 'Error cargando producto: ' + e.message }); 
+  }
+});
+
+// 👤 PERFIL DE CREADOR
+app.get('/api/marketplace/creator/:userId', async(req, res) => {
+  try {
+    if (!mongoReady) return res.json({ success: true, creator: { uid: req.params.userId, displayName: 'Demo' }, demo: true });
+    
+    const user = await usersCollection.findOne({ uid: req.params.userId }, { projection: { password: 0, encryptedUserKey: 0, email: 0 } });
+    if (!user) return res.status(404).json({ error: 'Creador no encontrado' });
+    
+    const profile = await profilesCollection.findOne({ userId: user._id });
+    const [totalItems, itemsForSale, totalVentas, ratingStats] = await Promise.all([
+      secretsCollection.countDocuments({ userId: user._id }), 
+      secretsCollection.countDocuments({ userId: user._id, isForSale: true }), 
+      transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' }), 
+      secretsCollection.aggregate([{ $match: { userId: user._id, 'rating.count': { $gt: 0 } } }, { $group: { _id: null, avgRating: { $avg: '$rating.average' }, totalReviews: { $sum: '$rating.count' } } }]).toArray()
+    ]);
+    
+    const featuredItems = await secretsCollection.find({ userId: user._id, isForSale: true }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } })
+      .sort({ sales: -1, 'rating.average': -1 })
+      .limit(6)
+      .toArray();
+    
+    const enrichedItems = featuredItems.map(item => getPublicItemMetadata(item, profile));
+    
+    res.json({ 
+      success: true, 
+      creator: { 
+        uid: user.uid, 
+        displayName: profile?.displayName || 'Creador', 
+        avatarUrl: profile?.avatarUrl, 
+        bio: profile?.bio, 
+        identityVerified: profile?.identityVerified || false, 
+        memberSince: user.createdAt, 
+        tier: user.tier 
+      }, 
+      estadisticas: { 
+        totalItems, 
+        itemsEnVenta: itemsForSale, 
+        totalVentas, 
+        ratingPromedio: ratingStats[0]?.avgRating?.toFixed(2) || 0, 
+        totalReseñas: ratingStats[0]?.totalReviews || 0 
+      }, 
+      itemsDestacados: enrichedItems, 
+      acciones: { 
+        seguir: req.user ? '/api/marketplace/creator/' + req.params.userId + '/follow' : null, 
+        contactar: profile?.isPublic ? '/api/marketplace/creator/' + req.params.userId + '/contact' : null 
+      } 
+    });
+  } catch (e) { 
+    logger.error('❌ Marketplace creator profile error: ' + e.message); 
+    res.status(500).json({ error: 'Error cargando perfil: ' + e.message }); 
+  }
+});
+
+// ✍️ DEJAR RESEÑA (POST - solo compradores verificados)
+app.post('/api/marketplace/item/:id/review', authenticate, async(req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating debe ser entre 1 y 5' });
+    if (!mongoReady) return res.json({ success: true, message: 'Reseña guardada (demo)', demo: true });
+    
+    const buyer = await usersCollection.findOne({ uid: req.user.uid });
+    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
+    
+    if (!secret) return res.status(404).json({ error: 'Producto no encontrado' });
+    if (secret.userId.toString() === buyer._id.toString()) return res.status(400).json({ error: 'No puedes reseñar tu propio producto' });
+    if (!secret.buyers?.includes(buyer.uid)) return res.status(403).json({ error: 'Solo compradores verificados pueden dejar reseñas' });
+    
+    const existingReview = await reviewsCollection?.findOne({ itemId: secret._id, buyerUid: req.user.uid });
+    if (existingReview) return res.status(400).json({ error: 'Ya has dejado una reseña para este producto' });
+    
+    const review = { 
+      itemId: secret._id, 
+      buyerUid: req.user.uid, 
+      buyerName: (await profilesCollection.findOne({ userId: buyer._id }))?.displayName || 'Comprador', 
+      rating: parseInt(rating), 
+      comment: comment?.substring(0, 1000), 
+      verifiedPurchase: true, 
+      createdAt: new Date(), 
+      helpful: 0, 
+      reported: false 
+    };
+    
+    await reviewsCollection.insertOne(review);
+    
+    const stats = await reviewsCollection.aggregate([
+      { $match: { itemId: secret._id } }, 
+      { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } }
+    ]).toArray();
+    
+    await secretsCollection.updateOne({ _id: secret._id }, { 
+      $set: { 
+        'rating.average': stats[0]?.avg?.toFixed(2) || 0, 
+        'rating.count': stats[0]?.count || 0 
+      } 
+    });
+    
+    await logAudit('review_created', { itemId: req.params.id, buyer: req.user.uid, rating, verified: true });
+    await updateSellerReputation(secret.userId.toString());
+    
+    res.json({ success: true, message: '¡Gracias por tu reseña!', review: {...review, id: review._id } });
+  } catch (e) { 
+    logger.error('❌ Review error: ' + e.message); 
+    res.status(500).json({ error: 'Error guardando reseña: ' + e.message }); 
+  }
+});
 
 // 🌟 GET /api/users/:uid/reputation
 app.get('/api/users/:uid/reputation', async(req, res) => {
