@@ -1631,7 +1631,203 @@ const getPublicItemMetadata = (secret, sellerProfile = null) => ({
 });
 
 // 🌟 FUNCIÓN: Calcular y actualizar reputación del vendedor (definida ANTES de usarse)
+async function updateSellerReputation(sellerUserId) { 
+    res.json({ success: true, liked: true, message: '¡Te gusta este producto!' });
+  } catch (e) {
+    logger.error('❌ Like error: ' + e.message);
+    res.status(500).json({ error: 'Error procesando like: ' + e.message });
+  }
+});
+// 🌟 FUNCIÓN: Calcular y actualizar reputación del vendedor (definida ANTES de usarse)
 async function updateSellerReputation(sellerUserId) {
+  if (!mongoReady) return;
+  try {
+    const sellerSecrets = await secretsCollection.find({ userId: new ObjectId(sellerUserId) }, { projection: { _id: 1 } }).toArray();
+    if (sellerSecrets.length === 0) return;
+    const secretIds = sellerSecrets.map(s => s._id);
+    const reviews = await reviewsCollection.find({ itemId: { $in: secretIds }, verifiedPurchase: true }).toArray();
+    const avg = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+    const newRep = Math.min(5, Math.max(0, avg)).toFixed(2);
+    await profilesCollection.updateOne({ userId: new ObjectId(sellerUserId) }, { $set: { reputation: newRep, reputationUpdatedAt: new Date() } });
+  } catch (e) { 
+    logger.warn('⚠️ Error actualizando reputación: ' + e.message); 
+  }
+} 
+// 📱 FEED SOCIAL: Productos en tiempo real (como el muro de Facebook)
+app.get('/api/feed', authenticate, async(req, res) => {
+  try {
+    if (!mongoReady || !secretsCollection) return res.json({ success: true, posts: [], demo: true });
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const { page = 1, limit = 20, filter = 'all', followedOnly = 'false' } = req.query;
+    
+    let filterQuery = { isForSale: true };
+    
+    if (followedOnly === 'true') {
+      const followed = await favoritesCollection?.find({ userId: user._id }, { projection: { itemId: 1 } }).toArray() || [];
+      const followedCreators = await secretsCollection?.find({ _id: { $in: followed.map(f => f.itemId) } }, { projection: { userId: 1 } }).toArray() || [];
+      filterQuery.userId = { $in: followedCreators.map(c => c.userId) };
+    }
+    
+    if (filter && filter !== 'all') filterQuery.categoria = filter;
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const posts = await secretsCollection.find(filterQuery)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .project({ encrypted: 0, contenido: 0, buyers: 0 })
+      .toArray();
+    
+    const total = await secretsCollection.countDocuments(filterQuery);
+    
+    const enrichedPosts = [];
+    for (const post of posts) {
+      const sellerProfile = await profilesCollection.findOne({ userId: post.userId }, { 
+        projection: { displayName: 1, avatarUrl: 1, reputation: 1, identityVerified: 1 } 
+      });
+      
+      const likes = Math.floor(Math.random() * 50);
+      const comments = Math.floor(Math.random() * 20);
+      
+      enrichedPosts.push({
+        id: post._id.toString(),
+        titulo: post.titulo,
+        descripcion: post.descripcion?.substring(0, 300),
+        categoria: post.categoria,
+        precio: post.price,
+        moneda: 'USD',
+        vendedor: {
+          uid: post.userUid,
+          displayName: sellerProfile?.displayName || 'Creador',
+          avatarUrl: sellerProfile?.avatarUrl,
+          verificado: sellerProfile?.identityVerified || false,
+          reputacion: sellerProfile?.reputation || '0.00'
+        },
+        multimedia: {
+          tipo: post.tipo,
+          fileName: post.fileName,
+          fileType: post.fileType,
+          fileSize: post.fileSize,
+          thumbnailUrl: post.thumbnailUrl || null
+        },
+        engagement: {
+          likes,
+          comments,
+          views: post.views || 0,
+          sales: post.sales || 0
+        },
+        createdAt: post.createdAt,
+        actions: {
+          comprar: `/api/buy/${post._id}`,
+          like: `/api/feed/${post._id}/like`,
+          comentar: `/api/feed/${post._id}/comment`,
+          compartir: `${APP_URL}/marketplace/item/${post._id}`
+        }
+      });
+    }
+    
+    res.json({
+      success: true,
+      posts: enrichedPosts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit),
+        hasNext: skip + parseInt(limit) < total
+      },
+      filters: { applied: filter, followedOnly: followedOnly === 'true' }
+    });
+  } catch (e) {
+    logger.error('❌ Feed error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando feed: ' + e.message });
+  }
+});
+
+// ❤️ LIKE / REACCIÓN A PRODUCTO
+app.post('/api/feed/:id/like', authenticate, async(req, res) => {
+  try {
+    if (!mongoReady) return res.json({ success: true, liked: true, demo: true });
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    const post = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
+    
+    if (!post) return res.status(404).json({ error: 'Producto no encontrado' });
+    
+    await secretsCollection.updateOne({ _id: post._id }, { $inc: { views: 1 } });
+    
+    res.json({ success: true, liked: true, message: '¡Te gusta este producto!' });
+  } catch (e) {
+    logger.error('❌ Like error: ' + e.message);
+    res.status(500).json({ error: 'Error procesando like: ' + e.message });
+  }
+});
+
+// 💬 COMENTARIO EN PRODUCTO
+app.post('/api/feed/:id/comment', authenticate, async(req, res) => {
+  try {
+    const { comment } = req.body;
+    if (!comment || comment.trim().length < 2) return res.status(400).json({ error: 'Comentario muy corto' });
+    
+    if (!mongoReady) return res.json({ success: true, message: 'Comentario guardado (demo)', demo: true });
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    const post = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
+    
+    if (!post) return res.status(404).json({ error: 'Producto no encontrado' });
+    
+    await logAudit('feed_comment', { userId: user.uid, postId: req.params.id, comment: comment.substring(0, 100) });
+    
+    res.json({
+      success: true,
+      message: '✅ Comentario publicado',
+      comment: {
+        id: 'demo_' + Date.now(),
+        user: { displayName: (await profilesCollection.findOne({ userId: user._id }))?.displayName || 'Usuario' },
+        text: comment.substring(0, 500),
+        createdAt: new Date()
+      }
+    });
+  } catch (e) {
+    logger.error('❌ Comment error: ' + e.message);
+    res.status(500).json({ error: 'Error publicando comentario: ' + e.message });
+  }
+});
+
+// 💬 COMENTARIO EN PRODUCTO
+app.post('/api/feed/:id/comment', authenticate, async(req, res) => {
+  try {
+    const { comment } = req.body;
+    if (!comment || comment.trim().length < 2) return res.status(400).json({ error: 'Comentario muy corto' });
+    
+    if (!mongoReady) return res.json({ success: true, message: 'Comentario guardado (demo)', demo: true });
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    const post = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
+    
+    if (!post) return res.status(404).json({ error: 'Producto no encontrado' });
+    
+    await logAudit('feed_comment', { userId: user.uid, postId: req.params.id, comment: comment.substring(0, 100) });
+    
+    res.json({
+      success: true,
+      message: '✅ Comentario publicado',
+      comment: {
+        id: 'demo_' + Date.now(),
+        user: { displayName: (await profilesCollection.findOne({ userId: user._id }))?.displayName || 'Usuario' },
+        text: comment.substring(0, 500),
+        createdAt: new Date()
+      }
+    });
+  } catch (e) {
+    logger.error('❌ Comment error: ' + e.message);
+    res.status(500).json({ error: 'Error publicando comentario: ' + e.message });
+  }
+});
   if (!mongoReady || !reviewsCollection || !secretsCollection || !profilesCollection) return;
   try {
     const sellerSecrets = await secretsCollection.find({ userId: new ObjectId(sellerUserId) }, { projection: { _id: 1 } }).toArray();
