@@ -23,7 +23,8 @@ const { unixfs } = require('@helia/unixfs');
 // 🤖 IA INTERNA: Natural para NLP ligero
 const natural = require('natural');
 const tokenizer = new natural.WordTokenizer();
-const stemmer = natural.PorterStemmer;
+const stemmer = natural.PorterStemmer; // 💳 Stripe para pagos (AGREGAR ESTA LÍNEA) ✅
+const stripe = require('stripe')(STRIPE_SECRET_KEY);
 // 🔐 CLAVES + ADMINS
 const JWT_SECRET = process.env.JWT_SECRET || 'romwiner_jwt_secret_fallback';
 const MASTER_KEY = process.env.MASTER_KEY || 'romwiner_master_key_fallback';
