@@ -1905,15 +1905,14 @@ app.post('/api/identity/avatar', authenticate, async(req, res) => {
     res.json({ ok: true, message: 'Avatar actualizado' });
   } catch (e) { res.status(500).json({ error: 'Error guardando avatar: ' + e.message }); }
 });
+// 🔐 Firma digital con WebAuthn (redirección al endpoint seguro)
 app.post('/api/identity/signature', authenticate, async(req, res) => {
-  try {
-    const { sig } = req.body;
-    if (!sig) return res.status(400).json({ error: 'Falta firma' });
-    const masterKey = CryptoJS.PBKDF2(req.user.passwordHash || 'tmp', req.user.salt || 'tmp', { keySize: 8, iterations: 1000 }).toString(CryptoJS.enc.Hex);
-    const enc = CryptoJS.AES.encrypt(sig, masterKey).toString();
-    await usersCollection.updateOne({ _id: req.user._id }, { $set: { signature: enc } });
-    res.json({ ok: true, message: 'Firma guardada y cifrada' });
-  } catch (e) { res.status(500).json({ error: 'Error guardando firma: ' + e.message }); }
+  return res.json({ 
+    success: true, 
+    message: 'Para firmar con máxima seguridad, usa /api/crypto-auth/register-start',
+    webauthnEndpoint: '/api/crypto-auth/register-start',
+    legacySupport: true 
+  });
 });
 app.post('/api/identity/contacts', authenticate, async(req, res) => {
   try {
