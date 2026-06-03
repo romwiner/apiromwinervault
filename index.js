@@ -1638,18 +1638,9 @@ const getPublicItemMetadata = (secret, sellerProfile = null) => ({
   createdAt: secret.createdAt, 
   thumbnailUrl: secret.thumbnailUrl || null
 });
-
-// 🌟 FUNCIÓN: Calcular y actualizar reputación del vendedor (definida ANTES de usarse)
-async function updateSellerReputation(sellerUserId) { 
-    res.json({ success: true, liked: true, message: '¡Te gusta este producto!' });
-  } catch (e) {
-    logger.error('❌ Like error: ' + e.message);
-    res.status(500).json({ error: 'Error procesando like: ' + e.message });
-  }
-});
-// 🌟 FUNCIÓN: Calcular y actualizar reputación del vendedor (definida ANTES de usarse)
+// 🌟 FUNCIÓN: Calcular y actualizar reputación del vendedor
 async function updateSellerReputation(sellerUserId) {
-  if (!mongoReady) return;
+  if (!mongoReady || !reviewsCollection || !secretsCollection || !profilesCollection) return;
   try {
     const sellerSecrets = await secretsCollection.find({ userId: new ObjectId(sellerUserId) }, { projection: { _id: 1 } }).toArray();
     if (sellerSecrets.length === 0) return;
@@ -1661,7 +1652,25 @@ async function updateSellerReputation(sellerUserId) {
   } catch (e) { 
     logger.warn('⚠️ Error actualizando reputación: ' + e.message); 
   }
-} 
+}
+
+// 🌟 FUNCIÓN: Calcular y actualizar reputación del vendedor (definida ANTES de usarse)
+async function updateSellerReputation(sellerUserId) {
+  if (!mongoReady) return;
+  try {
+    const sellerSecrets = await secretsCollection.find({ userId: new ObjectId(sellerUserId) }, { projection: { _id: 1 } }).toArray();
+    if (sellerSecrets.length === 0) return;
+    const secretIds = sellerSecrets.map(s => s._id);
+    const reviews = await reviewsCollection.find({ itemId: { $in: secretIds }, verifiedPurchase: true }).toArray();
+    const avg = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+    const newRep = Math.min(5, Math.max(0, avg)).toFixed(2);
+    await profilesCollection.updateOne({ userId: new ObjectId(sellerUserId) }, { $set: { reputation: newRep, reputationUpdatedAt: new Date() } });
+  } catch (e) {
+    logger.error('❌ Feed error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando feed: ' + e.message });
+  }
+});
+
 // 📱 FEED SOCIAL: Productos en tiempo real (como el muro de Facebook)
 app.get('/api/feed', authenticate, async(req, res) => {
   try {
