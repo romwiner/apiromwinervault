@@ -1092,7 +1092,16 @@ app.get('/api/identity/qr', authenticate, async(req, res) => {
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const qrData = JSON.stringify({ uid: user.uid, email: user.email, ref: user.refCode });
     const encodedData = encodeURIComponent(qrData);
-    res.json({ success: true, qrPayload: qrData, qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodedData });
+    res.json({ 
+      success: true, 
+      qrPayload: qrData, 
+      qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodedData,
+      // ✅ Instrucciones de instalación para PC y móvil
+      installGuide: {
+        mobile: "1. Escanea con la cámara\n2. Toca 'Agregar a pantalla de inicio'",
+        desktop: "1. Abre en Chrome/Edge\n2. Haz clic en 📥 de la barra\n3. ¡Listo!"
+      }
+    });
   } catch (e) {
     logger.error('❌ QR generation error: ' + e.message);
     res.status(500).json({ error: 'Error al generar QR: ' + e.message });
