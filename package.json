@@ -1,46 +1,45 @@
 {
-    "name": "apiromwinervault",
-    "version": "1.0.0",
-    "description": "ApiRomwiner Vault - Bóveda segura con identidad universal y monetización",
-    "main": "index.js",
-    "scripts": {
-        "start": "node index.js",
-        "dev": "nodemon index.js"
-    },
-    "dependencies": {
-        "express": "^4.18.0",
-        "jsonwebtoken": "^9.0.0",
-        "crypto-js": "^4.2.0", 
-        "@helia/http": "^3.1.4",
-        "@helia/unixfs": "^7.2.1",
-        "@reown/appkit": "^1.8.20",
-        "@reown/appkit-adapter-wagmi": "^1.0.0",
-        "@simplewebauthn/server": "^13.3.0",
-        "@tanstack/react-query": "^5.100.14",
-        "@tensorflow/tfjs-node": "^4.15.0",
-        "bcryptjs": "^2.4.3",
-        "cors": "^2.8.5",
-        "diff": "^9.0.0",
-        "dotenv": "^16.3.1",
-        "ethers": "^6.16.0",
-        "express": "^4.18.2",
-        "express-rate-limit": "^7.1.5",
-        "file-type": "^22.0.1",
-        "helia": "^6.1.4",
-        "helmet": "^7.1.0",
-        "jsonwebtoken": "^9.0.2",
-        "mongodb": "^6.3.0",
-        "multer": "^1.4.5-lts.1",
-        "natural": "^0.6.0",
-        "pino": "^8.17.2",
-        "sharp": "^0.34.5",
-        "viem": "^2.19.2",
-        "wagmi": "^3.6.16"
-    },
-    "devDependencies": {
-        "nodemon": "^3.0.2"
-    },
-    "engines": {
-        "node": "24.x"
-    }
+  "name": "apiromwinervault",
+  "version": "1.0.0",
+  "description": "ApiRomwiner Vault - Bóveda segura con identidad universal y monetización",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@helia/http": "^3.1.4",
+    "@helia/unixfs": "^7.2.1",
+    "@reown/appkit": "^1.8.20",
+    "@reown/appkit-adapter-wagmi": "^1.0.0",
+    "@simplewebauthn/server": "^13.3.0",
+    "@tanstack/react-query": "^5.100.14",
+    "@tensorflow/tfjs-node": "^4.15.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "diff": "^9.0.0",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.16.0",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "file-type": "^22.0.1",
+    "helia": "^6.1.4",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.3.0",
+    "multer": "^1.4.5-lts.1",
+    "natural": "^0.6.0",
+    "pino": "^8.17.2",
+    "sharp": "^0.34.5",
+    "stripe": "^14.25.0",
+    "viem": "^2.19.2",
+    "wagmi": "^3.6.16"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": "20.x"
+  }
 }
