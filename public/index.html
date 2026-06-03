@@ -9210,6 +9210,68 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   });
 </script>
+  <!-- Panel de Analytics Financieros -->
+<div id="financialAnalyticsPanel" class="hidden">
+  <h3>📊 Analytics Financieros</h3>
+  
+  <!-- Tarjetas de resumen -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:16px 0">
+    <div style="background:#1a2332;padding:16px;border-radius:8px">
+      <div style="color:#8b95a5;font-size:0.85rem">Ingresos Totales</div>
+      <div id="totalRevenue" style="color:#00e676;font-size:1.5rem;font-weight:600">$0.00</div>
+    </div>
+    
+    <div style="background:#1a2332;padding:16px;border-radius:8px">
+      <div style="color:#8b95a5;font-size:0.85rem">Ventas Totales</div>
+      <div id="totalSales" style="color:#29b6f6;font-size:1.5rem;font-weight:600">0</div>
+    </div>
+    
+    <div style="background:#1a2332;padding:16px;border-radius:8px">
+      <div style="color:#8b95a5;font-size:0.85rem">Ganancias Afiliados</div>
+      <div id="affiliateEarnings" style="color:#ab47bc;font-size:1.5rem;font-weight:600">$0.00</div>
+    </div>
+    
+    <div style="background:#1a2332;padding:16px;border-radius:8px">
+      <div style="color:#8b95a5;font-size:0.85rem">Productos Activos</div>
+      <div id="activeProducts" style="color:#ffa726;font-size:1.5rem;font-weight:600">0</div>
+    </div>
+  </div>
+
+  <!-- Gráficos -->
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin:16px 0">
+    <div style="background:#1a2332;padding:16px;border-radius:8px">
+      <h4 style="color:#8ab4f8;margin:0 0 12px 0">📈 Ingresos por Día</h4>
+      <canvas id="revenueChart" style="width:100%;max-width:100%"></canvas>
+    </div>
+    
+    <div style="background:#1a2332;padding:16px;border-radius:8px">
+      <h4 style="color:#8ab4f8;margin:0 0 12px 0">🥧 Ventas por Categoría</h4>
+      <canvas id="categoryChart" style="width:100%;max-width:100%"></canvas>
+    </div>
+  </div>
+
+  <!-- Top productos -->
+  <div style="background:#1a2332;padding:16px;border-radius:8px;margin:16px 0">
+    <h4 style="color:#8ab4f8;margin:0 0 12px 0">🏆 Top Productos</h4>
+    <div id="topProducts" class="analytics-list"></div>
+  </div>
+
+  <!-- Timeline de afiliados -->
+  <div style="background:#1a2332;padding:16px;border-radius:8px;margin:16px 0">
+    <h4 style="color:#8ab4f8;margin:0 0 12px 0">📅 Actividad de Afiliados</h4>
+    <div id="affiliateTimeline" class="affiliate-timeline"></div>
+  </div>
+
+  <!-- Botones de exportación -->
+  <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+    <button onclick="exportFinancialData('csv')" style="padding:10px 20px;background:transparent;color:#8ab4f8;border:1px solid #8ab4f8;border-radius:6px;cursor:pointer">
+      📥 Exportar CSV
+    </button>
+    <button onclick="exportFinancialData('json')" style="padding:10px 20px;background:transparent;color:#8ab4f8;border:1px solid #8ab4f8;border-radius:6px;cursor:pointer">
+      📥 Exportar JSON
+    </button>
+  </div>
+</div>  
 </body>
 </html>
 
