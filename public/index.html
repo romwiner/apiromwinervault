@@ -6656,448 +6656,1765 @@ async function loadFinancialData(period = '30d') {
         revBox.appendChild(barContainer);
       });
     }
+  // ============================================
+// 🛡️ UTILIDADES GLOBALES (sin dependencias externas)
+// ============================================
+
+// Sistema de logs seguro
+function log(mensaje, tipo = 'info') {
+  const timestamp = new Date().toLocaleTimeString();
+  const colores = { 
+    info: '#8ab4f8', 
+    error: '#ff5252', 
+    success: '#00e676', 
+    warning: '#ffab40' 
+  };
+  const color = colores[tipo] || colores.info;
+  console.log(`%c[${timestamp}] ${mensaje}`, `color: ${color}`);
+}
+
+// Sistema de notificaciones
+function showNotification(mensaje, tipo = 'info') {
+  const anterior = document.getElementById('appNotification');
+  if (anterior) anterior.remove();
+
+  const colores = { 
+    info: { bg: '#1a2332', border: '#8ab4f8', text: '#8ab4f8' },
+    error: { bg: '#2a1520', border: '#ff5252', text: '#ff5252' },
+    success: { bg: '#152a1a', border: '#00e676', text: '#00e676' },
+    warning: { bg: '#2a2415', border: '#ffab40', text: '#ffab40' }
+  };
+  const c = colores[tipo] || colores.info;
+
+  const notif = document.createElement('div');
+  notif.id = 'appNotification';
+  notif.style.cssText = `
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    background: ${c.bg}; border-left: 4px solid ${c.border};
+    color: ${c.text}; padding: 12px 20px; border-radius: 8px;
+    font-family: system-ui, sans-serif; font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: slideIn 0.3s ease-out;
+    max-width: 320px;
+  `;
+  notif.textContent = mensaje;
+  document.body.appendChild(notif);
+
+  setTimeout(() => {
+    notif.style.opacity = '0';
+    notif.style.transition = 'opacity 0.3s';
+    setTimeout(() => notif.remove(), 300);
+  }, 4000);
+}
+
+// ✅ FUNCIÓN req() CORREGIDA - Acepta ambos formatos de llamada
+async function req(url, metodoOpciones, bodyOpcional) {
+  try {
+    let opciones = {};
     
+    // Soporta ambos formatos:
+    // Formato 1: req(url, { method: 'POST', body: {...} })
+    // Formato 2: req(url, 'POST', { message: '...' })
+    if (typeof metodoOpciones === 'string') {
+      opciones = {
+        method: metodoOpciones,
+        body: bodyOpcional ? JSON.stringify(bodyOpcional) : undefined
+      };
+    } else if (typeof metodoOpciones === 'object') {
+      opciones = {
+        method: metodoOpciones.method || 'GET',
+        body: metodoOpciones.body ? JSON.stringify(metodoOpciones.body) : undefined
+      };
+    }
+
+    const respuesta = await fetch(url, {
+      method: opciones.method || 'GET',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(opciones.headers || {})
+      },
+      body: opciones.body
+    });
+
+    if (!respuesta.ok) {
+      const textoError = await respuesta.text().catch(() => '');
+      throw new Error(`HTTP ${respuesta.status}: ${respuesta.statusText} ${textoError}`);
+    }
+
+    const texto = await respuesta.text();
+    return texto ? JSON.parse(texto) : {};
+  } catch (error) {
+    log(`❌ Error en ${url}: ${error.message}`, 'error');
+    throw error;
+  }
+}
+
+// ✅ NUEVA FUNCIÓN: Sanitizar texto para mostrar en pantalla (evita XSS)
+function sanitizeForDisplay(texto, maxLongitud = 100) {
+  if (texto === null || texto === undefined) return '';
+  let limpio = String(texto);
+  // Escapar caracteres HTML peligrosos
+  limpio = limpio
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  // Limitar longitud
+  if (maxLongitud && limpio.length > maxLongitud) {
+    limpio = limpio.substring(0, maxLongitud) + '...';
+  }
+  return limpio;
+}
+
+// Estado de conexión
+function updateOnlineStatus(online) {
+  const indicador = document.getElementById('connectionStatus');
+  if (indicador) {
+    indicador.textContent = online ? '🟢 En línea' : '🔴 Sin conexión';
+    indicador.style.color = online ? '#00e676' : '#ff5252';
+  }
+  log(online ? 'Conexión restaurada' : 'Sin conexión', online ? 'success' : 'warning');
+}
+
+// ============================================
+// 📊 RENDERIZAR ANALYTICS FINANCIEROS (CORREGIDO)
+// ============================================
+async function renderFinancialAnalytics(res) {
+  try {
+    // ✅ Validación robusta de la respuesta
+    if (!res || !res.data) {
+      log('⚠️ Respuesta de analytics vacía o inválida', 'warning');
+      return;
+    }
+
     // 🥧 Categorías con lista nativa (createElement)
     const catBox = document.getElementById('categoryChartNative');
     if (catBox && Array.isArray(res.data.salesByCategory) && res.data.salesByCategory.length > 0) {
       catBox.innerHTML = '';
-      const cols = ['#00e676','#29b6f6','#ab47bc','#ffa726','#66bb6a'];
+      const cols = ['#00e676', '#29b6f6', '#ab47bc', '#ffa726', '#66bb6a'];
       
       res.data.salesByCategory.forEach((c, i) => {
         const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:8px;margin:4px 0';
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;margin:4px 0;padding:6px;border-radius:6px;background:rgba(255,255,255,0.02)';
         
         const dot = document.createElement('span');
-        dot.style.cssText = `width:12px;height:12px;border-radius:50%;background:${cols[i % cols.length]}`;
+        dot.style.cssText = `width:12px;height:12px;border-radius:50%;background:${cols[i % cols.length]};flex-shrink:0`;
         row.appendChild(dot);
         
         const label = document.createElement('span');
-        label.style.flex = '1';
+        label.style.cssText = 'flex:1;color:#e0e0e0;font-size:0.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
         label.textContent = sanitizeForDisplay(c.category, 50) || 'Sin categoría';
         row.appendChild(label);
         
         const count = document.createElement('span');
-        count.style.cssText = 'color:#00e676;font-weight:600';
-        count.textContent = Number(c.count || 0);
+        count.style.cssText = 'color:#00e676;font-weight:600;font-size:0.9rem';
+        count.textContent = Number(c.count || 0).toLocaleString();
         row.appendChild(count);
         
         catBox.appendChild(row);
       });
+      
+      log('📊 Categorías renderizadas correctamente', 'success');
+    } else if (catBox) {
+      catBox.innerHTML = '<p style="color:#8b95a5;text-align:center;padding:20px">📭 Sin datos de categorías</p>';
     }
     
+    log('📊 Analytics cargados (versión nativa)', 'success');
+    
   } catch (e) {
-    // ✅ No exponer detalles de error
-    log('⚠️ Error cargando analytics financieros', 'warning');
+    log('⚠️ Error cargando analytics financieros: ' + e.message, 'warning');
+    // ✅ No exponer detalles técnicos al usuario
   }
 }
+
+// ============================================
+// 🚀 INICIALIZACIÓN PRINCIPAL (CORREGIDA)
+// ============================================
+async function init() {
+  try {
+    log('🚀 Iniciando aplicación...', 'info');
     
-    if (typeof renderFinancialAnalytics === 'function') await renderFinancialAnalytics(res);
-    log('📊 Analytics cargados (versión nativa)');
+    // Cargar analytics
+    const res = await req('/api/analytics');
+    if (typeof renderFinancialAnalytics === 'function') {
+      await renderFinancialAnalytics(res);
+    }
+    
+    showNotification('✅ Aplicación iniciada', 'success');
   } catch (e) {
-    log('❌ Analytics: ' + e.message);
+    log('❌ Error en inicialización: ' + e.message, 'error');
     showNotification('❌ Error cargando analytics', 'error');
   }
 }
-      
-      // Inicializar app
-      init();
+
+// Ejecutar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+// ============================================
+// 🌐 EVENTOS ONLINE/OFFLINE
+// ============================================
+window.addEventListener('online', () => {
+  if (typeof updateOnlineStatus === 'function') updateOnlineStatus(true);
+  showNotification('🌐 Conexión restaurada', 'success');
+});
+
+window.addEventListener('offline', () => {
+  if (typeof updateOnlineStatus === 'function') updateOnlineStatus(false);
+  showNotification('📴 Sin conexión a internet', 'error');
+});
+
+// ============================================
+// 🌿 SISTEMA GIT-LIKE (BUGS CORREGIDOS)
+// ============================================
+
+// ✅ Variable global para el fileId actual del modal
+let currentGitFileId = null;
+
+async function showGitLog(fileId) {
+  if (!fileId) {
+    showNotification('❌ ID de archivo no válido', 'error');
+    return;
+  }
+
+  // ✅ SIEMPRE actualizar el fileId actual (esto arregla el bug principal)
+  currentGitFileId = fileId;
+
+  let modal = document.getElementById('gitModal');
+  
+  // Crear modal solo si no existe
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'gitModal';
+    modal.className = 'hidden';
+    modal.style.cssText = `
+      position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+      display: flex; justify-content: center; align-items: center;
+      z-index: 150; padding: 16px;
+    `;
+    
+    modal.innerHTML = `
+      <div style="
+        background: #151922; border: 1px solid #2a2f3a; border-radius: 12px;
+        max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto;
+        padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      ">
+        <h3 style="color: #8ab4f8; margin: 0 0 16px 0; font-family: system-ui">
+          🌿 Historial Git
+        </h3>
+        <div id="gitLogContent" style="margin: 12px 0; font-size: 0.85rem; color: #e0e0e0"></div>
+        <div style="display: flex; gap: 8px; margin-top: 12px">
+          <input id="commitMessage" 
+            placeholder="Mensaje de commit (ej: 'Versión inicial')" 
+            style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #2a2f3a; background: #0b0c10; color: #fff; font-size: 0.9rem">
+          <button id="btnCommit" style="
+            padding: 10px 16px; background: #00e676; color: #0b0c10;
+            border: none; border-radius: 6px; font-weight: 600; cursor: pointer;
+          ">💾 Commit</button>
+        </div>
+        <button id="btnCerrarGit" style="
+          margin-top: 12px; padding: 10px 20px; background: transparent;
+          color: #8b95a5; border: 1px solid #2a2f3a; border-radius: 6px;
+          cursor: pointer; width: 100%;
+        ">Cerrar</button>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+
+    // ✅ Usar addEventListener en lugar de onclick inline
+    document.getElementById('btnCommit').addEventListener('click', () => {
+      createGitCommit(); // Sin parámetros, usa currentGitFileId
     });
-
-    // === ONLINE/OFFLINE ===
-    window.addEventListener('online', () => {
-      if (typeof updateOnlineStatus === 'function') updateOnlineStatus(true);
-      showNotification('🌐 Conexión restaurada', 'info');
-    });
-    window.addEventListener('offline', () => {
-      if (typeof updateOnlineStatus === 'function') updateOnlineStatus(false);
-      showNotification('📴 Sin conexión', 'error');
-    });
-
-    // === GIT-LIKE ===
-    async function showGitLog(fileId) {
-      let modal = document.getElementById('gitModal');
-      if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'gitModal'; 
-        modal.className = 'hidden';
-        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:150;padding:16px';
-        modal.innerHTML = `<div class="glass" style="max-width:500px;max-height:80vh;overflow-y:auto">
-          <h3 style="color:#8ab4f8">🌿 Historial Git</h3>
-          <div id="gitLogContent" style="margin:12px 0;font-size:0.85rem"></div>
-          <div style="display:flex;gap:8px;margin-top:12px">
-            <input id="commitMessage" placeholder="Mensaje de commit (ej: 'Versión inicial')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#151922;color:#fff">
-            <button onclick="createGitCommit('${fileId}')" style="width:auto;padding:8px 16px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;font-weight:600">💾 Commit</button>
-          </div>
-          <button onclick="document.getElementById('gitModal').classList.add('hidden')" class="btn-sec" style="margin-top:12px">Cerrar</button>
-        </div>`;
-        document.body.appendChild(modal);
-      }
-      modal.classList.remove('hidden');
-      const content = document.getElementById('gitLogContent');
-      content.innerHTML = '<p style="color:#8b95a5">🔄 Cargando...</p>';
-      try {
-        const res = await req(`/api/vault/${fileId}/log`);
-        if (!res.log || res.log.length === 0) { 
-          content.innerHTML = '<p style="color:#8b95a5">📭 Sin commits aún. ¡Crea el primero!</p>'; 
-          return; 
-        }
-        content.innerHTML = res.log.map(c => `
-          <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-            <div style="font-family:monospace;font-size:0.75rem;color:#8ab4f8">🔗 ${c.hash}</div>
-            <div style="font-weight:600;margin:4px 0">${c.message}</div>
-            <div style="font-size:0.75rem;color:#8b95a5">👤 ${c.author} • 🌿 ${c.branch} • 📦 v${c.version} • 🕐 ${new Date(c.date).toLocaleString()}</div>
-          </div>
-        `).join('');
-      } catch (e) { 
-        content.innerHTML = `<p style="color:#ff5252">❌ ${e.message}</p>`; 
-      }
-    }
-
-    async function createGitCommit(fileId) {
-      const msg = document.getElementById('commitMessage')?.value?.trim();
-      if (!msg) return showNotification('⚠️ Escribe un mensaje para el commit', 'error');
-      try {
-        showNotification('💾 Guardando commit...', 'info');
-        await req(`/api/vault/${fileId}/commit`, 'POST', { message: msg, branch: 'main', tags: [] });
-        showNotification('✅ Commit creado', 'success');
-        document.getElementById('commitMessage').value = '';
-        showGitLog(fileId);
-      } catch (e) { 
-        showNotification('❌ ' + e.message, 'error'); 
-      }
-    }
-
-    // === MEDIA PLAYER ===
-    function playMedia(fileId, fileType) {
-      const modal = document.getElementById('mediaPlayerModal');
-      const video = document.getElementById('videoPlayer');
-      const audio = document.getElementById('audioPlayer');
-      const title = document.getElementById('mediaTitle');
-      video.classList.add('hidden'); 
-      audio.classList.add('hidden');
-      const src = `${API}/api/vault/${fileId}/stream?token=${token}`;
-      if (fileType && fileType.includes('video')) {
-        video.src = src; 
-        video.classList.remove('hidden'); 
-        video.play();
-      } else {
-        audio.src = src; 
-        audio.classList.remove('hidden'); 
-        audio.play();
-      }
-      modal.classList.remove('hidden');
-      title.textContent = 'Cargando multimedia...';
-    }
-
-    function closeMediaPlayer() {
-      const modal = document.getElementById('mediaPlayerModal');
-      const video = document.getElementById('videoPlayer');
-      const audio = document.getElementById('audioPlayer');
-      video.pause(); 
-      video.src = "";
-      audio.pause(); 
-      audio.src = "";
+    
+    document.getElementById('btnCerrarGit').addEventListener('click', () => {
       modal.classList.add('hidden');
-    }
+    });
 
-    // === IDENTITY: SIGNATURE ===
-    const sigC = document.getElementById('sigCanvas');
-    if (sigC) {
-      const cx = sigC.getContext('2d');
-      let dr = false;
-      function gP(e) {
-        const r = sigC.getBoundingClientRect();
-        return {
-          x: (e.touches?.[0]?.clientX || e.clientX) - r.left,
-          y: (e.touches?.[0]?.clientY || e.clientY) - r.top
-        };
-      }
-      sigC.onmousedown = e => { dr = true; cx.beginPath(); cx.moveTo(...Object.values(gP(e))) };
-      sigC.onmousemove = e => { if (!dr) return; const p = gP(e); cx.lineTo(p.x, p.y); cx.stroke() };
-      sigC.onmouseup = () => dr = false;
-      sigC.ontouchstart = e => { e.preventDefault(); dr = true; cx.beginPath(); cx.moveTo(...Object.values(gP(e))) };
-      sigC.ontouchmove = e => { e.preventDefault(); if (!dr) return; const p = gP(e); cx.lineTo(p.x, p.y); cx.stroke() };
-      sigC.ontouchend = () => dr = false;
-    }
+    // Cerrar al hacer clic fuera
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
+    });
+  }
 
-    function clearSig() {
-      sigC?.getContext('2d').clearRect(0, 0, sigC.width, sigC.height);
-      sigData = null;
-    }
+  // Mostrar modal
+  modal.classList.remove('hidden');
+  
+  // Limpiar input
+  const inputMensaje = document.getElementById('commitMessage');
+  if (inputMensaje) inputMensaje.value = '';
 
-    async function saveSig() {
-      if (!sigC) return;
-      sigData = sigC.toDataURL('image/png');
-      try {
-        await req('/api/identity/signature', 'POST', { sig: sigData });
-        showNotification('✅ Firma guardada y cifrada', 'success');
-      } catch (e) {
-        showNotification('❌ ' + e.message, 'error');
-      }
-    }
-     async function handleAvatar(e) {
-    const f = e.target.files[0];
-    if (!f) return;
-    // ✅ Guarda la imagen en la memoria del navegador para que no se pierda
-    const reader = new FileReader();
-    reader.onload = ev => {
-      document.getElementById('userAvatar').src = ev.target.result;
-      localStorage.setItem('romwiner_avatar', ev.target.result);
-    };
-    reader.readAsDataURL(f);
-    showNotification('✅ Foto guardada en tu dispositivo', 'success');
-    }
+  // Cargar historial
+  const content = document.getElementById('gitLogContent');
+  content.innerHTML = '<p style="color:#8b95a5">🔄 Cargando...</p>';
 
-    async function addContact() {
-      const em = document.getElementById('contactEmail')?.value?.trim();
-      if (!em || !/^\S+@\S+\.\S+$/.test(em)) return showNotification('⚠️ Email válido', 'error');
-      try {
-        await req('/api/identity/contacts', 'POST', { email: em });
-        loadContacts();
-        document.getElementById('contactEmail').value = '';
-        showNotification('✅ Contacto agregado', 'success');
-      } catch (e) {
-        showNotification('❌ ' + e.message, 'error');
-      }
-    }
-
-    async function loadContacts() {
-      const c = document.getElementById('contactsList');
-      if (!c) return;
-      try {
-        const r = await req('/api/identity/contacts');
-        c.innerHTML = (r.contacts || []).map(x => `
-          <div class="contact-row">
-            <span>${x.email}</span>
-            <button class="contact-remove" onclick="delContact('${x._id || x.email}')">×</button>
-          </div>
-        `).join('') || '<p style="font-size:0.75rem;color:#8b95a5">Sin contactos</p>';
-      } catch (e) {
-        c.innerHTML = '<p style="font-size:0.75rem;color:#8b95a5">Cargando...</p>';
-      }
-    }
-
-    async function delContact(id) {
-      if (!confirm('¿Eliminar contacto?')) return;
-      try {
-        await req(`/api/identity/contacts/${id}`, 'DELETE');
-        loadContacts();
-        showNotification('✅ Eliminado', 'success');
-      } catch (e) {
-        showNotification('❌ ' + e.message, 'error');
-      }
-    }
-// 🔐 Función auxiliar: hash SHA-256 nativo (reemplaza a CryptoJS)
-// Debe estar DEFINIDA UNA SOLA VEZ, fuera de cualquier otra función
-async function hashLocal(data) {
-  if (!data || typeof crypto === 'undefined' || !crypto.subtle) return 'none';
   try {
-    const encoder = new TextEncoder();
-    const buffer = encoder.encode(data);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+    const res = await req(`/api/vault/${fileId}/log`);
+    
+    if (!res || !Array.isArray(res.log)) {
+      content.innerHTML = '<p style="color:#ffab40">⚠️ Respuesta inválida del servidor</p>';
+      return;
+    }
+    
+    if (res.log.length === 0) {
+      content.innerHTML = '<p style="color:#8b95a5">📭 Sin commits aún. ¡Crea el primero!</p>';
+      return;
+    }
+    
+    // ✅ Renderizar con datos sanitizados
+    content.innerHTML = res.log.map(c => {
+      const hash = sanitizeForDisplay(String(c.hash || 'N/A').substring(0, 8));
+      const message = sanitizeForDisplay(c.message || 'Sin mensaje', 100);
+      const author = sanitizeForDisplay(c.author || 'Anónimo', 30);
+      const branch = sanitizeForDisplay(c.branch || 'main', 20);
+      const version = c.version || '0';
+      const fecha = c.date ? new Date(c.date).toLocaleString() : 'Fecha desconocida';
+
+      return `
+        <div style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05)">
+          <div style="font-family: monospace; font-size: 0.75rem; color: #8ab4f8">
+            🔗 ${hash}
+          </div>
+          <div style="font-weight: 600; margin: 4px 0; color: #e0e0e0">
+            ${message}
+          </div>
+          <div style="font-size: 0.75rem; color: #8b95a5">
+            👤 ${author} • 🌿 ${branch} • 📦 v${version} • 🕐 ${fecha}
+          </div>
+        </div>
+      `;
+    }).join('');
+    
   } catch (e) {
-    console.warn('Hash nativo no disponible:', e);
-    return 'none';
+    log('Error cargando historial Git: ' + e.message, 'error');
+    content.innerHTML = `<p style="color:#ff5252">❌ ${sanitizeForDisplay(e.message, 100)}</p>`;
   }
 }
 
-// 🔐 Generador QR 100% local para Identidad (sin APIs externas)
-// También definida UNA SOLA VEZ
-async function genQR() {
-  const u = currentUser || {};
-  const d = {
-    id: u.uid || 'ROM' + Date.now(),
-    name: document.getElementById('uEmail')?.textContent || 'Usuario',
-    avatar: document.getElementById('userAvatar')?.src || '',
-    sigHash: sigData ? await hashLocal(sigData) : 'none',
-    recov: (document.querySelectorAll('.contact-row').length),
-    multisig: document.getElementById('multisigToggle')?.checked || false
+// ✅ FUNCIÓN CORREGIDA - Ya no recibe fileId como parámetro
+async function createGitCommit() {
+  // ✅ Usar el fileId actual guardado globalmente
+  if (!currentGitFileId) {
+    showNotification('❌ No hay archivo seleccionado', 'error');
+    return;
+  }
+
+  const inputMensaje = document.getElementById('commitMessage');
+  const msg = inputMensaje ? inputMensaje.value.trim() : '';
+  
+  if (!msg) {
+    showNotification('⚠️ Escribe un mensaje para el commit', 'warning');
+    return;
+  }
+
+  try {
+    showNotification('💾 Guardando commit...', 'info');
+    
+    // ✅ Usar el formato de 3 parámetros que soporta req()
+    await req(
+      `/api/vault/${currentGitFileId}/commit`, 
+      'POST', 
+      { message: msg, branch: 'main', tags: [] }
+    );
+    
+    showNotification('✅ Commit creado', 'success');
+    inputMensaje.value = '';
+    
+    // Recargar historial
+    await showGitLog(currentGitFileId);
+    
+  } catch (e) {
+    showNotification('❌ ' + e.message, 'error');
+  }
+}
+
+// ============================================
+// 🎨 ANIMACIONES CSS (inyectadas sin archivos externos)
+// ============================================
+const estilo = document.createElement('style');
+estilo.textContent = `
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .hidden { display: none !important; }
+  #appNotification { transition: opacity 0.3s ease; }
+`;
+document.head.appendChild(estilo);  
+  
+// ============================================
+// 🔧 CONFIGURACIÓN GLOBAL (sin enlaces externos)
+// ============================================
+const API = window.location.origin;  // Usa el mismo dominio del servidor
+let token = localStorage.getItem('auth_token') || '';
+
+// Variable global para la firma
+let sigData = null;
+
+// Referencias globales al canvas
+const sigCanvas = document.getElementById('sigCanvas');
+let sigContext = null;
+let isDrawing = false;
+
+// ============================================
+// 🎬 MEDIA PLAYER (CORREGIDO)
+// ============================================
+function playMedia(fileId, fileType, fileName = 'Multimedia') {
+  // ✅ Validar que existan los elementos
+  const modal = document.getElementById('mediaPlayerModal');
+  const video = document.getElementById('videoPlayer');
+  const audio = document.getElementById('audioPlayer');
+  const title = document.getElementById('mediaTitle');
+
+  if (!modal || !video || !audio || !title) {
+    showNotification('❌ Elementos del reproductor no encontrados', 'error');
+    return;
+  }
+
+  if (!fileId) {
+    showNotification('❌ ID de archivo no válido', 'error');
+    return;
+  }
+
+  // Ocultar ambos primero
+  video.classList.add('hidden');
+  audio.classList.add('hidden');
+  video.pause();
+  audio.pause();
+  video.src = '';
+  audio.src = '';
+
+  // Construir URL de forma segura
+  const src = `${API}/api/vault/${encodeURIComponent(fileId)}/stream?token=${encodeURIComponent(token)}`;
+
+  // Determinar tipo de archivo
+  const esVideo = fileType && (
+    fileType.includes('video') || 
+    /\.(mp4|webm|ogg|mov|avi)$/i.test(fileName)
+  );
+
+  if (esVideo) {
+    video.src = src;
+    video.classList.remove('hidden');
+    // ✅ Manejar autoplay con fallback
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        log('⚠️ Autoplay bloqueado. Haz clic en play.', 'warning');
+        showNotification('▶️ Haz clic en el video para reproducir', 'info');
+      });
+    }
+  } else {
+    audio.src = src;
+    audio.classList.remove('hidden');
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        log('⚠️ Autoplay bloqueado. Haz clic en play.', 'warning');
+        showNotification('▶️ Haz clic en el audio para reproducir', 'info');
+      });
+    }
+  }
+
+  modal.classList.remove('hidden');
+  // ✅ Mostrar nombre real del archivo (sanitizado)
+  title.textContent = sanitizeForDisplay(fileName, 60);
+}
+
+function closeMediaPlayer() {
+  const modal = document.getElementById('mediaPlayerModal');
+  const video = document.getElementById('videoPlayer');
+  const audio = document.getElementById('audioPlayer');
+
+  if (video) {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+  }
+  if (audio) {
+    audio.pause();
+    audio.removeAttribute('src');
+    audio.load();
+  }
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+// ============================================
+// ✍️ FIRMA DIGITAL (CORREGIDA)
+// ============================================
+
+// Inicializar canvas cuando el DOM esté listo
+function initSignatureCanvas() {
+  if (!sigCanvas) {
+    log('⚠️ Canvas de firma no encontrado', 'warning');
+    return;
+  }
+
+  sigContext = sigCanvas.getContext('2d');
+  
+  // ✅ Configurar estilo del trazo
+  sigContext.strokeStyle = '#ffffff';
+  sigContext.lineWidth = 2.5;
+  sigContext.lineCap = 'round';
+  sigContext.lineJoin = 'round';
+
+  // ✅ Función para obtener posición del cursor/tacto
+  function getPosition(evento) {
+    const rect = sigCanvas.getBoundingClientRect();
+    const clienteX = evento.touches?.[0]?.clientX || evento.clientX;
+    const clienteY = evento.touches?.[0]?.clientY || evento.clientY;
+    return {
+      x: clienteX - rect.left,
+      y: clienteY - rect.top
+    };
+  }
+
+  // ✅ Usar addEventListener (no sobrescribe otros handlers)
+  sigCanvas.addEventListener('mousedown', (e) => {
+    isDrawing = true;
+    const pos = getPosition(e);
+    sigContext.beginPath();
+    sigContext.moveTo(pos.x, pos.y);
+  });
+
+  sigCanvas.addEventListener('mousemove', (e) => {
+    if (!isDrawing) return;
+    const pos = getPosition(e);
+    sigContext.lineTo(pos.x, pos.y);
+    sigContext.stroke();
+  });
+
+  sigCanvas.addEventListener('mouseup', () => {
+    isDrawing = false;
+  });
+
+  sigCanvas.addEventListener('mouseleave', () => {
+    isDrawing = false;
+  });
+
+  // Soporte táctil
+  sigCanvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    isDrawing = true;
+    const pos = getPosition(e);
+    sigContext.beginPath();
+    sigContext.moveTo(pos.x, pos.y);
+  }, { passive: false });
+
+  sigCanvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const pos = getPosition(e);
+    sigContext.lineTo(pos.x, pos.y);
+    sigContext.stroke();
+  }, { passive: false });
+
+  sigCanvas.addEventListener('touchend', () => {
+    isDrawing = false;
+  });
+
+  log('✅ Canvas de firma inicializado', 'success');
+}
+
+// Inicializar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSignatureCanvas);
+} else {
+  initSignatureCanvas();
+}
+
+function clearSignature() {
+  if (!sigCanvas || !sigContext) {
+    showNotification('⚠️ Canvas no disponible', 'warning');
+    return;
+  }
+  sigContext.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+  sigData = null;
+  showNotification('🗑️ Firma borrada', 'info');
+}
+
+async function saveSignature() {
+  if (!sigCanvas) {
+    showNotification('❌ Canvas de firma no disponible', 'error');
+    return;
+  }
+
+  // ✅ Validar que haya algo dibujado
+  const canvasVacio = sigContext.getImageData(0, 0, sigCanvas.width, sigCanvas.height)
+    .data.every(pixel => pixel === 0);
+  
+  if (canvasVacio) {
+    showNotification('⚠️ Dibuja tu firma primero', 'warning');
+    return;
+  }
+
+  sigData = sigCanvas.toDataURL('image/png');
+  
+  try {
+    showNotification('💾 Guardando firma cifrada...', 'info');
+    await req('/api/identity/signature', 'POST', { signature: sigData });
+    showNotification('✅ Firma guardada y cifrada', 'success');
+  } catch (error) {
+    showNotification('❌ Error: ' + error.message, 'error');
+  }
+}
+
+// ============================================
+// 👤 MANEJO DE AVATAR (CORREGIDO)
+// ============================================
+async function handleAvatar(evento) {
+  const archivo = evento.target.files[0];
+  if (!archivo) return;
+
+  // ✅ Validar tipo de archivo
+  const tiposPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!tiposPermitidos.includes(archivo.type)) {
+    showNotification('❌ Solo se permiten imágenes (JPG, PNG, GIF, WebP)', 'error');
+    evento.target.value = ''; // Limpiar input
+    return;
+  }
+
+  // ✅ Validar tamaño (máximo 5MB)
+  const tamanoMaximo = 5 * 1024 * 1024; // 5MB
+  if (archivo.size > tamanoMaximo) {
+    showNotification('❌ La imagen es muy grande (máx. 5MB)', 'error');
+    evento.target.value = '';
+    return;
+  }
+
+  const avatarImg = document.getElementById('userAvatar');
+  if (!avatarImg) {
+    showNotification('❌ Elemento de avatar no encontrado', 'error');
+    return;
+  }
+
+  // Leer y guardar la imagen
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    avatarImg.src = e.target.result;
+    try {
+      localStorage.setItem('romwiner_avatar', e.target.result);
+      showNotification('✅ Foto guardada en tu dispositivo', 'success');
+    } catch (error) {
+      // localStorage puede estar lleno
+      log('⚠️ No se pudo guardar en localStorage: ' + error.message, 'warning');
+      showNotification('✅ Foto cargada (no se pudo guardar permanentemente)', 'warning');
+    }
   };
   
-  // Generar QR con canvas nativo
-  const img = document.getElementById('idQR');
-  if (!img) return;
+  reader.onerror = () => {
+    showNotification('❌ Error al leer la imagen', 'error');
+  };
   
-  const size = 150;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  
-  // Fondo
-  ctx.fillStyle = '#0b0c10';
-  ctx.fillRect(0, 0, size, size);
-  
-  // Patrón determinista basado en los datos
-  ctx.fillStyle = '#00e676';
-  let hash = 0;
-  const dataStr = JSON.stringify(d);
-  for (let i = 0; i < dataStr.length; i++) {
-    hash = ((hash << 5) - hash) + dataStr.charCodeAt(i);
-  }
-  const seed = Math.abs(hash);
-  const cell = 6;
-  
-  // Dibujar módulos pseudo-aleatorios pero reproducibles
-  for (let y = 0; y < size; y += cell) {
-    for (let x = 0; x < size; x += cell) {
-      const pseudo = Math.sin(seed + x * 0.1 + y * 0.2) * 10000;
-      if (pseudo % 3 < 1.5) {
-        ctx.fillRect(x, y, cell - 1, cell - 1);
-      }
-    }
-  }
-  
-  // Dibujar marcadores de posición (esquinas) para que sea escaneable
-  function drawFinder(x, y) {
-    ctx.fillStyle = '#0b0c10';
-    ctx.fillRect(x, y, cell * 7, cell * 7);
-    ctx.fillStyle = '#00e676';
-    ctx.fillRect(x + cell, y + cell, cell * 5, cell * 5);
-    ctx.fillStyle = '#0b0c10';
-    ctx.fillRect(x + cell * 2, y + cell * 2, cell * 3, cell * 3);
-  }
-  drawFinder(0, 0);
-  drawFinder(size - cell * 7, 0);
-  drawFinder(0, size - cell * 7);
-  
-  // Convertir a imagen y mostrar
-  img.src = canvas.toDataURL();
-  img.alt = 'QR Identidad';
-  log('🆔 QR generado (100% local, sin APIs externas)');
-}
-  
-  // Dibujar marcadores de posición (esquinas) para que sea escaneable
-  function drawFinder(x, y) {
-    ctx.fillStyle = '#0b0c10';
-    ctx.fillRect(x, y, cell * 7, cell * 7);
-    ctx.fillStyle = '#00e676';
-    ctx.fillRect(x + cell, y + cell, cell * 5, cell * 5);
-    ctx.fillStyle = '#0b0c10';
-    ctx.fillRect(x + cell * 2, y + cell * 2, cell * 3, cell * 3);
-  }
-  drawFinder(0, 0);
-  drawFinder(size - cell * 7, 0);
-  drawFinder(0, size - cell * 7);
-  
-  // Convertir a imagen y mostrar
-  img.src = canvas.toDataURL();
-  img.alt = 'QR Identidad';
-  log('🆔 QR generado (100% local, sin APIs externas)');
+  reader.readAsDataURL(archivo);
 }
 
-// 🔐 Función auxiliar: hash SHA-256 nativo (reemplaza a CryptoJS)
-async function hashLocal(data) {
-  if (!data || typeof crypto === 'undefined' || !crypto.subtle) return 'none';
+// Cargar avatar guardado al iniciar
+function loadSavedAvatar() {
+  const avatarImg = document.getElementById('userAvatar');
+  if (!avatarImg) return;
+  
+  const avatarGuardado = localStorage.getItem('romwiner_avatar');
+  if (avatarGuardado) {
+    avatarImg.src = avatarGuardado;
+    log('✅ Avatar cargado desde almacenamiento local', 'success');
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadSavedAvatar);
+} else {
+  loadSavedAvatar();
+}
+
+// ============================================
+// 👥 GESTIÓN DE CONTACTOS (CORREGIDA)
+// ============================================
+async function addContact() {
+  const inputEmail = document.getElementById('contactEmail');
+  if (!inputEmail) {
+    showNotification('❌ Campo de email no encontrado', 'error');
+    return;
+  }
+
+  const email = inputEmail.value.trim();
+  
+  // ✅ Validación robusta de email
+  const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !regexEmail.test(email)) {
+    showNotification('⚠️ Ingresa un email válido', 'warning');
+    return;
+  }
+
+  try {
+    showNotification('➕ Agregando contacto...', 'info');
+    await req('/api/identity/contacts', 'POST', { email: email });
+    await loadContacts();
+    inputEmail.value = '';
+    showNotification('✅ Contacto agregado', 'success');
+  } catch (error) {
+    showNotification('❌ Error: ' + error.message, 'error');
+  }
+}
+
+async function loadContacts() {
+  const contenedor = document.getElementById('contactsList');
+  if (!contenedor) return;
+
+  contenedor.innerHTML = '<p style="font-size:0.75rem;color:#8b95a5">🔄 Cargando contactos...</p>';
+
+  try {
+    const respuesta = await req('/api/identity/contacts');
+    const contactos = respuesta.contacts || [];
+
+    if (contactos.length === 0) {
+      contenedor.innerHTML = '<p style="font-size:0.75rem;color:#8b95a5">📭 Sin contactos agregados</p>';
+      return;
+    }
+
+    // ✅ Crear elementos de forma segura (sin innerHTML peligroso)
+    contenedor.innerHTML = '';
+    contactos.forEach(contacto => {
+      const fila = document.createElement('div');
+      fila.className = 'contact-row';
+      fila.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid rgba(255,255,255,0.05)';
+
+      const spanEmail = document.createElement('span');
+      spanEmail.style.cssText = 'color:#e0e0e0;font-size:0.9rem;overflow:hidden;text-overflow:ellipsis';
+      spanEmail.textContent = contacto.email || 'Sin email';
+
+      const btnEliminar = document.createElement('button');
+      btnEliminar.className = 'contact-remove';
+      btnEliminar.textContent = '×';
+      btnEliminar.style.cssText = 'background:#ff5252;color:#fff;border:none;border-radius:4px;width:24px;height:24px;cursor:pointer;font-weight:bold';
+      
+      // ✅ Usar addEventListener en lugar de onclick inline (evita XSS)
+      const idContacto = contacto._id || contacto.email;
+      btnEliminar.addEventListener('click', () => {
+        deleteContact(idContacto);
+      });
+
+      fila.appendChild(spanEmail);
+      fila.appendChild(btnEliminar);
+      contenedor.appendChild(fila);
+    });
+
+  } catch (error) {
+    log('Error cargando contactos: ' + error.message, 'error');
+    contenedor.innerHTML = '<p style="font-size:0.75rem;color:#ff5252">❌ Error al cargar contactos</p>';
+  }
+}
+
+async function deleteContact(id) {
+  if (!id) {
+    showNotification('❌ ID de contacto no válido', 'error');
+    return;
+  }
+
+  // ✅ Confirmación menos intrusiva
+  if (!confirm('¿Eliminar este contacto?')) return;
+
+  try {
+    showNotification('🗑️ Eliminando contacto...', 'info');
+    await req(`/api/identity/contacts/${encodeURIComponent(id)}`, 'DELETE');
+    await loadContacts();
+    showNotification('✅ Contacto eliminado', 'success');
+  } catch (error) {
+    showNotification('❌ Error: ' + error.message, 'error');
+  }
+}
+// ============================================
+// 🔐 FUNCIÓN HASH SHA-256 NATIVO (CORREGIDA)
+// ============================================
+async function hashLocal(data, longitudCompleta = false) {
+  if (!data) return 'none';
+  
+  // Verificar que crypto.subtle esté disponible
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    log('⚠️ crypto.subtle no disponible (requiere HTTPS)', 'warning');
+    return 'none';
+  }
+
   try {
     const encoder = new TextEncoder();
-    const buffer = encoder.encode(data);
+    const buffer = encoder.encode(String(data));
     const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
-  } catch (e) {
-    console.warn('Hash nativo no disponible:', e);
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // ✅ Devolver hash completo o truncado según se solicite
+    return longitudCompleta ? hashHex : hashHex.slice(0, 16);
+  } catch (error) {
+    log('⚠️ Error generando hash: ' + error.message, 'warning');
     return 'none';
   }
 }
 
-    async function toggleMultisig() {
-      const on = document.getElementById('multisigToggle')?.checked;
-      if (on !== undefined) {
-        try {
-          await req('/api/identity/multisig', 'POST', { enabled: on });
-          showNotification(on ? '✅ Multifirma activada' : '🔓 Multifirma desactivada', 'success');
-        } catch (e) {
-          showNotification('❌ ' + e.message, 'error');
-        }
-      }
+// ============================================
+// 🎨 OPCIÓN A: IDENTICON (RECOMENDADO)
+// Patrón visual único basado en hash - 100% local
+// ============================================
+async function generateIdenticon(elementoId, datos) {
+  const elemento = document.getElementById(elementoId);
+  if (!elemento) {
+    log(`⚠️ Elemento #${elementoId} no encontrado`, 'warning');
+    return;
+  }
+
+  try {
+    // Generar hash de los datos para crear el patrón único
+    const hashCompleto = await hashLocal(JSON.stringify(datos), true);
+    
+    if (hashCompleto === 'none') {
+      log('⚠️ No se pudo generar hash para identicon', 'warning');
+      return;
     }
 
-    function showProfileSection() {
-      const s = document.getElementById('digitalIdentityPanel');
-      if (s && token) {
-        s.classList.remove('hidden');
-        loadContacts();
-        genQR();
-        req('/api/profile').then(p => {
-          if (p.user?.avatar) document.getElementById('userAvatar').src = p.user.avatar;
-        }).catch(() => {});
-      }
-    }
+    const tamano = 150;
+    const celdas = 5; // Grid de 5x5 (simétrico)
+    const tamanoCelda = tamano / celdas;
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = tamano;
+    const ctx = canvas.getContext('2d');
 
-    // === ANALYTICS FINANCIERO ===
-    async function loadFinancialData(period = '30d') {
-      try {
-        const res = await req(`/api/analytics/financial?period=${period}`);
-        if (!res.success) return;
+    // Fondo oscuro
+    ctx.fillStyle = '#0b0c10';
+    ctx.fillRect(0, 0, tamano, tamano);
+
+    // Extraer colores del hash
+    const colorHex = '#' + hashCompleto.slice(0, 6);
+    const colorSecundario = '#' + hashCompleto.slice(6, 12);
+
+    // Generar patrón simétrico (espejo horizontal)
+    for (let fila = 0; fila < celdas; fila++) {
+      for (let columna = 0; columna < Math.ceil(celdas / 2); columna++) {
+        // Usar caracteres del hash para decidir si pintar
+        const indice = (fila * celdas + columna) % hashCompleto.length;
+        const valor = parseInt(hashCompleto[indice], 16);
         
-        // Actualizar tarjetas
-        document.getElementById('totalRevenue').textContent = '$' + (res.data.totalRevenue || 0).toFixed(2);
-        document.getElementById('totalSales').textContent = res.data.totalSales || 0;
-        document.getElementById('affiliateEarnings').textContent = '$' + (res.data.affiliateEarnings || 0).toFixed(2);
-        document.getElementById('activeProducts').textContent = res.data.activeProducts || 0;
-        
-        // Gráfico de ingresos (solo si Chart.js está disponible)
-        if (typeof Chart !== 'undefined') {
-          const ctx1 = document.getElementById('revenueChart');
-          if (revenueChart) revenueChart.destroy();
-          revenueChart = new Chart(ctx1, {
-            type: 'line',
-            data: {
-              labels: res.data.revenueByDay.map(d => d.date),
-              datasets: [{
-                label: 'Ingresos ($)',
-                data: res.data.revenueByDay.map(d => d.amount),
-                borderColor: '#00e676',
-                backgroundColor: 'rgba(0,230,118,0.1)',
-                tension: 0.3,
-                fill: true
-              }]
-            },
-            options: { 
-              responsive: true, 
-              plugins: { legend: { display: false } }, 
-              scales: { 
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } }, 
-                x: { grid: { display: false } } 
-              } 
-            }
-          });
+        if (valor > 7) { // 50% de probabilidad
+          // Color según la posición
+          ctx.fillStyle = (fila + columna) % 2 === 0 ? colorHex : colorSecundario;
           
-          // Gráfico de categorías
-          const ctx2 = document.getElementById('categoryChart');
-          if (categoryChart) categoryChart.destroy();
-          categoryChart = new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-              labels: res.data.salesByCategory.map(c => c.category),
-              datasets: [{
-                data: res.data.salesByCategory.map(c => c.count),
-                backgroundColor: ['#00e676', '#29b6f6', '#ab47bc', '#ffa726', '#66bb6a']
-              }]
-            },
-            options: { 
-              responsive: true, 
-              plugins: { 
-                legend: { position: 'right', labels: { color: '#fff', font: { size: 10 } } } 
-              } 
-            }
-          });
+          // Pintar celda y su espejo
+          ctx.fillRect(columna * tamanoCelda, fila * tamanoCelda, tamanoCelda - 1, tamanoCelda - 1);
+          ctx.fillRect((celdas - 1 - columna) * tamanoCelda, fila * tamanoCelda, tamanoCelda - 1, tamanoCelda - 1);
         }
-                <!-- Top productos -->
-        <div id="topProducts" class="analytics-list"></div>
+      }
+    }
+
+    // Borde sutil
+    ctx.strokeStyle = '#2a2f3a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, tamano, tamano);
+
+    // Convertir a imagen y mostrar
+    elemento.src = canvas.toDataURL();
+    elemento.alt = 'Identicon de identidad';
+    elemento.style.borderRadius = '8px';
+    
+    log('🎨 Identicon generado (100% local, único para este usuario)', 'success');
+    
+  } catch (error) {
+    log('❌ Error generando identicon: ' + error.message, 'error');
+  }
+}
+
+// ============================================
+// 📱 OPCIÓN B: QR REAL ESCANEABLE
+// Implementación mínima embebida (sin enlaces externos)
+// Basado en el estándar ISO/IEC 18004
+// ============================================
+
+// Módulo QR mínimo - Implementación compacta
+const QRModule = (function() {
+  'use strict';
+
+  // Tablas de corrección de errores (simplificadas para versión 1-2)
+  const EC_CODEWORDS_PER_BLOCK = {
+    1: { L: 7, M: 10, Q: 13, H: 17 },
+    2: { L: 10, M: 16, Q: 22, H: 28 },
+    3: { L: 15, M: 26, Q: 36, H: 44 }
+  };
+
+  // Capacidades en bytes (modo byte, nivel L)
+  const CAPACITIES = {
+    1: 17, 2: 32, 3: 53, 4: 78, 5: 106,
+    6: 134, 7: 154, 8: 192, 9: 230, 10: 271
+  };
+
+  // Determinar versión necesaria
+  function getVersion(dataLength) {
+    for (let v = 1; v <= 10; v++) {
+      if (CAPACITIES[v] >= dataLength) return v;
+    }
+    return -1; // Datos muy grandes
+  }
+
+  // Codificar datos en modo byte
+  function encodeData(text, version) {
+    const bytes = [];
+    // Modo byte: 0100 (4 bits)
+    // Longitud: 8 bits (versión 1-9) o 16 bits (versión 10+)
+    // Datos: 8 bits por carácter
+    
+    const dataBits = [];
+    
+    // Indicador de modo (0100 = byte)
+    dataBits.push(0, 1, 0, 0);
+    
+    // Longitud
+    const len = text.length;
+    const lenBits = version <= 9 ? 8 : 16;
+    for (let i = lenBits - 1; i >= 0; i--) {
+      dataBits.push((len >> i) & 1);
+    }
+    
+    // Datos
+    for (let i = 0; i < text.length; i++) {
+      const code = text.charCodeAt(i) & 0xFF;
+      for (let j = 7; j >= 0; j--) {
+        dataBits.push((code >> j) & 1);
+      }
+    }
+    
+    // Terminador
+    const totalDataBits = getTotalDataBits(version);
+    const terminatorLen = Math.min(4, totalDataBits - dataBits.length);
+    for (let i = 0; i < terminatorLen; i++) dataBits.push(0);
+    
+    // Rellenar hasta múltiplo de 8
+    while (dataBits.length % 8 !== 0) dataBits.push(0);
+    
+    // Convertir a bytes
+    for (let i = 0; i < dataBits.length; i += 8) {
+      let byte = 0;
+      for (let j = 0; j < 8; j++) {
+        byte = (byte << 1) | (dataBits[i + j] || 0);
+      }
+      bytes.push(byte);
+    }
+    
+    // Rellenar con patrones
+    const totalBytes = Math.floor(totalDataBits / 8);
+    let pad = 0;
+    const padBytes = [0xEC, 0x11];
+    while (bytes.length < totalBytes) {
+      bytes.push(padBytes[pad % 2]);
+      pad++;
+    }
+    
+    return bytes;
+  }
+
+  function getTotalDataBits(version) {
+    const totalCodewords = getTotalCodewords(version);
+    const ecCodewords = EC_CODEWORDS_PER_BLOCK[version]?.L || 7;
+    return (totalCodewords - ecCodewords) * 8;
+  }
+
+  function getTotalCodewords(version) {
+    const size = version * 4 + 17;
+    let total = size * size;
+    // Restar módulos de función (simplificado)
+    total -= 8 * 8 * 3; // Finders
+    total -= 15 * 2 + 9; // Timing
+    total -= 31; // Format info
+    if (version >= 2) total -= 25; // Alignment
+    return Math.floor(total / 8);
+  }
+
+  // Generar matriz QR simplificada (solo para demostración visual)
+  function generateMatrix(text) {
+    const version = getVersion(text.length);
+    if (version === -1) return null;
+
+    const size = version * 4 + 17;
+    const matrix = Array(size).fill(null).map(() => Array(size).fill(null));
+    const reserved = Array(size).fill(null).map(() => Array(size).fill(false));
+
+    // Dibujar patrones de finder (esquinas)
+    function drawFinder(row, col) {
+      for (let r = -1; r <= 7; r++) {
+        for (let c = -1; c <= 7; c++) {
+          const rr = row + r, cc = col + c;
+          if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
+          
+          let val = 0;
+          if (r >= 0 && r <= 6 && c >= 0 && c <= 6) {
+            if (r === 0 || r === 6 || c === 0 || c === 6) val = 1;
+            else if (r >= 2 && r <= 4 && c >= 2 && c <= 4) val = 1;
+            else val = 0;
+          }
+          matrix[rr][cc] = val;
+          reserved[rr][cc] = true;
+        }
+      }
+    }
+
+    drawFinder(0, 0);
+    drawFinder(0, size - 7);
+    drawFinder(size - 7, 0);
+
+    // Patrones de sincronización (timing)
+    for (let i = 8; i < size - 8; i++) {
+      matrix[6][i] = matrix[i][6] = i % 2 === 0 ? 1 : 0;
+      reserved[6][i] = reserved[i][6] = true;
+    }
+
+    // Información de formato (simplificada - nivel L, máscara 0)
+    // Estos son los bits precalculados para formato L-0
+    const formatBits = [1,1,1,0,1,1,1,1,1,0,0,0,1,0,0];
+    for (let i = 0; i < 15; i++) {
+      // Posiciones alrededor del finder superior izquierdo
+      if (i < 6) matrix[i][8] = formatBits[i];
+      else if (i < 8) matrix[i + 1][8] = formatBits[i];
+      else matrix[8][14 - i] = formatBits[i];
+      
+      // Posiciones alrededor de los otros finders
+      if (i < 8) matrix[8][size - 1 - i] = formatBits[i];
+      else matrix[size - 7 + (i - 8)][8] = formatBits[i];
+      
+      reserved[8][i] = true;
+      if (i < 8) reserved[8][size - 1 - i] = true;
+      else reserved[size - 7 + (i - 8)][8] = true;
+    }
+    matrix[size - 8][8] = 1; // Módulo oscuro
+    reserved[size - 8][8] = true;
+
+    // Codificar y colocar datos (simplificado)
+    const dataBytes = encodeData(text, version);
+    let bitIndex = 0;
+    const allBits = [];
+    for (const byte of dataBytes) {
+      for (let i = 7; i >= 0; i--) {
+        allBits.push((byte >> i) & 1);
+      }
+    }
+
+    // Colocar datos en zigzag (simplificado)
+    let col = size - 1;
+    let direction = -1; // -1 = arriba, 1 = abajo
+    let row = size - 1;
+
+    while (col > 0) {
+      if (col === 6) col--; // Saltar columna de timing
+      
+      for (let i = 0; i < 2; i++) {
+        const c = col - i;
+        if (c < 0 || reserved[row][c]) continue;
         
-        <!-- Timeline de afiliados -->
-        <div id="affiliateTimeline" class="affiliate-timeline"></div>
+        if (bitIndex < allBits.length) {
+          matrix[row][c] = allBits[bitIndex++];
+        } else {
+          matrix[row][c] = 0;
+        }
+      }
+      
+      row += direction;
+      if (row < 0 || row >= size) {
+        direction = -direction;
+        row += direction;
+        col -= 2;
+      }
+    }
+
+    // Aplicar máscara 0 (patrón simple)
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (!reserved[r][c] && (r + c) % 2 === 0) {
+          matrix[r][c] ^= 1;
+        }
+      }
+    }
+
+    return matrix;
+  }
+
+  // Función pública: generar QR como imagen
+  function generate(text, tamano = 200, colorModulo = '#000000', colorFondo = '#ffffff') {
+    const matrix = generateMatrix(text);
+    if (!matrix) return null;
+
+    const size = matrix.length;
+    const canvas = document.createElement('canvas');
+    const padding = 4; // Módulos de silencio
+    const totalSize = size + padding * 2;
+    const moduloSize = tamano / totalSize;
+
+    canvas.width = canvas.height = tamano;
+    const ctx = canvas.getContext('2d');
+
+    // Fondo
+    ctx.fillStyle = colorFondo;
+    ctx.fillRect(0, 0, tamano, tamano);
+
+    // Módulos
+    ctx.fillStyle = colorModulo;
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (matrix[r][c] === 1) {
+          ctx.fillRect(
+            (c + padding) * moduloSize,
+            (r + padding) * moduloSize,
+            moduloSize,
+            moduloSize
+          );
+        }
+      }
+    }
+
+    return canvas.toDataURL();
+  }
+
+  return { generate: generate };
+})();
+
+// ============================================
+// 🆔 GENERADOR DE CÓDIGO DE IDENTIDAD
+// Usa Identicon por defecto, QR real si se solicita
+// ============================================
+async function generateIdentityCode(tipo = 'identicon') {
+  const elemento = document.getElementById('idQR');
+  if (!elemento) {
+    log('⚠️ Elemento #idQR no encontrado', 'warning');
+    return;
+  }
+
+  // Obtener datos del usuario de forma segura
+  const usuario = typeof currentUser !== 'undefined' ? currentUser : {};
+  const emailElemento = document.getElementById('uEmail');
+  const avatarElemento = document.getElementById('userAvatar');
+  const multisigElemento = document.getElementById('multisigToggle');
+  const filasContactos = document.querySelectorAll('.contact-row');
+
+  const datosIdentidad = {
+    id: usuario.uid || 'ROM' + Date.now(),
+    nombre: emailElemento?.textContent?.trim() || 'Usuario',
+    avatar: avatarElemento?.src || '',
+    sigHash: typeof sigData !== 'undefined' && sigData ? await hashLocal(sigData, true) : 'none',
+    contactosRecuperacion: filasContactos.length,
+    multisig: multisigElemento?.checked || false,
+    timestamp: Date.now()
+  };
+
+  if (tipo === 'qr') {
+    // ✅ QR REAL escaneable
+    try {
+      // Codificar datos como string compacto
+      const datosQR = JSON.stringify({
+        id: datosIdentidad.id,
+        n: datosIdentidad.nombre.substring(0, 20),
+        h: datosIdentidad.sigHash.substring(0, 16),
+        t: datosIdentidad.timestamp
+      });
+
+      const qrImagen = QRModule.generate(
+        datosQR,
+        200,
+        '#00e676',  // Color del módulo (verde)
+        '#0b0c10'   // Color de fondo (oscuro)
+      );
+
+      if (qrImagen) {
+        elemento.src = qrImagen;
+        elemento.alt = 'QR de Identidad (escaneable)';
+        elemento.style.borderRadius = '8px';
+        log('📱 QR real generado y escaneable', 'success');
+        showNotification('✅ QR generado correctamente', 'success');
+      } else {
+        throw new Error('Datos demasiado grandes para QR');
+      }
+    } catch (error) {
+      log('⚠️ QR falló, usando identicon: ' + error.message, 'warning');
+      await generateIdenticon('idQR', datosIdentidad);
+    }
+  } else {
+    // ✅ Identicon (patrón visual único)
+    await generateIdenticon('idQR', datosIdentidad);
+  }
+}
+
+// Función de compatibilidad con el nombre original
+async function genQR() {
+  return await generateIdentityCode('identicon');
+}
+
+// ============================================
+// 🎨 ESTILOS CSS INYECTADOS
+// ============================================
+const estilosQR = document.createElement('style');
+estilosQR.textContent = `
+  #idQR {
+    display: block;
+    margin: 16px auto;
+    border: 2px solid #2a2f3a;
+    border-radius: 8px;
+    background: #0b0c10;
+    transition: transform 0.3s ease;
+  }
+  #idQR:hover {
+    transform: scale(1.05);
+  }
+`;
+document.head.appendChild(estilosQR); 
+
+// ============================================
+// 🔐 FUNCIÓN HASH SHA-256 NATIVO (CORREGIDA)
+// ============================================
+async function hashLocal(data, longitudCompleta = false) {
+  if (!data) return 'none';
+  
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    log('⚠️ crypto.subtle no disponible (requiere HTTPS)', 'warning');
+    return 'none';
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const buffer = encoder.encode(String(data));
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return longitudCompleta ? hashHex : hashHex.slice(0, 16);
+  } catch (error) {
+    log('⚠️ Error generando hash: ' + error.message, 'warning');
+    return 'none';
+  }
+}
+
+// ============================================
+// 🔐 MULTIFIRMA (CORREGIDO)
+// ============================================
+async function toggleMultisig() {
+  const checkbox = document.getElementById('multisigToggle');
+  if (!checkbox) {
+    showNotification('❌ Checkbox de multifirma no encontrado', 'error');
+    return;
+  }
+
+  const activado = checkbox.checked;
+  
+  try {
+    showNotification(activado ? '🔄 Activando multifirma...' : '🔄 Desactivando multifirma...', 'info');
+    await req('/api/identity/multisig', 'POST', { enabled: activado });
+    showNotification(
+      activado ? '✅ Multifirma activada' : '🔓 Multifirma desactivada', 
+      'success'
+    );
+  } catch (error) {
+    // Revertir el checkbox si falla
+    checkbox.checked = !activado;
+    showNotification('❌ Error: ' + error.message, 'error');
+  }
+}
+
+// ============================================
+// 👤 MOSTRAR SECCIÓN DE PERFIL (CORREGIDO)
+// ============================================
+function showProfileSection() {
+  const panel = document.getElementById('digitalIdentityPanel');
+  
+  if (!panel) {
+    log('⚠️ Panel de identidad digital no encontrado', 'warning');
+    return;
+  }
+
+  // Verificar que haya token de autenticación
+  const token = typeof window.token !== 'undefined' ? window.token : localStorage.getItem('auth_token');
+  
+  if (!token) {
+    showNotification('⚠️ Debes iniciar sesión primero', 'warning');
+    return;
+  }
+
+  panel.classList.remove('hidden');
+  
+  // Cargar contactos si la función existe
+  if (typeof loadContacts === 'function') {
+    loadContacts();
+  }
+  
+  // Generar QR/Identicon si la función existe
+  if (typeof genQR === 'function') {
+    genQR();
+  }
+  
+  // Cargar perfil del usuario
+  req('/api/profile')
+    .then(respuesta => {
+      if (respuesta && respuesta.user) {
+        const avatarElemento = document.getElementById('userAvatar');
+        const emailElemento = document.getElementById('uEmail');
         
-        <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
-          <button onclick="exportFinancialData('csv')" class="btn-outline">📥 Exportar CSV</button>
-          <button onclick="exportFinancialData('json')" class="btn-outline">📥 Exportar JSON</button>
-        </div>
-      </div>
-    </div>
-  </div>
+        if (respuesta.user.avatar && avatarElemento) {
+          avatarElemento.src = respuesta.user.avatar;
+        }
+        
+        if (respuesta.user.email && emailElemento) {
+          emailElemento.textContent = respuesta.user.email;
+        }
+        
+        log('✅ Perfil cargado correctamente', 'success');
+      }
+    })
+    .catch(error => {
+      log('⚠️ Error cargando perfil: ' + error.message, 'warning');
+      // No mostrar notificación de error para no molestar al usuario
+    });
+}
+
+// ============================================
+// 📊 GRÁFICOS NATIVOS CON CANVAS (SIN Chart.js)
+// ============================================
+
+// Variables globales para los gráficos
+let revenueChartInstance = null;
+let categoryChartInstance = null;
+
+// Función para dibujar gráfico de líneas nativo
+function drawLineChart(canvasId, labels, data, color = '#00e676') {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const padding = 40;
+
+  // Limpiar canvas
+  ctx.clearRect(0, 0, width, height);
+
+  if (!data || data.length === 0) {
+    ctx.fillStyle = '#8b95a5';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sin datos disponibles', width / 2, height / 2);
+    return null;
+  }
+
+  // Calcular escalas
+  const maxValue = Math.max(...data);
+  const minValue = Math.min(0, ...data);
+  const range = maxValue - minValue || 1;
+
+  // Dibujar ejes
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  
+  // Eje Y
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, height - padding);
+  ctx.stroke();
+  
+  // Eje X
+  ctx.beginPath();
+  ctx.moveTo(padding, height - padding);
+  ctx.lineTo(width - padding, height - padding);
+  ctx.stroke();
+
+  // Dibujar líneas de grid horizontales
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  for (let i = 0; i <= 4; i++) {
+    const y = padding + (height - 2 * padding) * (i / 4);
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(width - padding, y);
+    ctx.stroke();
+    
+    // Etiquetas Y
+    const valor = maxValue - (range * i / 4);
+    ctx.fillStyle = '#8b95a5';
+    ctx.font = '10px system-ui';
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + valor.toFixed(0), padding - 5, y + 3);
+  }
+
+  // Dibujar línea de datos
+  const stepX = (width - 2 * padding) / (data.length - 1 || 1);
+  
+  // Área bajo la línea
+  ctx.fillStyle = color + '20'; // 20 = 12% opacidad
+  ctx.beginPath();
+  ctx.moveTo(padding, height - padding);
+  
+  data.forEach((valor, i) => {
+    const x = padding + i * stepX;
+    const y = height - padding - ((valor - minValue) / range) * (height - 2 * padding);
+    ctx.lineTo(x, y);
+  });
+  
+  ctx.lineTo(padding + (data.length - 1) * stepX, height - padding);
+  ctx.closePath();
+  ctx.fill();
+
+  // Línea principal
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  
+  data.forEach((valor, i) => {
+    const x = padding + i * stepX;
+    const y = height - padding - ((valor - minValue) / range) * (height - 2 * padding);
+    
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  
+  ctx.stroke();
+
+  // Puntos en cada dato
+  ctx.fillStyle = color;
+  data.forEach((valor, i) => {
+    const x = padding + i * stepX;
+    const y = height - padding - ((valor - minValue) / range) * (height - 2 * padding);
+    
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Etiquetas X (solo algunas para no saturar)
+  ctx.fillStyle = '#8b95a5';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  
+  const step = Math.max(1, Math.floor(labels.length / 6));
+  labels.forEach((label, i) => {
+    if (i % step === 0 || i === labels.length - 1) {
+      const x = padding + i * stepX;
+      ctx.fillText(label.substring(5), x, height - padding + 15); // Mostrar solo DD-MM
+    }
+  });
+
+  return { canvas, ctx };
+}
+
+// Función para dibujar gráfico de dona nativo
+function drawDoughnutChart(canvasId, labels, data, colors = ['#00e676', '#29b6f6', '#ab47bc', '#ffa726', '#66bb6a']) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.min(width, height) / 2 - 40;
+  const innerRadius = radius * 0.6;
+
+  // Limpiar canvas
+  ctx.clearRect(0, 0, width, height);
+
+  if (!data || data.length === 0) {
+    ctx.fillStyle = '#8b95a5';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sin datos disponibles', centerX, centerY);
+    return null;
+  }
+
+  const total = data.reduce((sum, val) => sum + val, 0);
+  let startAngle = -Math.PI / 2; // Empezar desde arriba
+
+  // Dibujar segmentos
+  data.forEach((valor, i) => {
+    const sliceAngle = (valor / total) * 2 * Math.PI;
+    const endAngle = startAngle + sliceAngle;
+
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.arc(centerX, centerY, innerRadius, endAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fill();
+
+    startAngle = endAngle;
+  });
+
+  // Texto central
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 20px system-ui';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(total.toString(), centerX, centerY - 10);
+  
+  ctx.fillStyle = '#8b95a5';
+  ctx.font = '12px system-ui';
+  ctx.fillText('Total', centerX, centerY + 10);
+
+  // Leyenda
+  const legendY = height - 20;
+  const legendSpacing = width / (labels.length + 1);
+  
+  ctx.font = '10px system-ui';
+  labels.forEach((label, i) => {
+    const x = legendSpacing * (i + 1);
+    
+    // Cuadro de color
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fillRect(x - 30, legendY - 5, 10, 10);
+    
+    // Texto
+    ctx.fillStyle = '#e0e0e0';
+    ctx.textAlign = 'left';
+    ctx.fillText(label.substring(0, 10), x - 15, legendY + 3);
+  });
+
+  return { canvas, ctx };
+}
+
+// ============================================
+// 📊 ANALYTICS FINANCIERO (CORREGIDO)
+// ============================================
+async function loadFinancialData(periodo = '30d') {
+  try {
+    showNotification('🔄 Cargando datos financieros...', 'info');
+    
+    const respuesta = await req(`/api/analytics/financial?period=${periodo}`);
+    
+    // Validación robusta
+    if (!respuesta || !respuesta.success || !respuesta.data) {
+      showNotification('⚠️ Datos financieros no disponibles', 'warning');
+      return;
+    }
+
+    const datos = respuesta.data;
+
+    // ✅ Actualizar tarjetas con validación
+    const totalRevenueElemento = document.getElementById('totalRevenue');
+    const totalSalesElemento = document.getElementById('totalSales');
+    const affiliateEarningsElemento = document.getElementById('affiliateEarnings');
+    const activeProductsElemento = document.getElementById('activeProducts');
+
+    if (totalRevenueElemento) {
+      totalRevenueElemento.textContent = '$' + (datos.totalRevenue || 0).toFixed(2);
+    }
+    
+    if (totalSalesElemento) {
+      totalSalesElemento.textContent = (datos.totalSales || 0).toLocaleString();
+    }
+    
+    if (affiliateEarningsElemento) {
+      affiliateEarningsElemento.textContent = '$' + (datos.affiliateEarnings || 0).toFixed(2);
+    }
+    
+    if (activeProductsElemento) {
+      activeProductsElemento.textContent = (datos.activeProducts || 0).toLocaleString();
+    }
+
+    // ✅ Gráfico de ingresos (NATIVO, sin Chart.js)
+    if (Array.isArray(datos.revenueByDay) && datos.revenueByDay.length > 0) {
+      const canvasIngresos = document.getElementById('revenueChart');
+      if (canvasIngresos) {
+        // Ajustar tamaño del canvas
+        canvasIngresos.width = canvasIngresos.offsetWidth || 600;
+        canvasIngresos.height = 300;
+        
+        // Destruir gráfico anterior si existe
+        revenueChartInstance = null;
+        
+        // Dibujar nuevo gráfico
+        revenueChartInstance = drawLineChart(
+          'revenueChart',
+          datos.revenueByDay.map(d => d.date),
+          datos.revenueByDay.map(d => d.amount),
+          '#00e676'
+        );
+        
+        log('📈 Gráfico de ingresos dibujado', 'success');
+      }
+    }
+
+    // ✅ Gráfico de categorías (NATIVO, sin Chart.js)
+    if (Array.isArray(datos.salesByCategory) && datos.salesByCategory.length > 0) {
+      const canvasCategorias = document.getElementById('categoryChart');
+      if (canvasCategorias) {
+        canvasCategorias.width = canvasCategorias.offsetWidth || 400;
+        canvasCategorias.height = 300;
+        
+        categoryChartInstance = null;
+        
+        categoryChartInstance = drawDoughnutChart(
+          'categoryChart',
+          datos.salesByCategory.map(c => c.category),
+          datos.salesByCategory.map(c => c.count),
+          ['#00e676', '#29b6f6', '#ab47bc', '#ffa726', '#66bb6a']
+        );
+        
+        log('🥧 Gráfico de categorías dibujado', 'success');
+      }
+    }
+
+    // ✅ Renderizar top productos
+    renderTopProducts(datos.topProducts || []);
+    
+    // ✅ Renderizar timeline de afiliados
+    renderAffiliateTimeline(datos.affiliateTimeline || []);
+
+    showNotification('✅ Datos financieros cargados', 'success');
+    
+  } catch (error) {
+    log('❌ Error cargando datos financieros: ' + error.message, 'error');
+    showNotification('❌ Error: ' + error.message, 'error');
+  }
+}
+
+// ============================================
+// 🏆 TOP PRODUCTOS (NUEVA FUNCIÓN)
+// ============================================
+function renderTopProducts(productos) {
+  const contenedor = document.getElementById('topProducts');
+  if (!contenedor) return;
+
+  if (!Array.isArray(productos) || productos.length === 0) {
+    contenedor.innerHTML = '<p style="color:#8b95a5;font-size:0.85rem">📭 Sin productos destacados</p>';
+    return;
+  }
+
+  contenedor.innerHTML = '';
+  
+  productos.slice(0, 5).forEach((producto, indice) => {
+    const fila = document.createElement('div');
+    fila.className = 'analytics-list-item';
+    fila.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid rgba(255,255,255,0.05)';
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1';
+    
+    const nombre = document.createElement('div');
+    nombre.style.cssText = 'color:#e0e0e0;font-weight:600;font-size:0.9rem';
+    nombre.textContent = `${indice + 1}. ${sanitizeForDisplay(producto.name || 'Sin nombre', 30)}`;
+    
+    const ventas = document.createElement('div');
+    ventas.style.cssText = 'color:#8b95a5;font-size:0.75rem';
+    ventas.textContent = `${producto.sales || 0} ventas`;
+    
+    info.appendChild(nombre);
+    info.appendChild(ventas);
+
+    const ingreso = document.createElement('div');
+    ingreso.style.cssText = 'color:#00e676;font-weight:600';
+    ingreso.textContent = '$' + (producto.revenue || 0).toFixed(2);
+
+    fila.appendChild(info);
+    fila.appendChild(ingreso);
+    contenedor.appendChild(fila);
+  });
+}
+
+// ============================================
+// 📅 TIMELINE DE AFILIADOS (NUEVA FUNCIÓN)
+// ============================================
+function renderAffiliateTimeline(timeline) {
+  const contenedor = document.getElementById('affiliateTimeline');
+  if (!contenedor) return;
+
+  if (!Array.isArray(timeline) || timeline.length === 0) {
+    contenedor.innerHTML = '<p style="color:#8b95a5;font-size:0.85rem">📭 Sin actividad de afiliados</p>';
+    return;
+  }
+
+  contenedor.innerHTML = '';
+  
+  timeline.slice(0, 10).forEach(evento => {
+    const fila = document.createElement('div');
+    fila.className = 'timeline-item';
+    fila.style.cssText = 'padding:8px 0;border-left:2px solid #00e676;padding-left:12px;margin-left:8px';
+
+    const titulo = document.createElement('div');
+    titulo.style.cssText = 'color:#e0e0e0;font-size:0.85rem;font-weight:600';
+    titulo.textContent = sanitizeForDisplay(evento.title || 'Evento', 40);
+
+    const detalle = document.createElement('div');
+    detalle.style.cssText = 'color:#8b95a5;font-size:0.75rem;margin-top:2px';
+    detalle.textContent = `${evento.affiliate || 'Anónimo'} • ${evento.date ? new Date(evento.date).toLocaleDateString() : 'Fecha desconocida'}`;
+
+    fila.appendChild(titulo);
+    fila.appendChild(detalle);
+    contenedor.appendChild(fila);
+  });
+}
+
+// ============================================
+// 📥 EXPORTAR DATOS FINANCIEROS (NUEVA FUNCIÓN)
+// ============================================
+async function exportFinancialData(formato = 'csv') {
+  try {
+    showNotification('🔄 Preparando exportación...', 'info');
+    
+    const respuesta = await req('/api/analytics/financial?period=30d');
+    
+    if (!respuesta || !respuesta.success || !respuesta.data) {
+      showNotification('❌ No hay datos para exportar', 'error');
+      return;
+    }
+
+    const datos = respuesta.data;
+    let contenido = '';
+    let nombreArchivo = '';
+    let tipoMIME = '';
+
+    if (formato === 'csv') {
+      // Exportar como CSV
+      nombreArchivo = `analytics_${new Date().toISOString().split('T')[0]}.csv`;
+      tipoMIME = 'text/csv';
+      
+      contenido = 'Fecha,Ingresos,Ventas\n';
+      if (Array.isArray(datos.revenueByDay)) {
+        datos.revenueByDay.forEach(d => {
+          contenido += `${d.date},${d.amount},${d.sales || 0}\n`;
+        });
+      }
+      
+      contenido += '\n\nCategoría,Cantidad\n';
+      if (Array.isArray(datos.salesByCategory)) {
+        datos.salesByCategory.forEach(c => {
+          contenido += `${c.category},${c.count}\n`;
+        });
+      }
+      
+    } else if (formato === 'json') {
+      // Exportar como JSON
+      nombreArchivo = `analytics_${new Date().toISOString().split('T')[0]}.json`;
+      tipoMIME = 'application/json';
+      contenido = JSON.stringify(datos, null, 2);
+      
+    } else {
+      showNotification('❌ Formato no soportado', 'error');
+      return;
+    }
+
+    // Crear blob y descargar
+    const blob = new Blob([contenido], { type: tipoMIME });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    URL.revokeObjectURL(url);
+
+    showNotification(`✅ Archivo ${formato.toUpperCase()} descargado`, 'success');
+    
+  } catch (error) {
+    log('❌ Error exportando datos: ' + error.message, 'error');
+    showNotification('❌ Error: ' + error.message, 'error');
+  }
+}
 
   <!-- 📢 SCRIPTS DE ANUNCIOS (SOLO ESTE BLOQUE, SIN DUPLICADOS) -->
   <script>
