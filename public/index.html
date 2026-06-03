@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#00e676">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="description" content="ApiRomwiner Vault - Tu identidad digital universal. Monétiza contenido, gana con referidos y controla tu información sin intermediarios.">
+  <title>ApiRomwiner Vault | Monetiza tu Identidad Digital</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0b0c10;color:#e8eaed;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;line-height:1.5;padding-bottom:20px}
+    .glass{background:rgba(18,22,30,0.85);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px;margin:12px auto;max-width:480px;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+    .green{border-left:4px solid #00e676}
+    .enterprise{border-left:4px solid #7e57c2}
+    .business{border-left:4px solid #29b6f6}
+    h1{font-size:1.6rem;margin-bottom:8px}
+    h2{font-size:1.3rem;margin-bottom:12px;color:#00e676}
+    h3{font-size:1.1rem;margin:12px 0 8px;color:#8ab4f8}
+    p{color:#b0b8c4;margin-bottom:12px}
+    input,select,textarea{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #2a2f3a;background:#151922;color:#fff;font-size:1rem;transition:border-color 0.2s}
+    input.error{border-color:#ff5252!important;box-shadow:0 0 0 2px rgba(255,82,82,0.3)}
+    button{width:100%;padding:13px;margin:6px 0;border-radius:10px;border:none;background:#00e676;color:#0b0c10;font-weight:700;font-size:1rem;cursor:pointer;transition:0.15s}
+    button:hover{transform:translateY(-1px);opacity:0.95}
+    button:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+    .btn-sec{background:transparent;border:1px solid #00e676;color:#00e676}
+    .btn-danger{background:#ff5252;color:#fff}
+    .btn-enterprise{background:#7e57c2;color:#fff}
+    .qr-box{text-align:center;margin:16px 0}
+    .qr-img{max-width:160px;border-radius:12px;border:2px solid #00e676;margin:8px auto;display:block;background:#000}
+    .hidden{display:none!important}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+    .card{background:rgba(0,0,0,0.35);padding:12px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.05)}
+    .val{font-size:1.4rem;font-weight:700;color:#fff;margin:6px 0 2px}
+    .label{font-size:0.8rem;color:#8b95a5}
+    .feature-icon{font-size:2rem;margin-bottom:6px}
+    .promo-badge{background:rgba(0,230,118,0.15);color:#00e676;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;display:inline-block;margin-bottom:8px}
+    .tier-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;margin:4px 0}
+    .tier-personal{background:rgba(144,202,249,0.2);color:#90caf9}
+    .tier-business{background:rgba(41,182,246,0.2);color:#29b6f6}
+    .tier-enterprise{background:rgba(126,87,194,0.2);color:#ce93d8}
+    .cta-section{text-align:center;padding:20px 0}
+    footer{text-align:center;padding:20px 12px;color:#5a6577;font-size:0.8rem;border-top:1px solid #1a202a;margin-top:20px}
+    .log{background:#0a0a0a;padding:8px;border-radius:6px;font-family:monospace;font-size:0.7rem;max-height:80px;overflow-y:auto;text-align:left;color:#6a7585;margin-top:10px;white-space:pre-wrap}
+    .progress-bar{height:4px;background:rgba(0,230,118,0.3);border-radius:2px;margin:8px 0;overflow:hidden}
+    .progress-fill{height:100%;background:#00e676;width:0%;transition:width 0.3s}
+    .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#666}
+    .status-dot.online{background:#00e676}
+    .status-dot.offline{background:#ff5252}
+    .enterprise-only{display:none}
+    .enterprise .enterprise-only{display:block}
+    .loading{opacity:0.7;pointer-events:none}
+    .fade-in{animation:fadeIn 0.3s ease-in}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .vault-item{background:rgba(30,35,45,0.8);padding:12px;border-radius:10px;margin:8px 0;border:1px solid rgba(255,255,255,0.05)}
+    .vault-item-header{display:flex;justify-content:space-between;align-items:center}
+    .vault-item-title{font-weight:600;color:#fff}
+    .vault-item-meta{font-size:0.8rem;color:#8b95a5;margin-top:4px}
+    .encryption-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(0,230,118,0.15);color:#00e676;border-radius:12px;font-size:0.7rem;margin-left:8px}
+    .audit-log{font-size:0.75rem;color:#8b95a5;max-height:120px;overflow-y:auto}
+    .audit-entry{padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+    .webhook-item{background:rgba(30,35,45,0.8);padding:10px;border-radius:8px;margin:6px 0;font-size:0.85rem}
+    .quota-bar{height:6px;background:rgba(255,255,255,0.1);border-radius:3px;margin:8px 0;overflow:hidden}
+    .quota-fill{height:100%;background:linear-gradient(90deg,#00e676,#29b6f6);transition:width 0.3s}
+    .quota-warning{color:#ffb74d;font-size:0.8rem}
+    .quota-critical{color:#ff5252;font-size:0.8rem}
+    .legal-links{margin-top:8px;font-size:0.75rem}
+    .legal-links a{color:#8b95a5;margin:0 6px;text-decoration:none}
+    .legal-links a:hover{color:#00e676}
+    .zk-toggle{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:0.8rem;color:#8b95a5}
+    .zk-toggle input{width:auto;margin:0}
+    .zk-warning{color:#00e676;font-size:0.75rem;margin-left:8px;display:none}
+    .zk-toggle input:checked~.zk-warning{display:block}
+    .market-search{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;background:rgba(30,35,45,0.6);padding:12px;border-radius:12px;border:1px solid rgba(0,230,118,0.3)}
+    .market-search input,.market-search select{flex:1;min-width:140px;margin:0;background:rgba(18,22,30,0.9);border:1px solid rgba(0,230,118,0.4);color:#fff;border-radius:8px;padding:10px 14px;transition:all 0.2s}
+    .market-search input:focus,.market-search select:focus{outline:none;border-color:#00e676;box-shadow:0 0 0 3px rgba(0,230,118,0.2)}
+    .market-search button{width:auto;padding:10px 20px;background:linear-gradient(135deg,#00e676,#00c853);color:#0b0c10;border:none;border-radius:8px;font-weight:700;cursor:pointer;transition:all 0.2s}
+    .market-search button:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,230,118,0.4)}
+    .market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+    .market-item{background:linear-gradient(145deg,rgba(30,35,45,0.95),rgba(18,22,30,0.95));border:1px solid rgba(0,230,118,0.25);border-radius:16px;padding:16px;cursor:pointer;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden}
+    .market-item::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#00e676,#29b6f6,#ab47bc);opacity:0;transition:opacity 0.3s}
+    .market-item:hover{transform:translateY(-6px);border-color:#00e676;box-shadow:0 12px 40px rgba(0,230,118,0.25),0 0 0 1px rgba(0,230,118,0.1)}
+    .market-item:hover::before{opacity:1}
+    .market-item-badge{position:absolute;top:12px;right:12px;background:rgba(0,230,118,0.15);color:#00e676;padding:4px 10px;border-radius:20px;font-size:0.7rem;font-weight:600;border:1px solid rgba(0,230,118,0.3)}
+    .market-item-title{font-weight:700;color:#fff;margin-bottom:6px;font-size:1rem;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .market-item-vendor{display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#8b95a5;margin-bottom:8px}
+    .market-item-vendor::before{content:'👤'}
+    .market-item-price{color:#00e676;font-weight:800;font-size:1.3rem;margin:8px 0;text-shadow:0 0 10px rgba(0,230,118,0.3)}
+    .market-item-rating{display:flex;align-items:center;gap:4px;font-size:0.75rem;color:#b0b8c4;margin-bottom:10px}
+    .market-item-rating::before{content:'⭐';color:#ffd54f}
+    .market-preview{width:100%;height:140px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid rgba(0,230,118,0.2);transition:transform 0.2s}
+    .market-item:hover .market-preview{transform:scale(1.02)}
+    .market-preview img{width:100%;height:100%;object-fit:cover}
+    .market-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+    .market-tag{display:inline-flex;align-items:center;background:rgba(0,230,118,0.12);color:#00e676;padding:4px 10px;border-radius:12px;font-size:0.7rem;border:1px solid rgba(0,230,118,0.25);transition:all 0.2s}
+    .market-tag:hover{background:rgba(0,230,118,0.25);transform:scale(1.05)}
+    .market-item-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+    .market-item-actions button{flex:1;min-width:80px;padding:8px 12px;font-size:0.75rem;background:transparent;border:1px solid;border-radius:10px;font-weight:600;transition:all 0.2s;cursor:pointer}
+    .market-item-actions button:hover{transform:translateY(-2px)}
+    .btn-buy{border-color:#00e676;color:#00e676;background:rgba(0,230,118,0.1)}
+    .btn-buy:hover{background:#00e676;color:#0b0c10;box-shadow:0 4px 15px rgba(0,230,118,0.4)}
+    .btn-fav{border-color:#ab47bc;color:#ce93d8;background:rgba(171,71,188,0.1)}
+    .btn-fav:hover{background:#ab47bc;color:#fff}
+    .btn-details{border-color:#29b6f6;color:#81d4fa;background:rgba(41,182,246,0.1)}
+    .btn-details:hover{background:#29b6f6;color:#0b0c10}
+    .market-empty,.market-loading{text-align:center;color:#8b95a5;padding:40px 20px;background:rgba(30,35,45,0.4);border-radius:16px;border:1px dashed rgba(0,230,118,0.3)}
+    .market-empty::before{content:'🔍';display:block;font-size:2.5rem;margin-bottom:12px}
+    .market-loading::before{content:'⏳';display:block;font-size:2.5rem;margin-bottom:12px;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+    .market-recommendations{margin-bottom:24px;padding:16px;background:linear-gradient(135deg,rgba(0,230,118,0.08),rgba(41,182,246,0.08));border-radius:16px;border:1px solid rgba(0,230,118,0.2)}
+    .market-recommendations h3{margin-bottom:12px;color:#00e676;display:flex;align-items:center;gap:8px;font-size:1.1rem}
+    .market-recommendations h3::before{content:'🎯'}
+    .market-modal{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:200;padding:20px;backdrop-filter:blur(8px);animation:fadeIn 0.3s ease-out}
+    .market-modal-content{max-width:480px;max-height:90vh;overflow-y:auto;background:linear-gradient(145deg,rgba(30,35,45,0.98),rgba(18,22,30,0.98));border:1px solid rgba(0,230,118,0.3);border-radius:20px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6),0 0 0 1px rgba(0,230,118,0.1)}
+    .market-modal-title{font-size:1.4rem;color:#fff;margin-bottom:10px;font-weight:700;line-height:1.3}
+    .market-modal-desc{font-size:0.9rem;color:#b0b8c4;margin-bottom:16px;line-height:1.5}
+    .market-modal-price{color:#00e676;font-weight:800;font-size:1.5rem;margin:12px 0;text-shadow:0 0 15px rgba(0,230,118,0.4)}
+    .market-modal-meta{font-size:0.8rem;color:#8b95a5;margin:6px 0;display:flex;gap:12px;flex-wrap:wrap}
+    .market-modal-meta span{display:flex;align-items:center;gap:4px}
+    .market-modal-tags{margin:14px 0;display:flex;flex-wrap:wrap;gap:8px}
+    .market-modal-tags .market-tag{padding:6px 14px;font-size:0.75rem}
+    .market-modal-seller{background:rgba(0,0,0,0.35);padding:14px;border-radius:14px;margin:18px 0;border-left:3px solid #00e676}
+    .market-modal-seller h4{margin-bottom:6px;color:#fff;font-size:1rem}
+    .market-modal-seller p{font-size:0.8rem;color:#8b95a5;margin:2px 0}
+    .market-modal-seller .verified{color:#00e676;font-weight:600}
+    .market-modal-seller .verified::before{content:'✓ '}
+    .market-modal-license{background:rgba(41,182,246,0.15);color:#81d4fa;padding:10px 14px;border-radius:10px;font-size:0.8rem;border:1px solid rgba(41,182,246,0.3);margin:12px 0}
+    .market-modal-actions{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+    .market-modal-actions button{flex:1;min-width:100px;padding:12px 16px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s}
+    .market-modal-actions .btn-buy{background:linear-gradient(135deg,#00e676,#00c853);color:#0b0c10;border:none;box-shadow:0 4px 20px rgba(0,230,118,0.4)}
+    .market-modal-actions .btn-buy:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,230,118,0.6)}
+    .market-modal-actions .btn-fav{border-color:#ab47bc;color:#ce93d8;background:rgba(171,71,188,0.15)}
+    .market-modal-actions .btn-sec{border-color:#5a6577;color:#8b95a5;background:transparent}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    .market-item:nth-child(odd){animation:float 6s ease-in-out infinite}
+    .market-item:nth-child(even){animation:float 6s ease-in-out infinite 0.5s}
+    @media (max-width:600px){.market-grid{grid-template-columns:1fr}.market-search{flex-direction:column}.market-modal-actions{flex-direction:column}.market-modal-actions button{width:100%}}
+    .notification{position:fixed;top:20px;right:20px;background:rgba(18,22,30,0.95);border:1px solid rgba(0,230,118,0.3);border-radius:12px;padding:12px 16px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;gap:10px;animation:slideIn 0.3s ease-out;max-width:320px}
+    .notification.success{border-left:4px solid #00e676}
+    .notification.error{border-left:4px solid #ff5252}
+    .notification.info{border-left:4px solid #29b6f6}
+    @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    .notification-close{background:none;border:none;color:#8b95a5;font-size:1.2rem;cursor:pointer;margin-left:auto}
+    .chat-preview{background:rgba(30,35,45,0.6);border-radius:12px;padding:12px;margin:8px 0;border:1px solid rgba(41,182,246,0.2)}
+    .chat-preview-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .chat-preview-messages{max-height:100px;overflow-y:auto;font-size:0.8rem;color:#b0b8c4}
+    .chat-preview-input{display:flex;gap:8px;margin-top:8px}
+    .chat-preview-input input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(18,22,30,0.8);color:#fff}
+    /* 🎬 Reproductor Multimedia */
+    .media-modal{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;justify-content:center;align-items:center;z-index:200;padding:20px}
+    .media-container{width:100%;max-width:800px;background:#000;border-radius:12px;overflow:hidden;position:relative;box-shadow:0 0 30px rgba(0,230,118,0.2)}
+    .media-container video, .media-container audio{width:100%;display:block;max-height:80vh}
+    .media-controls{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#111;color:#fff}
+    .media-title{font-size:1rem;font-weight:bold;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .close-media{background:none;border:none;color:#ff5252;font-size:1.5rem;cursor:pointer;padding:5px 15px}
+    .play-btn{width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #00e676;color:#00e676;cursor:pointer}
+    /* 🆔 Identidad Digital */
+    #sigCanvas{touch-action:none}
+    .contact-row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(0,0,0,0.3);border-radius:6px;margin:4px 0;font-size:0.8rem}
+    .contact-remove{background:none;border:none;color:#ff5252;cursor:pointer;font-size:1.1rem;padding:0 4px}
+    .signature-saved{border-color:#00e676!important}
+    /* 📊 Analytics Dashboard */
+    #revenueChart, #categoryChart { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; }
+    .top-product-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .affiliate-timeline-item { padding: 4px 0; border-left: 2px solid #00e676; padding-left: 12px; margin: 4px 0; font-size: 0.75rem; }
+    /* 📤 Upload Modal */
+    #uploadModal .glass { max-width: 340px; }
+    #uploadModal h2 { margin-bottom: 16px; }
+    #uploadModal label { display: block; margin: 10px 0 5px; font-weight: bold; }
+    #uploadModal input[type="file"] { background: #1a1f2a; padding: 10px; border-radius: 8px; }
+    #uploadModal #priceSection { margin: 10px 0; }
+    #uploadModal #uploadStatus { font-size: 0.75rem; color: #00e676; margin-top: 8px; min-height: 1.2em; }
+    #uploadModal .progress-bar { margin: 12px 0; }
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .glass { margin: 8px; padding: 14px; }
+      .grid { grid-template-columns: 1fr; }
+      h1 { font-size: 1.4rem; }
+      h2 { font-size: 1.2rem; }
+      button { padding: 11px; font-size: 0.95rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 🔐 LANDING VIEW (antes de login) -->
+  <div id="landingView">
+    <div class="glass green" style="text-align:center;padding:24px 18px">
+      <h1>🔐 ApiRomwiner Vault</h1>
+      <div style="margin:10px 0;font-size:0.75rem;color:#8b95a5;text-align:center">
+        <span style="background:rgba(0,230,118,0.15);color:#00e676;padding:2px 8px;border-radius:12px;margin:0 4px">🟢 Online</span>
+        <span style="background:rgba(41,182,246,0.15);color:#29b6f6;padding:2px 8px;border-radius:12px;margin:0 4px">🤖 IA Activa</span>
+        <span style="background:rgba(126,87,194,0.15);color:#ce93d8;padding:2px 8px;border-radius:12px;margin:0 4px">🔐 Zero-Knowledge</span>
+      </div>
+      <p style="margin:16px 0">Tu identidad digital universal. Monétiza contenido, gana con referidos y controla tu información sin intermediarios.</p>
+      <span class="promo-badge">🎉 Primeros 50 suscriptores: Acceso prioritario</span>
+      <button onclick="scrollToAuth()">🔓 Crear Cuenta Gratis</button>
+      <button class="btn-sec" onclick="showPromo()">✨ Unirme por $25 USD</button>
+      <div style="margin-top:12px;font-size:0.8rem;color:#8b95a5">
+        <span class="status-dot" id="apiStatus"></span>
+        <span id="statusText">Conectando...</span>
+      </div>
+    </div>
+
+    <div class="glass">
+      <h2>💰 Cómo Ganas Dinero</h2>
+      <div class="grid">
+        <div class="card"><div class="feature-icon">📦</div><div class="label">Vende información cifrada con Envelope Encryption</div></div>
+        <div class="card"><div class="feature-icon">🤝</div><div class="label">15% comisión automática por cada referido activo</div></div>
+        <div class="card"><div class="feature-icon">🆔</div><div class="label">Licencias de acceso: cobra por tiempo o permanente</div></div>
+        <div class="card"><div class="feature-icon">🌍</div><div class="label">Sin plataformas que se quedan con tu margen</div></div>
+      </div>
+    </div>
+
+    <div class="glass qr-box">
+      <h2>📱 Instala la App en tu Celular</h2>
+      <p>Escanea para abrir, instalar y empezar a ganar desde cualquier dispositivo.</p>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://api.romwinervault.com&color=00e676&bgcolor=0b0c10" class="qr-img" alt="QR Instalar App">
+      <button id="installBtn" class="btn-sec" onclick="installApp()" style="display:none;max-width:200px;margin:8px auto">📲 Instalar App</button>
+    </div>
+
+    <div id="authSection" class="glass">
+      <h2>🔐 Acceso a tu Bóveda</h2>
+      <input id="email" type="email" placeholder="Correo electrónico" autocomplete="email">
+      <input id="pass" type="password" placeholder="Contraseña (8+ chars, 1 mayúscula, 1 número, 1 símbolo)" autocomplete="current-password">
+      <button onclick="login()">🔓 Iniciar Sesión</button>
+      <button class="btn-sec" onclick="register()">✨ Registrar Cuenta Nueva</button>
+      <label style="display:block;margin:12px 0;font-size:0.8rem;color:#8b95a5">
+        <input type="checkbox" id="acceptTerms" required> Acepto los <a href="/terms.html" target="_blank" style="color:#00e676">Términos</a> y <a href="/privacy.html" target="_blank" style="color:#00e676">Privacidad</a>
+      </label>
+      <div class="legal-links">
+        <a href="/privacy.html" target="_blank">🔐 Privacidad</a> | 
+        <a href="/terms.html" target="_blank">📜 Términos</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🟢 DASHBOARD VIEW (después de login) -->
+  <div id="dashboardView" class="hidden">
+    <div class="glass green" style="text-align:center">
+      <h2>🟢 Panel de Monetización</h2>
+      <p>Bienvenido, <b id="uEmail" style="color:#00e676"></b></p>
+      <div id="userTierBadge" class="tier-badge tier-personal" style="margin:8px 0">Personal</div>
+      <div id="quotaDisplay" class="hidden">
+        <div style="font-size:0.8rem;color:#8b95a5;margin:4px 0">Almacenamiento usado</div>
+        <div class="quota-bar"><div id="quotaFill" class="quota-fill" style="width:0%"></div></div>
+        <div id="quotaText" style="font-size:0.75rem;color:#8b95a5"></div>
+      </div>
+      <div class="grid">
+        <div class="card"><div class="label">💰 Saldo Disponible</div><div class="val" id="saldo">$0.00</div></div>
+        <div class="card"><div class="label">📦 Activos en Venta</div><div class="val" id="activos">0</div></div>
+        <div class="card"><div class="label">📈 Ventas Completadas</div><div class="val" id="ventas">0</div></div>
+        <div class="card"><div class="label">🤝 Ganancias Afiliados</div><div class="val" id="afiliados">$0.00</div></div>
+      </div>
+            </div>  <!-- ← CIERRA .grid -->
+
+      <!-- 💰 BANNER: TU CUENTA PUEDE PAGARSE SOLA -->
+      <div id="autoPayBanner" class="glass" style="margin:16px 0; padding:16px; border-left:4px solid #00e676; display:none;">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div style="font-size:1.5rem;">🔄</div>
+          <div style="flex:1; min-width:200px;">
+            <h4 style="margin:0 0 4px 0; color:#fff;">Tu cuenta puede pagarse sola</h4>
+            <p style="margin:0 0 8px 0; color:#8b95a5; font-size:0.9rem;">Gana saldo viendo anuncios o vendiendo → paga tu Premium automáticamente</p>
+            <div style="background:#1a1f2a; border-radius:6px; padding:8px 12px;">
+              <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:4px;">
+                <span style="color:#8b95a5;">Saldo actual:</span>
+                <span id="autoPayBalance" style="color:#00e676; font-weight:600;">$0.00</span>
+              </div>
+              <div style="height:6px; background:#2a2f3a; border-radius:3px; overflow:hidden;">
+                <div id="autoPayProgress" style="height:100%; width:0%; background:linear-gradient(90deg, #00e676, #00c853); transition:width 0.3s;"></div>
+              </div>
+              <div id="autoPayStatus" style="font-size:0.8rem; color:#8b95a5; margin-top:4px;">Te faltan $9.99 para activar</div>
+            </div>
+          </div>
+          <button id="btnActivateAutoPay" onclick="activateAutoPay()" disabled style="padding:10px 16px; background:#2a2f3a; color:#8b95a5; border:none; border-radius:6px; cursor:not-allowed; font-weight:500; white-space:nowrap;">
+            🔁 Activar auto-pago
+          </button>
+        </div>
+      </div>
+
+      <script>
+      async function updateAutoPayBanner() {
+        try {
+          const res = await fetch('/api/wallet', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+          const data = await res.json();
+          if (!data.success) return;
+          const balance = data.wallet.balance || 0;
+          const required = 9.99;
+          const pct = Math.min(100, (balance / required) * 100);
+          const missing = Math.max(0, required - balance).toFixed(2);
+          document.getElementById('autoPayBalance').textContent = '$' + balance.toFixed(2);
+          document.getElementById('autoPayProgress').style.width = pct + '%';
+          const status = document.getElementById('autoPayStatus');
+          const btn = document.getElementById('btnActivateAutoPay');
+          const banner = document.getElementById('autoPayBanner');
+          banner.style.display = 'block';
+          if (balance >= required) {
+            status.textContent = '✅ ¡Listo para activar auto-pago!';
+            status.style.color = '#00e676';
+            btn.disabled = false;
+            btn.style.background = '#00e676'; btn.style.color = '#000'; btn.style.cursor = 'pointer';
+            btn.innerHTML = '🔁 Activar ahora';
+          } else {
+            status.textContent = 'Te faltan $' + missing + ' para activar';
+            status.style.color = '#8b95a5';
+            btn.disabled = true;
+            btn.style.background = '#2a2f3a'; btn.style.color = '#8b95a5'; btn.style.cursor = 'not-allowed';
+            btn.innerHTML = '🔁 Sigue ganando saldo';
+          }
+        } catch (e) { console.warn('AutoPay banner error:', e); }
+      }
+      async function activateAutoPay() {
+        const btn = document.getElementById('btnActivateAutoPay');
+        btn.disabled = true; btn.innerHTML = '⏳ Activando...';
+        try {
+          const res = await fetch('/api/wallet/auto-subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: JSON.stringify({ tier: 'business' }) });
+          const data = await res.json();
+          if (data.success) {
+            alert('✅ ' + data.message + '\nPróxima renovación: ' + new Date(data.nextBilling).toLocaleDateString());
+            document.getElementById('autoPayBanner').style.display = 'none';
+            if (typeof refresh === 'function') refresh();
+          } else { alert('❌ ' + (data.error || 'Error activando auto-pago')); btn.disabled = false; btn.innerHTML = '🔁 Activar auto-pago'; }
+        } catch (e) { alert('❌ Error de conexión'); btn.disabled = false; btn.innerHTML = '🔁 Activar auto-pago'; }
+      }
+      const origShowDash = window.showDashboard;
+      window.showDashboard = function() { if (origShowDash) origShowDash(); setTimeout(updateAutoPayBanner, 800); };
+      </script>
+
+    </div>  <!-- ← CIERRA div class="glass green" -->
+  </div>    <!-- ← CIERRA div id="dashboardView" -->
+          <!-- 📢 SECCIÓN DE ANUNCIOS CON RECOMPENSAS -->
+    <div id="adsSection" class="glass" style="display:none; margin-top:16px; padding:16px;">
+      <h3 style="margin:0 0 12px 0; color:#00e676;">🎁 Gana Saldo Viendo Anuncios</h3>
+      <p style="margin:0 0 12px 0; color:#8b95a5; font-size:0.9rem;">Mira anuncios de patrocinadores y gana hasta $0.50 USD diarios. Límite: 20 anuncios/día.</p>
+      
+      <div id="adsContainer" style="display:flex; flex-wrap:wrap; gap:12px;"></div>
+      
+      <div id="adsStatus" style="margin-top:12px; font-size:0.85rem; color:#8b95a5;">Cargando anuncios...</div>
+      
+      <button onclick="loadAvailableAds()" style="margin-top:12px; padding:8px 16px; background:#00e676; color:#000; border:none; border-radius:6px; cursor:pointer; font-weight:500;">
+        🔄 Recargar anuncios
+      </button>
+    </div>
+    </div>
+
+    <!-- 👑 Panel Admin (solo admins) -->
+    <div id="adminPanel" class="glass enterprise enterprise-only" style="display:none">
+      <h2 style="color:#ff5252">👑 Panel de Administrador</h2>
+      <div class="grid">
+        <div class="card"><div class="feature-icon">🎁</div><div class="label">Regalar cuenta a usuario</div></div>
+        <div class="card"><div class="feature-icon">🗑️</div><div class="label">Eliminar usuario</div></div>
+        <div class="card"><div class="feature-icon">🔑</div><div class="label">Rotar claves</div></div>
+        <div class="card"><div class="feature-icon">📊</div><div class="label">Ver todos los usuarios</div></div>
+      </div>
+      <button class="btn-enterprise" onclick="showAdminTools()">🛠️ Herramientas Admin</button>
+    </div>
+
+    <!-- 🏦 Funciones Enterprise -->
+    <div id="enterpriseFeatures" class="glass enterprise enterprise-only">
+      <h2 style="color:#ce93d8">🏦 Funciones Enterprise</h2>
+      <div class="grid">
+        <div class="card"><div class="feature-icon">🔐</div><div class="label">Cifrado Envelope: clave única por usuario</div></div>
+        <div class="card"><div class="feature-icon">📊</div><div class="label">Auditoría inmutable + export GDPR/SOC2</div></div>
+        <div class="card"><div class="feature-icon">🔄</div><div class="label">Rotación automática de claves cada 90 días</div></div>
+        <div class="card"><div class="feature-icon">🚨</div><div class="label">Webhooks de alertas en tiempo real</div></div>
+      </div>
+      <button class="btn-enterprise" onclick="exportAudit('gdpr')">📄 Exportar Reporte GDPR</button>
+      <button class="btn-enterprise" onclick="showWebhooks()">🔗 Gestionar Webhooks</button>
+      <button class="btn-enterprise" onclick="rotateKeys()">🔄 Rotar Claves Ahora</button>
+    </div>
+
+    <!-- 🚀 Acciones Rápidas -->
+    <div class="glass">
+      <h2>🚀 Acciones Rápidas</h2>
+      <button onclick="refresh()">🔄 Actualizar Métricas</button>
+      <button onclick="openUpload()">📤 Subir Archivo al Vault</button>
+      <button onclick="openCreate()">📤 Publicar Texto en Venta</button>
+      <button onclick="showVault()">🗄️ Ver mi Vault</button>
+      <button class="btn-sec" onclick="showMarketplace()">🛍️ Marketplace</button>
+      <button onclick="showIdentityQR()">🆔 Mi QR de Identidad Digital</button>
+      <button onclick="withdraw()">💸 Solicitar Retiro a Cuenta</button>
+      <button class="btn-sec" onclick="showAuditLog()">📋 Ver Auditoría</button>
+      <button class="btn-danger" onclick="logout()">🚪 Cerrar Sesión</button>
+    </div>
+
+    <!-- 🆔 Identidad Digital -->
+    <div class="glass" id="digitalIdentityPanel">
+      <h2>🆔 Mi Identidad Digital Absoluta</h2>
+      <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Tu cuenta es tu ID. Sin apps externas. Sin terceros.</p>
+      
+      <!-- Avatar -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <img id="userAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" 
+             style="width:64px;height:64px;border-radius:50%;border:2px solid #00e676;background:#000;object-fit:cover">
+        <div>
+          <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatar(event)">
+          <button onclick="document.getElementById('avatarInput').click()" 
+                  style="padding:6px 12px;background:transparent;border:1px solid #29b6f6;color:#29b6f6;border-radius:8px;font-size:0.8rem">📷 Cambiar foto</button>
+        <p style="font-size:0.7rem;color:#8b95a5;margin:4px 0 0">JPG/PNG • Recomendado para mejor rendimiento</p>
+        </div>
+      </div>
+
+      <!-- Firma Digital -->
+      <div style="margin:16px 0">
+        <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">✍️ Firma Digital (dibuja con dedo/mouse)</label>
+        <canvas id="sigCanvas" width="280" height="100" style="border:1px solid #2a2f3a;border-radius:8px;background:#000;cursor:crosshair;touch-action:none;width:100%"></canvas>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button onclick="clearSig()" style="flex:1;padding:6px;background:transparent;border:1px solid #ff5252;color:#ff5252;border-radius:6px;font-size:0.75rem">🗑️ Borrar</button>
+          <button onclick="saveSig()" style="flex:1;padding:6px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;font-size:0.75rem;font-weight:600">💾 Guardar</button>
+        </div>
+      </div>
+
+      <!-- Recuperación Social -->
+      <div style="margin:16px 0;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
+        <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">🤝 Contactos de Recuperación (mín. 3)</label>
+        <div id="contactsList" style="margin-bottom:8px"></div>
+        <div style="display:flex;gap:6px">
+          <input type="email" id="contactEmail" placeholder="correo@ejemplo.com" 
+                 style="flex:1;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#151922;color:#fff;font-size:0.8rem">
+          <button onclick="addContact()" style="padding:8px 12px;background:#ab47bc;color:#fff;border:none;border-radius:6px;font-size:0.8rem">➕</button>
+        </div>
+      </div>
+
+      <!-- QR Identidad -->
+      <div style="margin-top:16px;text-align:center">
+        <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">📱 Escanea para verificar identidad</p>
+        <img id="idQR" src="" style="max-width:140px;border-radius:8px;border:2px solid #00e676">
+        <button onclick="genQR()" style="margin-top:8px;padding:6px 12px;background:transparent;border:1px solid #00e676;color:#00e676;border-radius:6px;font-size:0.8rem">🔄 Generar QR Actualizado</button>
+      </div>
+
+      <!-- Multifirma -->
+      <div style="margin-top:16px;padding:12px;background:rgba(126,87,194,0.1);border-radius:10px;border-left:3px solid #7e57c2">
+        <h3 style="font-size:1rem;color:#ce93d8;margin-bottom:6px">🔐 Multifirma (Acciones Críticas)</h3>
+        <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">Retiros, eliminar cuenta o cambiar clave requieren aprobación de <b>2 de 3 contactos</b>.</p>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#fff">
+          <input type="checkbox" id="multisigToggle" onchange="toggleMultisig()"> Activar multifirma para acciones críticas
+        </label>
+      </div>
+    </div>
+
+    <!-- 📊 Analytics Financiero -->
+    <div class="glass" id="financialAnalyticsPanel" style="display:none">
+      <h2>📊 Analytics Financiero</h2>
+      <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Visualiza tus ingresos, ventas y ganancias de afiliados.</p>
+      
+      <!-- Filtros de fecha -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button onclick="loadFinancialData('7d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 7 días</button>
+        <button onclick="loadFinancialData('30d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 30 días</button>
+        <button onclick="loadFinancialData('90d')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">📅 90 días</button>
+        <button onclick="exportFinancialData('csv')" style="width:auto;padding:6px 12px;font-size:0.75rem;background:transparent;border:1px solid #00e676;color:#00e676">📤 Exportar CSV</button>
+      </div>
+      
+      <!-- Tarjetas de resumen -->
+      <div class="grid" style="margin-bottom:16px">
+        <div class="card"><div class="label">💰 Ingresos Totales</div><div class="val" id="totalRevenue">$0.00</div></div>
+        <div class="card"><div class="label">🛍️ Ventas Completadas</div><div class="val" id="totalSales">0</div></div>
+        <div class="card"><div class="label">🤝 Ganancias Afiliados</div><div class="val" id="affiliateEarnings">$0.00</div></div>
+        <div class="card"><div class="label">📦 Productos Activos</div><div class="val" id="activeProducts">0</div></div>
+      </div>
+      
+      <!-- Gráfico de ingresos -->
+      <div style="margin:16px 0">
+        <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">📈 Ingresos por Día</h3>
+        <canvas id="revenueChart" height="120"></canvas>
+      </div>
+      
+      <!-- Ventas por categoría -->
+      <div style="margin:16px 0">
+        <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🥧 Ventas por Categoría</h3>
+        <canvas id="categoryChart" height="120"></canvas>
+      </div>
+      
+      <!-- Top productos -->
+      <div style="margin:16px 0">
+        <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🏆 Top 5 Productos</h3>
+        <div id="topProducts" style="font-size:0.8rem;color:#b0b8c4"></div>
+      </div>
+      
+      <!-- Timeline de afiliados -->
+      <div style="margin:16px 0">
+        <h3 style="font-size:1rem;color:#fff;margin-bottom:8px">🤝 Historial de Afiliados</h3>
+        <div id="affiliateTimeline" style="max-height:150px;overflow-y:auto;font-size:0.8rem;color:#b0b8c4"></div>
+      </div>
+    </div>
+
+    <!-- 🗄️ Vault Modal -->
+    <div id="vaultModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+      <div class="glass" style="max-width:400px;max-height:80vh;overflow-y:auto">
+        <h2>🗄️ Mi Vault</h2>
+        <div id="vaultList"></div>
+        <button onclick="closeVault()" class="btn-sec" style="margin-top:12px">Cerrar</button>
+      </div>
+    </div>
+
+    <!-- 🔗 Webhooks Modal -->
+    <div id="webhookModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+      <div class="glass" style="max-width:400px">
+        <h2>🔗 Webhooks de Alertas</h2>
+        <input id="webhookUrl" type="url" placeholder="https://tu-servicio.com/webhook">
+        <select id="webhookEvents">
+          <option value="login.failed">🔐 Login fallido</option>
+          <option value="vault.anomaly">📦 Anomalía en Vault</option>
+          <option value="key.rotation">🔄 Rotación de clave</option>
+          <option value="quota.warning">⚠️ Cuota casi llena</option>
+        </select>
+        <input id="webhookSecret" type="password" placeholder="Secret para firma (opcional)">
+        <button onclick="registerWebhook()">✅ Registrar Webhook</button>
+        <div id="webhookList" style="margin-top:12px"></div>
+        <button onclick="closeWebhooks()" class="btn-sec" style="margin-top:12px">Cerrar</button>
+      </div>
+    </div>
+
+    <!-- 📋 Audit Modal -->
+    <div id="auditModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+      <div class="glass" style="max-width:400px;max-height:80vh;overflow-y:auto">
+        <h2>📋 Auditoría de Actividad</h2>
+        <div id="auditLog" class="audit-log"></div>
+        <button onclick="closeAudit()" class="btn-sec" style="margin-top:12px">Cerrar</button>
+      </div>
+    </div>
+
+    <!-- 🎒 Bóveda Portable -->
+    <div class="glass" id="portableFeatures">
+      <h2>🎒 Bóveda Portable</h2>
+      <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Exporta tu bóveda para backup o migración. Tus datos, siempre bajo tu control.</p>
+      <div class="grid">
+        <button onclick="exportVault()" style="background:transparent;border:1px solid #00e676;color:#00e676">📦 Exportar Bóveda</button>
+        <button onclick="importVault()" class="btn-sec" style="border-color:#29b6f6;color:#29b6f6">📥 Importar Backup</button>
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:0.8rem;color:#8b95a5">Sincronización</span>
+          <button onclick="syncCheck()" style="width:auto;padding:4px 12px;font-size:0.75rem;background:transparent;border:1px solid #66bb6a;color:#66bb6a">🔄 Verificar Cambios</button>
+        </div>
+        <div id="syncStatus" style="font-size:0.75rem;color:#8b95a5;min-height:1.2em"></div>
+      </div>
+      <label class="zk-toggle">
+        <input type="checkbox" id="zkToggle" onchange="toggleZeroKnowledge()"> 
+        🔐 Modo Zero-Knowledge (cifrado en tu dispositivo)
+        <span class="zk-warning" id="zkWarning">⚠️ Cifra este archivo con tu clave maestra antes de guardarlo externamente.</span>
+      </label>
+    </div>
+
+    <!-- 🛍️ Marketplace -->
+    <div class="glass" id="marketplaceSection" style="display:none">
+      <h2>🛍️ Marketplace Cifrado</h2>
+      <p style="color:#8b95a5;margin-bottom:12px">Explora contenido en venta. Todo cifrado con Envelope Encryption.</p>
+      <div class="market-search">
+        <input type="text" id="marketSearch" placeholder="Buscar por título o tag...">
+        <select id="marketCategory"><option value="">Todas las categorías</option></select>
+        <!-- 🎬 BOTÓN DE PRUEBA: REPRODUCTOR SEGURO -->
+<div style="margin:16px 0; padding:12px; background:#1a1f2a; border-radius:8px; text-align:center; border:1px dashed #00e676;">
+  <p style="color:#fff; margin:0 0 8px 0; font-size:0.9rem;">🎥 ¿Tienes videos? Prueba el reproductor seguro</p>
+  <button onclick="openSecurePlayer('/api/files/download/TU_ID_REAL', 'prueba.mp4')" style="padding:10px 20px; background:#00e676; color:#000; border:none; border-radius:6px; cursor:pointer; font-weight:600;">🎬 Abrir reproductor</button>
+  <p style="color:#8b95a5; margin:6px 0 0 0; font-size:0.75rem;">⚠️ Cambia TU_ID_REAL por un ID real cuando tengas un video subido</p>
+</div>
+        <select id="marketPriceFilter">
+          <option value="">Cualquier precio</option>
+          <option value="0-10">Menos de $10</option>
+          <option value="10-50">$10 - $50</option>
+          <option value="50-100">$50 - $100</option>
+          <option value="100+">$100+</option>
+        </select>
+        <button onclick="loadMarketplace()" style="width:auto;padding:8px 16px">🔍 Buscar</button>
+      </div>
+      <div id="marketRecommendations" class="market-recommendations hidden">
+        <h3>🎯 Recomendado para ti</h3>
+        <div id="recommendationsGrid" class="market-grid"></div>
+      </div>
+      <div id="marketGrid" class="market-grid"></div>
+      <div id="marketLoading" class="market-loading hidden">⏳ Cargando marketplace...</div>
+      <div id="marketEmpty" class="market-empty hidden">🔍 No se encontró contenido. ¡Sé el primero en vender!</div>
+      <button onclick="closeMarketplace()" class="btn-sec" style="margin-top:16px">Cerrar Marketplace</button>
+    </div>
+
+    <!-- 📲 QR Referido -->
+    <div class="glass qr-box">
+      <h2>📲 App Instalada</h2>
+      <p>Comparte este QR para que otros instalen y usen tu enlace de referido.</p>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://api.romwinervault.com?ref=ROM000&color=00e676&bgcolor=0b0c10" class="qr-img" alt="QR Referido" id="refQr">
+    </div>
+  </div>
+
+  <!-- 🆔 Identity Modal -->
+  <div id="idModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+    <div class="glass" style="max-width:340px;text-align:center">
+      <h2>🆔 Identidad Universal</h2>
+      <img id="idQrImg" class="qr-img" src="" alt="QR Identidad">
+      <p id="idQrData" style="font-size:0.8rem;color:#8b95a5;word-break:break-all;margin:8px 0"></p>
+      <button onclick="closeIdModal()" class="btn-sec">✅ Entendido</button>
+    </div>
+  </div>
+
+  <!-- 📤 Create Text Modal -->
+  <div id="createModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+    <div class="glass" style="max-width:340px">
+      <h2>📤 Publicar Activo (Texto)</h2>
+      <label style="display:block;margin:10px 0 5px;font-weight:bold">Título del contenido *</label>
+      <input id="itemTitle" placeholder="Ej: Mi guía de inversión" style="margin-bottom:10px">
+      <label style="display:block;margin:10px 0 5px">Precio</label>
+      <input id="itemPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px">
+      <span style="font-size:0.7rem;color:#8b95a5;display:block;margin-bottom:10px">💵 Se mostrará como: $XX.XX USD</span>
+      <select id="itemCat">
+        <option value="general">General</option>
+        <option value="finanzas">Finanzas</option>
+        <option value="tech">Tecnología</option>
+        <option value="educacion">Educación</option>
+        <option value="personal">Personal</option>
+      </select>
+      <label style="display:block;margin:10px 0;font-size:0.8rem;color:#8b95a5">
+        <input type="checkbox" id="itemForSale"> Marcar para vender públicamente
+      </label>
+      <button onclick="publish()">✅ Publicar en Venta</button>
+      <button onclick="closeCreate()" class="btn-sec">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- 📤 Upload File Modal -->
+  <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+    <div class="glass" style="max-width:340px">
+      <h2>📤 Subir Archivo al Vault</h2>
+      <label style="display:block;margin:10px 0 5px;font-weight:bold">Título del archivo *</label>
+      <input id="uploadTitle" placeholder="Ej: Mi foto de vacaciones" style="margin-bottom:10px" required>
+      <label style="display:block;margin:10px 0 5px">Categoría</label>
+      <select id="uploadCat" style="margin-bottom:10px">
+        <option value="general">📁 General</option>
+        <option value="fotos">📷 Fotos</option>
+        <option value="videos">🎬 Videos</option>
+        <option value="libros">📚 Libros</option>
+        <option value="documentos">📄 Documentos</option>
+        <option value="textos">✍️ Textos</option>
+        <option value="audio">🎵 Audio</option>
+        <option value="otros">📦 Otros</option>
+      </select>
+      <label style="display:block;margin:10px 0 5px">Selecciona archivo</label>
+      <input id="uploadFile" type="file" style="background:#1a1f2a;padding:10px;border-radius:8px;margin-bottom:10px" required>
+      <label style="display:block;margin:15px 0 5px;font-weight:bold">
+        <input type="checkbox" id="uploadForSale" style="width:auto;margin-right:8px"> Marcar para vender públicamente
+      </label>
+      <div id="priceSection" style="display:none;margin:10px 0">
+        <label style="display:block;margin:0 0 5px">Precio</label>
+        <input id="uploadPrice" type="number" step="0.01" placeholder="10" style="margin-bottom:5px">
+        <span style="font-size:0.8rem;color:#8b95a5">💵 Se mostrará como: $XX.XX USD</span>
+      </div>
+      <div class="progress-bar hidden" id="uploadProgress"><div class="progress-fill" id="uploadProgressFill"></div></div>
+      <p id="uploadStatus" style="font-size:0.75rem;color:#00e676;margin-top:8px;min-height:1.2em"></p>
+      <button onclick="doUpload()" id="uploadBtn">✅ Subir y Cifrar</button>
+      <button onclick="closeUpload()" class="btn-sec">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- 📦 Export Modal -->
+  <div id="exportModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+    <div class="glass" style="max-width:400px;text-align:center">
+      <h2>📦 Exportar Bóveda</h2>
+      <p style="font-size:0.8rem;color:#8b95a5;margin:12px 0">Se generará un archivo JSON con los metadatos de tu bóveda.<b id="zkExportWarning" class="hidden" style="color:#00e676;display:block;margin:8px 0">🔐 Modo Zero-Knowledge: cifra este archivo con tu clave maestra antes de guardarlo.</b></p>
+      <button onclick="doExportVault()" id="exportBtn">✅ Generar Exportación</button>
+      <button onclick="closeExportModal()" class="btn-sec">Cancelar</button>
+      <div id="exportStatus" style="font-size:0.75rem;color:#00e676;margin-top:12px;min-height:1.2em"></div>
+    </div>
+  </div>
+
+  <!-- 📥 Import Modal -->
+  <div id="importModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+    <div class="glass" style="max-width:400px">
+      <h2>📥 Importar Backup</h2>
+      <input type="file" id="importFile" accept=".json" style="background:#1a1f2a;padding:10px;border-radius:8px;margin:12px 0;width:100%">
+      <label style="display:block;margin:8px 0;font-size:0.8rem;color:#8b95a5">
+        <input type="checkbox" id="forceImport"> Forzar importación como nueva bóveda (ignorar ID de usuario)
+      </label>
+      <button onclick="doImportVault()" id="importBtn">✅ Importar</button>
+      <button onclick="closeImportModal()" class="btn-sec">Cancelar</button>
+      <div id="importStatus" style="font-size:0.75rem;color:#00e676;margin-top:12px;min-height:1.2em"></div>
+    </div>
+  </div>
+
+  <!-- 🛍️ Market Item Modal -->
+  <div id="marketItemModal" class="market-modal hidden">
+    <div class="glass market-modal-content">
+      <h2 class="market-modal-title" id="modalItemTitle">Título del producto</h2>
+      <p class="market-modal-desc" id="modalItemDesc">Descripción del producto...</p>
+      <div class="market-item-price" id="modalItemPrice">$0.00 USD</div>
+      <div class="market-modal-meta" id="modalItemMeta">📁 Categoría • 📦 Tipo</div>
+      <div class="market-modal-tags" id="modalItemTags"></div>
+      <div id="modalItemPreview" class="market-preview" style="margin:12px 0"><span style="color:#8b95a5">📦 Sin imagen de preview</span></div>
+      <div class="market-modal-seller"><h4>👤 Vendedor</h4><p id="modalSellerName">Creador</p><p id="modalSellerRating">⭐ 0.0 • 0 ventas</p></div>
+      <div class="market-modal-meta" id="modalItemLicense">Licencia: Permanente</div>
+      <div class="market-modal-actions">
+        <button class="btn-buy" onclick="buyMarketItem()">💰 Comprar</button>
+        <button class="btn-fav" onclick="toggleFavorite()">❤️ Favorito</button>
+        <button class="btn-sec" onclick="closeMarketItemModal()">✕ Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔔 Notifications -->
+  <div id="notificationContainer"></div>
+
+  <!-- 📡 Log -->
+  <div class="glass"><div id="log" class="log">📡 Conectando con ApiRomwiner...</div></div>
+  
+  <!-- 📊 Transparency Panel -->
+  <div id="transparencyPanel" class="glass hidden" style="margin:20px auto;max-width:600px">
+    <h3 style="color:#00e676">📊 Estado de Funciones</h3>
+    <div style="font-size:0.85rem;color:#b0b8c4;margin-bottom:12px">
+      <span style="color:#00e676">🟢 Disponible</span> • 
+      <span style="color:#ffb74d">🟡 Requiere Business/Enterprise</span> • 
+      <span style="color:#8ab4f8">🔵 Backend/API</span> • 
+      <span style="color:#6a7585">⚪ En desarrollo</span>
+    </div>
+    <details style="margin:8px 0">
+      <summary style="cursor:pointer;color:#fff">🔐 Seguridad (6)</summary>
+      <div style="padding:8px 0;font-size:0.8rem;color:#b0b8c4">
+        <div>🟢 Envelope Encryption</div>
+        <div>🟢 Zero-Knowledge</div>
+        <div>🟡 Rotación de claves</div>
+        <div>🟡 Auditoría inmutable</div>
+        <div>🟡 GDPR/SOC2</div>
+        <div>🔵 Webhooks</div>
+      </div>
+    </details>
+    <p style="font-size:0.75rem;color:#6a7585;margin-top:12px">
+      💡 <a href="/trust.html" style="color:#00e676">🛡️ Ver página de Confianza</a> | 
+      <a href="mailto:privacy@apiromwiner.com">✉️ Contacto</a>
+    </p>
+  </div>
+  
+  <!-- Footer -->
+  <footer>
+    © 2026 ApiRomwiner Vault. Todos los derechos reservados.<br>
+    <span style="color:#8b95a5">
+      <a href="/privacy.html" target="_blank" style="color:#8b95a5;margin:0 8px">🔐 Privacidad</a> | 
+      <a href="/terms.html" target="_blank" style="color:#8b95a5;margin:0 8px">📜 Términos</a> | 
+      <a href="/trust.html" style="color:#8b95a5;margin:0 8px">🛡️ Confianza</a> | 
+      <a href="mailto:privacy@apiromwiner.com" style="color:#8b95a5;margin:0 8px">✉️ Contacto</a>
+    </span>
+  </footer>
+
+  <!-- 🎬 Media Player Modal -->
+  <div id="mediaPlayerModal" class="media-modal hidden">
+    <div class="media-container">
+      <video id="videoPlayer" class="hidden" controls playsinline></video>
+      <audio id="audioPlayer" class="hidden" controls></audio>
+      <div class="media-controls">
+        <span id="mediaTitle" class="media-title">Reproduciendo...</span>
+        <button class="close-media" onclick="closeMediaPlayer()">✕ Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🧠 JAVASCRIPT PRINCIPAL -->
+  <script>
+    // === CONFIGURACIÓN ===
+    const API = ''; // Usa rutas relativas porque el backend sirve el frontend
+    let token = localStorage.getItem('token') || '';
+    let deferredPrompt, currentUser = null, userTier = 'personal', userQuota = null, currentMarketItem = null, isAdmin = false;
+    let revenueChart, categoryChart, sigData = null;
+
+    // === UTILIDADES ===
+    function log(m) {
+      const el = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      el.innerHTML = `[${time}] ${m}<br>` + el.innerHTML;
+      const lines = el.innerHTML.split('<br>').filter(l => l.trim());
+      if (lines.length > 20) el.innerHTML = lines.slice(0, 20).join('<br>');
+    }
+
+    function showNotification(message, type = 'info') {
+      const container = document.getElementById('notificationContainer');
+      const notif = document.createElement('div');
+      notif.className = `notification ${type}`;
+      notif.innerHTML = `<span>${message}</span><button class="notification-close" onclick="this.parentElement.remove()">×</button>`;
+      container.appendChild(notif);
+      setTimeout(() => notif.remove(), 5000);
+    }
+
+    async function req(path, method = 'GET', body = null, isFormData = false) {
+      const headers = {};
+      if (!isFormData) headers['Content-Type'] = 'application/json';
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const config = { method, headers };
+      if (body) {
+        if (isFormData) config.body = body;
+        else config.body = JSON.stringify(body);
+      }
+      const r = await fetch(API + path, config);
+      const j = await r.json?.() || {};
+      if (!r.ok) throw new Error(j.error || `Error ${r.status}`);
+      return j;
+    }
+
+    // === INICIALIZACIÓN ===
+    async function init() {
+      if (typeof loadZeroKnowledgePref === 'function') loadZeroKnowledgePref();
+      try {
+        const s = await req('/api/status');
+        const statusDot = document.getElementById('apiStatus');
+        const statusText = document.getElementById('statusText');
+        if (s.status === 'online') {
+          statusDot.className = 'status-dot online';
+          statusText.textContent = `✅ Online • ${s.database}`;
+          log('🟢 API responde');
+          showNotification('✅ Conectado al servidor', 'success');
+        } else {
+          statusDot.className = 'status-dot offline';
+          statusText.textContent = '⚠️ Mantenimiento';
+          log('⚠️ API en mantenimiento');
+        }
+        checkPromo();
+      } catch (e) {
+        document.getElementById('apiStatus').className = 'status-dot offline';
+        document.getElementById('statusText').textContent = '❌ Sin conexión';
+        log('❌ API no responde: ' + e.message);
+        showNotification('❌ Error de conexión', 'error');
+      }
+      if (token) {
+        await loadUser();
+        if (currentUser) showDashboard();
+      }
+    }
+
+    // === AUTH ===
+    async function login() {
+      const email = document.getElementById('email').value?.trim();
+      const pass = document.getElementById('pass').value;
+      if (!email || !pass) return log('⚠️ Ingresa correo y contraseña');
+      try {
+        const btn = event?.target;
+        if (btn) { btn.disabled = true; btn.textContent = '🔐 Conectando...'; }
+        const r = await req('/login', 'POST', { email, password: pass });
+        token = r.token;
+        localStorage.setItem('token', token);
+        localStorage.setItem('userEmail', email);
+        userTier = r.user?.tier || 'personal';
+        localStorage.setItem('userTier', userTier);
+        if (r.user?.isAdmin) {
+          localStorage.setItem('isAdmin', 'true');
+          isAdmin = true;
+        }
+        await loadUser();
+        showDashboard();
+        log('✅ Acceso concedido • Tier: ' + userTier);
+        showNotification('✅ Sesión iniciada', 'success');
+      } catch (e) {
+        log('❌ ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      } finally {
+        const btn = event?.target;
+        if (btn) { btn.disabled = false; btn.textContent = '🔓 Iniciar Sesión'; }
+      }
+    }
+
+    async function register() {
+      const email = document.getElementById('email').value?.trim();
+      const pass = document.getElementById('pass').value;
+      const acceptTerms = document.getElementById('acceptTerms')?.checked;
+      if (!email || !pass) return log('⚠️ Ingresa correo y contraseña');
+      if (!acceptTerms) return log('⚠️ Debes aceptar los Términos y Política de Privacidad');
+      if (pass.length < 8 || !/[A-Z]/.test(pass) || !/[0-9]/.test(pass) || !/[^a-zA-Z0-9]/.test(pass)) 
+        return log('⚠️ Contraseña débil. Usa 8+ chars, 1 mayúscula, 1 número, 1 símbolo');
+      try {
+        const btn = event?.target;
+        if (btn) { btn.disabled = true; btn.textContent = '✨ Creando...'; }
+        await req('/register', 'POST', { email, password: pass });
+        log('✅ Cuenta creada. Inicia sesión para comenzar.');
+        document.getElementById('pass').value = '';
+        showNotification('✅ Cuenta creada. Inicia sesión.', 'success');
+      } catch (e) {
+        log('❌ ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      } finally {
+        const btn = event?.target;
+        if (btn) { btn.disabled = false; btn.textContent = '✨ Registrar Cuenta Nueva'; }
+      }
+    }
+
+    async function loadUser() {
+      try {
+        const p = await req('/api/profile');
+        currentUser = p.user || p.profile;
+        userTier = currentUser?.tier || localStorage.getItem('userTier') || 'personal';
+        isAdmin = localStorage.getItem('isAdmin') === 'true' || p.user?.isAdmin === true;
+        const nombre = (p.profile?.displayName === 'Demo' || !p.profile?.displayName) 
+          ? (localStorage.getItem('userEmail')?.split('@')?.[0] || 'Usuario') 
+          : p.profile.displayName;
+        document.getElementById('uEmail').textContent = nombre;
+        const tierBadge = document.getElementById('userTierBadge');
+        tierBadge.textContent = userTier?.charAt(0).toUpperCase() + userTier?.slice(1);
+        tierBadge.className = `tier-badge tier-${userTier}`;
+        const dashboard = document.getElementById('dashboardView');
+        if (userTier === 'enterprise') {
+          dashboard.classList.add('enterprise');
+          document.getElementById('enterpriseFeatures').classList.remove('hidden');
+        } else {
+          dashboard.classList.remove('enterprise');
+          document.getElementById('enterpriseFeatures').classList.add('hidden');
+        }
+        const adminPanel = document.getElementById('adminPanel');
+        if (isAdmin) {
+          adminPanel.style.display = 'block';
+          dashboard.classList.add('enterprise');
+        } else {
+          adminPanel.style.display = 'none';
+        }
+        const refCode = currentUser?.refCode || localStorage.getItem('refCode') || 'ROM000';
+        document.getElementById('refQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(API + '?ref=' + refCode)}&color=00e676&bgcolor=0b0c10`;
+        if (p.quota) userQuota = p.quota;
+      } catch (e) {
+        log('⚠️ Perfil: ' + e.message);
+        const email = localStorage.getItem('userEmail');
+        if (email) document.getElementById('uEmail').textContent = email.split('@')[0];
+      }
+    }
+
+    function showDashboard() {
+  // ✅ Cargar avatar guardado en memoria del navegador
+  const savedAvatar = localStorage.getItem('romwiner_avatar');
+  if (savedAvatar) document.getElementById('userAvatar').src = savedAvatar;
+  
+  document.getElementById('landingView').classList.add('hidden');
+  document.getElementById('dashboardView').classList.remove('hidden');
+  refresh();
+  window.scrollTo(0, 0);
+  showProfileSection();
+}
+
+    function logout() {
+      token = '';
+      currentUser = null;
+      userTier = 'personal';
+      isAdmin = false;
+      localStorage.removeItem('token');
+      localStorage.removeItem('userTier');
+      localStorage.removeItem('isAdmin');
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('landingView').classList.remove('hidden');
+      log('🚪 Sesión cerrada');
+      window.scrollTo(0, 0);
+      showNotification('🚪 Sesión cerrada', 'info');
+    }
+
+    function scrollToAuth() {
+      document.getElementById('authSection')?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // === DASHBOARD ===
+    async function refresh() {
+      if (!token) return;
+      const btn = event?.target;
+      if (btn) { btn.disabled = true; btn.textContent = '🔄 Actualizando...'; }
+      try {
+        const [w, d, a] = await Promise.all([
+          req('/api/wallet'),
+          req('/api/dashboard'),
+          req('/api/affiliates/dashboard')
+        ]);
+        document.getElementById('saldo').textContent = '$' + (w.wallet?.balance || 0).toFixed(2);
+        document.getElementById('activos').textContent = d.dashboard?.active || 0;
+        document.getElementById('ventas').textContent = d.dashboard?.sales || 0;
+        document.getElementById('afiliados').textContent = '$' + (a.dashboard?.availableBalance || 0).toFixed(2);
+        if (d.dashboard?.quota) {
+          userQuota = d.dashboard.quota;
+          updateQuotaDisplay();
+        }
+        log('🟢 Métricas actualizadas');
+      } catch (e) {
+        log('⚠️ Sincronizando...');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🔄 Actualizar Métricas'; }
+      }
+    }
+
+    function updateQuotaDisplay() {
+      if (!userQuota) return;
+      const display = document.getElementById('quotaDisplay'),
+            fill = document.getElementById('quotaFill'),
+            text = document.getElementById('quotaText');
+      const used = userQuota.usedGB || 0,
+            limit = userQuota.tier?.storageLimitGB;
+      if (limit && limit > 0) {
+        const percent = Math.min(100, (used / limit) * 100);
+        fill.style.width = percent + '%';
+        text.textContent = `${used.toFixed(2)} GB / ${limit} GB`;
+        if (percent >= 90) {
+          text.className = 'quota-critical';
+          text.textContent += ' ⚠️ Casi lleno';
+        } else if (percent >= 75) {
+          text.className = 'quota-warning';
+          text.textContent += ' ⚠️ Considera limpiar';
+        } else text.className = '';
+        display.classList.remove('hidden');
+      } else if (limit === -1) {
+        text.textContent = '📦 Almacenamiento ilimitado';
+        text.className = '';
+        fill.style.width = '100%';
+        display.classList.remove('hidden');
+      } else display.classList.add('hidden');
+    }
+
+    // === VAULT: CREATE TEXT ===
+    function openCreate() {
+      document.getElementById('createModal').classList.remove('hidden');
+    }
+    function closeCreate() {
+      document.getElementById('createModal').classList.add('hidden');
+      document.getElementById('itemTitle').value = '';
+      document.getElementById('itemPrice').value = '';
+      document.getElementById('itemForSale').checked = false;
+    }
+    async function publish() {
+      const titulo = document.getElementById('itemTitle').value?.trim();
+      const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+      const categoria = document.getElementById('itemCat').value;
+      const forSale = document.getElementById('itemForSale').checked;
+      if (!titulo) return log('⚠️ Agrega un título');
+      try {
+        const btn = event?.target;
+        if (btn) { btn.disabled = true; btn.textContent = '📤 Publicando...'; }
+        await req('/vault', 'POST', {
+          titulo,
+          price,
+          categoria,
+          forSale,
+          contenido: 'Contenido cifrado con Envelope Encryption'
+        });
+        log('📦 Activo publicado y cifrado');
+        closeCreate();
+        refresh();
+        showNotification('✅ Contenido publicado', 'success');
+      } catch (e) {
+        log('❌ ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      } finally {
+        const btn = event?.target;
+        if (btn) { btn.disabled = false; btn.textContent = '✅ Publicar en Venta'; }
+      }
+    }
+
+    // === VAULT: UPLOAD FILE ===
+    function openUpload() {
+      const modal = document.getElementById('uploadModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        document.getElementById('uploadTitle').value = '';
+        document.getElementById('uploadTitle').classList.remove('error');
+        document.getElementById('uploadFile').value = '';
+        document.getElementById('uploadStatus').textContent = '';
+        document.getElementById('uploadProgress').classList.add('hidden');
+        document.getElementById('uploadProgressFill').style.width = '0%';
+        document.getElementById('uploadBtn').disabled = false;
+        document.getElementById('priceSection').style.display = 'none';
+        document.getElementById('uploadTitle').focus();
+      }
+    }
+    function closeUpload() {
+      const modal = document.getElementById('uploadModal');
+      if (modal) modal.classList.add('hidden');
+    }
+    document.getElementById('uploadForSale')?.addEventListener('change', function(e) {
+      document.getElementById('priceSection').style.display = e.target.checked ? 'block' : 'none';
+    });
+    
+    async function doUpload() {
+      const titleInput = document.getElementById('uploadTitle');
+      if (titleInput) { titleInput.blur(); setTimeout(() => {}, 100); }
+      const title = titleInput ? (titleInput.value || '').trim() : '';
+      console.log('🔍 DEBUG UPLOAD:', { titulo: title, largo: title?.length, tieneArchivo: !!document.getElementById('uploadFile').files?.[0] });
+      const cat = document.getElementById('uploadCat').value;
+      const file = document.getElementById('uploadFile').files?.[0];
+      const forSale = document.getElementById('uploadForSale').checked;
+      const price = parseFloat(document.getElementById('uploadPrice').value) || 0;
+      
+      if (!title || title.length < 2) { 
+        showNotification('⚠️ El título debe tener al menos 2 caracteres', 'error'); 
+        if (titleInput) { 
+          titleInput.classList.add('error'); 
+          titleInput.focus(); 
+          setTimeout(() => titleInput.classList.remove('error'), 2000); 
+        } 
+        return; 
+      }
+      if (!file) { 
+        showNotification('⚠️ Selecciona un archivo', 'error'); 
+        return; 
+      }
+      
+      const maxSizeMB = { personal: 100, business: 500, enterprise: 5000 }[userTier] || 100;
+      const fileMB = file.size / (1024 * 1024);
+      if (fileMB > maxSizeMB) { 
+        showNotification(`⚠️ Archivo muy grande. Tu plan permite hasta ${maxSizeMB}MB`, 'error'); 
+        return; 
+      }
+      
+      const progress = document.getElementById('uploadProgress'), 
+            progressFill = document.getElementById('uploadProgressFill');
+      const status = document.getElementById('uploadStatus'), 
+            btn = document.getElementById('uploadBtn');
+      progress.classList.remove('hidden'); 
+      btn.disabled = true; 
+      let prog = 0;
+      const interval = setInterval(() => { 
+        prog = Math.min(90, prog + 10); 
+        progressFill.style.width = prog + '%'; 
+      }, 200);
+      
+      try {
+        const formData = new FormData();
+        formData.append('titulo', title);
+        formData.append('categoria', cat);
+        formData.append('forSale', forSale);
+        if (forSale) formData.append('price', price);
+        formData.append('archivo', file);
+        const headers = { 'Authorization': `Bearer ${token}` };
+        const r = await fetch(API + '/vault', { method: 'POST', headers, body: formData });
+        clearInterval(interval); 
+        progressFill.style.width = '100%';
+        const j = await r.json?.() || {};
+        if (!r.ok) throw new Error(j.error || 'Error al subir');
+        status.textContent = '✅ Archivo subido y cifrado'; 
+        status.style.color = '#00e676';
+        log(`📦 ${title} guardado • ${fileMB.toFixed(1)}MB`);
+        showNotification('✅ Archivo subido', 'success');
+        setTimeout(() => { 
+          closeUpload(); 
+          refresh(); 
+          showVault(); 
+        }, 1200);
+      } catch (e) {
+        clearInterval(interval); 
+        progressFill.style.width = '0%';
+        status.textContent = '❌ Error: ' + e.message; 
+        status.style.color = '#ff5252';
+        log('❌ Upload: ' + e.message); 
+        showNotification('❌ ' + e.message, 'error');
+        console.error('Upload error:', e);
+      } finally { 
+        btn.disabled = false; 
+      }
+    }
+
+    // === VAULT: LIST ===
+    async function showVault() {
+      try {
+        const modal = document.getElementById('vaultModal'),
+              list = document.getElementById('vaultList');
+        modal.classList.remove('hidden');
+        list.innerHTML = '<p style="text-align:center;color:#8b95a5">🔄 Cargando...</p>';
+        const res = await req('/vault'),
+              items = res.items || [];
+        if (items.length === 0) {
+          list.innerHTML = '<p style="text-align:center;color:#8b95a5">📭 Tu vault está vacío</p>';
+          return;
+        }
+        list.innerHTML = items.map(item => {
+          const isMedia = item.fileName && (
+            item.fileName.toLowerCase().endsWith('.mp4') || 
+            item.fileName.toLowerCase().endsWith('.mp3') || 
+            item.fileName.toLowerCase().endsWith('.wav') || 
+            item.fileName.toLowerCase().endsWith('.ogg')
+          );
+          return `<div class="vault-item">
+            <div class="vault-item-header">
+              <span class="vault-item-title">${item.titulo || 'Sin título'}</span>
+              ${item.isForSale ? `<span class="encryption-badge">💰 $${item.price}</span>` : ''}
+            </div>
+            <div class="vault-item-meta">
+              ${item.tipo === 'archivo' ? `📁 ${item.fileName}` : '📝 Texto'} • ${item.categoria} • 
+              <span class="encryption-badge">🔐 Cifrado</span>
+            </div>
+            <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
+              ${isMedia ? `<button onclick="playMedia('${item._id}','${item.fileName.toLowerCase().includes('mp4')?'video':'audio'}')" class="play-btn">▶️ Reproducir</button>` : ''}
+              <button onclick="shareFile('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #29b6f6;color:#29b6f6">🔗 Compartir</button>
+              <button onclick="showGitLog('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #8ab4f8;color:#8ab4f8">🌿 Git</button>
+              <button onclick="genThumb('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #66bb6a;color:#66bb6a">🖼️ Thumb</button>
+              <button onclick="showVersions('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #ffa726;color:#ffa726">📜 Historial</button>
+              <button onclick="addComment('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #ab47bc;color:#ab47bc">💬 Comentar</button>
+              <button onclick="loadComments('${item._id}')" style="width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #8b95a5;color:#8b95a5">👁️ Ver</button>
+            </div>
+            ${item.sales > 0 ? `<div class="vault-item-meta">📈 ${item.sales} ventas</div>` : ''}
+          </div>`;
+        }).join('');
+        log(`🗄️ Vault: ${items.length} activos`);
+      } catch (e) {
+        log('❌ Vault: ' + e.message);
+        document.getElementById('vaultList').innerHTML = `<p style="color:#ff5252">Error: ${e.message}</p>`;
+        showNotification('❌ Error cargando vault', 'error');
+      }
+    }
+    function closeVault() {
+      document.getElementById('vaultModal').classList.add('hidden');
+    }
+
+    // === VAULT: ACTIONS ===
+    async function shareFile(fileId) {
+      try {
+        const pass = prompt('🔒 Contraseña opcional (Enter para ninguna):');
+        const hours = prompt('⏱️ Expirar en horas (24):', '24') || 24;
+        const res = await req(`/api/vault/${fileId}/share`, 'POST', {
+          password: pass || null,
+          expiresInHours: parseInt(hours)
+        });
+        if (navigator.clipboard) await navigator.clipboard.writeText(res.link);
+        showNotification('✅ Enlace copiado', 'success');
+        log(`🔗 Share: ${res.link}`);
+      } catch (e) {
+        log('❌ Share: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    async function genThumb(fileId) {
+      try {
+        log('🖼️ Generando thumbnail...');
+        await req(`/api/vault/${fileId}/thumbnail`, 'POST');
+        showNotification('✅ Thumbnail generado', 'success');
+        log('✅ Thumbnail listo');
+      } catch (e) {
+        log('❌ Thumb: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    async function showVersions(fileId) {
+      try {
+        const res = await req(`/api/vault/${fileId}/versions`);
+        const list = res.versions?.map(v => `v${v.v} • ${new Date(v.date).toLocaleString()}`).join('\n') || '(vacío)';
+        alert('📜 Historial de versiones:\n' + list);
+      } catch (e) {
+        log('❌ Versiones: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    async function addComment(fileId) {
+      const txt = prompt('💬 Escribe tu comentario:');
+      if (!txt?.trim()) return;
+      try {
+        await req(`/api/vault/${fileId}/comments`, 'POST', { content: txt });
+        showNotification('✅ Comentario enviado', 'success');
+        log('✅ Comentario cifrado');
+      } catch (e) {
+        log('❌ Comment: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    async function loadComments(fileId) {
+      try {
+        const res = await req(`/api/vault/${fileId}/comments`);
+        const txt = res.comments?.map(c => `[${new Date(c.date).toLocaleTimeString()}] ${c.text}`).join('\n') || '(vacío)';
+        alert('💬 Comentarios:\n' + txt);
+      } catch (e) {
+        log('❌ LoadComments: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    // === AUDIT ===
+    async function showAuditLog() {
+      try {
+        const modal = document.getElementById('auditModal'),
+              logEl = document.getElementById('auditLog');
+        modal.classList.remove('hidden');
+        logEl.innerHTML = '<p style="text-align:center;color:#8b95a5">🔄 Cargando auditoría...</p>';
+        const res = await req('/api/audit/export'),
+              logs = res.logs || [];
+        if (logs.length === 0) {
+          logEl.innerHTML = '<p style="text-align:center;color:#8b95a5">📭 Sin actividad reciente</p>';
+          return;
+        }
+        logEl.innerHTML = logs.slice(0, 20).map(l => {
+          const time = new Date(l.timestamp || l.createdAt).toLocaleString();
+          return `<div class="audit-entry">
+            <b>${l.action}</b><br>
+            <small>${time}</small><br>
+            <span style="color:#8b95a5">${JSON.stringify(l.data || l.metadata || {}).slice(0, 80)}${JSON.stringify(l.data || l.metadata || {}).length > 80 ? '...' : ''}</span>
+          </div>`;
+        }).join('');
+        log('📋 Auditoría cargada');
+      } catch (e) {
+        log('❌ Auditoría: ' + e.message);
+        document.getElementById('auditLog').innerHTML = `<p style="color:#ff5252">Error: ${e.message}</p>`;
+        showNotification('❌ Error cargando auditoría', 'error');
+      }
+    }
+    function closeAudit() {
+      document.getElementById('auditModal').classList.add('hidden');
+    }
+
+    async function exportAudit(type) {
+      if (!['business', 'enterprise'].includes(userTier)) 
+        return log('⚠️ Esta función requiere plan Business o Enterprise');
+      try {
+        log(`📄 Generando reporte ${type.toUpperCase()}...`);
+        const res = await req(`/api/audit/export?type=${type}`);
+        const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob),
+              a = document.createElement('a');
+        a.href = url;
+        a.download = `apiromwiner-${type}-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        log(`✅ Reporte ${type} descargado`);
+        showNotification('✅ Reporte descargado', 'success');
+      } catch (e) {
+        log('❌ Export: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    // === WEBHOOKS ===
+    function showWebhooks() {
+      if (userTier !== 'enterprise') return log('⚠️ Webhooks exclusivos para plan Enterprise');
+      document.getElementById('webhookModal').classList.remove('hidden');
+      loadWebhooks();
+    }
+    function closeWebhooks() {
+      document.getElementById('webhookModal').classList.add('hidden');
+    }
+    async function loadWebhooks() {
+      const list = document.getElementById('webhookList');
+      list.innerHTML = '<p style="font-size:0.8rem;color:#8b95a5">ℹ️ Webhooks se gestionan vía API admin</p>';
+    }
+    async function registerWebhook() {
+      const url = document.getElementById('webhookUrl').value?.trim();
+      const events = document.getElementById('webhookEvents').value;
+      const secret = document.getElementById('webhookSecret').value || 
+                     (crypto?.randomUUID?.() || 'auto-secret-' + Date.now());
+      if (!url) return log('⚠️ Ingresa una URL válida');
+      try {
+        await req('/api/admin/webhooks', 'POST', { url, events: [events], secret });
+        log('✅ Webhook registrado');
+        closeWebhooks();
+        showNotification('✅ Webhook registrado', 'success');
+      } catch (e) {
+        log('❌ Webhook: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    // === KEY ROTATION ===
+    async function rotateKeys() {
+      if (userTier !== 'enterprise') return log('⚠️ Rotación de claves exclusiva para Enterprise');
+      try {
+        log('🔄 Iniciando rotación de claves...');
+        const res = await req('/api/admin/rotate-keys', 'POST', {});
+        log('✅ ' + (res.message || 'Rotación programada'));
+        showNotification('✅ Rotación programada', 'success');
+      } catch (e) {
+        log('❌ Rotación: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    // === WITHDRAW ===
+    async function withdraw() {
+      log('💸 Solicitud enviada. Te contactaremos para el pago seguro.');
+      showNotification('💸 Solicitud de retiro enviada', 'info');
+    }
+
+    // === IDENTITY QR ===
+    function showIdentityQR() {
+      if (!currentUser) return log('⚠️ Sesión no válida');
+      const data = JSON.stringify({
+        uid: currentUser.uid || 'demo',
+        email: document.getElementById('uEmail').textContent,
+        ref: currentUser.refCode || localStorage.getItem('refCode') || 'ROM000',
+        tier: userTier
+      });
+      document.getElementById('idQrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(data) + '&color=00e676&bgcolor=0b0c10';
+      document.getElementById('idQrData').textContent = data;
+      document.getElementById('idModal').classList.remove('hidden');
+      log('🆔 QR de identidad generado');
+    }
+    function closeIdModal() {
+      document.getElementById('idModal').classList.add('hidden');
+    }
+
+    // === PROMO ===
+    async function checkPromo() {
+      try {
+        const s = await req('/api/promo/status');
+        if (s?.active) log('🎁 ' + s.message);
+      } catch (e) {}
+    }
+    async function showPromo() {
+      if (!token) {
+        scrollToAuth();
+        log('⚠️ Inicia sesión para acceder a la promo');
+        return;
+      }
+      try {
+        const r = await req('/api/promo/checkout', 'POST');
+        if (r?.demo) {
+          log('✅ Pago promocional activado ($25)');
+          refresh();
+          showNotification('✅ Promo activada', 'success');
+        } else if (r?.url) window.location.href = r.url;
+      } catch (e) {
+        log('❌ ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    // === PWA INSTALL ===
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installBtn').style.display = 'inline-block';
+      log('📲 App lista para instalar');
+      showNotification('📲 App lista para instalar', 'info');
+    });
+
+    function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice?.then(function(res) {
+          if (res?.outcome === 'accepted') log('✅ App instalada');
+          deferredPrompt = null;
+          document.getElementById('installBtn').style.display = 'none';
+          showNotification('✅ App instalada', 'success');
+        });
+      } else log('ℹ️ Usa el menú del navegador → "Agregar a pantalla de inicio"');
+    }
+
+    // === SERVICE WORKER ===
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => log('🛡️ Sistema seguro activo'))
+        .catch(e => log('⚠️ SW: ' + e.message));
+    }
+
+    // === ZERO-KNOWLEDGE ===
+    function toggleZeroKnowledge() {
+      const enabled = document.getElementById('zkToggle')?.checked;
+      if (enabled !== undefined) {
+        localStorage.setItem('zeroKnowledge', enabled ? 'true' : 'false');
+        const warning = document.getElementById('zkWarning');
+        if (warning) warning.style.display = enabled ? 'block' : 'none';
+        const exportWarning = document.getElementById('zkExportWarning');
+        if (exportWarning) exportWarning.classList.toggle('hidden', !enabled);
+        log(enabled ? '🔐 Zero-Knowledge: ACTIVADO' : '🔓 Zero-Knowledge: desactivado');
+      }
+    }
+
+    function loadZeroKnowledgePref() {
+      const zk = localStorage.getItem('zeroKnowledge') === 'true';
+      const toggle = document.getElementById('zkToggle');
+      if (toggle) toggle.checked = zk;
+      const warning = document.getElementById('zkWarning');
+      if (warning) warning.style.display = zk ? 'block' : 'none';
+      const exportWarning = document.getElementById('zkExportWarning');
+      if (exportWarning) exportWarning.classList.toggle('hidden', !zk);
+    }
+
+    function updateOnlineStatus(isOnline) {
+      const dot = document.getElementById('apiStatus');
+      const text = document.getElementById('statusText');
+      if (dot && text) {
+        dot.className = 'status-dot ' + (isOnline ? 'online' : 'offline');
+        const db = text.dataset?.db || '';
+        text.textContent = isOnline ? `✅ Online • ${db}` : '📴 Offline - Cambios se sincronizarán después';
+      }
+    }
+
+    // === EXPORT/IMPORT/SYNC ===
+    async function exportVault() {
+      if (!token) return log('⚠️ Inicia sesión primero');
+      const modal = document.getElementById('exportModal');
+      if (modal) modal.classList.remove('hidden');
+      const status = document.getElementById('exportStatus');
+      if (status) status.textContent = '';
+    }
+    function closeExportModal() {
+      const modal = document.getElementById('exportModal');
+      if (modal) modal.classList.add('hidden');
+      const status = document.getElementById('exportStatus');
+      if (status) status.textContent = '';
+    }
+    async function doExportVault() {
+      const btn = document.getElementById('exportBtn');
+      const status = document.getElementById('exportStatus');
+      if (!btn || !status) return;
+      try {
+        btn.disabled = true;
+        status.textContent = '🔄 Generando exportación...';
+        const res = await req('/api/vault/export', 'POST', {});
+        if (res?.data) {
+          const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `romwiner-vault-export-${new Date().toISOString().slice(0, 10)}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          status.textContent = '✅ Exportación descargada. Guarda este archivo en un lugar seguro.';
+          status.style.color = '#00e676';
+          log(`📦 Bóveda exportada: ${res.data.metadata?.totalItems || 0} items`);
+          if (localStorage.getItem('zeroKnowledge') === 'true') {
+            alert('🔐 Recordatorio: En modo Zero-Knowledge, cifra este archivo con tu clave maestra antes de guardarlo externamente.');
+          }
+          showNotification('✅ Exportación descargada', 'success');
+        }
+      } catch (e) {
+        status.textContent = '❌ Error: ' + e.message;
+        status.style.color = '#ff5252';
+        log('❌ Export: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function importVault() {
+      if (!token) return log('⚠️ Inicia sesión primero');
+      const modal = document.getElementById('importModal');
+      if (modal) modal.classList.remove('hidden');
+      const status = document.getElementById('importStatus');
+      if (status) status.textContent = '';
+      const fileInput = document.getElementById('importFile');
+      if (fileInput) fileInput.value = '';
+    }
+    function closeImportModal() {
+      const modal = document.getElementById('importModal');
+      if (modal) modal.classList.add('hidden');
+      const status = document.getElementById('importStatus');
+      if (status) status.textContent = '';
+    }
+    async function doImportVault() {
+      const file = document.getElementById('importFile')?.files?.[0];
+      const force = document.getElementById('forceImport')?.checked;
+      const btn = document.getElementById('importBtn');
+      const status = document.getElementById('importStatus');
+      if (!file || !btn || !status) return log('⚠️ Elementos del modal no encontrados');
+      try {
+        btn.disabled = true;
+        status.textContent = '🔄 Leyendo archivo...';
+        const text = await file.text();
+        const exportData = JSON.parse(text);
+        status.textContent = '🔄 Importando...';
+        const res = await req('/api/vault/import', 'POST', { exportData, options: { forceImport: force } });
+        status.textContent = `✅ ${res.summary?.imported || 0} items restaurados`;
+        status.style.color = '#00e676';
+        log(`📥 Importación: ${res.summary?.imported} items, ${res.summary?.errors || 0} errores`);
+        if (res.errors?.length > 0) log('⚠️ Errores: ' + res.errors.map(e => e.titulo || e.itemId).join(', '));
+        setTimeout(() => {
+          closeImportModal();
+          if (typeof refresh === 'function') refresh();
+          if (typeof showVault === 'function') showVault();
+        }, 1500);
+        showNotification('✅ Importación completada', 'success');
+      } catch (e) {
+        status.textContent = '❌ Error: ' + e.message;
+        status.style.color = '#ff5252';
+        log('❌ Import: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function syncCheck() {
+      if (!token) return log('⚠️ Inicia sesión primero');
+      const status = document.getElementById('syncStatus');
+      if (!status) return;
+      try {
+        status.textContent = '🔄 Verificando...';
+        const lastSync = localStorage.getItem('lastSync') || null;
+        const url = `/api/vault/sync/check${lastSync ? '?lastSync=' + encodeURIComponent(lastSync) : ''}`;
+        const res = await req(url);
+        if (res?.hasChanges) {
+          status.innerHTML = `📥 ${res.changesCount} cambios nuevos. <button onclick="syncPull()" style="margin-left:8px;padding:2px 8px;font-size:0.7rem;background:transparent;border:1px solid #29b6f6;color:#29b6f6;border-radius:4px">Descargar</button>`;
+          log(`📥 Sync: ${res.changesCount} cambios disponibles`);
+        } else {
+          status.textContent = '✅ Todo sincronizado';
+          status.style.color = '#00e676';
+          localStorage.setItem('lastSync', new Date().toISOString());
+          showNotification('✅ Todo sincronizado', 'success');
+        }
+      } catch (e) {
+        status.textContent = '⚠️ Sin conexión - Cambios se sincronizarán después';
+        status.style.color = '#ffb74d';
+        log('⚠️ Sync check: ' + e.message);
+      }
+    }
+
+    async function syncPull() {
+      const status = document.getElementById('syncStatus');
+      if (!status) return;
+      try {
+        status.textContent = '📥 Descargando cambios...';
+        if (typeof showVault === 'function') await showVault();
+        localStorage.setItem('lastSync', new Date().toISOString());
+        status.textContent = '✅ Cambios sincronizados';
+        status.style.color = '#00e676';
+        log('📥 Sync pull completado');
+        showNotification('✅ Cambios sincronizados', 'success');
+      } catch (e) {
+        status.textContent = '❌ Error: ' + e.message;
+        log('❌ Sync pull: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    // === MARKETPLACE ===
+    function showMarketplace() {
+      if (!token) {
+        log('⚠️ Inicia sesión para acceder al marketplace');
+        showNotification('⚠️ Inicia sesión para acceder', 'info');
+        return scrollToAuth();
+      }
+      document.getElementById('dashboardView').querySelectorAll('.glass').forEach(el => {
+        if (el.id !== 'marketplaceSection' && !el.classList.contains('hidden')) el.style.display = 'none';
+      });
+      document.getElementById('marketplaceSection').style.display = 'block';
+      loadMarketplace();
+      loadCategories();
+      loadRecommendations();
+      window.scrollTo(0, 0);
+      log('🛍️ Marketplace abierto');
+    }
+
+    function closeMarketplace() {
+      document.getElementById('marketplaceSection').style.display = 'none';
+      document.getElementById('dashboardView').querySelectorAll('.glass').forEach(el => {
+        if (el.id !== 'marketplaceSection') el.style.display = '';
+      });
+      log('🛍️ Marketplace cerrado');
+    }
+
+    async function loadCategories() {
+      try {
+        const res = await req('/api/marketplace/categories');
+        const sel = document.getElementById('marketCategory');
+        if (sel && res.categories) {
+          sel.innerHTML = '<option value="">Todas las categorías</option>' + 
+            res.categories.map(c => `<option value="${c.id}">${c.name} (${c.count})</option>`).join('');
+        }
+      } catch (e) {
+        log('⚠️ Categorías: ' + e.message);
+      }
+    }
+
+    async function loadMarketplace() {
+      if (!token) return;
+      const grid = document.getElementById('marketGrid');
+      const load = document.getElementById('marketLoading');
+      const empty = document.getElementById('marketEmpty');
+      grid.innerHTML = '';
+      load.classList.remove('hidden');
+      empty.classList.add('hidden');
+      try {
+        const q = document.getElementById('marketSearch').value;
+        const cat = document.getElementById('marketCategory').value;
+        const priceFilter = document.getElementById('marketPriceFilter').value;
+        let url = `/api/marketplace`;
+        const params = [];
+        if (q) params.push(`q=${encodeURIComponent(q)}`);
+        if (cat) params.push(`category=${encodeURIComponent(cat)}`);
+        if (priceFilter) {
+          const [mini, maxi] = priceFilter.split('-');
+          if (mini && maxi !== '100') {
+            params.push(`minPrice=${mini}`);
+            params.push(`maxPrice=${maxi}`);
+          } else if (mini === '100') {
+            params.push(`minPrice=100`);
+          }
+        }
+        if (params.length) url += '?' + params.join('&');
+        const res = await req(url);
+        load.classList.add('hidden');
+        if (!res.items || res.items.length === 0) {
+          empty.classList.remove('hidden');
+          return;
+        }
+        grid.innerHTML = res.items.map(item => `
+          <div class="market-item" onclick="openMarketItem('${item.id}')">
+            <div class="market-preview">
+              ${item.thumbnailUrl 
+                ? `<img src="${item.thumbnailUrl}" alt="${item.titulo}" onerror="this.parentElement.innerHTML='<span style=\\'color:#8b95a5;font-size:0.8rem\\'>📦 Sin imagen</span>'">` 
+                : '<span style="color:#8b95a5;font-size:0.8rem">📦 Sin imagen</span>'}
+            </div>
+            <div class="market-item-title">${item.titulo}</div>
+            <div class="market-item-vendor">${item.vendedor?.displayName || 'Anónimo'}</div>
+            <div class="market-item-price">$${item.precio} USD</div>
+            <div class="market-item-rating">${item.vendedor?.rating || 0}⭐ • ${item.vendedor?.totalVentas || 0} ventas</div>
+            <div class="market-tags">${(item.tags || []).slice(0, 3).map(t => `<span class="market-tag">${t}</span>`).join('')}</div>
+            <div class="market-item-actions">
+              <button class="btn-buy" onclick="event.stopPropagation();buyMarketItem('${item.id}')">💰 Comprar</button>
+              <button class="btn-details" onclick="event.stopPropagation();openMarketItem('${item.id}')">👁️ Ver</button>
+            </div>
+          </div>
+        `).join('');
+        log(`🛍️ Marketplace: ${res.items.length} items`);
+      } catch (e) {
+        load.classList.add('hidden');
+        grid.innerHTML = `<p class="market-empty">❌ Error: ${e.message}</p>`;
+        log('❌ Marketplace: ' + e.message);
+        showNotification('❌ Error cargando marketplace', 'error');
+      }
+    }
+
+    async function loadRecommendations() {
+      try {
+        const res = await req('/api/marketplace/recommendations?limit=4');
+        const container = document.getElementById('marketRecommendations');
+        const grid = document.getElementById('recommendationsGrid');
+        if (!res.recommendations || res.recommendations.length === 0) {
+          container.classList.add('hidden');
+          return;
+        }
+        container.classList.remove('hidden');
+        grid.innerHTML = res.recommendations.map(item => `
+          <div class="market-item" onclick="openMarketItem('${item.id}')" style="background:rgba(0,230,118,0.05)">
+            <div class="market-preview">
+              ${item.thumbnailUrl 
+                ? `<img src="${item.thumbnailUrl}" alt="${item.titulo}">` 
+                : '<span style="color:#8b95a5;font-size:0.8rem">📦</span>'}
+            </div>
+            <div class="market-item-title">${item.titulo}</div>
+            <div class="market-item-price">$${item.precio} USD</div>
+            <div class="market-item-meta" style="font-size:0.7rem;color:#8b95a5">${item.reason || 'Recomendado'}</div>
+          </div>
+        `).join('');
+      } catch (e) {
+        document.getElementById('marketRecommendations').classList.add('hidden');
+      }
+    }
+
+    async function openMarketItem(itemId) {
+      try {
+        const res = await req(`/api/marketplace/item/${itemId}`);
+        if (!res.success || !res.item) throw new Error('Producto no encontrado');
+        currentMarketItem = res.item;
+        document.getElementById('modalItemTitle').textContent = res.item.titulo;
+        document.getElementById('modalItemDesc').textContent = res.item.descripcionCompleta || res.item.descripcion || 'Sin descripción';
+        document.getElementById('modalItemPrice').textContent = `$${res.item.precio} USD`;
+        document.getElementById('modalItemMeta').textContent = `📁 ${res.item.categoria} • 📦 ${res.item.tipo || 'Digital'}`;
+        document.getElementById('modalItemTags').innerHTML = (res.item.tags || []).map(t => `<span class="market-tag">${t}</span>`).join('');
+        document.getElementById('modalSellerName').textContent = res.item.vendedor?.displayName || 'Creador';
+        document.getElementById('modalSellerRating').textContent = `⭐ ${res.item.vendedor?.rating || 0} • ${res.item.vendedor?.totalVentas || 0} ventas`;
+        document.getElementById('modalItemLicense').textContent = `Licencia: ${res.item.licencia || 'Permanente'}`;
+        const previewEl = document.getElementById('modalItemPreview');
+        if (res.item.thumbnailUrl) {
+          previewEl.innerHTML = `<img src="${res.item.thumbnailUrl}" alt="${res.item.titulo}" style="width:100%;height:100%;object-fit:cover">`;
+        } else {
+          previewEl.innerHTML = '<span style="color:#8b95a5">📦 Sin imagen de preview</span>';
+        }
+        document.getElementById('marketItemModal').classList.remove('hidden');
+      } catch (e) {
+        alert('❌ ' + e.message);
+        log('❌ Detalle item: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    function closeMarketItemModal() {
+      document.getElementById('marketItemModal').classList.add('hidden');
+      currentMarketItem = null;
+    }
+
+    async function buyMarketItem(itemId) {
+      const id = itemId || currentMarketItem?.id;
+      if (!id) return log('⚠️ Selecciona un producto');
+      const item = currentMarketItem;
+      if (!confirm(`🛒 ¿COMPRAR "${item?.titulo || 'este producto'}"?\n💰 Precio: $${item?.precio || '?'} USD\n👤 Vendedor: ${item?.vendedor?.displayName || '?'}\n\n✅ El contenido se desbloqueará en tu bóveda.`)) return;
+      try {
+        log('💰 Procesando compra...');
+        showNotification('💰 Procesando compra...', 'info');
+        const res = await req(`/api/buy/${id}`, 'POST');
+        if (res.success) {
+          alert('✅ ¡Compra exitosa! Contenido desbloqueado en tu bóveda.');
+          showNotification('✅ ¡Compra exitosa!', 'success');
+          closeMarketItemModal();
+          if (typeof showVault === 'function') await showVault();
+          if (typeof refresh === 'function') await refresh();
+          log('✅ Compra completada');
+        } else {
+          throw new Error(res.error || 'Error en la compra');
+        }
+      } catch (e) {
+        alert('❌ ' + e.message);
+        log('❌ Compra: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    async function toggleFavorite() {
+      if (!currentMarketItem?.id) return;
+      try {
+        await req('/api/marketplace/favorites', 'POST', { itemId: currentMarketItem.id, action: 'toggle' });
+        log('❤️ Favorito actualizado');
+        showNotification('✅ Favorito actualizado', 'success');
+      } catch (e) {
+        log('❌ Favorito: ' + e.message);
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    // === ADMIN TOOLS ===
+    function showAdminTools() {
+      if (!isAdmin) {
+        showNotification('⚠️ Solo administradores', 'error');
+        return;
+      }
+      alert('🛠️ Herramientas de Admin:\n\n• Regalar cuenta: /api/admin/gift-account\n• Eliminar usuario: /api/admin/users/:email\n• Rotar claves: /api/admin/rotate-keys\n• Ver usuarios: /api/admin/users\n\nEstas funciones están disponibles vía API.');
+    }
+
+    // === DOM READY ===
+    document.addEventListener('DOMContentLoaded', function() {
+      const isAdmin = localStorage.getItem('isAdmin') === 'true';
+      const panel = document.getElementById('transparencyPanel');
+      if (isAdmin && panel) panel.classList.remove('hidden');
+      
+      // Agregar botón de analytics al dashboard
+      const vaultBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Ver mi Vault'));
+      if (vaultBtn && !document.getElementById('analyticsBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'analyticsBtn';
+        btn.className = 'btn-sec';
+        btn.textContent = '📊 Analytics Financiero';
+        btn.onclick = function() { 
+          document.getElementById('financialAnalyticsPanel').style.display = 'block'; 
+          loadFinancialData('30d');
+          window.scrollTo(0, document.getElementById('financialAnalyticsPanel')?.offsetTop || 0); 
+        };
+        vaultBtn.parentNode.insertBefore(btn, vaultBtn.nextSibling);
+      }
+      
+      // Inicializar app
+      init();
+    });
+
+    // === ONLINE/OFFLINE ===
+    window.addEventListener('online', () => {
+      if (typeof updateOnlineStatus === 'function') updateOnlineStatus(true);
+      showNotification('🌐 Conexión restaurada', 'info');
+    });
+    window.addEventListener('offline', () => {
+      if (typeof updateOnlineStatus === 'function') updateOnlineStatus(false);
+      showNotification('📴 Sin conexión', 'error');
+    });
+
+    // === GIT-LIKE ===
+    async function showGitLog(fileId) {
+      let modal = document.getElementById('gitModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'gitModal'; 
+        modal.className = 'hidden';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:150;padding:16px';
+        modal.innerHTML = `<div class="glass" style="max-width:500px;max-height:80vh;overflow-y:auto">
+          <h3 style="color:#8ab4f8">🌿 Historial Git</h3>
+          <div id="gitLogContent" style="margin:12px 0;font-size:0.85rem"></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <input id="commitMessage" placeholder="Mensaje de commit (ej: 'Versión inicial')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#151922;color:#fff">
+            <button onclick="createGitCommit('${fileId}')" style="width:auto;padding:8px 16px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;font-weight:600">💾 Commit</button>
+          </div>
+          <button onclick="document.getElementById('gitModal').classList.add('hidden')" class="btn-sec" style="margin-top:12px">Cerrar</button>
+        </div>`;
+        document.body.appendChild(modal);
+      }
+      modal.classList.remove('hidden');
+      const content = document.getElementById('gitLogContent');
+      content.innerHTML = '<p style="color:#8b95a5">🔄 Cargando...</p>';
+      try {
+        const res = await req(`/api/vault/${fileId}/log`);
+        if (!res.log || res.log.length === 0) { 
+          content.innerHTML = '<p style="color:#8b95a5">📭 Sin commits aún. ¡Crea el primero!</p>'; 
+          return; 
+        }
+        content.innerHTML = res.log.map(c => `
+          <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+            <div style="font-family:monospace;font-size:0.75rem;color:#8ab4f8">🔗 ${c.hash}</div>
+            <div style="font-weight:600;margin:4px 0">${c.message}</div>
+            <div style="font-size:0.75rem;color:#8b95a5">👤 ${c.author} • 🌿 ${c.branch} • 📦 v${c.version} • 🕐 ${new Date(c.date).toLocaleString()}</div>
+          </div>
+        `).join('');
+      } catch (e) { 
+        content.innerHTML = `<p style="color:#ff5252">❌ ${e.message}</p>`; 
+      }
+    }
+
+    async function createGitCommit(fileId) {
+      const msg = document.getElementById('commitMessage')?.value?.trim();
+      if (!msg) return showNotification('⚠️ Escribe un mensaje para el commit', 'error');
+      try {
+        showNotification('💾 Guardando commit...', 'info');
+        await req(`/api/vault/${fileId}/commit`, 'POST', { message: msg, branch: 'main', tags: [] });
+        showNotification('✅ Commit creado', 'success');
+        document.getElementById('commitMessage').value = '';
+        showGitLog(fileId);
+      } catch (e) { 
+        showNotification('❌ ' + e.message, 'error'); 
+      }
+    }
+
+    // === MEDIA PLAYER ===
+    function playMedia(fileId, fileType) {
+      const modal = document.getElementById('mediaPlayerModal');
+      const video = document.getElementById('videoPlayer');
+      const audio = document.getElementById('audioPlayer');
+      const title = document.getElementById('mediaTitle');
+      video.classList.add('hidden'); 
+      audio.classList.add('hidden');
+      const src = `${API}/api/vault/${fileId}/stream?token=${token}`;
+      if (fileType && fileType.includes('video')) {
+        video.src = src; 
+        video.classList.remove('hidden'); 
+        video.play();
+      } else {
+        audio.src = src; 
+        audio.classList.remove('hidden'); 
+        audio.play();
+      }
+      modal.classList.remove('hidden');
+      title.textContent = 'Cargando multimedia...';
+    }
+
+    function closeMediaPlayer() {
+      const modal = document.getElementById('mediaPlayerModal');
+      const video = document.getElementById('videoPlayer');
+      const audio = document.getElementById('audioPlayer');
+      video.pause(); 
+      video.src = "";
+      audio.pause(); 
+      audio.src = "";
+      modal.classList.add('hidden');
+    }
+
+    // === IDENTITY: SIGNATURE ===
+    const sigC = document.getElementById('sigCanvas');
+    if (sigC) {
+      const cx = sigC.getContext('2d');
+      let dr = false;
+      function gP(e) {
+        const r = sigC.getBoundingClientRect();
+        return {
+          x: (e.touches?.[0]?.clientX || e.clientX) - r.left,
+          y: (e.touches?.[0]?.clientY || e.clientY) - r.top
+        };
+      }
+      sigC.onmousedown = e => { dr = true; cx.beginPath(); cx.moveTo(...Object.values(gP(e))) };
+      sigC.onmousemove = e => { if (!dr) return; const p = gP(e); cx.lineTo(p.x, p.y); cx.stroke() };
+      sigC.onmouseup = () => dr = false;
+      sigC.ontouchstart = e => { e.preventDefault(); dr = true; cx.beginPath(); cx.moveTo(...Object.values(gP(e))) };
+      sigC.ontouchmove = e => { e.preventDefault(); if (!dr) return; const p = gP(e); cx.lineTo(p.x, p.y); cx.stroke() };
+      sigC.ontouchend = () => dr = false;
+    }
+
+    function clearSig() {
+      sigC?.getContext('2d').clearRect(0, 0, sigC.width, sigC.height);
+      sigData = null;
+    }
+
+    async function saveSig() {
+      if (!sigC) return;
+      sigData = sigC.toDataURL('image/png');
+      try {
+        await req('/api/identity/signature', 'POST', { sig: sigData });
+        showNotification('✅ Firma guardada y cifrada', 'success');
+      } catch (e) {
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+     async function handleAvatar(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    // ✅ Guarda la imagen en la memoria del navegador para que no se pierda
+    const reader = new FileReader();
+    reader.onload = ev => {
+      document.getElementById('userAvatar').src = ev.target.result;
+      localStorage.setItem('romwiner_avatar', ev.target.result);
+    };
+    reader.readAsDataURL(f);
+    showNotification('✅ Foto guardada en tu dispositivo', 'success');
+    }
+
+    async function addContact() {
+      const em = document.getElementById('contactEmail')?.value?.trim();
+      if (!em || !/^\S+@\S+\.\S+$/.test(em)) return showNotification('⚠️ Email válido', 'error');
+      try {
+        await req('/api/identity/contacts', 'POST', { email: em });
+        loadContacts();
+        document.getElementById('contactEmail').value = '';
+        showNotification('✅ Contacto agregado', 'success');
+      } catch (e) {
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    async function loadContacts() {
+      const c = document.getElementById('contactsList');
+      if (!c) return;
+      try {
+        const r = await req('/api/identity/contacts');
+        c.innerHTML = (r.contacts || []).map(x => `
+          <div class="contact-row">
+            <span>${x.email}</span>
+            <button class="contact-remove" onclick="delContact('${x._id || x.email}')">×</button>
+          </div>
+        `).join('') || '<p style="font-size:0.75rem;color:#8b95a5">Sin contactos</p>';
+      } catch (e) {
+        c.innerHTML = '<p style="font-size:0.75rem;color:#8b95a5">Cargando...</p>';
+      }
+    }
+
+    async function delContact(id) {
+      if (!confirm('¿Eliminar contacto?')) return;
+      try {
+        await req(`/api/identity/contacts/${id}`, 'DELETE');
+        loadContacts();
+        showNotification('✅ Eliminado', 'success');
+      } catch (e) {
+        showNotification('❌ ' + e.message, 'error');
+      }
+    }
+
+    function genQR() {
+      const u = currentUser || {};
+      const d = {
+        id: u.uid || 'ROM' + Date.now(),
+        name: document.getElementById('uEmail')?.textContent || 'Usuario',
+        avatar: document.getElementById('userAvatar')?.src || '',
+        sigHash: sigData ? CryptoJS?.SHA256?.(sigData)?.toString()?.slice(0, 16) : 'none',
+        recov: (document.querySelectorAll('.contact-row').length),
+        multisig: document.getElementById('multisigToggle')?.checked || false
+      };
+      document.getElementById('idQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(JSON.stringify(d))}&color=00e676&bgcolor=0b0c10`;
+    }
+
+    async function toggleMultisig() {
+      const on = document.getElementById('multisigToggle')?.checked;
+      if (on !== undefined) {
+        try {
+          await req('/api/identity/multisig', 'POST', { enabled: on });
+          showNotification(on ? '✅ Multifirma activada' : '🔓 Multifirma desactivada', 'success');
+        } catch (e) {
+          showNotification('❌ ' + e.message, 'error');
+        }
+      }
+    }
+
+    function showProfileSection() {
+      const s = document.getElementById('digitalIdentityPanel');
+      if (s && token) {
+        s.classList.remove('hidden');
+        loadContacts();
+        genQR();
+        req('/api/profile').then(p => {
+          if (p.user?.avatar) document.getElementById('userAvatar').src = p.user.avatar;
+        }).catch(() => {});
+      }
+    }
+
+    // === ANALYTICS FINANCIERO ===
+    async function loadFinancialData(period = '30d') {
+      try {
+        const res = await req(`/api/analytics/financial?period=${period}`);
+        if (!res.success) return;
+        
+        // Actualizar tarjetas
+        document.getElementById('totalRevenue').textContent = '$' + (res.data.totalRevenue || 0).toFixed(2);
+        document.getElementById('totalSales').textContent = res.data.totalSales || 0;
+        document.getElementById('affiliateEarnings').textContent = '$' + (res.data.affiliateEarnings || 0).toFixed(2);
+        document.getElementById('activeProducts').textContent = res.data.activeProducts || 0;
+        
+        // Gráfico de ingresos (solo si Chart.js está disponible)
+        if (typeof Chart !== 'undefined') {
+          const ctx1 = document.getElementById('revenueChart');
+          if (revenueChart) revenueChart.destroy();
+          revenueChart = new Chart(ctx1, {
+            type: 'line',
+            data: {
+              labels: res.data.revenueByDay.map(d => d.date),
+              datasets: [{
+                label: 'Ingresos ($)',
+                data: res.data.revenueByDay.map(d => d.amount),
+                borderColor: '#00e676',
+                backgroundColor: 'rgba(0,230,118,0.1)',
+                tension: 0.3,
+                fill: true
+              }]
+            },
+            options: { 
+              responsive: true, 
+              plugins: { legend: { display: false } }, 
+              scales: { 
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } }, 
+                x: { grid: { display: false } } 
+              } 
+            }
+          });
+          
+          // Gráfico de categorías
+          const ctx2 = document.getElementById('categoryChart');
+          if (categoryChart) categoryChart.destroy();
+          categoryChart = new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+              labels: res.data.salesByCategory.map(c => c.category),
+              datasets: [{
+                data: res.data.salesByCategory.map(c => c.count),
+                backgroundColor: ['#00e676', '#29b6f6', '#ab47bc', '#ffa726', '#66bb6a']
+              }]
+            },
+            options: { 
+              responsive: true, 
+              plugins: { 
+                legend: { position: 'right', labels: { color: '#fff', font: { size: 10 } } } 
+              } 
+            }
+          });
+        }
+                <!-- Top productos -->
+        <div id="topProducts" class="analytics-list"></div>
+        
+        <!-- Timeline de afiliados -->
+        <div id="affiliateTimeline" class="affiliate-timeline"></div>
+        
+        <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button onclick="exportFinancialData('csv')" class="btn-outline">📥 Exportar CSV</button>
+          <button onclick="exportFinancialData('json')" class="btn-outline">📥 Exportar JSON</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📢 SCRIPTS DE ANUNCIOS (SOLO ESTE BLOQUE, SIN DUPLICADOS) -->
+  <script>
+    // ✅ CARGAR ANUNCIOS DISPONIBLES
+    async function loadAvailableAds() {
+      const container = document.getElementById('adsContainer');
+      const status = document.getElementById('adsStatus');
+      const section = document.getElementById('adsSection');
+      if (!container || !status) return;
+      try {
+        const res = await fetch('/api/ads/available', {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const data = await res.json();
+        if (!data.success) { status.textContent = '❌ Error cargando anuncios'; return; }
+        if (data.ads.length === 0) {
+          status.textContent = data.message || '🎉 No hay anuncios disponibles hoy';
+          section.style.display = 'block';
+          return;
+        }
+        section.style.display = 'block';
+        status.textContent = '✅ ' + data.remaining + ' anuncios disponibles';
+        container.innerHTML = data.ads.map(ad => 
+          '<div style="flex:1;min-width:280px;max-width:320px;background:#1a1f2a;border-radius:10px;padding:12px;border:1px solid #2a2f3a;margin:6px;">' +
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
+              '<img src="' + ad.imageUrl + '" alt="' + ad.title + '" style="width:60px;height:60px;border-radius:8px;object-fit:cover;">' +
+              '<div>' +
+                '<strong style="color:#fff;">' + ad.title + '</strong>' +
+                '<div style="color:#00e676;font-weight:600;">+$' + ad.reward + '</div>' +
+                '<div style="color:#8b95a5;font-size:0.8rem;">' + ad.advertiser + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<p style="color:#b8c1d1;font-size:0.9rem;margin:0 0 12px 0;">' + ad.description + '</p>' +
+            '<button onclick="watchAd(\'' + ad.id + '\')" style="width:100%;padding:10px;background:#00e676;color:#000;border:none;border-radius:6px;cursor:pointer;">👁️ Ver (+$' + ad.reward + ')</button>' +
+          '</div>'
+        ).join('');
+      } catch (e) { status.textContent = '❌ Error de conexión'; }
+    }
+
+    // ✅ VER ANUNCIO Y GANAR
+    async function watchAd(adId) {
+      const btn = event.target;
+      if (!btn || btn.disabled) return;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ 15s...';
+      let s = 15;
+      const timer = setInterval(() => {
+        s--;
+        btn.innerHTML = '⏳ ' + s + 's';
+        if (s <= 0) { clearInterval(timer); completeAdWatch(adId, btn); }
+      }, 1000);
+    }
+
+    // ✅ COMPLETAR VISTA Y ACREDITAR
+    async function completeAdWatch(adId, btn) {
+      try {
+        const res = await fetch('/api/ads/watch/' + adId, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+          body: JSON.stringify({ watchTime: 15 })
+        });
+        const data = await res.json();
+        if (data.success) {
+          btn.innerHTML = '✅ ¡Ganaste!';
+          btn.style.background = '#00c853';
+          alert('🎉 ' + data.message + '\nSaldo: $' + data.newBalance.toFixed(2));
+          setTimeout(() => loadAvailableAds(), 1500);
+          if (typeof refresh === 'function') refresh();
+        } else {
+          alert('❌ ' + data.error);
+          btn.disabled = false;
+          btn.innerHTML = '👁️ Ver';
+        }
+      } catch (e) {
+        alert('❌ Error de conexión');
+        btn.disabled = false;
+      }
+    }
+
+    // ✅ Cargar anuncios al mostrar dashboard
+    window.showDashboard = (function(orig) {
+      return function() {
+        if (orig) orig();
+        setTimeout(loadAvailableAds, 500);
+      };
+    })(window.showDashboard);
+
+    // ✅ RENDERIZAR ANALYTICS (CORREGIDO)
+    async function renderFinancialAnalytics(res) {
+      try {
+        // Top productos
+        const topDiv = document.getElementById('topProducts');
+        if (topDiv) {
+          topDiv.innerHTML = (res.data?.topProducts || []).map((p, i) => 
+            '<div class="top-product-item"><span>' + (i+1) + '. ' + p.titulo + '</span><span style="color:#00e676">' + p.sales + ' ventas</span></div>'
+          ).join('') || '<p style="color:#8b95a5">Sin datos aún</p>';
+        }
+        
+        // Timeline de afiliados
+        const affDiv = document.getElementById('affiliateTimeline');
+        if (affDiv) {
+          affDiv.innerHTML = (res.data?.affiliateHistory || []).slice(0, 10).map(h => 
+            '<div class="affiliate-timeline-item"><b style="color:#00e676">+$' + h.amount + '</b> • ' + h.item + ' • <small>' + new Date(h.date).toLocaleDateString() + '</small></div>'
+          ).join('') || '<p style="color:#8b95a5">Sin comisiones aún</p>';
+        }
+        log('📊 Analytics cargados');
+      } catch (e) {
+        log('❌ Analytics: ' + e.message);
+        showNotification('❌ Error cargando analytics', 'error');
+      }
+    }
+
+    // ✅ EXPORTAR DATOS FINANCIEROS
+    async function exportFinancialData(format = 'csv') {
+      try {
+        const res = await req('/api/analytics/financial/export?format=' + format);
+        if (!res.success) return;
+        if (format === 'csv') {
+          const blob = new Blob([res.data.csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'romwiner-financial-' + new Date().toISOString().slice(0,10) + '.csv';
+          a.click();
+          URL.revokeObjectURL(url);
+          showNotification('✅ CSV descargado', 'success');
+        }
+        log('📤 Exportado: ' + format);
+      } catch (e) {
+        log('❌ Export: ' + e.message);
+        showNotification('❌ Error exportando', 'error');
+      }
+    }
+  </script>
+
+  <!-- 🎨 ESTILOS DE ANUNCIOS (SOLO CSS) -->
+  <style>
+    #adsSection { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    #adsSection button:hover { opacity:0.9; transform:translateY(-1px); transition:all 0.2s; }
+    #adsSection button:disabled { opacity:0.6; cursor:not-allowed; }
+    .top-product-item, .affiliate-timeline-item { 
+      display:flex; justify-content:space-between; align-items:center; 
+      padding:8px 12px; background:#1a1f2a; border-radius:6px; margin:4px 0; 
+      font-size:0.9rem; 
+    }
+  </style>
+  <!-- 🎥 REPRODUCTOR MULTIMEDIA SEGURO -->
+<!-- 🎥 REPRODUCTOR MULTIMEDIA SEGURO: ESTILOS Y ESTRUCTURA -->
+<style>
+#securePlayerModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; flex-direction:column; }
+#securePlayerContainer { position:relative; width:90%; max-width:850px; background:#000; border-radius:10px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.5); }
+#secureVideo { width:100%; height:auto; display:block; user-select:none; -webkit-user-select:none; }
+#playerClose { position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.6); color:#fff; border:none; border-radius:50%; width:36px; height:36px; font-size:18px; cursor:pointer; z-index:10; }
+#playerOverlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:5; }
+#playerWatermark { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:rgba(255,255,255,0.15); font-size:1.2rem; font-weight:bold; pointer-events:none; z-index:6; white-space:nowrap; }
+</style>
+
+<div id="securePlayerModal">
+  <div id="securePlayerContainer">
+    <button id="playerClose" onclick="closeSecurePlayer()">✖️</button>
+    <video id="secureVideo" controls playsinline preload="metadata"></video>
+    <div id="playerOverlay"></div>
+    <div id="playerWatermark"></div>
+  </div>
+  <div style="color:#8b95a5; font-size:0.85rem; margin-top:10px;">🔐 Reproducción segura • No se permite descarga</div>
+</div>
+
+<!-- 🎥 JAVASCRIPT DEL REPRODUCTOR (esto ya lo tienes) -->  
+<script>
+let currentBlobUrl = null;
+let securePlayerActive = false;
+
+async function openSecurePlayer(fileUrl, fileName) {
+  if (!fileUrl) return alert('❌ URL de archivo no válida');
+  const modal = document.getElementById('securePlayerModal');
+  const video = document.getElementById('secureVideo');
+  const watermark = document.getElementById('playerWatermark');
+  const closeBtn = document.getElementById('playerClose');
+
+  try {
+    closeBtn.textContent = '⏳ Cargando...';
+    const token = localStorage.getItem('token');
+    const res = await fetch(fileUrl, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (!res.ok) throw new Error('Error de acceso: ' + res.status);
+    
+    const blob = await res.blob();
+    currentBlobUrl = URL.createObjectURL(blob);
+    video.src = currentBlobUrl;
+    video.load();
+    
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    watermark.textContent = (user.email || 'Usuario').split('@')[0];
+    
+    modal.style.display = 'flex';
+    video.play().catch(() => {});
+    securePlayerActive = true;
+    closeBtn.textContent = '✖️';
+    
+    fetch('/api/media/view', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body:JSON.stringify({ file:fileName, date:new Date().toISOString() }) }).catch(()=>{});
+  } catch (e) {
+    alert('❌ No se pudo reproducir: ' + e.message);
+    closeSecurePlayer();
+  }
+}
+
+function closeSecurePlayer() {
+  const modal = document.getElementById('securePlayerModal');
+  const video = document.getElementById('secureVideo');
+  video.pause();
+  video.src = '';
+  if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
+  modal.style.display = 'none';
+  securePlayerActive = false;
+}
+
+document.addEventListener('contextmenu', e => { if (e.target.id === 'secureVideo') e.preventDefault(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSecurePlayer(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && securePlayerActive) document.getElementById('secureVideo').pause(); });
+  </script>
+  <!-- 📊 DASHBOARD ANALÍTICO: Ventas, Vistas y Comisiones -->
+<div id="analyticsPanel" class="glass" style="margin:16px 0; padding:16px; border-left:4px solid #8b5cf6; display:none;">
+  <h4 style="margin:0 0 12px 0; color:#8b5cf6;">📊 Tu Rendimiento (Últimos 30 días)</h4>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:16px;">
+    <div style="background:#1a1f2a; padding:12px; border-radius:8px; text-align:center;">
+      <div style="font-size:1.5rem; color:#fff; font-weight:700;" id="statSales">0</div>
+      <div style="color:#8b95a5; font-size:0.8rem;">Ventas</div>
+    </div>
+    <div style="background:#1a1f2a; padding:12px; border-radius:8px; text-align:center;">
+      <div style="font-size:1.5rem; color:#00e676; font-weight:700;" id="statEarnings">$0.00</div>
+      <div style="color:#8b95a5; font-size:0.8rem;">Ganancias</div>
+    </div>
+    <div style="background:#1a1f2a; padding:12px; border-radius:8px; text-align:center;">
+      <div style="font-size:1.5rem; color:#f59e0b; font-weight:700;" id="statViews">0</div>
+      <div style="color:#8b95a5; font-size:0.8rem;">Vistas/Descargas</div>
+    </div>
+  </div>
+  <div style="background:#1a1f2a; padding:12px; border-radius:8px;">
+    <div style="color:#fff; font-size:0.9rem; margin-bottom:8px;">🔥 Productos más vendidos</div>
+    <div id="topProductsList" style="color:#8b95a5; font-size:0.85rem;">Cargando...</div>
+  </div>
+</div>
+<script>
+async function loadAnalytics() {
+  try {
+    const res = await fetch('/api/analytics/seller', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    if (!data.success) return;
+    document.getElementById('statSales').textContent = data.totalSales;
+    document.getElementById('statEarnings').textContent = '$' + data.totalEarnings;
+    document.getElementById('statViews').textContent = data.views;
+    const topDiv = document.getElementById('topProductsList');
+    if (data.topProducts && data.topProducts.length === 0) {
+      topDiv.textContent = '📦 Aún sin ventas. ¡Sube tu primer producto!';
+    } else if (data.topProducts) {
+      topDiv.innerHTML = data.topProducts.map((p, i) => '<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #2a2f3a;"><span>' + (i+1) + '. ' + p.title + '</span><span style="color:#00e676;">' + p.sales + ' ventas ($' + p.price + ')</span></div>').join('');
+    }
+    document.getElementById('analyticsPanel').style.display = 'block';
+  } catch (e) { console.warn('Analytics load error:', e); }
+}
+const origDash = window.showDashboard;
+window.showDashboard = function() { if (origDash) origDash(); setTimeout(loadAnalytics, 1100); };
+</script>
+<!-- 🤖 PANEL DE ANÁLISIS IA (aparece tras seleccionar archivo) -->
+<div id="aiAnalysisPanel" class="glass" style="display:none; margin:12px 0; padding:12px; border-left:4px solid #00e676;">
+  <div style="font-size:0.9rem; color:#fff; margin-bottom:8px;">🤖 Análisis automático</div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <span style="background:#1a1f2a; padding:4px 8px; border-radius:4px; color:#8b95a5; font-size:0.8rem;">🏷️ Etiquetas: <span id="aiTags">-</span></span>
+    <span style="background:#1a1f2a; padding:4px 8px; border-radius:4px; color:#00e676; font-size:0.8rem;">💰 Precio sugerido: $<span id="aiPrice">-</span></span>
+    <span id="aiFraud" style="background:#1a1f2a; padding:4px 8px; border-radius:4px; color:#f59e0b; font-size:0.8rem; display:none;">⚠️ <span id="aiFraudText"></span></span>
+  </div>
+</div>
+
+<script>
+async function analyzeFileForUpload(fileName, fileType, fileSize) {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const res = await fetch('/api/ai/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+      body: JSON.stringify({ fileName, fileType, fileSize, sellerUid: user.uid })
+    });
+    const data = await res.json();
+    if (!data.success) return;
+    
+    document.getElementById('aiTags').textContent = data.tags.join(', ') || 'básico';
+    document.getElementById('aiPrice').textContent = data.suggestedPrice;
+    const panel = document.getElementById('aiAnalysisPanel');
+    panel.style.display = 'block';
+    
+    if (data.fraudFlags && data.fraudFlags.length > 0) {
+      document.getElementById('aiFraud').style.display = 'inline';
+      document.getElementById('aiFraudText').textContent = data.fraudFlags.join(' • ');
+    } else {
+      document.getElementById('aiFraud').style.display = 'none';
+    }
+  } catch(e) { console.warn('AI analysis error:', e); }
+}
+
+// Conectar al input de archivo (ajusta el ID si es diferente)
+document.addEventListener('DOMContentLoaded', () => {
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) {
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (f) analyzeFileForUpload(f.name, f.type, f.size);
+    });
+  }
+});
+</script>
+  <!-- 🔐 PANEL DE COLABORACIÓN SEGURA -->
+<div id="collabPanel" class="glass" style="display:none; margin:16px 0; padding:16px; border-left:4px solid #8b5cf6;">
+  <h4 style="margin:0 0 12px 0; color:#8b5cf6;">🔐 Espacios Compartidos</h4>
+  <div style="margin-bottom:16px;">
+    <input id="newSpaceName" placeholder="Nombre del espacio" style="padding:8px; background:#1a1f2a; border:1px solid #2a2f3a; border-radius:6px; color:#fff; width:200px;">
+    <button onclick="createSpace()" style="padding:8px 16px; background:#8b5cf6; color:#fff; border:none; border-radius:6px; cursor:pointer; margin-left:8px;">➕ Crear</button>
+  </div>
+  <div id="spacesList" style="max-height:200px; overflow-y:auto; margin-bottom:16px;"></div>
+  <div id="spaceChat" style="display:none; background:#1a1f2a; border-radius:8px; padding:12px;">
+    <div id="chatMessages" style="max-height:150px; overflow-y:auto; margin-bottom:8px; color:#fff;"></div>
+    <div style="display:flex; gap:8px;">
+      <input id="chatInput" placeholder="Escribe un mensaje (se cifrará automáticamente)..." style="flex:1; padding:8px; background:#2a2f3a; border:1px solid #3a3f4a; border-radius:6px; color:#fff;">
+      <button onclick="sendChatMessage()" style="padding:8px 16px; background:#00e676; color:#000; border:none; border-radius:6px; cursor:pointer;">📤</button>
+    </div>
+  </div>
+  <details style="margin-top:12px; color:#8b95a5;">
+    <summary style="cursor:pointer;">🔍 Ver auditoría de accesos</summary>
+    <div id="auditLog" style="margin-top:8px; font-size:0.85rem; max-height:100px; overflow-y:auto;"></div>
+  </details>
+</div>
+<script>
+let currentSpaceId = null;
+async function createSpace() {
+  const name = document.getElementById('newSpaceName').value.trim();
+  if (!name) return alert('Ingresa un nombre');
+  try {
+    const res = await fetch('/api/spaces', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: JSON.stringify({ name, members: [] }) });
+    const data = await res.json();
+    if (data.success) { alert('✅ Espacio creado: ' + name); loadSpaces(); document.getElementById('newSpaceName').value = ''; }
+    else { alert('❌ ' + data.error); }
+  } catch(e) { alert('Error de conexión'); }
+}
+async function loadSpaces() {
+  try { document.getElementById('spacesList').innerHTML = '<div style="color:#8b95a5; font-size:0.9rem;">📁 Tus espacios aparecerán aquí</div>'; } catch(e) {}
+}
+async function sendChatMessage() {
+  if (!currentSpaceId) return;
+  const input = document.getElementById('chatInput');
+  const message = input.value.trim();
+  if (!message) return;
+  try {
+    const encrypted = btoa(message); // Demo: en producción usar Web Crypto API real
+    const res = await fetch('/api/spaces/' + currentSpaceId + '/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: JSON.stringify({ encryptedMessage: encrypted, iv: 'demo', publicKeyHint: 'demo' }) });
+    const data = await res.json();
+    if (data.success) { input.value = ''; loadChat(); } else { alert('❌ ' + data.error); }
+  } catch(e) { alert('Error enviando mensaje'); }
+}
+async function loadChat() {
+  if (!currentSpaceId) return;
+  try {
+    const res = await fetch('/api/spaces/' + currentSpaceId + '/chat', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
+    const data = await res.json();
+    if (!data.success) return;
+    const container = document.getElementById('chatMessages');
+    container.innerHTML = data.messages.map(m => '<div style="margin:4px 0; padding:6px; background:#2a2f3a; border-radius:4px;"><strong style="color:#00e676;">' + m.senderName + '</strong> <span style="color:#8b95a5; font-size:0.8rem;">' + new Date(m.timestamp).toLocaleTimeString() + '</span><br><span style="color:#fff;">[🔐 Mensaje cifrado]</span></div>').join('');
+    container.scrollTop = container.scrollHeight;
+  } catch(e) {}
+}
+function showCollabPanel() { document.getElementById('collabPanel').style.display = 'block'; loadSpaces(); }
+</script>
+  <!-- 🎬 SECCIÓN DE PREVIEW DE YOUTUBE (para formularios de producto) -->
+<div id="youtubePreviewSection" style="margin:12px 0; padding:12px; background:#1a1f2a; border-radius:8px; display:none;">
+  <label style="color:#fff; font-size:0.9rem; display:block; margin-bottom:6px;">🎬 Vista previa de YouTube (opcional)</label>
+  <input id="youtubeUrlInput" type="url" placeholder="https://youtu.be/... o https://youtube.com/watch?v=..." style="width:100%; padding:8px; background:#2a2f3a; border:1px solid #3a3f4a; border-radius:6px; color:#fff; margin-bottom:8px;">
+  <button id="savePreviewBtn" onclick="saveYoutubePreview()" style="padding:8px 16px; background:#ff0000; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:500;">💾 Guardar preview</button>
+  <div id="previewStatus" style="color:#8b95a5; font-size:0.85rem; margin-top:6px;"></div>
+</div>
+
+<!-- 🎬 REPRODUCTOR DE PREVIEW (se muestra en la card del producto) -->
+<div id="productPreviewPlayer" style="display:none; margin:8px 0;">
+  <iframe id="previewIframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%; height:200px; border-radius:8px;"></iframe>
+</div>
+
+<script>
+async function saveYoutubePreview() {
+  const url = document.getElementById('youtubeUrlInput').value.trim();
+  const productId = window.currentProductId || ''; // Ajusta según tu flujo
+  if (!url || !productId) return alert('Ingresa una URL y asegúrate de estar editando un producto');
+  
+  const status = document.getElementById('previewStatus');
+  status.textContent = '⏳ Guardando...';
+  
+  try {
+    const res = await fetch(`/api/products/${productId}/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+      body: JSON.stringify({ youtubeUrl: url })
+    });
+    const data = await res.json();
+    if (data.success) {
+      status.textContent = '✅ Preview guardado';
+      status.style.color = '#00e676';
+      document.getElementById('previewIframe').src = data.embedUrl;
+      document.getElementById('productPreviewPlayer').style.display = 'block';
+    } else {
+      status.textContent = '❌ ' + data.error;
+      status.style.color = '#f59e0b';
+    }
+  } catch(e) {
+    status.textContent = '❌ Error de conexión';
+    status.style.color = '#f59e0b';
+  }
+}
+function showYoutubePreviewSection() {
+  document.getElementById('youtubePreviewSection').style.display = 'block';
+}
+</script>
+</body>
+  <!-- ⚖️ PANEL LEGAL: Términos y Privacidad -->
+<div id="legalPanel" class="glass" style="display:none; margin:16px 0; padding:16px; border-left:4px solid #64748b;">
+  <h4 style="margin:0 0 12px 0; color:#64748b;">⚖️ Marco Legal</h4>
+  <p style="color:#8b95a5; font-size:0.9rem; margin-bottom:12px;">
+    Al usar ApiRomwiner Vault aceptas que:
+  </p>
+  <ul style="color:#8b95a5; font-size:0.85rem; margin:0 0 12px 16px; line-height:1.6;">
+    <li>🔐 Tú eres el único dueño de tus claves de cifrado</li>
+    <li>🗄️ Nosotros guardamos solo metadatos (nombres, hashes, permisos)</li>
+    <li>🚫 Nunca podemos acceder a tu contenido sin tus claves</li>
+    <li>⚠️ Si pierdes tus claves, no podemos recuperar tu contenido</li>
+    <li>🌍 Las disputas se rigen por las leyes de [Tu País]</li>
+  </ul>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <a href="/terms.html" target="_blank" style="color:#00e676; text-decoration:none; font-size:0.9rem;">📜 Ver Términos Completos</a>
+    <a href="/privacy.html" target="_blank" style="color:#00e676; text-decoration:none; font-size:0.9rem;">🔐 Ver Política de Privacidad</a>
+  </div>
+</div>
+<!-- ⚖️ PANEL LEGAL: Términos y Privacidad -->
+<div id="legalPanel" class="glass" style="display:none; margin:16px 0; padding:16px; border-left:4px solid #64748b;">
+  <h4 style="margin:0 0 12px 0; color:#64748b;">⚖️ Marco Legal</h4>
+  <p style="color:#8b95a5; font-size:0.9rem; margin-bottom:12px;">
+    Al usar ApiRomwiner Vault aceptas que:
+  </p>
+  <ul style="color:#8b95a5; font-size:0.85rem; margin:0 0 12px 16px; line-height:1.6;">
+    <li>🔐 Tú eres el único dueño de tus claves de cifrado</li>
+    <li>🗄️ Nosotros guardamos solo metadatos (nombres, hashes, permisos)</li>
+    <li>🚫 Nunca podemos acceder a tu contenido sin tus claves</li>
+    <li>⚠️ Si pierdes tus claves, no podemos recuperar tu contenido</li>
+    <li>🌍 Las disputas se rigen por las leyes de [Tu País]</li>
+  </ul>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <a href="/terms.html" target="_blank" style="color:#00e676; text-decoration:none; font-size:0.9rem;">📜 Ver Términos Completos</a>
+    <a href="/privacy.html" target="_blank" style="color:#00e676; text-decoration:none; font-size:0.9rem;">🔐 Ver Política de Privacidad</a>
+  </div>
+</div>
+
+<script>
+// Mostrar panel legal en dashboard
+const origDash = window.showDashboard;
+window.showDashboard = function() {
+  if (origDash) origDash();
+  setTimeout(() => { document.getElementById('legalPanel').style.display = 'block'; }, 1300);
+};
+</script>
+</body>
+</html>
+
+       
