@@ -1,1 +1,36 @@
+# 📦 DEPENDENCIAS (se instalan automáticamente en el build)
+node_modules/
+npm-debug.log*
 
+# 🔐 ARCHIVOS SENSIBLES Y ENTORNO
+.env
+.env.*
+*.key
+*.pem
+*.crt
+
+# 📁 CARPETAS DE RUNTIME (se montan con volúmenes en Docker)
+uploads/
+logs/
+tmp/
+
+# 💻 CONFIGURACIÓN LOCAL Y EDITORES
+.git/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 📜 DOCUMENTACIÓN Y BUILDS
+*.md
+dist/
+build/
+coverage/
+
+# 🐳 ARCHIVOS DE DOCKER (no se necesitan dentro del contenedor)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# 🌐 REPOS Y CI/CD
+.github/
