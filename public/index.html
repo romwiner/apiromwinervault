@@ -194,6 +194,129 @@
   </style>
  </head>
 <body>
+  <!-- 🎉 VISTA DE ÉXITO: Confirma que el frontend está cargando -->
+  <div class="glass green fade-in" id="successView">
+    <h1>🎉 ¡ApiRomwiner Vault está vivo!</h1>
+    <p style="color:#00e676;font-weight:600;margin:12px 0">✅ El servidor encontró <code>public/index.html</code></p>
+    <p>Si ves esto, tu frontend está bien ubicado y cargando correctamente.</p>
+    
+    <div style="margin:16px 0;padding:12px;background:rgba(0,230,118,0.1);border-radius:8px;border-left:3px solid #00e676">
+      <p style="margin:0;font-size:0.9rem"><strong>Próximos pasos:</strong></p>
+      <ol style="margin:8px 0 0 16px;font-size:0.85rem;color:#b0b8c4">
+        <li>Conecta tu MongoDB en Render → Environment → MONGODB_URI</li>
+        <li>O usa el modo demo para probar funciones</li>
+        <li>Sube tu primer archivo a 🗄️ Mi Vault</li>
+      </ol>
+    </div>
+    
+    <button onclick="checkAPI()">🔍 Verificar conexión al API</button>
+    <button class="btn-sec" onclick="window.location.reload()">🔄 Recargar página</button>
+    
+    <div id="apiStatus" style="margin-top:12px;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.8rem;display:none">
+      <strong>Estado del API:</strong>
+      <pre id="apiResponse" style="margin:6px 0 0;color:#00e676;white-space:pre-wrap;font-family:monospace"></pre>
+    </div>
+  </div>
+
+  <!-- 🗄️ SECCIÓN VAULT (se mostrará después del login) -->
+  <div id="vaultSection" class="hidden">
+    <div class="glass">
+      <h2>🗄️ Mi Vault</h2>
+      <div id="vaultContent">
+        <p style="color:#8b95a5;text-align:center;padding:20px">📭 Tu vault está vacío</p>
+        <button onclick="openUploadModal()">📤 Subir primer archivo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📤 Modal de subida (minimal) -->
+  <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:100">
+    <div class="glass" style="max-width:340px">
+      <h3>📤 Subir archivo</h3>
+      <input type="text" id="uploadTitle" placeholder="Título del archivo *" style="margin:10px 0;padding:10px;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff">
+      <select id="uploadCat" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff">
+        <option value="general">📁 General</option>
+        <option value="documento">📄 Documento</option>
+        <option value="imagen">🖼️ Imagen</option>
+        <option value="video">🎬 Video</option>
+      </select>
+      <button onclick="demoUpload()">✅ Guardar (modo demo)</button>
+      <button class="btn-sec" onclick="closeUploadModal()">Cancelar</button>
+    </div>
+  </div>
+
+  <footer>
+    <p>ApiRomwiner Vault 🔐 | Identidad Digital Universal</p>
+    <p style="font-size:0.7rem;color:#5a6577;margin-top:4px">© 2026 romwiner • Todos los derechos reservados</p>
+  </footer>
+
+  <!-- 📱 SCRIPTS ESENCIALES -->
+  <script>
+    // 📱 Registrar Service Worker para PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('✅ PWA registrado:', reg.scope))
+        .catch(err => console.error('❌ Error SW:', err));
+    }
+
+    // 🔍 Verificar conexión al API
+    async function checkAPI() {
+      const statusDiv = document.getElementById('apiStatus');
+      const responsePre = document.getElementById('apiResponse');
+      statusDiv.style.display = 'block';
+      responsePre.textContent = 'Consultando...';
+      
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        responsePre.textContent = JSON.stringify(data, null, 2);
+        if (data.success) {
+          responsePre.style.color = '#00e676';
+        } else {
+          responsePre.style.color = '#ffb74d';
+        }
+      } catch (e) {
+        responsePre.textContent = '❌ Error: ' + e.message;
+        responsePre.style.color = '#ff5252';
+      }
+    }
+
+    // 📤 Modal de subida (demo)
+    function openUploadModal() {
+      document.getElementById('uploadModal').classList.remove('hidden');
+    }
+    function closeUploadModal() {
+      document.getElementById('uploadModal').classList.add('hidden');
+      document.getElementById('uploadTitle').value = '';
+    }
+    function demoUpload() {
+      const title = document.getElementById('uploadTitle').value || 'Archivo sin título';
+      const cat = document.getElementById('uploadCat').value;
+      const vaultContent = document.getElementById('vaultContent');
+      
+      vaultContent.innerHTML = `
+        <div style="background:rgba(0,230,118,0.1);padding:12px;border-radius:8px;margin-bottom:12px;border-left:3px solid #00e676">
+          <p style="margin:0;color:#00e676;font-weight:600">✅ Archivo guardado (modo demo)</p>
+          <p style="margin:4px 0 0;font-size:0.85rem;color:#b0b8c4">${title} • ${cat}</p>
+        </div>
+        <div class="vault-item">
+          <div class="vault-item-header">
+            <span class="vault-item-title">${title}</span>
+            <span class="encryption-badge">🔐 Cifrado</span>
+          </div>
+          <div class="vault-item-meta">📁 ${cat} • 🕒 ${new Date().toLocaleTimeString()}</div>
+        </div>
+        <button onclick="openUploadModal()">📤 Subir otro archivo</button>
+      `;
+      closeUploadModal();
+    }
+
+    // 🔄 Auto-verificar API al cargar
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('🚀 ApiRomwiner Vault cargado');
+      // checkAPI(); // Descomentar para auto-verificar
+    });
+  </script>
   <!-- 🔐 LANDING VIEW (antes de login) -->
   <div id="landingView">
     <div class="glass green" style="text-align:center;padding:24px 18px">
