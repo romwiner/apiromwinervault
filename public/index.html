@@ -9271,7 +9271,97 @@ document.addEventListener('DOMContentLoaded', () => {
       📥 Exportar JSON
     </button>
   </div>
-</div>  
+</div> 
+ <script>
+// ==========================================
+// 📦 FUNCIÓN PARA CARGAR Y MOSTRAR EL VAULT
+// ==========================================
+async function cargarVault() {
+  console.log("🔄 Intentando cargar el Vault...");
+  
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  
+  if (!token) {
+    console.warn("⚠️ No hay token de sesión. ¿Iniciaste sesión?");
+    document.getElementById('vaultContainer').innerHTML = '<p style="color:#ff5252">⚠️ Debes iniciar sesión para ver tu Vault.</p>';
+    return;
+  }
+
+  try {
+    const respuesta = await fetch('https://apiromwinervault.onrender.com/vault', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!respuesta.ok) {
+      throw new Error(`Error HTTP: ${respuesta.status}`);
+    }
+
+    const datos = await respuesta.json();
+    console.log("✅ Datos recibidos del servidor:", datos);
+
+    const contenedor = document.getElementById('vaultContainer');
+    
+    if (!contenedor) {
+      console.error("❌ No se encontró el elemento con id='vaultContainer' en el HTML");
+      return;
+    }
+
+    if (datos.success && datos.items && datos.items.length > 0) {
+      console.log(`🎉 ¡Encontrados ${datos.items.length} archivos!`);
+      contenedor.innerHTML = '';
+      
+      datos.items.forEach(archivo => {
+        const tarjeta = document.createElement('div');
+        tarjeta.style.cssText = 'background:#1a2332; padding:16px; border-radius:8px; margin:8px 0; display:flex; justify-content:space-between; align-items:center; border:1px solid #2a2f3a;';
+        
+        tarjeta.innerHTML = `
+          <div>
+            <div style="color:#e0e0e0; font-weight:600; font-size:1rem;">${archivo.titulo || 'Sin título'}</div>
+            <div style="color:#8b95a5; font-size:0.85rem; margin-top:4px;">
+              📁 ${archivo.categoria || 'general'} • 📅 ${new Date(archivo.createdAt).toLocaleDateString()}
+            </div>
+          </div>
+          <button onclick="eliminarArchivo('${archivo._id}')" style="padding:8px 12px; background:#ff5252; color:#fff; border:none; border-radius:6px; cursor:pointer;">
+            🗑️ Eliminar
+          </button>
+        `;
+        contenedor.appendChild(tarjeta);
+      });
+    } else {
+      contenedor.innerHTML = '<p style="color:#8b95a5; text-align:center; padding:40px;">📭 Tu vault está vacío. ¡Sube tu primer archivo!</p>';
+    }
+  } catch (error) {
+    console.error("❌ Error cargando el Vault:", error);
+    document.getElementById('vaultContainer').innerHTML = `<p style="color:#ff5252">❌ Error al cargar: ${error.message}</p>`;
+  }
+}
+
+async function eliminarArchivo(id) {
+  if (!confirm('¿Estás seguro de eliminar este archivo?')) return;
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  
+  try {
+    const resp = await fetch(`https://apiromwinervault.onrender.com/vault/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (resp.ok) {
+      alert('✅ Archivo eliminado');
+      cargarVault();
+    } else {
+      alert('❌ Error al eliminar');
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', cargarVault);
+</script>   
 </body>
 </html>
 
