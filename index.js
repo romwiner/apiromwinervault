@@ -1826,9 +1826,6 @@ async function updateSellerReputation(sellerUserId) {
 
 // 📦 CATÁLOGO DEL MARKETPLACE
 app.get('/api/marketplace', async(req, res) => {
-
-// 📦 CATÁLOGO DEL MARKETPLACE
-app.get('/api/marketplace', async(req, res) => {
   try {
     if (!mongoReady || !secretsCollection) return res.json({ success: true, items: [], total: 0, page: 1, demo: true });
     const { categoria, maxPrice, minPrice, sortBy = 'popularity', page = 1, limit = 20, q, tags, verifiedOnly } = req.query;
