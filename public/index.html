@@ -3112,6 +3112,54 @@ document.addEventListener('DOMContentLoaded', () => {
   const menu = document.querySelector('.menu') || document.querySelector('nav');
   if (menu) menu.appendChild(feedBtn);
 }); 
+  <!-- 📱 SCRIPT: Mostrar instrucciones de instalación del QR -->
+<script>
+  // Función para mostrar instrucciones en modal
+  function showInstallGuide(guide) {
+    if (!guide) return;
+    
+    // Detectar si es móvil o PC
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    const instructions = isMobile ? guide.mobile : guide.desktop;
+    
+    // Crear modal
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:sans-serif;';
+    modal.innerHTML = `
+      <div style="background:#1a1f2a;padding:20px;border-radius:12px;max-width:320px;text-align:center;border:2px solid #00e676;box-shadow:0 4px 20px rgba(0,230,118,0.3)">
+        <h3 style="color:#fff;margin:0 0 12px;font-size:1.1rem">📲 Instala ApiRomwiner</h3>
+        <pre style="color:#b0b8c4;font-size:0.9rem;text-align:left;white-space:pre-wrap;background:#0f1419;padding:12px;border-radius:8px;margin:0 0 16px;line-height:1.4">${instructions}</pre>
+        <button onclick="this.closest('div').parentElement.remove()" style="padding:10px 20px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.95rem">✅ Entendido</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  // Escuchar cuando se genera un QR y mostrar instrucciones si vienen
+  document.addEventListener('DOMContentLoaded', () => {
+    // Guardar la función original de fetch para interceptar llamadas al QR
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+      const url = args[0];
+      const promise = originalFetch.apply(this, args);
+      
+      // Si es la llamada al endpoint del QR, procesar la respuesta
+      if (typeof url === 'string' && url.includes('/api/identity/qr')) {
+        return promise.then(response => {
+          const clone = response.clone();
+          clone.json().then(data => {
+            if (data.installGuide) {
+              // Pequeño delay para que el QR se muestre primero
+              setTimeout(() => showInstallGuide(data.installGuide), 800);
+            }
+          }).catch(() => {});
+          return response;
+        });
+      }
+      return promise;
+    };
+  });
+</script>
 </body>
 </html>
 
