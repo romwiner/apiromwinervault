@@ -1775,8 +1775,7 @@ app.post('/api/feed/:id/like', authenticate, async(req, res) => {
     res.status(500).json({ error: 'Error procesando like: ' + e.message });
   }
 });
-
-// 💬 COMENTARIO EN PRODUCTO
+// 💬 COMENTARIO EN PRODUCTO (versión única y corregida)
 app.post('/api/feed/:id/comment', authenticate, async(req, res) => {
   try {
     const { comment } = req.body;
@@ -1803,40 +1802,14 @@ app.post('/api/feed/:id/comment', authenticate, async(req, res) => {
     });
   } catch (e) {
     logger.error('❌ Comment error: ' + e.message);
-    res.status(500).json({ error: 'Error publicando comentario: ' + e.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Error publicando comentario: ' + e.message });
+    }
   }
 });
 
-// 💬 COMENTARIO EN PRODUCTO
-app.post('/api/feed/:id/comment', authenticate, async(req, res) => {
-  try {
-    const { comment } = req.body;
-    if (!comment || comment.trim().length < 2) return res.status(400).json({ error: 'Comentario muy corto' });
-    
-    if (!mongoReady) return res.json({ success: true, message: 'Comentario guardado (demo)', demo: true });
-    
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    const post = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
-    
-    if (!post) return res.status(404).json({ error: 'Producto no encontrado' });
-    
-    await logAudit('feed_comment', { userId: user.uid, postId: req.params.id, comment: comment.substring(0, 100) });
-    
-    res.json({
-      success: true,
-      message: '✅ Comentario publicado',
-      comment: {
-        id: 'demo_' + Date.now(),
-        user: { displayName: (await profilesCollection.findOne({ userId: user._id }))?.displayName || 'Usuario' },
-        text: comment.substring(0, 500),
-        createdAt: new Date()
-      }
-    });
-  } catch (e) {
-    logger.error('❌ Comment error: ' + e.message);
-    res.status(500).json({ error: 'Error publicando comentario: ' + e.message });
-  }
-});
+// 🌟 FUNCIÓN: Calcular y actualizar reputación del vendedor (definida correctamente)
+async function updateSellerReputation(sellerUserId) {
   if (!mongoReady || !reviewsCollection || !secretsCollection || !profilesCollection) return;
   try {
     const sellerSecrets = await secretsCollection.find({ userId: new ObjectId(sellerUserId) }, { projection: { _id: 1 } }).toArray();
@@ -1850,6 +1823,9 @@ app.post('/api/feed/:id/comment', authenticate, async(req, res) => {
     logger.warn('⚠️ Error actualizando reputación: ' + e.message); 
   }
 }
+
+// 📦 CATÁLOGO DEL MARKETPLACE
+app.get('/api/marketplace', async(req, res) => {
 
 // 📦 CATÁLOGO DEL MARKETPLACE
 app.get('/api/marketplace', async(req, res) => {
