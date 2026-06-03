@@ -218,16 +218,16 @@
     </div>
   </div>
 
-  <!-- 🗄️ SECCIÓN VAULT (se mostrará después del login) -->
-  <div id="vaultSection" class="hidden">
-    <div class="glass">
-      <h2>🗄️ Mi Vault</h2>
-      <div id="vaultContent">
-        <p style="color:#8b95a5;text-align:center;padding:20px">📭 Tu vault está vacío</p>
-        <button onclick="openUploadModal()">📤 Subir primer archivo</button>
-      </div>
+ <!-- 🗄️ SECCIÓN VAULT (se mostrará después del login) -->
+<div id="vaultSection" class="hidden">
+  <div class="glass">
+    <h2>🗄️ Mi Vault</h2>
+    <div id="vaultContainer">  <!-- ← CAMBIA AQUÍ: vaultContent → vaultContainer -->
+      <p style="color:#8b95a5;text-align:center;padding:20px">🔄 Cargando tu Vault...</p>
+      <button onclick="openUploadModal()">📤 Subir primer archivo</button>
     </div>
   </div>
+</div>
 
   <!-- 📤 Modal de subida (minimal) -->
   <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:100">
