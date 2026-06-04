@@ -10785,10 +10785,472 @@ async function eliminarArchivo(id) {
     alert('❌ Error de conexión: ' + e.message);
   }
 }
+<!-- 🆕 FUNCIONES DEL VAULT (CORREGIDAS Y MEJORADAS) -->
+<script>
+// ==========================================
+// 🛡️ VERIFICAR SI LAS FUNCIONES YA EXISTEN
+// (Evita duplicados si ya están en otro script)
+// ==========================================
+
+// Solo definir escapeHTML si no existe
+if (typeof escapeHTML !== 'function') {
+  function escapeHTML(texto) {
+    if (texto === null || texto === undefined) return '';
+    return String(texto)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+}
+
+// Solo definir obtenerIcono si no existe
+if (typeof obtenerIcono !== 'function') {
+  function obtenerIcono(tipo) {
+    if (!tipo) return '📄';
+    if (tipo.startsWith('image/')) return '🖼️';
+    if (tipo.startsWith('video/')) return '🎬';
+    if (tipo.startsWith('audio/')) return '🎵';
+    if (tipo === 'application/pdf') return '📕';
+    if (tipo.includes('word') || tipo.includes('document')) return '📝';
+    if (tipo.includes('excel') || tipo.includes('sheet')) return '📊';
+    if (tipo.includes('zip') || tipo.includes('rar')) return '🗜️';
+    if (tipo.startsWith('text/')) return '📃';
+    return '📄';
+  }
+}
+      
+ // ==========================================
+// 🌐 FUNCIÓN AUXILIAR: SANITIZAR ID
+// (Previene inyección de código en onclick)
+// ==========================================
+function sanitizeId(id) {
+  if (!id) return '';
+  return String(id).replace(/[^a-zA-Z0-9]/g, '').substring(0, 50);
+}
 
 // ==========================================
-// 🚀 INICIAR CUANDO CARGUE LA PÁGINA
+// 🌐 FUNCIÓN AUXILIAR: MANEJAR SESIÓN EXPIRADA
 // ==========================================
-document.addEventListener('DOMContentLoaded', cargarVault);
+function handleSessionExpired() {
+  // 1. Limpiar tokens
+  localStorage.removeItem('token');
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('userEmail');
+  localStorage.removeItem('userTier');
+  
+  // 2. Notificación amigable
+  if (typeof showNotification === 'function') {
+    showNotification('⚠️ Sesión expirada. Inicia sesión nuevamente.', 'warning');
+  } else {
+    alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+  }
+  
+  // 3. Redirigir al login (más amigable que recargar)
+  setTimeout(() => {
+    const authSection = document.getElementById('authSection');
+    if (authSection) {
+      authSection.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.location.reload();
+    }
+  }, 1500);
+} 
 
-       
+
+
+// ==========================================
+// 👁️ FUNCIÓN: VER ARCHIVO (VISOR MULTIMEDIA)
+// ==========================================
+if (typeof verArchivo !== 'function') {
+  async function verArchivo(id) {
+    const safeId = sanitizeId(id);
+    if (!safeId) {
+      alert('❌ ID de archivo inválido');
+      return;
+    }
+
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+    if (!token) {
+      alert('⚠️ Debes iniciar sesión');
+      return;
+    }
+
+    const modal = document.getElementById('mediaModal');
+    const titulo = document.getElementById('mediaTitle');
+    const contenido = document.getElementById('mediaContent');
+
+    if (!modal || !titulo || !contenido) {
+      alert('❌ Error: No se encontró el visor multimedia');
+      return;
+    }
+
+    modal.classList.remove('hidden');
+    contenido.innerHTML = '<p style="color:#8b95a5;">🔄 Desencriptando archivo...</p>';
+    titulo.textContent = '📄 Cargando...';
+
+    try {
+      // ✅ RUTA RELATIVA (sin enlaces externos)
+      const respuesta = await fetch(`/vault/${safeId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // ✅ Manejo de sesión expirada
+      if (respuesta.status === 401) {
+        handleSessionExpired();
+        return;
+      }
+
+      if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+      const datos = await respuesta.json();
+      console.log('📦 Archivo recibido:', datos);
+
+      if (!datos.success || !datos.secret) throw new Error('No se pudo obtener el contenido');
+
+      const archivo = datos.secret;
+      titulo.textContent = `📄 ${escapeHTML(archivo.titulo || 'Sin título')}`;
+      const tipo = archivo.fileType || '';
+      const contenidoBase64 = archivo.contenido;
+
+      if (!contenidoBase64) {
+        contenido.innerHTML = '<p style="color:#ff5252;">❌ Este archivo no tiene contenido descargable</p>';
+        return;
+      }
+
+      // 🖼️ IMÁGENES
+      if (tipo.startsWith('image/')) {
+        contenido.innerHTML = `
+          <img src="data:${tipo};base64,${contenidoBase64}" 
+               alt="${escapeHTML(archivo.titulo)}" 
+               style="max-width:100%;max-height:70vh;display:block;margin:0 auto;border-radius:8px;">
+        `;
+      }
+      // 🎬 VIDEOS
+      else if (tipo.startsWith('video/')) {
+        contenido.innerHTML = `
+          <video controls autoplay style="max-width:100%;max-height:70vh;display:block;margin:0 auto;border-radius:8px;">
+            <source src="data:${tipo};base64,${contenidoBase64}" type="${tipo}">
+            Tu navegador no soporta video.
+          </video>
+        `;
+      }
+      // 🎵 AUDIO
+      else if (tipo.startsWith('audio/')) {
+        contenido.innerHTML = `
+          <div style="padding:40px;text-align:center;width:100%;">
+            <div style="font-size:80px;margin-bottom:20px;">🎵</div>
+            <audio controls autoplay style="width:100%;max-width:500px;">
+              <source src="data:${tipo};base64,${contenidoBase64}" type="${tipo}">
+              Tu navegador no soporta audio.
+            </audio>
+            <p style="color:#8b95a5;margin-top:20px;">${escapeHTML(archivo.fileName || archivo.titulo)}</p>
+          </div>
+        `;
+      }
+      // 📄 PDF
+      else if (tipo === 'application/pdf') {
+        contenido.innerHTML = `
+          <iframe src="data:application/pdf;base64,${contenidoBase64}" 
+                  style="width:100%;height:70vh;border:none;border-radius:8px;">
+          </iframe>
+        `;
+      }
+      // 📝 TEXTO
+      else if (tipo.startsWith('text/') || tipo === 'application/json') {
+        try {
+          const texto = atob(contenidoBase64);
+          contenido.innerHTML = `
+            <pre style="padding:20px;color:#e0e0e0;font-family:monospace;white-space:pre-wrap;word-break:break-word;max-height:70vh;overflow:auto;width:100%;text-align:left;background:rgba(0,0,0,0.3);border-radius:8px;">${escapeHTML(texto)}</pre>
+          `;
+        } catch (e) {
+          contenido.innerHTML = '<p style="color:#ff5252;">❌ No se pudo decodificar el texto</p>';
+        }
+      }
+      // ❓ OTROS
+      else {
+        contenido.innerHTML = `
+          <div style="padding:40px;text-align:center;">
+            <div style="font-size:80px;margin-bottom:20px;">📦</div>
+            <p style="color:#e0e0e0;font-size:1.1rem;">Este tipo de archivo no tiene visor integrado</p>
+            <p style="color:#8b95a5;margin-top:10px;">Tipo: ${escapeHTML(tipo)}</p>
+            <button data-action="descargar" data-id="${safeId}" style="margin-top:20px;padding:12px 24px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+              📥 Descargar archivo
+            </button>
+          </div>
+        `;
+        // ✅ Usar addEventListener en lugar de onclick inline
+        const btnDescargar = contenido.querySelector('[data-action="descargar"]');
+        if (btnDescargar) {
+          btnDescargar.addEventListener('click', () => descargarArchivo(safeId));
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ Error:', error);
+      contenido.innerHTML = `<p style="color:#ff5252;">❌ Error: ${escapeHTML(error.message)}</p>`;
+    }
+  }
+}
+
+// ==========================================
+// ❌ FUNCIÓN: CERRAR VISOR
+// ==========================================
+if (typeof cerrarMedia !== 'function') {
+  function cerrarMedia() {
+    const modal = document.getElementById('mediaModal');
+    const contenido = document.getElementById('mediaContent');
+
+    if (contenido) {
+      const videos = contenido.querySelectorAll('video');
+      const audios = contenido.querySelectorAll('audio');
+      videos.forEach(v => { v.pause(); v.src = ''; });
+      audios.forEach(a => { a.pause(); a.src = ''; });
+      contenido.innerHTML = '<p style="color:#8b95a5;">Cargando...</p>';
+    }
+
+    if (modal) modal.classList.add('hidden');
+  }
+}
+
+// ==========================================
+// 📥 FUNCIÓN: DESCARGAR ARCHIVO
+// ==========================================
+if (typeof descargarArchivo !== 'function') {
+  async function descargarArchivo(id) {
+    const safeId = sanitizeId(id);
+    if (!safeId) {
+      alert('❌ ID de archivo inválido');
+      return;
+    }
+
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+    if (!token) {
+      alert('⚠️ Debes iniciar sesión');
+      return;
+    }
+
+    try {
+      const respuesta = await fetch(`/vault/${safeId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (respuesta.status === 401) {
+        handleSessionExpired();
+        return;
+      }
+
+      if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+      const datos = await respuesta.json();
+      if (!datos.success || !datos.secret || !datos.secret.contenido) {
+        throw new Error('No se pudo obtener el contenido');
+      }
+
+      const archivo = datos.secret;
+      const tipo = archivo.fileType || 'application/octet-stream';
+      const nombre = archivo.fileName || archivo.titulo || 'archivo';
+
+      const byteCharacters = atob(archivo.contenido);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: tipo });
+
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = nombre;
+      document.body.appendChild(enlace);
+      enlace.click();
+      document.body.removeChild(enlace);
+      URL.revokeObjectURL(url);
+
+      console.log('✅ Archivo descargado:', nombre);
+    } catch (error) {
+      console.error('❌ Error descargando:', error);
+      alert('❌ Error al descargar: ' + error.message);
+    }
+  }
+}
+
+// ==========================================
+// 🗑️ FUNCIÓN: ELIMINAR ARCHIVO
+// ==========================================
+if (typeof eliminarArchivo !== 'function') {
+  async function eliminarArchivo(id) {
+    const safeId = sanitizeId(id);
+    if (!safeId) {
+      alert('❌ ID de archivo inválido');
+      return;
+    }
+
+    if (!confirm('¿Estás seguro de eliminar este archivo? Esta acción no se puede deshacer.')) return;
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+
+    if (!token) {
+      alert('⚠️ Debes iniciar sesión');
+      return;
+    }
+
+    try {
+      const resp = await fetch(`/vault/${safeId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+
+      if (resp.status === 401) {
+        handleSessionExpired();
+        return;
+      }
+
+      if (resp.ok) {
+        alert('✅ Archivo eliminado correctamente');
+        cargarVault();
+      } else {
+        const error = await resp.json().catch(() => ({}));
+        alert('❌ Error al eliminar: ' + (error.error || 'Error desconocido'));
+      }
+    } catch (e) {
+      console.error(e);
+      alert('❌ Error de conexión: ' + e.message);
+    }
+  }
+}
+
+// ==========================================
+// 📦 FUNCIÓN PARA CARGAR Y MOSTRAR EL VAULT
+// ==========================================
+if (typeof cargarVault !== 'function') {
+  async function cargarVault() {
+    console.log("🔄 Intentando cargar el Vault...");
+
+    const contenedor = document.getElementById('vaultContainer');
+    if (!contenedor) {
+      console.error("❌ No se encontró el elemento #vaultContainer");
+      return;
+    }
+
+    contenedor.innerHTML = '<p style="color:#8b95a5; text-align:center; padding:40px;">🔄 Cargando tu Vault...</p>';
+
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+
+    if (!token) {
+      console.warn("⚠️ No hay token de sesión. ¿Iniciaste sesión?");
+      contenedor.innerHTML = '<p style="color:#ff5252; text-align:center; padding:40px;">⚠️ Debes iniciar sesión para ver tu Vault.</p>';
+      return;
+    }
+
+    try {
+      // ✅ RUTA RELATIVA (sin enlaces externos)
+      const respuesta = await fetch('/vault', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // ✅ Manejo de sesión expirada
+      if (respuesta.status === 401) {
+        handleSessionExpired();
+        return;
+      }
+
+      if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+      const datos = await respuesta.json();
+      console.log("✅ Datos recibidos del servidor:", datos);
+
+      if (datos.success && datos.items && datos.items.length > 0) {
+        console.log(`🎉 ¡Encontrados ${datos.items.length} archivos!`);
+        contenedor.innerHTML = '';
+
+        datos.items.forEach(archivo => {
+          const tarjeta = document.createElement('div');
+          tarjeta.style.cssText = 'background:#1a2332; padding:16px; border-radius:10px; margin:8px 0; border:1px solid #2a2f3a; transition:transform 0.2s;';
+
+          tarjeta.onmouseover = function() { this.style.transform = 'translateY(-2px)'; this.style.borderColor = '#00e676'; };
+          tarjeta.onmouseout = function() { this.style.transform = 'translateY(0)'; this.style.borderColor = '#2a2f3a'; };
+
+          const icono = obtenerIcono(archivo.fileType);
+          const titulo = escapeHTML(archivo.titulo || 'Sin título');
+          const categoria = escapeHTML(archivo.categoria || 'general');
+          const fecha = archivo.createdAt ? new Date(archivo.createdAt).toLocaleDateString() : 'Fecha desconocida';
+          const tipo = escapeHTML(archivo.fileType || 'archivo');
+          const id = sanitizeId(archivo._id);  // ✅ ID sanitizado
+
+          if (!id) return;  // Saltar si no hay ID válido
+
+          // ✅ Crear botones con createElement (más seguro que innerHTML con onclick)
+          const btnVer = document.createElement('button');
+          btnVer.textContent = '👁️ Ver';
+          btnVer.style.cssText = 'flex:1; padding:8px 12px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.85rem;';
+          btnVer.addEventListener('click', () => verArchivo(id));
+
+          const btnDescargar = document.createElement('button');
+          btnDescargar.textContent = '📥 Descargar';
+          btnDescargar.style.cssText = 'flex:1; padding:8px 12px; background:#29b6f6; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.85rem;';
+          btnDescargar.addEventListener('click', () => descargarArchivo(id));
+
+          const btnEliminar = document.createElement('button');
+          btnEliminar.textContent = '🗑️';
+          btnEliminar.style.cssText = 'padding:8px 12px; background:#ff5252; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.85rem;';
+          btnEliminar.addEventListener('click', () => eliminarArchivo(id));
+
+          const botones = document.createElement('div');
+          botones.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap;';
+          botones.appendChild(btnVer);
+          botones.appendChild(btnDescargar);
+          botones.appendChild(btnEliminar);
+
+          tarjeta.innerHTML = `
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+              <div style="font-size:2rem;">${icono}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="color:#e0e0e0; font-weight:600; font-size:1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${titulo}</div>
+                <div style="color:#8b95a5; font-size:0.8rem; margin-top:4px;">
+                  📁 ${categoria} • 📅 ${fecha} • 📦 ${tipo}
+                  ${archivo.isForSale ? ' • 💰 $' + (archivo.price || 0) : ''}
+                </div>
+              </div>
+            </div>
+          `;
+          tarjeta.appendChild(botones);
+          contenedor.appendChild(tarjeta);
+        });
+      } else {
+        contenedor.innerHTML = '<p style="color:#8b95a5; text-align:center; padding:40px;">📭 Tu vault está vacío. ¡Sube tu primer archivo!</p>';
+      }
+    } catch (error) {
+      console.error("❌ Error cargando el Vault:", error);
+      contenedor.innerHTML = `<p style="color:#ff5252; text-align:center; padding:40px;">❌ Error al cargar: ${escapeHTML(error.message)}</p>`;
+    }
+  }
+}
+
+// ==========================================
+// 🚀 INICIALIZACIÓN (UNA SOLA VEZ)
+// ==========================================
+// ✅ Cerrar visor con tecla ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (typeof cerrarMedia === 'function') cerrarMedia();
+  }
+});
+
+// ✅ NO agregar otro DOMContentLoaded aquí
+// La función cargarVault() se llamará desde el script principal
+// cuando el usuario inicie sesión
+</script>
