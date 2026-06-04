@@ -274,7 +274,11 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"], // ✅ FIX: CDN permitido
       scriptSrcAttr: ["'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http:"],
-      connectSrc: ["'self'", "https://apiromwinervault.onrender.com", "https://checkout.stripe.com", "https://api.qrserver.com", "http://localhost:3000", "http://127.0.0.1:3000"],
+     // ANTES ❌
+fetch(`https://apiromwinervault.onrender.com/vault/${id}`, ...)
+
+// DESPUÉS ✅
+fetch(`/vault/${id}`, ...)
       fontSrc: ["'self'", "https:", "data:"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
