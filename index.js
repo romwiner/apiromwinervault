@@ -2439,7 +2439,9 @@ app.get('/api/vault/:id/stream/secure', async(req, res) => {
     logger.error('❌ Error en streaming seguro:', error);
     if (!res.headersSent) res.status(500).json({ error: 'Error al servir archivo cifrado' });
   }
-}); // ← ✅ CIERRE CORRECTO DE LA FUNCIÓN
+}); 
+
+// ← ✅ CIERRE CORRECTO DE LA FUNCIÓN
 // ============================================
 // 🌿 CONTROL DE VERSIONES GIT-LIKE
 // ============================================
