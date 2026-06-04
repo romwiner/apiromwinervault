@@ -314,7 +314,7 @@ app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('/', (req, res) => {
+app.get('/api/status''', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 // 📁 UPLOADS
