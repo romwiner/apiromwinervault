@@ -10174,6 +10174,85 @@ async function verArchivo(id) {
           </div>
         </div>
         
+// ==========================================
+// 👁️ FUNCIÓN: VER ARCHIVO (VISOR MULTIMEDIA SEGURO Y MEJORADO)
+// ==========================================
+async function verArchivo(id) {
+  // ✅ Validar ID
+  const safeId = sanitizeIdForEvent(id);
+  if (!safeId) {
+    showNotification('❌ ID de archivo inválido', 'error');
+    return;
+  }
+
+  // ✅ Verificar conexión
+  if (!navigator.onLine) {
+    showNotification('⚠️ Sin conexión a internet', 'error');
+    return;
+  }
+
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) {
+    showNotification('⚠️ Debes iniciar sesión', 'warning');
+    return;
+  }
+
+  // ✅ MIME types permitidos (whitelist de seguridad)
+  const MIME_WHITELIST = {
+    'image/': ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
+    'video/': ['video/mp4', 'video/webm', 'video/ogg'],
+    'audio/': ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac'],
+    'text/': ['text/plain', 'text/html', 'text/css', 'text/javascript', 'text/markdown'],
+    'application/': ['application/pdf', 'application/json', 'application/xml']
+  };
+
+  // ✅ Función para validar MIME type
+  function isValidMimeType(mimeType) {
+    if (!mimeType) return false;
+    for (const category in MIME_WHITELIST) {
+      if (mimeType.startsWith(category)) {
+        return MIME_WHITELIST[category].includes(mimeType);
+      }
+    }
+    return false;
+  }
+
+  // ✅ Crear modal si no existe
+  let modal = document.getElementById('visorModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'visorModal';
+    modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.97); z-index:9999; padding:0; overflow:auto;';
+    modal.innerHTML = `
+      <div style="max-width:1400px; margin:0 auto; height:100vh; display:flex; flex-direction:column; background:#151922;">
+        <!-- BARRA SUPERIOR CON BOTONES -->
+        <div id="visorBarraSuperior" style="background:#0b0c10; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #2a2f3a; flex-shrink:0; flex-wrap:wrap; gap:8px;">
+          <h3 id="visorTitulo" style="color:#8ab4f8; margin:0; font-family:system-ui; font-size:1.1rem; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:200px;">📄 Archivo</h3>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="btnZoomIn" style="display:none; padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Acercar">🔍+</button>
+            <button id="btnZoomOut" style="display:none; padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Alejar">🔍-</button>
+            <button id="btnPantallaCompleta" style="padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Pantalla completa">🖥️</button>
+            <button id="btnVelocidad" style="display:none; padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Velocidad">⚡ 1x</button>
+            <button id="btnCompartir" style="padding:6px 12px; background:#29b6f6; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;" title="Compartir">🔗</button>
+            <button id="btnFavorito" style="padding:6px 12px; background:#ab47bc; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Favorito">⭐</button>
+            <button id="btnHistorial" style="padding:6px 12px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;" title="Historial Git">🌿</button>
+            <button id="btnEditar" style="padding:6px 12px; background:#ffa726; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;" title="Editar">✏️</button>
+            <button id="btnDescargar" style="padding:6px 12px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;" title="Descargar">📥</button>
+            <button id="btnCopiar" style="display:none; padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Copiar texto">📋</button>
+            <button id="btnImprimir" style="display:none; padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Imprimir">🖨️</button>
+            <button id="btnCerrarVisor" style="padding:6px 12px; background:#ff5252; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;" title="Cerrar">✕</button>
+          </div>
+        </div>
+        <!-- CONTENIDO PRINCIPAL -->
+        <div id="visorContenido" style="flex:1; background:#0b0c10; display:flex; align-items:center; justify-content:center; overflow:auto; padding:20px; position:relative;">
+          <div style="text-align:center;">
+            <div style="font-size:60px; margin-bottom:20px; animation:spin 2s linear infinite;">⏳</div>
+            <p style="color:#8b95a5;">Desencriptando archivo...</p>
+            <div id="barraProgreso" style="width:300px; height:6px; background:#2a2f3a; border-radius:3px; margin:20px auto; overflow:hidden; display:none;">
+              <div id="progresoFill" style="height:100%; background:linear-gradient(90deg, #00e676, #29b6f6); width:0%; transition:width 0.3s;"></div>
+            </div>
+          </div>
+        </div>
         <!-- BARRA INFERIOR CON INFO -->
         <div id="visorInfo" style="background:#0b0c10; padding:12px 20px; border-top:1px solid #2a2f3a; color:#8b95a5; font-size:0.85rem; flex-shrink:0; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
           <div id="visorInfoIzq"></div>
@@ -10183,26 +10262,36 @@ async function verArchivo(id) {
     `;
     document.body.appendChild(modal);
     
-    // Agregar animación de carga
-    const estilo = document.createElement('style');
-    estilo.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
-    document.head.appendChild(estilo);
+    // ✅ Agregar animación de carga (solo una vez)
+    if (!document.getElementById('visor-spinner-style')) {
+      const estilo = document.createElement('style');
+      estilo.id = 'visor-spinner-style';
+      estilo.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+      document.head.appendChild(estilo);
+    }
     
-    // Event listeners de botones
-    document.getElementById('btnCerrarVisor').onclick = cerrarVisor;
-    document.getElementById('btnDescargar').onclick = () => descargarArchivo(window.archivoActualId);
-    document.getElementById('btnCompartir').onclick = () => compartirArchivo(window.archivoActualId);
-    document.getElementById('btnHistorial').onclick = () => verHistorial(window.archivoActualId);
-    document.getElementById('btnEditar').onclick = () => editarMetadatos(window.archivoActualId);
-    document.getElementById('btnFavorito').onclick = () => toggleFavorito(window.archivoActualId);
-    document.getElementById('btnPantallaCompleta').onclick = pantallaCompleta;
-    document.getElementById('btnZoomIn').onclick = () => zoomImagen(1.2);
-    document.getElementById('btnZoomOut').onclick = () => zoomImagen(0.8);
-    document.getElementById('btnVelocidad').onclick = cambiarVelocidad;
-    document.getElementById('btnCopiar').onclick = copiarPortapapeles;
-    document.getElementById('btnImprimir').onclick = imprimirArchivo;
+    // ✅ Event listeners con fallbacks seguros
+    const safeCall = (fn, ...args) => {
+      if (typeof fn === 'function') {
+        try { fn(...args); } catch (e) { console.error('Error en callback:', e); }
+      }
+    };
     
-    modal.onclick = function(e) { if (e.target === modal) cerrarVisor(); };
+    document.getElementById('btnCerrarVisor').addEventListener('click', () => safeCall(cerrarVisor));
+    document.getElementById('btnDescargar').addEventListener('click', () => safeCall(descargarArchivo, window.archivoActualId));
+    document.getElementById('btnCompartir').addEventListener('click', () => safeCall(compartirArchivo, window.archivoActualId));
+    document.getElementById('btnHistorial').addEventListener('click', () => safeCall(verHistorial, window.archivoActualId));
+    document.getElementById('btnEditar').addEventListener('click', () => safeCall(editarMetadatos, window.archivoActualId));
+    document.getElementById('btnFavorito').addEventListener('click', () => safeCall(toggleFavorito, window.archivoActualId));
+    document.getElementById('btnPantallaCompleta').addEventListener('click', () => safeCall(pantallaCompleta));
+    document.getElementById('btnZoomIn').addEventListener('click', () => safeCall(zoomImagen, 1.2));
+    document.getElementById('btnZoomOut').addEventListener('click', () => safeCall(zoomImagen, 0.8));
+    document.getElementById('btnVelocidad').addEventListener('click', () => safeCall(cambiarVelocidad));
+    document.getElementById('btnCopiar').addEventListener('click', () => safeCall(copiarPortapapeles));
+    document.getElementById('btnImprimir').addEventListener('click', () => safeCall(imprimirArchivo));
+    
+    // ✅ Cerrar al hacer clic fuera
+    modal.addEventListener('click', (e) => { if (e.target === modal) safeCall(cerrarVisor); });
   }
 
   const contenedor = document.getElementById('visorContenido');
@@ -10212,12 +10301,11 @@ async function verArchivo(id) {
   const barraProgreso = document.getElementById('barraProgreso');
   const progresoFill = document.getElementById('progresoFill');
 
-  // Resetear botones
-  document.getElementById('btnZoomIn').style.display = 'none';
-  document.getElementById('btnZoomOut').style.display = 'none';
-  document.getElementById('btnVelocidad').style.display = 'none';
-  document.getElementById('btnCopiar').style.display = 'none';
-  document.getElementById('btnImprimir').style.display = 'none';
+  // ✅ Resetear botones
+  ['btnZoomIn', 'btnZoomOut', 'btnVelocidad', 'btnCopiar', 'btnImprimir'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.style.display = 'none';
+  });
 
   modal.style.display = 'block';
   barraProgreso.style.display = 'block';
@@ -10225,11 +10313,14 @@ async function verArchivo(id) {
   titulo.textContent = '📄 Cargando...';
   infoIzq.innerHTML = '';
   infoDer.innerHTML = '';
-  window.archivoActualId = id;
+  
+  // ✅ Usar objeto en lugar de variables globales
+  window.archivoActualId = safeId;
+  window.archivoActual = null;
   window.zoomActual = 1;
   window.velocidadActual = 1;
 
-  // Simular progreso
+  // ✅ Simular progreso con cleanup
   let progreso = 0;
   const intervaloProgreso = setInterval(() => {
     progreso += 10;
@@ -10237,7 +10328,8 @@ async function verArchivo(id) {
   }, 100);
 
   try {
-    const respuesta = await fetch(`https://apiromwinervault.onrender.com/vault/${id}`, {
+    // ✅ RUTA RELATIVA (sin enlaces externos)
+    const respuesta = await fetch(`/vault/${encodeURIComponent(safeId)}`, {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer ' + token,
@@ -10249,6 +10341,16 @@ async function verArchivo(id) {
     progresoFill.style.width = '100%';
     setTimeout(() => { barraProgreso.style.display = 'none'; }, 500);
 
+    // ✅ Manejo de sesión expirada
+    if (respuesta.status === 401) {
+      if (typeof handleSessionExpired === 'function') {
+        handleSessionExpired();
+      } else {
+        showNotification('⚠️ Sesión expirada. Inicia sesión nuevamente.', 'warning');
+      }
+      return;
+    }
+
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
@@ -10258,19 +10360,34 @@ async function verArchivo(id) {
 
     const archivo = datos.secret;
     window.archivoActual = archivo;
+    
+    // ✅ Sanitizar título
     titulo.textContent = `📄 ${escapeHTML(archivo.titulo || 'Sin título')}`;
 
     const tipo = archivo.fileType || '';
     const contenido = archivo.contenido;
 
-    // Info detallada
+    // ✅ Validar MIME type
+    if (!isValidMimeType(tipo) && !tipo.startsWith('text/')) {
+      throw new Error(`Tipo de archivo no soportado: ${tipo}`);
+    }
+
+    // ✅ Info detallada con sanitización completa
+    const tagsSanitizados = Array.isArray(archivo.tags) 
+      ? archivo.tags.map(t => escapeHTML(t)).join(', ') 
+      : 'sin tags';
+    
+    const precioSanitizado = archivo.isForSale 
+      ? ` | <strong style="color:#00e676;">💰 En venta: $${Number(archivo.price || 0).toFixed(2)}</strong>` 
+      : '';
+    
     infoIzq.innerHTML = `
       <strong>📁 ${escapeHTML(archivo.fileName || 'N/A')}</strong> | 
       📦 ${escapeHTML(tipo || 'desconocido')} | 
-      🏷️ ${(archivo.tags || []).map(t => escapeHTML(t)).join(', ') || 'sin tags'}
-      ${archivo.isForSale ? ' | <strong style="color:#00e676;">💰 En venta: $' + archivo.price + '</strong>' : ''}
+      🏷️ ${tagsSanitizados}
+      ${precioSanitizado}
     `;
-    infoDer.innerHTML = `ID: ${id.substring(0, 8)}... | Cargado: ${new Date().toLocaleString()}`;
+    infoDer.innerHTML = `ID: ${escapeHTML(safeId.substring(0, 8))}... | Cargado: ${new Date().toLocaleString()}`;
 
     if (!contenido) {
       contenedor.innerHTML = '<p style="color:#ff5252;">❌ Este archivo no tiene contenido descargable o es un texto vacío.</p>';
@@ -10328,12 +10445,14 @@ async function verArchivo(id) {
       document.getElementById('btnCopiar').style.display = 'inline-block';
       document.getElementById('btnImprimir').style.display = 'inline-block';
       try {
+        // ✅ Validar que sea base64 válido
         const texto = atob(contenido);
         contenedor.innerHTML = `
           <pre id="textoVisor" style="padding:30px; color:#e0e0e0; font-family:monospace; white-space:pre-wrap; word-break:break-word; max-height:100%; overflow:auto; width:100%; text-align:left; background:#0a0a0a; border-radius:8px; line-height:1.6;">${escapeHTML(texto)}</pre>
         `;
       } catch (e) {
-        contenedor.innerHTML = '<p style="color:#ff5252;">❌ No se pudo decodificar el texto.</p>';
+        console.error('Error decodificando texto:', e);
+        contenedor.innerHTML = '<p style="color:#ff5252;">❌ No se pudo decodificar el texto. El contenido puede estar corrupto.</p>';
       }
     }
     // ❓ OTROS TIPOS
@@ -10343,59 +10462,115 @@ async function verArchivo(id) {
           <div style="font-size:100px; margin-bottom:20px;">📦</div>
           <h3 style="color:#e0e0e0;">Este tipo de archivo no tiene visor integrado</h3>
           <p style="color:#8b95a5; margin-top:10px;">Tipo: ${escapeHTML(tipo)}</p>
-          <button onclick="descargarArchivo('${id}')" style="display:inline-block; margin-top:20px; padding:14px 28px; background:#00e676; color:#0b0c10; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:1rem;">
+          <button data-action="descargar" data-id="${safeId}" style="display:inline-block; margin-top:20px; padding:14px 28px; background:#00e676; color:#0b0c10; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:1rem;">
             📥 Descargar archivo
           </button>
         </div>
       `;
+      
+      // ✅ Usar addEventListener en lugar de onclick inline
+      const btnDescargar = contenedor.querySelector('[data-action="descargar"]');
+      if (btnDescargar) {
+        btnDescargar.addEventListener('click', () => descargarArchivo(safeId));
+      }
     }
 
   } catch (error) {
     clearInterval(intervaloProgreso);
     barraProgreso.style.display = 'none';
     console.error('❌ Error:', error);
+    
+    // ✅ Mensaje de error específico según el tipo
+    let mensajeError = error.message;
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      mensajeError = 'Error de conexión. Verifica tu internet.';
+    } else if (error.message.includes('401')) {
+      mensajeError = 'Sesión expirada. Inicia sesión nuevamente.';
+    } else if (error.message.includes('404')) {
+      mensajeError = 'Archivo no encontrado.';
+    } else if (error.message.includes('Tipo de archivo no soportado')) {
+      mensajeError = error.message;
+    }
+    
     contenedor.innerHTML = `
       <div style="text-align:center; padding:40px;">
         <div style="font-size:80px; margin-bottom:20px;">❌</div>
-        <p style="color:#ff5252; font-size:1.1rem;">Error: ${escapeHTML(error.message)}</p>
-        <button onclick="verArchivo('${id}')" style="margin-top:20px; padding:12px 24px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
+        <p style="color:#ff5252; font-size:1.1rem;">Error: ${escapeHTML(mensajeError)}</p>
+        <button data-action="reintentar" data-id="${safeId}" style="margin-top:20px; padding:12px 24px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
           🔄 Reintentar
         </button>
       </div>
     `;
+    
+    // ✅ Usar addEventListener
+    const btnReintentar = contenedor.querySelector('[data-action="reintentar"]');
+    if (btnReintentar) {
+      btnReintentar.addEventListener('click', () => verArchivo(safeId));
+    }
   }
 }
 
 // ==========================================
-// 🔍 FUNCIÓN: ZOOM DE IMAGEN
+// 🔍 FUNCIÓN: ZOOM DE IMAGEN (MEJORADA)
 // ==========================================
 function zoomImagen(factor) {
   const imagen = document.getElementById('imagenVisor');
-  if (!imagen) return;
+  if (!imagen) {
+    console.warn('No se encontró la imagen para hacer zoom');
+    return;
+  }
+  
+  // ✅ Inicializar si no existe
+  if (typeof window.zoomActual !== 'number') {
+    window.zoomActual = 1;
+  }
+  
   window.zoomActual *= factor;
   window.zoomActual = Math.max(0.2, Math.min(5, window.zoomActual));
   imagen.style.transform = `scale(${window.zoomActual})`;
+  
+  // ✅ Feedback visual
+  showNotification(`🔍 Zoom: ${Math.round(window.zoomActual * 100)}%`, 'info', 1000);
 }
 
 // ==========================================
-// 🖥️ FUNCIÓN: PANTALLA COMPLETA
+// 🖥️ FUNCIÓN: PANTALLA COMPLETA (MEJORADA)
 // ==========================================
 function pantallaCompleta() {
   const modal = document.getElementById('visorModal');
+  if (!modal) return;
+  
   if (!document.fullscreenElement) {
-    modal.requestFullscreen().catch(err => {
-      console.warn('No se pudo activar pantalla completa:', err);
-    });
+    modal.requestFullscreen()
+      .then(() => {
+        showNotification('🖥️ Pantalla completa activada', 'success', 1500);
+      })
+      .catch(err => {
+        console.warn('No se pudo activar pantalla completa:', err);
+        showNotification('⚠️ No se pudo activar pantalla completa', 'warning');
+      });
   } else {
-    document.exitFullscreen();
+    document.exitFullscreen()
+      .then(() => {
+        showNotification('🖥️ Pantalla completa desactivada', 'info', 1500);
+      })
+      .catch(err => {
+        console.warn('No se pudo salir de pantalla completa:', err);
+      });
   }
 }
 
 // ==========================================
-// ⚡ FUNCIÓN: CAMBIAR VELOCIDAD DE REPRODUCCIÓN
+// ⚡ FUNCIÓN: CAMBIAR VELOCIDAD DE REPRODUCCIÓN (MEJORADA)
 // ==========================================
 function cambiarVelocidad() {
   const velocidades = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  
+  // ✅ Inicializar si no existe
+  if (typeof window.velocidadActual !== 'number') {
+    window.velocidadActual = 1;
+  }
+  
   const indiceActual = velocidades.indexOf(window.velocidadActual);
   const indiceSiguiente = (indiceActual + 1) % velocidades.length;
   window.velocidadActual = velocidades[indiceSiguiente];
@@ -10406,97 +10581,339 @@ function cambiarVelocidad() {
   if (video) video.playbackRate = window.velocidadActual;
   if (audio) audio.playbackRate = window.velocidadActual;
   
-  document.getElementById('btnVelocidad').textContent = `⚡ ${window.velocidadActual}x`;
+  const btnVelocidad = document.getElementById('btnVelocidad');
+  if (btnVelocidad) {
+    btnVelocidad.textContent = `⚡ ${window.velocidadActual}x`;
+  }
+  
+  // ✅ Feedback visual
+  showNotification(`⚡ Velocidad: ${window.velocidadActual}x`, 'info', 1000);
 }
 
 // ==========================================
-// 📋 FUNCIÓN: COPIAR AL PORTAPAPELES
+// 🛡️ HELPER: SANITIZAR ID PARA EVENTOS
+// ==========================================
+function sanitizeIdForEvent(id) {
+  if (!id) return '';
+  return String(id).replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
+}
+
+// ==========================================
+// 📋 FUNCIÓN: COPIAR AL PORTAPAPELES (MEJORADA)
 // ==========================================
 async function copiarPortapapeles() {
   const texto = document.getElementById('textoVisor');
-  if (!texto) return;
-  
-  try {
-    await navigator.clipboard.writeText(texto.textContent);
-    alert('✅ Texto copiado al portapapeles');
-  } catch (error) {
-    // Fallback para navegadores antiguos
-    const rango = document.createRange();
-    rango.selectNode(texto);
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(rango);
-    document.execCommand('copy');
-    window.getSelection().removeAllRanges();
-    alert('✅ Texto copiado al portapapeles');
+  if (!texto) {
+    showNotification ? showNotification('❌ No hay texto para copiar', 'error') : alert('❌ No hay texto');
+    return;
   }
-}
 
-// ==========================================
-// 🖨️ FUNCIÓN: IMPRIMIR ARCHIVO
-// ==========================================
-function imprimirArchivo() {
-  const contenido = document.getElementById('visorContenido');
-  if (!contenido) return;
+  const contenidoTexto = texto.textContent.trim();
   
-  const ventanaImpresion = window.open('', '_blank');
-  ventanaImpresion.document.write(`
-    <html>
-      <head>
-        <title>Imprimir - ${escapeHTML(window.archivoActual?.titulo || 'Archivo')}</title>
-        <style>
-          body { font-family: system-ui; padding: 20px; }
-          pre { white-space: pre-wrap; word-break: break-word; }
-          img { max-width: 100%; }
-        </style>
-      </head>
-      <body>${contenido.innerHTML}</body>
-    </html>
-  `);
-  ventanaImpresion.document.close();
-  setTimeout(() => {
-    ventanaImpresion.print();
-    ventanaImpresion.close();
-  }, 500);
-}
-
-// ==========================================
-// 🔗 FUNCIÓN: COMPARTIR ARCHIVO
-// ==========================================
-async function compartirArchivo(id) {
-  if (!verificarConexion()) return;
-  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-  if (!token) {
-    alert('⚠️ Debes iniciar sesión');
+  // ✅ Validar que no esté vacío
+  if (!contenidoTexto) {
+    showNotification ? showNotification('⚠️ El texto está vacío', 'warning') : alert('⚠️ Texto vacío');
     return;
   }
 
   try {
-    const horas = prompt('¿Por cuántas horas quieres compartir el archivo? (1-168)', '24');
-    if (!horas || isNaN(horas) || horas < 1 || horas > 168) {
-      alert('⚠️ Debe ser un número entre 1 y 168 horas');
+    // ✅ Método moderno (preferido)
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(contenidoTexto);
+      showNotification 
+        ? showNotification(`✅ Texto copiado (${contenidoTexto.length} caracteres)`, 'success')
+        : alert('✅ Texto copiado');
+    } else {
+      // ✅ Fallback para navegadores antiguos o HTTP
+      const rango = document.createRange();
+      rango.selectNode(texto);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(rango);
+      
+      const exitoso = document.execCommand('copy');
+      window.getSelection().removeAllRanges();
+      
+      if (exitoso) {
+        showNotification 
+          ? showNotification(`✅ Texto copiado (${contenidoTexto.length} caracteres)`, 'success')
+          : alert('✅ Texto copiado');
+      } else {
+        throw new Error('No se pudo copiar');
+      }
+    }
+    
+    console.log(`📋 Texto copiado: ${contenidoTexto.length} caracteres`);
+  } catch (error) {
+    console.error('❌ Error copiando:', error);
+    const msg = '❌ No se pudo copiar. Selecciona el texto manualmente.';
+    showNotification ? showNotification(msg, 'error') : alert(msg);
+  }
+}
+
+// ==========================================
+// 🖨️ FUNCIÓN: IMPRIMIR ARCHIVO (MEJORADA Y SEGURA)
+// ==========================================
+function imprimirArchivo() {
+  const contenido = document.getElementById('visorContenido');
+  if (!contenido) {
+    showNotification ? showNotification('❌ No hay contenido para imprimir', 'error') : alert('❌ Sin contenido');
+    return;
+  }
+
+  // ✅ Validar que haya contenido real
+  if (!contenido.innerHTML.trim() || contenido.innerHTML.includes('Cargando...')) {
+    showNotification ? showNotification('⚠️ Espera a que el contenido cargue', 'warning') : alert('⚠️ Contenido no listo');
+    return;
+  }
+
+  // ✅ Sanitizar título del archivo
+  const titulo = window.archivoActual?.titulo || 'Archivo';
+  const tituloSeguro = String(titulo)
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .substring(0, 100);
+
+  // ✅ Sanitizar contenido (remover scripts peligrosos)
+  const contenidoSanitizado = contenido.innerHTML
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remover scripts
+    .replace(/on\w+="[^"]*"/g, '') // Remover event handlers inline
+    .replace(/on\w+='[^']*'/g, '');
+
+  try {
+    const ventanaImpresion = window.open('', '_blank');
+    
+    if (!ventanaImpresion) {
+      showNotification 
+        ? showNotification('❌ Pop-up bloqueado. Permite pop-ups para imprimir.', 'error')
+        : alert('❌ Habilita los pop-ups para imprimir');
       return;
     }
 
-    const respuesta = await fetch(`https://apiromwinervault.onrender.com/api/vault/${id}/share`, {
+    // ✅ Escribir contenido sanitizado
+    ventanaImpresion.document.write(`
+      <!DOCTYPE html>
+      <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <title>Imprimir - ${tituloSeguro}</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { 
+              font-family: system-ui, -apple-system, sans-serif; 
+              padding: 20px; 
+              color: #000;
+              background: #fff;
+            }
+            h1 { 
+              font-size: 1.5rem; 
+              margin-bottom: 20px; 
+              color: #00e676;
+              border-bottom: 2px solid #00e676;
+              padding-bottom: 10px;
+            }
+            pre { 
+              white-space: pre-wrap; 
+              word-break: break-word; 
+              font-family: 'Courier New', monospace;
+              background: #f5f5f5;
+              padding: 15px;
+              border-radius: 6px;
+              font-size: 0.9rem;
+              line-height: 1.6;
+            }
+            img { 
+              max-width: 100%; 
+              height: auto;
+              display: block;
+              margin: 10px auto;
+            }
+            iframe {
+              width: 100%;
+              height: 80vh;
+              border: none;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 15px;
+              border-top: 1px solid #ddd;
+              font-size: 0.8rem;
+              color: #666;
+              text-align: center;
+            }
+            @media print {
+              body { padding: 0; }
+              .footer { page-break-before: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>📄 ${tituloSeguro}</h1>
+          ${contenidoSanitizado}
+          <div class="footer">
+            Impreso desde ApiRomwiner Vault • ${new Date().toLocaleString()}
+          </div>
+        </body>
+      </html>
+    `);
+    
+    ventanaImpresion.document.close();
+    
+    // ✅ Esperar a que cargue antes de imprimir
+    setTimeout(() => {
+      try {
+        ventanaImpresion.focus();
+        ventanaImpresion.print();
+        // ✅ Cerrar después de imprimir (con delay para que el usuario pueda cancelar)
+        setTimeout(() => {
+          if (!ventanaImpresion.closed) {
+            ventanaImpresion.close();
+          }
+        }, 1000);
+        
+        showNotification ? showNotification('🖨️ Preparando impresión...', 'info') : null;
+      } catch (e) {
+        console.error('❌ Error imprimiendo:', e);
+        showNotification ? showNotification('❌ Error al imprimir', 'error') : alert('❌ Error');
+      }
+    }, 500);
+    
+  } catch (error) {
+    console.error('❌ Error abriendo ventana:', error);
+    showNotification 
+      ? showNotification('❌ No se pudo abrir la ventana de impresión', 'error')
+      : alert('❌ Error');
+  }
+}
+
+// ==========================================
+// 🔗 FUNCIÓN: COMPARTIR ARCHIVO (CORREGIDA - SIN ENLACES EXTERNOS)
+// ==========================================
+async function compartirArchivo(id) {
+  // ✅ Validar conexión
+  if (typeof verificarConexion === 'function' && !verificarConexion()) return;
+  
+  // ✅ Sanitizar ID
+  const safeId = sanitizeIdForEvent ? sanitizeIdForEvent(id) : String(id).replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
+  if (!safeId) {
+    showNotification ? showNotification('❌ ID de archivo inválido', 'error') : alert('❌ ID inválido');
+    return;
+  }
+
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) {
+    showNotification ? showNotification('⚠️ Debes iniciar sesión', 'warning') : alert('⚠️ Inicia sesión');
+    return;
+  }
+
+  // ✅ Usar prompt con validación mejorada
+  const horasInput = prompt('¿Por cuántas horas quieres compartir el archivo? (1-168)', '24');
+  if (horasInput === null) return; // Cancelado
+
+  const horas = parseInt(horasInput, 10);
+  if (isNaN(horas) || horas < 1 || horas > 168) {
+    showNotification 
+      ? showNotification('⚠️ Debe ser un número entre 1 y 168 horas', 'warning')
+      : alert('⚠️ Horas inválidas (1-168)');
+    return;
+  }
+
+  try {
+    showNotification ? showNotification('🔗 Generando enlace seguro...', 'info') : null;
+
+    // ✅ RUTA RELATIVA (sin enlaces externos)
+    const respuesta = await fetch(`/api/vault/${encodeURIComponent(safeId)}/share`, {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + token,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ expiresInHours: parseInt(horas) })
+      body: JSON.stringify({ expiresInHours: horas })
     });
 
-    if (!respuesta.ok) throw new Error('Error al crear enlace');
+    // ✅ Manejo de sesión expirada
+    if (respuesta.status === 401) {
+      if (typeof handleSessionExpired === 'function') {
+        handleSessionExpired();
+      } else {
+        alert('⚠️ Sesión expirada');
+      }
+      return;
+    }
+
+    if (!respuesta.ok) {
+      const errorData = await respuesta.json().catch(() => ({}));
+      throw new Error(errorData.error || `Error HTTP: ${respuesta.status}`);
+    }
 
     const datos = await respuesta.json();
-    if (datos.success && datos.link) {
-      // Copiar al portapapeles
-      await navigator.clipboard.writeText(datos.link);
-      alert(`✅ Enlace copiado al portapapeles:\n\n${datos.link}\n\nExpira en ${horas} hora(s)`);
+    
+    // ✅ Validación robusta
+    if (!datos.success || !datos.link) {
+      throw new Error('No se recibió el enlace de compartir');
     }
+
+    // ✅ Validar que el link sea seguro (misma origen o HTTPS)
+    try {
+      const urlObj = new URL(datos.link);
+      const esSeguro = urlObj.protocol === 'https:' || 
+                       urlObj.origin === window.location.origin;
+      
+      if (!esSeguro) {
+        throw new Error('El enlace generado no es seguro');
+      }
+    } catch (urlError) {
+      console.warn('⚠️ Link inválido:', urlError);
+      throw new Error('Enlace inválido generado por el servidor');
+    }
+
+    // ✅ Copiar al portapapeles con fallback
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(datos.link);
+      } else {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = datos.link;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+
+      const mensaje = `✅ Enlace copiado al portapapeles\n\n🔗 ${datos.link}\n\n⏰ Expira en ${horas} hora(s)`;
+      
+      showNotification 
+        ? showNotification(`✅ Enlace copiado (expira en ${horas}h)`, 'success')
+        : alert(mensaje);
+      
+      console.log(`🔗 Link generado para: ${safeId}, expira en ${horas}h`);
+      
+    } catch (copyError) {
+      // Si falla copiar, mostrar el link para copiar manualmente
+      showNotification 
+        ? showNotification('⚠️ No se pudo copiar. Copia manualmente:', 'warning')
+        : null;
+      prompt('Copia este enlace:', datos.link);
+    }
+
   } catch (error) {
     console.error('❌ Error compartiendo:', error);
-    alert('❌ Error al compartir: ' + error.message);
+    const msg = error.message || 'Error al generar enlace';
+    showNotification 
+      ? showNotification('❌ ' + msg, 'error')
+      : alert('❌ ' + msg);
+  }
+}
+
+// ==========================================
+// 🛡️ HELPER: SANITIZAR ID PARA EVENTOS (si no existe)
+// ==========================================
+if (typeof sanitizeIdForEvent !== 'function') {
+  function sanitizeIdForEvent(id) {
+    if (!id) return '';
+    return String(id).replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
   }
 }
 // ==========================================
