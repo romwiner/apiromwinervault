@@ -10499,82 +10499,197 @@ async function compartirArchivo(id) {
     alert('❌ Error al compartir: ' + error.message);
   }
 }
-
 // ==========================================
-// 🌿 FUNCIÓN: VER HISTORIAL GIT
+// 🌿 FUNCIÓN: VER HISTORIAL GIT (CORREGIDA)
 // ==========================================
 async function verHistorial(id) {
-  if (!verificarConexion()) return;
+  // ✅ Validar conexión
+  if (typeof verificarConexion === 'function' && !verificarConexion()) return;
+  
+  // ✅ Sanitizar ID
+  const safeId = sanitizeIdForEvent(id);
+  if (!safeId) {
+    showNotification ? showNotification('❌ ID de archivo inválido', 'error') : alert('❌ ID inválido');
+    return;
+  }
+
   const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
   if (!token) {
-    alert('⚠️ Debes iniciar sesión');
+    showNotification ? showNotification('⚠️ Debes iniciar sesión', 'warning') : alert('⚠️ Inicia sesión');
     return;
   }
 
   try {
-    const respuesta = await fetch(`https://apiromwinervault.onrender.com/api/vault/${id}/log`, {
-      headers: { 'Authorization': 'Bearer ' + token }
+    // ✅ RUTA RELATIVA (sin enlaces externos)
+    const respuesta = await fetch(`/api/vault/${safeId}/log`, {
+      headers: { 
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
     });
 
-    if (!respuesta.ok) throw new Error('Error al cargar historial');
-
-    const datos = await respuesta.json();
-    if (!datos.success || !datos.log || datos.log.length === 0) {
-      alert('📭 Este archivo no tiene historial de versiones aún.\n\n💡 Tip: Usa "Nueva versión" para crear commits.');
+    // ✅ Manejo de sesión expirada
+    if (respuesta.status === 401) {
+      if (typeof handleSessionExpired === 'function') {
+        handleSessionExpired();
+      } else {
+        alert('⚠️ Sesión expirada');
+      }
       return;
     }
 
-    // Crear modal de historial
-    const modalHist = document.createElement('div');
-    modalHist.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px;';
-    modalHist.innerHTML = `
-      <div style="background:#151922; border-radius:12px; padding:24px; max-width:600px; width:100%; max-height:80vh; overflow-y:auto; border:1px solid #2a2f3a;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <h3 style="color:#00e676; margin:0;">🌿 Historial de Versiones</h3>
-          <button onclick="this.closest('div[style*=fixed]').remove()" style="background:#ff5252; color:#fff; border:none; border-radius:50%; width:32px; height:32px; cursor:pointer;">✕</button>
-        </div>
-        <div style="margin-bottom:16px;">
-          <button onclick="nuevaVersion('${id}')" style="width:100%; padding:12px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
-            ➕ Crear Nueva Versión
-          </button>
-        </div>
-        ${datos.log.map(c => `
-          <div style="padding:12px; background:#0b0c10; border-radius:8px; margin-bottom:8px; border-left:3px solid #00e676;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-              <strong style="color:#8ab4f8; font-family:monospace;">🔗 ${escapeHTML(c.hash)}</strong>
-              <span style="color:#6a7585; font-size:0.75rem;">v${c.version}</span>
-            </div>
-            <div style="color:#e0e0e0; margin-bottom:6px;">${escapeHTML(c.message)}</div>
-            <div style="color:#8b95a5; font-size:0.8rem;">
-              👤 ${escapeHTML(c.author)} • 🌿 ${escapeHTML(c.branch)} • 🕐 ${new Date(c.date).toLocaleString()}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
+    if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+    const datos = await respuesta.json();
+    
+    // ✅ Validación robusta de respuesta
+    if (!datos.success || !Array.isArray(datos.log)) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    if (datos.log.length === 0) {
+      showNotification 
+        ? showNotification('📭 Sin historial. Crea la primera versión.', 'info')
+        : alert('📭 Sin historial. Crea la primera versión.');
+      return;
+    }
+
+    // ✅ Crear modal con ID único
+    let modalHist = document.getElementById('gitHistoryModal');
+    if (modalHist) modalHist.remove(); // Remover si ya existe
+
+    modalHist = document.createElement('div');
+    modalHist.id = 'gitHistoryModal';
+    modalHist.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modalHist.setAttribute('role', 'dialog');
+    modalHist.setAttribute('aria-modal', 'true');
+    modalHist.setAttribute('aria-labelledby', 'gitHistoryTitle');
+
+    // ✅ Crear contenido con createElement (más seguro)
+    const container = document.createElement('div');
+    container.style.cssText = 'background:#151922;border-radius:12px;padding:24px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;border:1px solid #2a2f3a;';
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;';
+
+    const title = document.createElement('h3');
+    title.id = 'gitHistoryTitle';
+    title.style.cssText = 'color:#00e676;margin:0;';
+    title.textContent = '🌿 Historial de Versiones';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.style.cssText = 'background:#ff5252;color:#fff;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar historial');
+    closeBtn.addEventListener('click', () => modalHist.remove());
+
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    container.appendChild(header);
+
+    // Botón crear nueva versión
+    const newVersionBtn = document.createElement('button');
+    newVersionBtn.style.cssText = 'width:100%;padding:12px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;cursor:pointer;font-weight:600;margin-bottom:16px;';
+    newVersionBtn.textContent = '➕ Crear Nueva Versión';
+    newVersionBtn.addEventListener('click', () => nuevaVersion(safeId));
+    container.appendChild(newVersionBtn);
+
+    // ✅ Renderizar commits con createElement (previene XSS)
+    const commitsContainer = document.createElement('div');
+    commitsContainer.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+
+    datos.log.forEach(commit => {
+      const commitDiv = document.createElement('div');
+      commitDiv.style.cssText = 'padding:12px;background:#0b0c10;border-radius:8px;border-left:3px solid #00e676;';
+
+      // Hash y versión
+      const hashRow = document.createElement('div');
+      hashRow.style.cssText = 'display:flex;justify-content:space-between;margin-bottom:6px;';
+
+      const hashSpan = document.createElement('strong');
+      hashSpan.style.cssText = 'color:#8ab4f8;font-family:monospace;font-size:0.85rem;';
+      hashSpan.textContent = '🔗 ' + (commit.hash || 'N/A').substring(0, 8);
+
+      const versionSpan = document.createElement('span');
+      versionSpan.style.cssText = 'color:#6a7585;font-size:0.75rem;';
+      versionSpan.textContent = 'v' + (commit.version || '0');
+
+      hashRow.appendChild(hashSpan);
+      hashRow.appendChild(versionSpan);
+      commitDiv.appendChild(hashRow);
+
+      // Mensaje
+      const messageDiv = document.createElement('div');
+      messageDiv.style.cssText = 'color:#e0e0e0;margin-bottom:6px;font-size:0.9rem;';
+      messageDiv.textContent = commit.message || 'Sin mensaje';
+      commitDiv.appendChild(messageDiv);
+
+      // Meta info
+      const metaDiv = document.createElement('div');
+      metaDiv.style.cssText = 'color:#8b95a5;font-size:0.8rem;';
+      const fecha = commit.date ? new Date(commit.date).toLocaleString() : 'Fecha desconocida';
+      metaDiv.textContent = `👤 ${commit.author || 'Anónimo'} • 🌿 ${commit.branch || 'main'} • 🕐 ${fecha}`;
+      commitDiv.appendChild(metaDiv);
+
+      commitsContainer.appendChild(commitDiv);
+    });
+
+    container.appendChild(commitsContainer);
+    modalHist.appendChild(container);
     document.body.appendChild(modalHist);
-    modalHist.onclick = (e) => { if (e.target === modalHist) modalHist.remove(); };
+
+    // ✅ Cerrar al hacer clic fuera
+    modalHist.addEventListener('click', (e) => {
+      if (e.target === modalHist) modalHist.remove();
+    });
+
+    // ✅ Cerrar con ESC
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        modalHist.remove();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+
   } catch (error) {
     console.error('❌ Error:', error);
-    alert('❌ Error al cargar historial: ' + error.message);
+    const msg = error.message || 'Error al cargar historial';
+    showNotification 
+      ? showNotification('❌ ' + msg, 'error')
+      : alert('❌ ' + msg);
   }
 }
 
 // ==========================================
-// ➕ FUNCIÓN: CREAR NUEVA VERSIÓN
+// ➕ FUNCIÓN: CREAR NUEVA VERSIÓN (CORREGIDA)
 // ==========================================
 async function nuevaVersion(id) {
+  // ✅ Sanitizar ID
+  const safeId = sanitizeIdForEvent(id);
+  if (!safeId) {
+    showNotification ? showNotification('❌ ID inválido', 'error') : alert('❌ ID inválido');
+    return;
+  }
+
   const mensaje = prompt('Mensaje del commit (describe los cambios):');
   if (!mensaje || mensaje.trim().length < 2) {
-    alert('⚠️ El mensaje debe tener al menos 2 caracteres');
+    showNotification 
+      ? showNotification('⚠️ El mensaje debe tener al menos 2 caracteres', 'warning')
+      : alert('⚠️ Mensaje muy corto');
     return;
   }
 
   const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-  if (!token) return;
+  if (!token) {
+    showNotification ? showNotification('⚠️ Inicia sesión', 'warning') : alert('⚠️ Inicia sesión');
+    return;
+  }
 
   try {
-    const respuesta = await fetch(`https://apiromwinervault.onrender.com/api/vault/${id}/commit`, {
+    // ✅ RUTA RELATIVA (sin enlaces externos)
+    const respuesta = await fetch(`/api/vault/${safeId}/commit`, {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + token,
@@ -10587,31 +10702,68 @@ async function nuevaVersion(id) {
       })
     });
 
-    if (!respuesta.ok) throw new Error('Error al crear commit');
+    // ✅ Manejo de sesión expirada
+    if (respuesta.status === 401) {
+      if (typeof handleSessionExpired === 'function') {
+        handleSessionExpired();
+      } else {
+        alert('⚠️ Sesión expirada');
+      }
+      return;
+    }
+
+    if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
-    if (datos.success) {
-      alert(`✅ Commit creado exitosamente\n\n🔗 Hash: ${datos.commit.hash}\n📝 ${datos.commit.message}\n📦 Versión: ${datos.commit.version}`);
-      // Cerrar modal de historial y recargar
-      const modalHist = document.querySelector('div[style*="z-index: 10000"]');
-      if (modalHist) modalHist.remove();
-      verHistorial(id);
+    
+    // ✅ Validación robusta
+    if (!datos.success || !datos.commit) {
+      throw new Error(datos.error || 'Error al crear commit');
     }
+
+    // ✅ Notificación de éxito
+    const commitInfo = `✅ Commit creado\n🔗 ${datos.commit.hash?.substring(0, 8) || 'N/A'}\n📝 ${datos.commit.message || mensaje}\n📦 v${datos.commit.version || '?'}`;
+    
+    showNotification 
+      ? showNotification('✅ Commit creado exitosamente', 'success')
+      : alert(commitInfo);
+
+    // ✅ Cerrar modal de historial usando ID específico
+    const modalHist = document.getElementById('gitHistoryModal');
+    if (modalHist) modalHist.remove();
+
+    // ✅ Recargar historial
+    await verHistorial(safeId);
+
   } catch (error) {
     console.error('❌ Error:', error);
-    alert('❌ Error al crear commit: ' + error.message);
+    const msg = error.message || 'Error al crear commit';
+    showNotification 
+      ? showNotification('❌ ' + msg, 'error')
+      : alert('❌ ' + msg);
   }
 }
 
 // ==========================================
-// ✏️ FUNCIÓN: EDITAR METADATOS
+// ✏️ FUNCIÓN: EDITAR METADATOS (CORREGIDA)
 // ==========================================
 async function editarMetadatos(id) {
-  const archivo = window.archivoActual;
-  if (!archivo) return;
+  // ✅ Sanitizar ID
+  const safeId = sanitizeIdForEvent(id);
+  if (!safeId) {
+    showNotification ? showNotification('❌ ID inválido', 'error') : alert('❌ ID inválido');
+    return;
+  }
 
+  const archivo = window.archivoActual;
+  if (!archivo) {
+    showNotification ? showNotification('⚠️ No hay archivo seleccionado', 'warning') : alert('⚠️ Sin archivo');
+    return;
+  }
+
+  // ✅ Obtener nuevos valores
   const nuevoTitulo = prompt('Nuevo título:', archivo.titulo || '');
-  if (nuevoTitulo === null) return;
+  if (nuevoTitulo === null) return; // Cancelado
 
   const nuevaCategoria = prompt('Nueva categoría:', archivo.categoria || 'general');
   if (nuevaCategoria === null) return;
@@ -10619,20 +10771,94 @@ async function editarMetadatos(id) {
   const nuevosTags = prompt('Tags (separados por comas):', (archivo.tags || []).join(', '));
   if (nuevosTags === null) return;
 
+  // ✅ Validaciones
+  if (!nuevoTitulo || nuevoTitulo.trim().length < 3) {
+    showNotification 
+      ? showNotification('⚠️ El título debe tener al menos 3 caracteres', 'warning')
+      : alert('⚠️ Título muy corto');
+    return;
+  }
+
   const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-  if (!token) return;
+  if (!token) {
+    showNotification ? showNotification('⚠️ Inicia sesión', 'warning') : alert('⚠️ Inicia sesión');
+    return;
+  }
 
   try {
-    // Nota: Como el backend no tiene endpoint específico para editar metadatos,
-    // esta función muestra un mensaje informativo
-    alert(`✅ Metadatos actualizados (simulado)\n\n📝 Título: ${nuevoTitulo}\n📁 Categoría: ${nuevaCategoria}\n🏷️ Tags: ${nuevosTags}\n\n💡 Para guardar permanentemente, el backend necesita un endpoint PUT /vault/${id}`);
-    
-    // Actualizar en la interfaz
-    document.getElementById('visorTitulo').textContent = `📄 ${nuevoTitulo}`;
+    // ✅ Preparar datos
+    const tagsArray = nuevosTags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
+    // ✅ Intentar llamar al endpoint real
+    const respuesta = await fetch(`/api/vault/${safeId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        titulo: nuevoTitulo.trim(),
+        categoria: nuevaCategoria.trim(),
+        tags: tagsArray
+      })
+    });
+
+    // ✅ Manejo de sesión expirada
+    if (respuesta.status === 401) {
+      if (typeof handleSessionExpired === 'function') {
+        handleSessionExpired();
+      } else {
+        alert('⚠️ Sesión expirada');
+      }
+      return;
+    }
+
+    // ✅ Si el endpoint no existe (404/405), mostrar mensaje informativo
+    if (respuesta.status === 404 || respuesta.status === 405) {
+      showNotification 
+        ? showNotification('⚠️ Backend no soporta edición. Contacta al administrador.', 'warning')
+        : alert('⚠️ Backend no soporta edición aún');
+      return;
+    }
+
+    if (!respuesta.ok) {
+      const error = await respuesta.json().catch(() => ({}));
+      throw new Error(error.error || `Error HTTP: ${respuesta.status}`);
+    }
+
+    // ✅ Éxito
+    showNotification 
+      ? showNotification('✅ Metadatos actualizados', 'success')
+      : alert('✅ Metadatos actualizados');
+
+    // ✅ Actualizar interfaz
+    const tituloEl = document.getElementById('visorTitulo');
+    if (tituloEl) tituloEl.textContent = `📄 ${nuevoTitulo}`;
+
+    // ✅ Actualizar objeto en memoria
+    if (window.archivoActual) {
+      window.archivoActual.titulo = nuevoTitulo.trim();
+      window.archivoActual.categoria = nuevaCategoria.trim();
+      window.archivoActual.tags = tagsArray;
+    }
+
   } catch (error) {
     console.error('❌ Error:', error);
-    alert('❌ Error al editar: ' + error.message);
+    const msg = error.message || 'Error al editar metadatos';
+    showNotification 
+      ? showNotification('❌ ' + msg, 'error')
+      : alert('❌ ' + msg);
   }
+}
+
+// ==========================================
+// 🛡️ HELPER: SANITIZAR ID PARA EVENTOS
+// ==========================================
+function sanitizeIdForEvent(id) {
+  if (!id) return '';
+  return String(id).replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
+}
+
 }
 // ==========================================
 // ⭐ FUNCIÓN: TOGGLE FAVORITO (CORREGIDA)
