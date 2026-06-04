@@ -275,7 +275,7 @@ app.use(helmet({
       scriptSrcAttr: ["'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http:"],
      // ANTES ❌
-fetch(`https://apiromwinervault.onrender.com/vault/${id}`, ...)
+
 
 // DESPUÉS ✅
 fetch(`/vault/${id}`, ...)
