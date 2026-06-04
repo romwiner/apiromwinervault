@@ -244,7 +244,168 @@
       <button class="btn-sec" onclick="closeUploadModal()">Cancelar</button>
     </div>
   </div>
+<!-- 📱 FEED SOCIAL TIPO FACEBOOK -->
+<div class="glass" id="socialFeedPanel" style="display:none">
+  <h2>📱 Feed de Productos</h2>
+  <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Descubre productos de la comunidad</p>
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <button onclick="loadFeed('all')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">🌍 Todo</button>
+    <button onclick="loadFeed('educacion')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">🎓 Educación</button>
+    <button onclick="loadFeed('software')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">💻 Software</button>
+    <button onclick="openPublishModal()" style="width:auto;padding:8px 16px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:600;cursor:pointer">📤 Publicar</button>
+  </div>
+  <div id="feedContainer" style="display:flex;flex-direction:column;gap:16px"></div>
+</div>
 
+<!-- 📢 ANUNCIOS CON RECOMPENSAS -->
+<div class="glass" id="adsSection" style="display:none">
+  <h2>🎁 Gana Saldo Viendo Anuncios</h2>
+  <p style="color:#8b95a5;font-size:0.9rem">Mira anuncios y gana hasta $0.50 USD diarios. Límite: 20/día</p>
+  <div id="adsContainer" style="display:flex;flex-wrap:wrap;gap:12px"></div>
+  <div id="adsStatus" style="margin-top:12px;font-size:0.85rem;color:#8b95a5">Cargando anuncios...</div>
+  <button onclick="loadAvailableAds()" style="margin-top:12px;padding:8px 16px;background:#00e676;color:#000;border:none;border-radius:6px;cursor:pointer">🔄 Recargar</button>
+</div>
+
+<!-- 🆔 IDENTIDAD DIGITAL AVANZADA -->
+<div class="glass" id="digitalIdentityPanel" style="display:none">
+  <h2>🆔 Mi Identidad Digital</h2>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+    <img id="userAvatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23151922' stroke='%2300e676' stroke-width='4'/%3E%3Ctext x='50' y='65' font-size='30' fill='%2300e676' text-anchor='middle'%3E👤%3C/text%3E%3C/svg%3E" style="width:64px;height:64px;border-radius:50%;border:2px solid #00e676">
+    <div>
+      <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatar(event)">
+      <button onclick="document.getElementById('avatarInput').click()" style="padding:6px 12px;background:transparent;border:1px solid #29b6f6;color:#29b6f6;border-radius:8px;font-size:0.8rem">📷 Cambiar foto</button>
+    </div>
+  </div>
+  
+  <div style="margin:16px 0">
+    <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">✍️ Firma Digital</label>
+    <canvas id="sigCanvas" width="280" height="100" style="border:1px solid #2a2f3a;border-radius:8px;background:#000;cursor:crosshair;width:100%"></canvas>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button onclick="clearSig()" style="flex:1;padding:6px;background:transparent;border:1px solid #ff5252;color:#ff5252;border-radius:6px;font-size:0.75rem">🗑️ Borrar</button>
+      <button onclick="saveSig()" style="flex:1;padding:6px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;font-size:0.75rem;font-weight:600">💾 Guardar</button>
+    </div>
+  </div>
+  
+  <div style="margin:16px 0;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
+    <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">🤝 Contactos de Recuperación</label>
+    <div id="contactsList" style="margin-bottom:8px"></div>
+    <div style="display:flex;gap:6px">
+      <input type="email" id="contactEmail" placeholder="correo@ejemplo.com" style="flex:1;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#151922;color:#fff;font-size:0.8rem">
+      <button onclick="addContact()" style="padding:8px 12px;background:#ab47bc;color:#fff;border:none;border-radius:6px;font-size:0.8rem">➕</button>
+    </div>
+  </div>
+  
+  <div style="margin-top:16px;text-align:center">
+    <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">📱 QR de Identidad</p>
+    <img id="idQR" src="" alt="QR" style="max-width:140px;border-radius:8px;border:2px solid #00e676">
+    <button onclick="genQR()" style="margin-top:8px;padding:6px 12px;background:transparent;border:1px solid #00e676;color:#00e676;border-radius:6px;font-size:0.8rem">🔄 Generar QR</button>
+  </div>
+  
+  <div style="margin-top:16px;padding:12px;background:rgba(126,87,194,0.1);border-radius:10px;border-left:3px solid #7e57c2">
+    <h3 style="font-size:1rem;color:#ce93d8;margin-bottom:6px">🔐 Multifirma</h3>
+    <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#fff">
+      <input type="checkbox" id="multisigToggle" onchange="toggleMultisig()"> Activar multifirma para acciones críticas
+    </label>
+  </div>
+</div>
+
+<!-- 🎒 BÓVEDA PORTABLE -->
+<div class="glass" id="portableFeatures" style="display:none">
+  <h2>🎒 Bóveda Portable</h2>
+  <div class="grid">
+    <button onclick="exportVault()" style="background:transparent;border:1px solid #00e676;color:#00e676;padding:10px;border-radius:8px;cursor:pointer">📦 Exportar Bóveda</button>
+    <button onclick="importVault()" class="btn-sec" style="border-color:#29b6f6;color:#29b6f6;padding:10px;border-radius:8px;cursor:pointer">📥 Importar Backup</button>
+  </div>
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:0.8rem;color:#8b95a5">Sincronización</span>
+      <button onclick="syncCheck()" style="width:auto;padding:4px 12px;font-size:0.75rem;background:transparent;border:1px solid #66bb6a;color:#66bb6a;border-radius:6px;cursor:pointer">🔄 Verificar</button>
+    </div>
+    <div id="syncStatus" style="font-size:0.75rem;color:#8b95a5;min-height:1.2em"></div>
+  </div>
+</div>
+
+<!-- 🗄️ VAULT MODAL MEJORADO -->
+<div id="vaultModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+  <div class="glass" style="max-width:600px;max-height:80vh;overflow-y:auto">
+    <h2>🗄️ Mi Vault</h2>
+    <div id="vaultList"></div>
+    <button onclick="closeVault()" class="btn-sec" style="margin-top:12px">Cerrar</button>
+  </div>
+</div>
+
+<!-- 🎬 VISOR MULTIMEDIA AVANZADO -->
+<div id="visorModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:9999;padding:0;overflow:auto">
+  <div style="max-width:1400px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:#151922">
+    <div style="background:#0b0c10;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #2a2f3a;flex-wrap:wrap;gap:8px">
+      <h3 id="visorTitulo" style="color:#8ab4f8;margin:0;font-family:system-ui;font-size:1.1rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 Archivo</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btnZoomIn" style="display:none;padding:6px 12px;background:#2a2f3a;color:#fff;border:none;border-radius:6px;cursor:pointer">🔍+</button>
+        <button id="btnZoomOut" style="display:none;padding:6px 12px;background:#2a2f3a;color:#fff;border:none;border-radius:6px;cursor:pointer">🔍-</button>
+        <button id="btnPantallaCompleta" style="padding:6px 12px;background:#2a2f3a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖥️</button>
+        <button id="btnVelocidad" style="display:none;padding:6px 12px;background:#2a2f3a;color:#fff;border:none;border-radius:6px;cursor:pointer">⚡ 1x</button>
+        <button id="btnCompartir" style="padding:6px 12px;background:#29b6f6;color:#0b0c10;border:none;border-radius:6px;cursor:pointer;font-weight:600">🔗</button>
+        <button id="btnFavorito" style="padding:6px 12px;background:#ab47bc;color:#fff;border:none;border-radius:6px;cursor:pointer">⭐</button>
+        <button id="btnHistorial" style="padding:6px 12px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;cursor:pointer;font-weight:600">🌿</button>
+        <button id="btnDescargar" style="padding:6px 12px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;cursor:pointer;font-weight:600">📥</button>
+        <button id="btnCerrarVisor" style="padding:6px 12px;background:#ff5252;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">✕</button>
+      </div>
+    </div>
+    <div id="visorContenido" style="flex:1;background:#0b0c10;display:flex;align-items:center;justify-content:center;overflow:auto;padding:20px">
+      <p style="color:#8b95a5">Cargando...</p>
+    </div>
+  </div>
+</div>
+
+<!-- 📤 MODAL PUBLICAR PRODUCTO -->
+<div id="publishModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+  <div class="glass" style="max-width:500px;max-height:90vh;overflow-y:auto">
+    <h3>📤 Publicar nuevo producto</h3>
+    <input type="text" id="pubTitulo" placeholder="Título *" style="margin:10px 0;padding:10px;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff">
+    <textarea id="pubDescripcion" placeholder="Descripción" rows="3" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff;resize:vertical"></textarea>
+    <select id="pubCategoria" style="width:100%;padding:10px;margin:10px 0;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff">
+      <option value="general">📁 General</option>
+      <option value="educacion">🎓 Educación</option>
+      <option value="software">💻 Software</option>
+      <option value="musica">🎵 Música</option>
+      <option value="arte">🎨 Arte Digital</option>
+    </select>
+    <input type="file" id="pubArchivo" style="width:100%;padding:8px;background:#1a1f2a;color:#fff;border-radius:6px">
+    <div style="display:flex;gap:12px;align-items:center;margin:12px 0">
+      <label style="display:flex;align-items:center;gap:6px;color:#fff">
+        <input type="checkbox" id="pubForSale" checked> 💰 Poner en venta
+      </label>
+      <input type="number" id="pubPrecio" placeholder="Precio USD" min="1" value="5" style="width:100px;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#1a1f2a;color:#fff">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button onclick="publishProduct()" style="flex:1;padding:12px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:600;cursor:pointer">🚀 Publicar</button>
+      <button onclick="closePublishModal()" style="padding:12px 24px;background:transparent;border:1px solid #6a7585;color:#6a7585;border-radius:8px;cursor:pointer">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- 👥 AFILIADOS PANEL -->
+<div class="glass" id="affiliatesPanel" style="display:none">
+  <h2>🤝 Programa de Afiliados</h2>
+  <div class="grid">
+    <div class="card"><div class="label">Tu Código</div><div class="val" style="font-size:1rem" id="affCode">ROM-XXXX</div></div>
+    <div class="card"><div class="label">Referidos</div><div class="val" id="affCount">0</div></div>
+    <div class="card"><div class="label">Ganancias</div><div class="val" id="affEarnings">$0.00</div></div>
+  </div>
+  <button onclick="copyReferralLink()" class="btn-sec" style="margin-top:12px">🔗 Copiar Enlace de Referido</button>
+</div>
+
+<!-- 👑 PANEL ADMIN -->
+<div class="glass" id="adminPanel" style="display:none">
+  <h2 style="color:#ff5252">👑 Panel Administrador</h2>
+  <div class="grid">
+    <div class="card"><div style="font-size:2rem">🎁</div><div class="label">Regalar cuenta</div></div>
+    <div class="card"><div style="font-size:2rem">🗑️</div><div class="label">Eliminar usuario</div></div>
+    <div class="card"><div style="font-size:2rem">🔑</div><div class="label">Rotar claves</div></div>
+    <div class="card"><div style="font-size:2rem">📊</div><div class="label">Ver usuarios</div></div>
+  </div>
+  <button onclick="showAdminTools()" style="background:#7e57c2;color:#fff;margin-top:12px">🛠️ Herramientas Admin</button>
+</div>
   <footer>
     <p>ApiRomwiner Vault 🔐 | Identidad Digital Universal</p>
     <p style="font-size:0.7rem;color:#5a6577;margin-top:4px">© 2026 romwiner • Todos los derechos reservados</p>
@@ -9211,96 +9372,48 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 </script>
   <!-- Panel de Analytics Financieros -->
-<div id="financialAnalyticsPanel" class="hidden">
-  <h3>📊 Analytics Financieros</h3>
-  
-  <!-- Tarjetas de resumen -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:16px 0">
-    <div style="background:#1a2332;padding:16px;border-radius:8px">
-      <div style="color:#8b95a5;font-size:0.85rem">Ingresos Totales</div>
-      <div id="totalRevenue" style="color:#00e676;font-size:1.5rem;font-weight:600">$0.00</div>
-    </div>
-    
-    <div style="background:#1a2332;padding:16px;border-radius:8px">
-      <div style="color:#8b95a5;font-size:0.85rem">Ventas Totales</div>
-      <div id="totalSales" style="color:#29b6f6;font-size:1.5rem;font-weight:600">0</div>
-    </div>
-    
-    <div style="background:#1a2332;padding:16px;border-radius:8px">
-      <div style="color:#8b95a5;font-size:0.85rem">Ganancias Afiliados</div>
-      <div id="affiliateEarnings" style="color:#ab47bc;font-size:1.5rem;font-weight:600">$0.00</div>
-    </div>
-    
-    <div style="background:#1a2332;padding:16px;border-radius:8px">
-      <div style="color:#8b95a5;font-size:0.85rem">Productos Activos</div>
-      <div id="activeProducts" style="color:#ffa726;font-size:1.5rem;font-weight:600">0</div>
-    </div>
-  </div>
-
-  <!-- Gráficos -->
-  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin:16px 0">
-    <div style="background:#1a2332;padding:16px;border-radius:8px">
-      <h4 style="color:#8ab4f8;margin:0 0 12px 0">📈 Ingresos por Día</h4>
-      <canvas id="revenueChart" style="width:100%;max-width:100%"></canvas>
-    </div>
-    
-    <div style="background:#1a2332;padding:16px;border-radius:8px">
-      <h4 style="color:#8ab4f8;margin:0 0 12px 0">🥧 Ventas por Categoría</h4>
-      <canvas id="categoryChart" style="width:100%;max-width:100%"></canvas>
-    </div>
-  </div>
-
-  <!-- Top productos -->
-  <div style="background:#1a2332;padding:16px;border-radius:8px;margin:16px 0">
-    <h4 style="color:#8ab4f8;margin:0 0 12px 0">🏆 Top Productos</h4>
-    <div id="topProducts" class="analytics-list"></div>
-  </div>
-
-  <!-- Timeline de afiliados -->
-  <div style="background:#1a2332;padding:16px;border-radius:8px;margin:16px 0">
-    <h4 style="color:#8ab4f8;margin:0 0 12px 0">📅 Actividad de Afiliados</h4>
-    <div id="affiliateTimeline" class="affiliate-timeline"></div>
-  </div>
-
-  <!-- Botones de exportación -->
-  <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-    <button onclick="exportFinancialData('csv')" style="padding:10px 20px;background:transparent;color:#8ab4f8;border:1px solid #8ab4f8;border-radius:6px;cursor:pointer">
-      📥 Exportar CSV
-    </button>
-    <button onclick="exportFinancialData('json')" style="padding:10px 20px;background:transparent;color:#8ab4f8;border:1px solid #8ab4f8;border-radius:6px;cursor:pointer">
-      📥 Exportar JSON
-    </button>
-  </div>
-</div> 
- <script>
-   <!-- 🎬 VISOR MULTIMEDIA -->
-<div id="mediaModal" class="media-modal hidden">
-  <div class="media-container">
-    <div class="media-controls">
-      <span id="mediaTitle" class="media-title">📄 Archivo</span>
-      <button class="close-media" onclick="cerrarMedia()">✕</button>
-    </div>
-    <div id="mediaContent" style="padding:20px;min-height:300px;display:flex;align-items:center;justify-content:center;">
-      <p style="color:#8b95a5;">Cargando...</p>
-    </div>
-  </div>
-</div>
+<script>
 // ==========================================
-// 📦 FUNCIÓN PARA CARGAR Y MOSTRAR EL VAULT
+// 🛡️ FUNCIÓN DE SEGURIDAD: Escapar HTML
 // ==========================================
-async function cargarVault() {
-  console.log("🔄 Intentando cargar el Vault...");
-  
+function escapeHTML(texto) {
+  if (texto === null || texto === undefined) return '';
+  return String(texto)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ==========================================
+// 🎨 FUNCIÓN: Obtener icono según tipo de archivo
+// ==========================================
+function obtenerIcono(tipo) {
+  if (!tipo) return '📄';
+  if (tipo.startsWith('image/')) return '🖼️';
+  if (tipo.startsWith('video/')) return '🎬';
+  if (tipo.startsWith('audio/')) return '🎵';
+  if (tipo === 'application/pdf') return '📕';
+  if (tipo.includes('word') || tipo.includes('document')) return '📝';
+  if (tipo.includes('excel') || tipo.includes('sheet')) return '📊';
+  if (tipo.includes('zip') || tipo.includes('rar')) return '🗜️';
+  if (tipo.startsWith('text/')) return '📃';
+  return '📄';
+}
+
+// ==========================================
+// 📊 FUNCIÓN: CARGAR ANALYTICS FINANCIEROS
+// ==========================================
+async function loadFinancialData(periodo = '30d') {
   const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-  
   if (!token) {
-    console.warn("⚠️ No hay token de sesión. ¿Iniciaste sesión?");
-    document.getElementById('vaultContainer').innerHTML = '<p style="color:#ff5252">⚠️ Debes iniciar sesión para ver tu Vault.</p>';
+    console.warn('⚠️ No hay token para cargar analytics');
     return;
   }
 
   try {
-    const respuesta = await fetch('https://apiromwinervault.onrender.com/vault', {
+    const respuesta = await fetch(`https://apiromwinervault.onrender.com/api/analytics/financial?period=${periodo}`, {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer ' + token,
@@ -9313,33 +9426,427 @@ async function cargarVault() {
     }
 
     const datos = await respuesta.json();
-    console.log("✅ Datos recibidos del servidor:", datos);
+    console.log('📊 Analytics recibidos:', datos);
 
-    const contenedor = document.getElementById('vaultContainer');
-    
-    if (!contenedor) {
-      console.error("❌ No se encontró el elemento con id='vaultContainer' en el HTML");
+    if (!datos.success || !datos.data) {
+      console.warn('⚠️ Datos de analytics no disponibles');
       return;
     }
+
+    const data = datos.data;
+
+    // Actualizar tarjetas
+    const totalRevenue = document.getElementById('totalRevenue');
+    const totalSales = document.getElementById('totalSales');
+    const affiliateEarnings = document.getElementById('affiliateEarnings');
+    const activeProducts = document.getElementById('activeProducts');
+
+    if (totalRevenue) totalRevenue.textContent = '$' + (data.totalRevenue || 0).toFixed(2);
+    if (totalSales) totalSales.textContent = (data.totalSales || 0).toLocaleString();
+    if (affiliateEarnings) affiliateEarnings.textContent = '$' + (data.affiliateEarnings || 0).toFixed(2);
+    if (activeProducts) activeProducts.textContent = (data.activeProducts || 0).toLocaleString();
+
+    // Dibujar gráficos nativos
+    if (Array.isArray(data.revenueByDay) && data.revenueByDay.length > 0) {
+      dibujarGraficoLineas(
+        'revenueChart',
+        data.revenueByDay.map(d => d.date),
+        data.revenueByDay.map(d => d.amount),
+        '#00e676'
+      );
+    }
+
+    if (Array.isArray(data.salesByCategory) && data.salesByCategory.length > 0) {
+      dibujarGraficoDona(
+        'categoryChart',
+        data.salesByCategory.map(c => c.category),
+        data.salesByCategory.map(c => c.count)
+      );
+    }
+
+    // Top productos
+    renderTopProductos(data.topProducts || []);
+
+    // Timeline de afiliados
+    renderAffiliateTimeline(data.affiliateHistory || []);
+
+    console.log('✅ Analytics cargados correctamente');
+  } catch (error) {
+    console.error('❌ Error cargando analytics:', error);
+  }
+}
+
+// ==========================================
+// 📈 FUNCIÓN: DIBUJAR GRÁFICO DE LÍNEAS (NATIVO)
+// ==========================================
+function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width = canvas.offsetWidth || 600;
+  const height = canvas.height = 300;
+  const padding = 40;
+
+  ctx.clearRect(0, 0, width, height);
+
+  if (!datos || datos.length === 0) {
+    ctx.fillStyle = '#8b95a5';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sin datos disponibles', width / 2, height / 2);
+    return;
+  }
+
+  const maxVal = Math.max(...datos);
+  const minVal = Math.min(0, ...datos);
+  const rango = maxVal - minVal || 1;
+
+  // Ejes
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, height - padding);
+  ctx.lineTo(width - padding, height - padding);
+  ctx.stroke();
+
+  // Grid horizontal
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  for (let i = 0; i <= 4; i++) {
+    const y = padding + (height - 2 * padding) * (i / 4);
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(width - padding, y);
+    ctx.stroke();
+
+    const valor = maxVal - (rango * i / 4);
+    ctx.fillStyle = '#8b95a5';
+    ctx.font = '10px system-ui';
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + valor.toFixed(0), padding - 5, y + 3);
+  }
+
+  const stepX = (width - 2 * padding) / (datos.length - 1 || 1);
+
+  // Área bajo la línea
+  ctx.fillStyle = color + '20';
+  ctx.beginPath();
+  ctx.moveTo(padding, height - padding);
+  datos.forEach((valor, i) => {
+    const x = padding + i * stepX;
+    const y = height - padding - ((valor - minVal) / rango) * (height - 2 * padding);
+    ctx.lineTo(x, y);
+  });
+  ctx.lineTo(padding + (datos.length - 1) * stepX, height - padding);
+  ctx.closePath();
+  ctx.fill();
+
+  // Línea principal
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  datos.forEach((valor, i) => {
+    const x = padding + i * stepX;
+    const y = height - padding - ((valor - minVal) / rango) * (height - 2 * padding);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Puntos
+  ctx.fillStyle = color;
+  datos.forEach((valor, i) => {
+    const x = padding + i * stepX;
+    const y = height - padding - ((valor - minVal) / rango) * (height - 2 * padding);
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Etiquetas X
+  ctx.fillStyle = '#8b95a5';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(labels.length / 6));
+  labels.forEach((label, i) => {
+    if (i % step === 0 || i === labels.length - 1) {
+      const x = padding + i * stepX;
+      ctx.fillText(label.substring(5), x, height - padding + 15);
+    }
+  });
+}
+
+// ==========================================
+// 🥧 FUNCIÓN: DIBUJAR GRÁFICO DE DONA (NATIVO)
+// ==========================================
+function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b6f6', '#ab47bc', '#ffa726', '#66bb6a']) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width = canvas.offsetWidth || 400;
+  const height = canvas.height = 300;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.min(width, height) / 2 - 40;
+  const innerRadius = radius * 0.6;
+
+  ctx.clearRect(0, 0, width, height);
+
+  if (!datos || datos.length === 0) {
+    ctx.fillStyle = '#8b95a5';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sin datos disponibles', centerX, centerY);
+    return;
+  }
+
+  const total = datos.reduce((sum, val) => sum + val, 0);
+  let startAngle = -Math.PI / 2;
+
+  datos.forEach((valor, i) => {
+    const sliceAngle = (valor / total) * 2 * Math.PI;
+    const endAngle = startAngle + sliceAngle;
+
+    ctx.fillStyle = colores[i % colores.length];
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.arc(centerX, centerY, innerRadius, endAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fill();
+
+    startAngle = endAngle;
+  });
+
+  // Texto central
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 20px system-ui';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(total.toString(), centerX, centerY - 10);
+
+  ctx.fillStyle = '#8b95a5';
+  ctx.font = '12px system-ui';
+  ctx.fillText('Total', centerX, centerY + 10);
+
+  // Leyenda
+  const legendY = height - 20;
+  const legendSpacing = width / (labels.length + 1);
+  ctx.font = '10px system-ui';
+  labels.forEach((label, i) => {
+    const x = legendSpacing * (i + 1);
+    ctx.fillStyle = colores[i % colores.length];
+    ctx.fillRect(x - 30, legendY - 5, 10, 10);
+    ctx.fillStyle = '#e0e0e0';
+    ctx.textAlign = 'left';
+    ctx.fillText(label.substring(0, 10), x - 15, legendY + 3);
+  });
+}
+
+// ==========================================
+// 🏆 FUNCIÓN: RENDERIZAR TOP PRODUCTOS
+// ==========================================
+function renderTopProductos(productos) {
+  const contenedor = document.getElementById('topProducts');
+  if (!contenedor) return;
+
+  if (!Array.isArray(productos) || productos.length === 0) {
+    contenedor.innerHTML = '<p style="color:#8b95a5;font-size:0.85rem">📭 Sin productos destacados</p>';
+    return;
+  }
+
+  contenedor.innerHTML = '';
+  productos.slice(0, 5).forEach((producto, indice) => {
+    const fila = document.createElement('div');
+    fila.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid rgba(255,255,255,0.05)';
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1';
+
+    const nombre = document.createElement('div');
+    nombre.style.cssText = 'color:#e0e0e0;font-weight:600;font-size:0.9rem';
+    nombre.textContent = `${indice + 1}. ${escapeHTML(producto.titulo || 'Sin nombre')}`;
+
+    const ventas = document.createElement('div');
+    ventas.style.cssText = 'color:#8b95a5;font-size:0.75rem';
+    ventas.textContent = `${producto.sales || 0} ventas`;
+
+    info.appendChild(nombre);
+    info.appendChild(ventas);
+
+    const ingreso = document.createElement('div');
+    ingreso.style.cssText = 'color:#00e676;font-weight:600';
+    ingreso.textContent = '$' + (producto.revenue || 0).toFixed(2);
+
+    fila.appendChild(info);
+    fila.appendChild(ingreso);
+    contenedor.appendChild(fila);
+  });
+}
+
+// ==========================================
+// 📅 FUNCIÓN: RENDERIZAR TIMELINE DE AFILIADOS
+// ==========================================
+function renderAffiliateTimeline(timeline) {
+  const contenedor = document.getElementById('affiliateTimeline');
+  if (!contenedor) return;
+
+  if (!Array.isArray(timeline) || timeline.length === 0) {
+    contenedor.innerHTML = '<p style="color:#8b95a5;font-size:0.85rem">📭 Sin actividad de afiliados</p>';
+    return;
+  }
+
+  contenedor.innerHTML = '';
+  timeline.slice(0, 10).forEach(evento => {
+    const fila = document.createElement('div');
+    fila.style.cssText = 'padding:8px 0;border-left:2px solid #00e676;padding-left:12px;margin-left:8px';
+
+    const titulo = document.createElement('div');
+    titulo.style.cssText = 'color:#e0e0e0;font-size:0.85rem;font-weight:600';
+    titulo.textContent = `$${(evento.amount || 0).toFixed(2)} - ${escapeHTML(evento.item || 'Comisión')}`;
+
+    const detalle = document.createElement('div');
+    detalle.style.cssText = 'color:#8b95a5;font-size:0.75rem;margin-top:2px';
+    detalle.textContent = evento.date ? new Date(evento.date).toLocaleDateString() : '';
+
+    fila.appendChild(titulo);
+    fila.appendChild(detalle);
+    contenedor.appendChild(fila);
+  });
+}
+
+// ==========================================
+// 📥 FUNCIÓN: EXPORTAR DATOS FINANCIEROS
+// ==========================================
+async function exportFinancialData(formato = 'csv') {
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) {
+    alert('⚠️ Debes iniciar sesión');
+    return;
+  }
+
+  try {
+    const respuesta = await fetch(`https://apiromwinervault.onrender.com/api/analytics/financial/export?format=${formato}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+    const datos = await respuesta.json();
+    if (!datos.success || !datos.data) throw new Error('No hay datos para exportar');
+
+    let contenido = '';
+    let nombreArchivo = '';
+    let tipoMIME = '';
+
+    if (formato === 'csv') {
+      contenido = datos.data.csv;
+      nombreArchivo = `analytics_${new Date().toISOString().split('T')[0]}.csv`;
+      tipoMIME = 'text/csv';
+    } else {
+      contenido = JSON.stringify(datos.data.json, null, 2);
+      nombreArchivo = `analytics_${new Date().toISOString().split('T')[0]}.json`;
+      tipoMIME = 'application/json';
+    }
+
+    const blob = new Blob([contenido], { type: tipoMIME });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    URL.revokeObjectURL(url);
+
+    alert(`✅ Archivo ${formato.toUpperCase()} descargado`);
+  } catch (error) {
+    console.error('❌ Error exportando:', error);
+    alert('❌ Error al exportar: ' + error.message);
+  }
+}
+
+// ==========================================
+// 📦 FUNCIÓN PARA CARGAR Y MOSTRAR EL VAULT
+// ==========================================
+async function cargarVault() {
+  console.log("🔄 Intentando cargar el Vault...");
+
+  const contenedor = document.getElementById('vaultContainer');
+  if (!contenedor) {
+    console.error("❌ No se encontró el elemento #vaultContainer");
+    return;
+  }
+
+  contenedor.innerHTML = '<p style="color:#8b95a5; text-align:center; padding:40px;">🔄 Cargando tu Vault...</p>';
+
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+
+  if (!token) {
+    console.warn("⚠️ No hay token de sesión. ¿Iniciaste sesión?");
+    contenedor.innerHTML = '<p style="color:#ff5252; text-align:center; padding:40px;">⚠️ Debes iniciar sesión para ver tu Vault.</p>';
+    return;
+  }
+
+  try {
+    const respuesta = await fetch('https://apiromwinervault.onrender.com/vault', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+    const datos = await respuesta.json();
+    console.log("✅ Datos recibidos del servidor:", datos);
 
     if (datos.success && datos.items && datos.items.length > 0) {
       console.log(`🎉 ¡Encontrados ${datos.items.length} archivos!`);
       contenedor.innerHTML = '';
-      
+
       datos.items.forEach(archivo => {
         const tarjeta = document.createElement('div');
-        tarjeta.style.cssText = 'background:#1a2332; padding:16px; border-radius:8px; margin:8px 0; display:flex; justify-content:space-between; align-items:center; border:1px solid #2a2f3a;';
-        
+        tarjeta.style.cssText = 'background:#1a2332; padding:16px; border-radius:10px; margin:8px 0; border:1px solid #2a2f3a; transition:transform 0.2s;';
+
+        tarjeta.onmouseover = function() { this.style.transform = 'translateY(-2px)'; this.style.borderColor = '#00e676'; };
+        tarjeta.onmouseout = function() { this.style.transform = 'translateY(0)'; this.style.borderColor = '#2a2f3a'; };
+
+        const icono = obtenerIcono(archivo.fileType);
+        const titulo = escapeHTML(archivo.titulo || 'Sin título');
+        const categoria = escapeHTML(archivo.categoria || 'general');
+        const fecha = archivo.createdAt ? new Date(archivo.createdAt).toLocaleDateString() : 'Fecha desconocida';
+        const tipo = escapeHTML(archivo.fileType || 'archivo');
+        const id = archivo._id;
+
         tarjeta.innerHTML = `
-          <div>
-            <div style="color:#e0e0e0; font-weight:600; font-size:1rem;">${archivo.titulo || 'Sin título'}</div>
-            <div style="color:#8b95a5; font-size:0.85rem; margin-top:4px;">
-              📁 ${archivo.categoria || 'general'} • 📅 ${new Date(archivo.createdAt).toLocaleDateString()}
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div style="font-size:2rem;">${icono}</div>
+            <div style="flex:1; min-width:0;">
+              <div style="color:#e0e0e0; font-weight:600; font-size:1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${titulo}</div>
+              <div style="color:#8b95a5; font-size:0.8rem; margin-top:4px;">
+                📁 ${categoria} • 📅 ${fecha} • 📦 ${tipo}
+                ${archivo.isForSale ? ' • 💰 $' + (archivo.price || 0) : ''}
+              </div>
             </div>
           </div>
-          <button onclick="eliminarArchivo('${archivo._id}')" style="padding:8px 12px; background:#ff5252; color:#fff; border:none; border-radius:6px; cursor:pointer;">
-            🗑️ Eliminar
-          </button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button onclick="verArchivo('${id}')" style="flex:1; padding:8px 12px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.85rem;">
+              👁️ Ver
+            </button>
+            <button onclick="descargarArchivo('${id}')" style="flex:1; padding:8px 12px; background:#29b6f6; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.85rem;">
+              📥 Descargar
+            </button>
+            <button onclick="eliminarArchivo('${id}')" style="padding:8px 12px; background:#ff5252; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.85rem;">
+              🗑️
+            </button>
+          </div>
         `;
         contenedor.appendChild(tarjeta);
       });
@@ -9348,12 +9855,916 @@ async function cargarVault() {
     }
   } catch (error) {
     console.error("❌ Error cargando el Vault:", error);
-    document.getElementById('vaultContainer').innerHTML = `<p style="color:#ff5252">❌ Error al cargar: ${error.message}</p>`;
+    contenedor.innerHTML = `<p style="color:#ff5252; text-align:center; padding:40px;">❌ Error al cargar: ${escapeHTML(error.message)}</p>`;
   }
 }
 
+// ==========================================
+// 👁️ FUNCIÓN: VER ARCHIVO (VISOR MULTIMEDIA)
+// ==========================================
+async function verArchivo(id) {
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) {
+    alert('⚠️ Debes iniciar sesión');
+    return;
+  }
+
+  const modal = document.getElementById('mediaModal');
+  const titulo = document.getElementById('mediaTitle');
+  const contenido = document.getElementById('mediaContent');
+
+  if (!modal || !titulo || !contenido) {
+    alert('❌ Error: No se encontró el visor multimedia');
+    return;
+  }
+
+  modal.classList.remove('hidden');
+  contenido.innerHTML = '<p style="color:#8b95a5;">🔄 Desencriptando archivo...</p>';
+  titulo.textContent = '📄 Cargando...';
+
+  try {
+    const respuesta = await fetch(`https://apiromwinervault.onrender.com/vault/${id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+    const datos = await respuesta.json();
+    console.log('📦 Archivo recibido:', datos);
+
+    if (!datos.success || !datos.secret) throw new Error('No se pudo obtener el contenido');
+
+    const archivo = datos.secret;
+    titulo.textContent = `📄 ${escapeHTML(archivo.titulo || 'Sin título')}`;
+
+    const tipo = archivo.fileType || '';
+    const contenidoBase64 = archivo.contenido;
+
+    if (!contenidoBase64) {
+      contenido.innerHTML = '<p style="color:#ff5252;">❌ Este archivo no tiene contenido descargable</p>';
+      return;
+    }
+
+    // 🖼️ IMÁGENES
+    if (tipo.startsWith('image/')) {
+      contenido.innerHTML = `
+        <img src="data:${tipo};base64,${contenidoBase64}" 
+             alt="${escapeHTML(archivo.titulo)}" 
+             style="max-width:100%;max-height:70vh;display:block;margin:0 auto;border-radius:8px;">
+      `;
+    }
+    // 🎬 VIDEOS
+    else if (tipo.startsWith('video/')) {
+      contenido.innerHTML = `
+        <video controls autoplay style="max-width:100%;max-height:70vh;display:block;margin:0 auto;border-radius:8px;">
+          <source src="data:${tipo};base64,${contenidoBase64}" type="${tipo}">
+          Tu navegador no soporta video.
+        </video>
+      `;
+    }
+    // 🎵 AUDIO
+    else if (tipo.startsWith('audio/')) {
+      contenido.innerHTML = `
+        <div style="padding:40px;text-align:center;width:100%;">
+          <div style="font-size:80px;margin-bottom:20px;">🎵</div>
+          <audio controls autoplay style="width:100%;max-width:500px;">
+            <source src="data:${tipo};base64,${contenidoBase64}" type="${tipo}">
+            Tu navegador no soporta audio.
+          </audio>
+          <p style="color:#8b95a5;margin-top:20px;">${escapeHTML(archivo.fileName || archivo.titulo)}</p>
+        </div>
+      `;
+    }
+    // 📄 PDF
+    else if (tipo === 'application/pdf') {
+      contenido.innerHTML = `
+        <iframe src="data:application/pdf;base64,${contenidoBase64}" 
+                style="width:100%;height:70vh;border:none;border-radius:8px;">
+        </iframe>
+      `;
+    }
+    // 📝 TEXTO
+    else if (tipo.startsWith('text/') || tipo === 'application/json') {
+      try {
+        const texto = atob(contenidoBase64);
+        contenido.innerHTML = `
+          <pre style="padding:20px;color:#e0e0e0;font-family:monospace;white-space:pre-wrap;word-break:break-word;max-height:70vh;overflow:auto;width:100%;text-align:left;background:rgba(0,0,0,0.3);border-radius:8px;">${escapeHTML(texto)}</pre>
+        `;
+      } catch (e) {
+        contenido.innerHTML = '<p style="color:#ff5252;">❌ No se pudo decodificar el texto</p>';
+      }
+    }
+    // ❓ OTROS
+    else {
+      contenido.innerHTML = `
+        <div style="padding:40px;text-align:center;">
+          <div style="font-size:80px;margin-bottom:20px;">📦</div>
+          <p style="color:#e0e0e0;font-size:1.1rem;">Este tipo de archivo no tiene visor integrado</p>
+          <p style="color:#8b95a5;margin-top:10px;">Tipo: ${escapeHTML(tipo)}</p>
+          <button onclick="descargarArchivo('${id}')" style="margin-top:20px;padding:12px 24px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+            📥 Descargar archivo
+          </button>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('❌ Error:', error);
+    contenido.innerHTML = `<p style="color:#ff5252;">❌ Error: ${escapeHTML(error.message)}</p>`;
+  }
+}
+
+// ==========================================
+// ❌ FUNCIÓN: CERRAR VISOR
+// ==========================================
+function cerrarMedia() {
+  const modal = document.getElementById('mediaModal');
+  const contenido = document.getElementById('mediaContent');
+
+  if (contenido) {
+    const videos = contenido.querySelectorAll('video');
+    const audios = contenido.querySelectorAll('audio');
+    videos.forEach(v => { v.pause(); v.src = ''; });
+    audios.forEach(a => { a.pause(); a.src = ''; });
+    contenido.innerHTML = '<p style="color:#8b95a5;">Cargando...</p>';
+  }
+
+  if (modal) modal.classList.add('hidden');
+}
+
+// Cerrar con ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') cerrarMedia();
+});
+
+// ==========================================
+// 📥 FUNCIÓN: DESCARGAR ARCHIVO
+// ==========================================
+async function descargarArchivo(id) {
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) {
+    alert('⚠️ Debes iniciar sesión');
+    return;
+  }
+
+  try {
+    const respuesta = await fetch(`https://apiromwinervault.onrender.com/vault/${id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+    const datos = await respuesta.json();
+    if (!datos.success || !datos.secret || !datos.secret.contenido) {
+      throw new Error('No se pudo obtener el contenido');
+    }
+
+    const archivo = datos.secret;
+    const tipo = archivo.fileType || 'application/octet-stream';
+    const nombre = archivo.fileName || archivo.titulo || 'archivo';
+
+    const byteCharacters = atob(archivo.contenido);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: tipo });
+
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombre;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    URL.revokeObjectURL(url);
+
+    console.log('✅ Archivo descargado:', nombre);
+  } catch (error) {
+    console.error('❌ Error descargando:', error);
+    alert('❌ Error al descargar: ' + error.message);
+  }
+}
+
+// ==========================================
+// 🗑️ FUNCIÓN: ELIMINAR ARCHIVO
+// ==========================================
 async function eliminarArchivo(id) {
-  if (!confirm('¿Estás seguro de eliminar este archivo?')) return;
+  if (!confirm('¿Estás seguro de eliminar este archivo? Esta acción no se puede deshacer.')) return;
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+
+  try {
+    const resp = await fetch(`https://apiromwinervault.onrender.com/vault/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (resp.ok) {
+      alert('✅ Archivo eliminado correctamente');
+      cargarVault();
+    } else {
+      const error = await resp.json().catch(() => ({}));
+      alert('❌ Error al eliminar: ' + (error.error || 'Error desconocido'));
+    }
+  } catch (e) {
+    console.error(e);
+    alert('❌ Error de conexión: ' + e.message);
+  }
+}
+
+// ==========================================
+// 🚀 INICIAR CUANDO CARGUE LA PÁGINA
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 Aplicación iniciada');
+  cargarVault();
+  loadFinancialData();
+});
+</script>
+}
+// ==========================================
+// 🛡️ FUNCIÓN AUXILIAR: ESCAPAR HTML (SEGURIDAD)
+// ==========================================
+function escapeHTML(texto) {
+  if (texto === null || texto === undefined) return '';
+  return String(texto)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ==========================================
+// 📊 FUNCIÓN: FORMATEAR TAMAÑO DE ARCHIVO
+// ==========================================
+function formatearTamaño(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const unidades = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + unidades[i];
+}
+
+// ==========================================
+// 🌐 FUNCIÓN: VERIFICAR CONEXIÓN A INTERNET
+// ==========================================
+function verificarConexion() {
+  if (!navigator.onLine) {
+    alert('⚠️ No tienes conexión a internet. Algunas funciones no estarán disponibles.');
+    return false;
+  }
+  return true;
+}
+
+// ==========================================
+// 👁️ FUNCIÓN PRINCIPAL: VER ARCHIVO (VISOR MULTIMEDIA MEJORADO)
+// ==========================================
+async function verArchivo(id) {
+  if (!verificarConexion()) return;
+  
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) {
+    alert('⚠️ Debes iniciar sesión');
+    return;
+  }
+
+  // Crear modal si no existe
+  let modal = document.getElementById('visorModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'visorModal';
+    modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.97); z-index:9999; padding:0; overflow:auto;';
+    modal.innerHTML = `
+      <div style="max-width:1400px; margin:0 auto; height:100vh; display:flex; flex-direction:column; background:#151922;">
+        
+        <!-- BARRA SUPERIOR CON BOTONES -->
+        <div id="visorBarraSuperior" style="background:#0b0c10; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #2a2f3a; flex-shrink:0;">
+          <h3 id="visorTitulo" style="color:#8ab4f8; margin:0; font-family:system-ui; font-size:1.1rem; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 Archivo</h3>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="btnZoomIn" style="display:none; padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Acercar">🔍+</button>
+            <button id="btnZoomOut" style="display:none; padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Alejar">🔍-</button>
+            <button id="btnPantallaCompleta" style="padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Pantalla completa">🖥️</button>
+            <button id="btnVelocidad" style="display:none; padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Velocidad">⚡ 1x</button>
+            <button id="btnCompartir" style="padding:6px 12px; background:#29b6f6; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;" title="Compartir">🔗</button>
+            <button id="btnFavorito" style="padding:6px 12px; background:#ab47bc; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Favorito">⭐</button>
+            <button id="btnHistorial" style="padding:6px 12px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;" title="Historial Git">🌿</button>
+            <button id="btnEditar" style="padding:6px 12px; background:#ffa726; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;" title="Editar">✏️</button>
+            <button id="btnDescargar" style="padding:6px 12px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;" title="Descargar">📥</button>
+            <button id="btnCopiar" style="display:none; padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Copiar texto">📋</button>
+            <button id="btnImprimir" style="display:none; padding:6px 12px; background:#2a2f3a; color:#fff; border:none; border-radius:6px; cursor:pointer;" title="Imprimir">🖨️</button>
+            <button id="btnCerrarVisor" style="padding:6px 12px; background:#ff5252; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;" title="Cerrar">✕</button>
+          </div>
+        </div>
+        
+        <!-- CONTENIDO PRINCIPAL -->
+        <div id="visorContenido" style="flex:1; background:#0b0c10; display:flex; align-items:center; justify-content:center; overflow:auto; padding:20px; position:relative;">
+          <div style="text-align:center;">
+            <div style="font-size:60px; margin-bottom:20px; animation:spin 2s linear infinite;">⏳</div>
+            <p style="color:#8b95a5;">Desencriptando archivo...</p>
+            <div id="barraProgreso" style="width:300px; height:6px; background:#2a2f3a; border-radius:3px; margin:20px auto; overflow:hidden; display:none;">
+              <div id="progresoFill" style="height:100%; background:linear-gradient(90deg, #00e676, #29b6f6); width:0%; transition:width 0.3s;"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- BARRA INFERIOR CON INFO -->
+        <div id="visorInfo" style="background:#0b0c10; padding:12px 20px; border-top:1px solid #2a2f3a; color:#8b95a5; font-size:0.85rem; flex-shrink:0; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div id="visorInfoIzq"></div>
+          <div id="visorInfoDer" style="color:#6a7585; font-size:0.75rem;"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Agregar animación de carga
+    const estilo = document.createElement('style');
+    estilo.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+    document.head.appendChild(estilo);
+    
+    // Event listeners de botones
+    document.getElementById('btnCerrarVisor').onclick = cerrarVisor;
+    document.getElementById('btnDescargar').onclick = () => descargarArchivo(window.archivoActualId);
+    document.getElementById('btnCompartir').onclick = () => compartirArchivo(window.archivoActualId);
+    document.getElementById('btnHistorial').onclick = () => verHistorial(window.archivoActualId);
+    document.getElementById('btnEditar').onclick = () => editarMetadatos(window.archivoActualId);
+    document.getElementById('btnFavorito').onclick = () => toggleFavorito(window.archivoActualId);
+    document.getElementById('btnPantallaCompleta').onclick = pantallaCompleta;
+    document.getElementById('btnZoomIn').onclick = () => zoomImagen(1.2);
+    document.getElementById('btnZoomOut').onclick = () => zoomImagen(0.8);
+    document.getElementById('btnVelocidad').onclick = cambiarVelocidad;
+    document.getElementById('btnCopiar').onclick = copiarPortapapeles;
+    document.getElementById('btnImprimir').onclick = imprimirArchivo;
+    
+    modal.onclick = function(e) { if (e.target === modal) cerrarVisor(); };
+  }
+
+  const contenedor = document.getElementById('visorContenido');
+  const titulo = document.getElementById('visorTitulo');
+  const infoIzq = document.getElementById('visorInfoIzq');
+  const infoDer = document.getElementById('visorInfoDer');
+  const barraProgreso = document.getElementById('barraProgreso');
+  const progresoFill = document.getElementById('progresoFill');
+
+  // Resetear botones
+  document.getElementById('btnZoomIn').style.display = 'none';
+  document.getElementById('btnZoomOut').style.display = 'none';
+  document.getElementById('btnVelocidad').style.display = 'none';
+  document.getElementById('btnCopiar').style.display = 'none';
+  document.getElementById('btnImprimir').style.display = 'none';
+
+  modal.style.display = 'block';
+  barraProgreso.style.display = 'block';
+  progresoFill.style.width = '0%';
+  titulo.textContent = '📄 Cargando...';
+  infoIzq.innerHTML = '';
+  infoDer.innerHTML = '';
+  window.archivoActualId = id;
+  window.zoomActual = 1;
+  window.velocidadActual = 1;
+
+  // Simular progreso
+  let progreso = 0;
+  const intervaloProgreso = setInterval(() => {
+    progreso += 10;
+    if (progreso <= 90) progresoFill.style.width = progreso + '%';
+  }, 100);
+
+  try {
+    const respuesta = await fetch(`https://apiromwinervault.onrender.com/vault/${id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    clearInterval(intervaloProgreso);
+    progresoFill.style.width = '100%';
+    setTimeout(() => { barraProgreso.style.display = 'none'; }, 500);
+
+    if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+    const datos = await respuesta.json();
+    console.log('📦 Archivo recibido:', datos);
+
+    if (!datos.success || !datos.secret) throw new Error('No se pudo obtener el contenido');
+
+    const archivo = datos.secret;
+    window.archivoActual = archivo;
+    titulo.textContent = `📄 ${escapeHTML(archivo.titulo || 'Sin título')}`;
+
+    const tipo = archivo.fileType || '';
+    const contenido = archivo.contenido;
+
+    // Info detallada
+    infoIzq.innerHTML = `
+      <strong>📁 ${escapeHTML(archivo.fileName || 'N/A')}</strong> | 
+      📦 ${escapeHTML(tipo || 'desconocido')} | 
+      🏷️ ${(archivo.tags || []).map(t => escapeHTML(t)).join(', ') || 'sin tags'}
+      ${archivo.isForSale ? ' | <strong style="color:#00e676;">💰 En venta: $' + archivo.price + '</strong>' : ''}
+    `;
+    infoDer.innerHTML = `ID: ${id.substring(0, 8)}... | Cargado: ${new Date().toLocaleString()}`;
+
+    if (!contenido) {
+      contenedor.innerHTML = '<p style="color:#ff5252;">❌ Este archivo no tiene contenido descargable o es un texto vacío.</p>';
+      return;
+    }
+
+    // 🖼️ IMÁGENES
+    if (tipo.startsWith('image/')) {
+      document.getElementById('btnZoomIn').style.display = 'inline-block';
+      document.getElementById('btnZoomOut').style.display = 'inline-block';
+      contenedor.innerHTML = `
+        <div id="contenedorImagen" style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; overflow:auto;">
+          <img id="imagenVisor" src="data:${tipo};base64,${contenido}" 
+               alt="${escapeHTML(archivo.titulo)}" 
+               style="max-width:100%; max-height:100%; display:block; margin:auto; border-radius:4px; transition:transform 0.2s;">
+        </div>
+      `;
+    }
+    // 🎬 VIDEOS
+    else if (tipo.startsWith('video/')) {
+      document.getElementById('btnVelocidad').style.display = 'inline-block';
+      contenedor.innerHTML = `
+        <video id="videoVisor" controls autoplay style="max-width:100%; max-height:100%; display:block; margin:auto; border-radius:4px;">
+          <source src="data:${tipo};base64,${contenido}" type="${tipo}">
+          Tu navegador no soporta video.
+        </video>
+      `;
+    }
+    // 🎵 AUDIO
+    else if (tipo.startsWith('audio/')) {
+      document.getElementById('btnVelocidad').style.display = 'inline-block';
+      contenedor.innerHTML = `
+        <div style="padding:40px; text-align:center; width:100%;">
+          <div style="font-size:100px; margin-bottom:30px;">🎵</div>
+          <h3 style="color:#e0e0e0; margin-bottom:20px;">${escapeHTML(archivo.titulo || archivo.fileName || 'Audio')}</h3>
+          <audio id="audioVisor" controls autoplay style="width:100%; max-width:600px;">
+            <source src="data:${tipo};base64,${contenido}" type="${tipo}">
+            Tu navegador no soporta audio.
+          </audio>
+          <p style="color:#8b95a5; margin-top:20px;">${escapeHTML(archivo.fileName || '')}</p>
+        </div>
+      `;
+    }
+    // 📄 PDF
+    else if (tipo === 'application/pdf') {
+      document.getElementById('btnImprimir').style.display = 'inline-block';
+      contenedor.innerHTML = `
+        <iframe id="pdfVisor" src="data:application/pdf;base64,${contenido}" 
+                style="width:100%; height:100%; border:none; border-radius:4px;">
+        </iframe>
+      `;
+    }
+    // 📝 TEXTO
+    else if (tipo.startsWith('text/') || tipo === 'application/json') {
+      document.getElementById('btnCopiar').style.display = 'inline-block';
+      document.getElementById('btnImprimir').style.display = 'inline-block';
+      try {
+        const texto = atob(contenido);
+        contenedor.innerHTML = `
+          <pre id="textoVisor" style="padding:30px; color:#e0e0e0; font-family:monospace; white-space:pre-wrap; word-break:break-word; max-height:100%; overflow:auto; width:100%; text-align:left; background:#0a0a0a; border-radius:8px; line-height:1.6;">${escapeHTML(texto)}</pre>
+        `;
+      } catch (e) {
+        contenedor.innerHTML = '<p style="color:#ff5252;">❌ No se pudo decodificar el texto.</p>';
+      }
+    }
+    // ❓ OTROS TIPOS
+    else {
+      contenedor.innerHTML = `
+        <div style="padding:40px; text-align:center;">
+          <div style="font-size:100px; margin-bottom:20px;">📦</div>
+          <h3 style="color:#e0e0e0;">Este tipo de archivo no tiene visor integrado</h3>
+          <p style="color:#8b95a5; margin-top:10px;">Tipo: ${escapeHTML(tipo)}</p>
+          <button onclick="descargarArchivo('${id}')" style="display:inline-block; margin-top:20px; padding:14px 28px; background:#00e676; color:#0b0c10; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:1rem;">
+            📥 Descargar archivo
+          </button>
+        </div>
+      `;
+    }
+
+  } catch (error) {
+    clearInterval(intervaloProgreso);
+    barraProgreso.style.display = 'none';
+    console.error('❌ Error:', error);
+    contenedor.innerHTML = `
+      <div style="text-align:center; padding:40px;">
+        <div style="font-size:80px; margin-bottom:20px;">❌</div>
+        <p style="color:#ff5252; font-size:1.1rem;">Error: ${escapeHTML(error.message)}</p>
+        <button onclick="verArchivo('${id}')" style="margin-top:20px; padding:12px 24px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
+          🔄 Reintentar
+        </button>
+      </div>
+    `;
+  }
+}
+
+// ==========================================
+// 🔍 FUNCIÓN: ZOOM DE IMAGEN
+// ==========================================
+function zoomImagen(factor) {
+  const imagen = document.getElementById('imagenVisor');
+  if (!imagen) return;
+  window.zoomActual *= factor;
+  window.zoomActual = Math.max(0.2, Math.min(5, window.zoomActual));
+  imagen.style.transform = `scale(${window.zoomActual})`;
+}
+
+// ==========================================
+// 🖥️ FUNCIÓN: PANTALLA COMPLETA
+// ==========================================
+function pantallaCompleta() {
+  const modal = document.getElementById('visorModal');
+  if (!document.fullscreenElement) {
+    modal.requestFullscreen().catch(err => {
+      console.warn('No se pudo activar pantalla completa:', err);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+// ==========================================
+// ⚡ FUNCIÓN: CAMBIAR VELOCIDAD DE REPRODUCCIÓN
+// ==========================================
+function cambiarVelocidad() {
+  const velocidades = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  const indiceActual = velocidades.indexOf(window.velocidadActual);
+  const indiceSiguiente = (indiceActual + 1) % velocidades.length;
+  window.velocidadActual = velocidades[indiceSiguiente];
+  
+  const video = document.getElementById('videoVisor');
+  const audio = document.getElementById('audioVisor');
+  
+  if (video) video.playbackRate = window.velocidadActual;
+  if (audio) audio.playbackRate = window.velocidadActual;
+  
+  document.getElementById('btnVelocidad').textContent = `⚡ ${window.velocidadActual}x`;
+}
+
+// ==========================================
+// 📋 FUNCIÓN: COPIAR AL PORTAPAPELES
+// ==========================================
+async function copiarPortapapeles() {
+  const texto = document.getElementById('textoVisor');
+  if (!texto) return;
+  
+  try {
+    await navigator.clipboard.writeText(texto.textContent);
+    alert('✅ Texto copiado al portapapeles');
+  } catch (error) {
+    // Fallback para navegadores antiguos
+    const rango = document.createRange();
+    rango.selectNode(texto);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(rango);
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+    alert('✅ Texto copiado al portapapeles');
+  }
+}
+
+// ==========================================
+// 🖨️ FUNCIÓN: IMPRIMIR ARCHIVO
+// ==========================================
+function imprimirArchivo() {
+  const contenido = document.getElementById('visorContenido');
+  if (!contenido) return;
+  
+  const ventanaImpresion = window.open('', '_blank');
+  ventanaImpresion.document.write(`
+    <html>
+      <head>
+        <title>Imprimir - ${escapeHTML(window.archivoActual?.titulo || 'Archivo')}</title>
+        <style>
+          body { font-family: system-ui; padding: 20px; }
+          pre { white-space: pre-wrap; word-break: break-word; }
+          img { max-width: 100%; }
+        </style>
+      </head>
+      <body>${contenido.innerHTML}</body>
+    </html>
+  `);
+  ventanaImpresion.document.close();
+  setTimeout(() => {
+    ventanaImpresion.print();
+    ventanaImpresion.close();
+  }, 500);
+}
+
+// ==========================================
+// 🔗 FUNCIÓN: COMPARTIR ARCHIVO
+// ==========================================
+async function compartirArchivo(id) {
+  if (!verificarConexion()) return;
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) {
+    alert('⚠️ Debes iniciar sesión');
+    return;
+  }
+
+  try {
+    const horas = prompt('¿Por cuántas horas quieres compartir el archivo? (1-168)', '24');
+    if (!horas || isNaN(horas) || horas < 1 || horas > 168) {
+      alert('⚠️ Debe ser un número entre 1 y 168 horas');
+      return;
+    }
+
+    const respuesta = await fetch(`https://apiromwinervault.onrender.com/api/vault/${id}/share`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ expiresInHours: parseInt(horas) })
+    });
+
+    if (!respuesta.ok) throw new Error('Error al crear enlace');
+
+    const datos = await respuesta.json();
+    if (datos.success && datos.link) {
+      // Copiar al portapapeles
+      await navigator.clipboard.writeText(datos.link);
+      alert(`✅ Enlace copiado al portapapeles:\n\n${datos.link}\n\nExpira en ${horas} hora(s)`);
+    }
+  } catch (error) {
+    console.error('❌ Error compartiendo:', error);
+    alert('❌ Error al compartir: ' + error.message);
+  }
+}
+
+// ==========================================
+// 🌿 FUNCIÓN: VER HISTORIAL GIT
+// ==========================================
+async function verHistorial(id) {
+  if (!verificarConexion()) return;
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) {
+    alert('⚠️ Debes iniciar sesión');
+    return;
+  }
+
+  try {
+    const respuesta = await fetch(`https://apiromwinervault.onrender.com/api/vault/${id}/log`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+
+    if (!respuesta.ok) throw new Error('Error al cargar historial');
+
+    const datos = await respuesta.json();
+    if (!datos.success || !datos.log || datos.log.length === 0) {
+      alert('📭 Este archivo no tiene historial de versiones aún.\n\n💡 Tip: Usa "Nueva versión" para crear commits.');
+      return;
+    }
+
+    // Crear modal de historial
+    const modalHist = document.createElement('div');
+    modalHist.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px;';
+    modalHist.innerHTML = `
+      <div style="background:#151922; border-radius:12px; padding:24px; max-width:600px; width:100%; max-height:80vh; overflow-y:auto; border:1px solid #2a2f3a;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 style="color:#00e676; margin:0;">🌿 Historial de Versiones</h3>
+          <button onclick="this.closest('div[style*=fixed]').remove()" style="background:#ff5252; color:#fff; border:none; border-radius:50%; width:32px; height:32px; cursor:pointer;">✕</button>
+        </div>
+        <div style="margin-bottom:16px;">
+          <button onclick="nuevaVersion('${id}')" style="width:100%; padding:12px; background:#00e676; color:#0b0c10; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
+            ➕ Crear Nueva Versión
+          </button>
+        </div>
+        ${datos.log.map(c => `
+          <div style="padding:12px; background:#0b0c10; border-radius:8px; margin-bottom:8px; border-left:3px solid #00e676;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <strong style="color:#8ab4f8; font-family:monospace;">🔗 ${escapeHTML(c.hash)}</strong>
+              <span style="color:#6a7585; font-size:0.75rem;">v${c.version}</span>
+            </div>
+            <div style="color:#e0e0e0; margin-bottom:6px;">${escapeHTML(c.message)}</div>
+            <div style="color:#8b95a5; font-size:0.8rem;">
+              👤 ${escapeHTML(c.author)} • 🌿 ${escapeHTML(c.branch)} • 🕐 ${new Date(c.date).toLocaleString()}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    document.body.appendChild(modalHist);
+    modalHist.onclick = (e) => { if (e.target === modalHist) modalHist.remove(); };
+  } catch (error) {
+    console.error('❌ Error:', error);
+    alert('❌ Error al cargar historial: ' + error.message);
+  }
+}
+
+// ==========================================
+// ➕ FUNCIÓN: CREAR NUEVA VERSIÓN
+// ==========================================
+async function nuevaVersion(id) {
+  const mensaje = prompt('Mensaje del commit (describe los cambios):');
+  if (!mensaje || mensaje.trim().length < 2) {
+    alert('⚠️ El mensaje debe tener al menos 2 caracteres');
+    return;
+  }
+
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) return;
+
+  try {
+    const respuesta = await fetch(`https://apiromwinervault.onrender.com/api/vault/${id}/commit`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: mensaje.trim(),
+        branch: 'main',
+        tags: []
+      })
+    });
+
+    if (!respuesta.ok) throw new Error('Error al crear commit');
+
+    const datos = await respuesta.json();
+    if (datos.success) {
+      alert(`✅ Commit creado exitosamente\n\n🔗 Hash: ${datos.commit.hash}\n📝 ${datos.commit.message}\n📦 Versión: ${datos.commit.version}`);
+      // Cerrar modal de historial y recargar
+      const modalHist = document.querySelector('div[style*="z-index: 10000"]');
+      if (modalHist) modalHist.remove();
+      verHistorial(id);
+    }
+  } catch (error) {
+    console.error('❌ Error:', error);
+    alert('❌ Error al crear commit: ' + error.message);
+  }
+}
+
+// ==========================================
+// ✏️ FUNCIÓN: EDITAR METADATOS
+// ==========================================
+async function editarMetadatos(id) {
+  const archivo = window.archivoActual;
+  if (!archivo) return;
+
+  const nuevoTitulo = prompt('Nuevo título:', archivo.titulo || '');
+  if (nuevoTitulo === null) return;
+
+  const nuevaCategoria = prompt('Nueva categoría:', archivo.categoria || 'general');
+  if (nuevaCategoria === null) return;
+
+  const nuevosTags = prompt('Tags (separados por comas):', (archivo.tags || []).join(', '));
+  if (nuevosTags === null) return;
+
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) return;
+
+  try {
+    // Nota: Como el backend no tiene endpoint específico para editar metadatos,
+    // esta función muestra un mensaje informativo
+    alert(`✅ Metadatos actualizados (simulado)\n\n📝 Título: ${nuevoTitulo}\n📁 Categoría: ${nuevaCategoria}\n🏷️ Tags: ${nuevosTags}\n\n💡 Para guardar permanentemente, el backend necesita un endpoint PUT /vault/${id}`);
+    
+    // Actualizar en la interfaz
+    document.getElementById('visorTitulo').textContent = `📄 ${nuevoTitulo}`;
+  } catch (error) {
+    console.error('❌ Error:', error);
+    alert('❌ Error al editar: ' + error.message);
+  }
+}
+
+// ==========================================
+// ⭐ FUNCIÓN: TOGGLE FAVORITO
+// ==========================================
+async function toggleFavorito(id) {
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) return;
+
+  try {
+    const respuesta = await fetch('https://apiromwinervault.onrender.com/api/marketplace/favorites', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ itemId: id, action: 'add' })
+    });
+
+    const datos = await respuesta.json();
+    if (datos.success) {
+      const btn = document.getElementById('btnFavorito');
+      if (btn.style.background === 'rgb(171, 71, 188)') {
+        btn.style.background = '#2a2f3a';
+        btn.textContent = '☆';
+        alert('☆ Removido de favoritos');
+      } else {
+        btn.style.background = '#ffd54f';
+        btn.style.color = '#0b0c10';
+        btn.textContent = '⭐';
+        alert('⭐ Agregado a favoritos');
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error:', error);
+    alert('❌ Error: ' + error.message);
+  }
+}
+
+// ==========================================
+// ❌ FUNCIÓN: CERRAR VISOR
+// ==========================================
+function cerrarVisor() {
+  const modal = document.getElementById('visorModal');
+  const contenedor = document.getElementById('visorContenido');
+  
+  if (contenedor) {
+    const videos = contenedor.querySelectorAll('video');
+    const audios = contenedor.querySelectorAll('audio');
+    videos.forEach(v => { v.pause(); v.src = ''; });
+    audios.forEach(a => { a.pause(); a.src = ''; });
+  }
+  
+  if (modal) {
+    modal.style.display = 'none';
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    }
+  }
+  
+  window.archivoActualId = null;
+  window.archivoActual = null;
+}
+
+// Cerrar visor con tecla ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') cerrarVisor();
+});
+
+// ==========================================
+// 📥 FUNCIÓN: DESCARGAR ARCHIVO
+// ==========================================
+async function descargarArchivo(id) {
+  if (!verificarConexion()) return;
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token) {
+    alert('⚠️ Debes iniciar sesión');
+    return;
+  }
+
+  try {
+    const respuesta = await fetch(`https://apiromwinervault.onrender.com/vault/${id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+
+    const datos = await respuesta.json();
+    if (!datos.success || !datos.secret || !datos.secret.contenido) {
+      throw new Error('No se pudo obtener el contenido');
+    }
+
+    const archivo = datos.secret;
+    const tipo = archivo.fileType || 'application/octet-stream';
+    const nombre = archivo.fileName || archivo.titulo || 'archivo';
+    
+    // Convertir base64 a blob
+    const byteCharacters = atob(archivo.contenido);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: tipo });
+    
+    // Crear enlace de descarga
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombre;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    URL.revokeObjectURL(url);
+    
+    console.log('✅ Archivo descargado:', nombre);
+    alert(`✅ Descargando: ${nombre}`);
+  } catch (error) {
+    console.error('❌ Error descargando:', error);
+    alert('❌ Error al descargar: ' + error.message);
+  }
+}
+
+// ==========================================
+// 🗑️ FUNCIÓN: ELIMINAR ARCHIVO
+// ==========================================
+async function eliminarArchivo(id) {
+  if (!confirm('¿Estás seguro de eliminar este archivo? Esta acción no se puede deshacer.')) return;
   const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
   
   try {
@@ -9362,19 +10773,22 @@ async function eliminarArchivo(id) {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     if (resp.ok) {
-      alert('✅ Archivo eliminado');
-      cargarVault();
+      alert('✅ Archivo eliminado correctamente');
+      cerrarVisor();
+      if (typeof cargarVault === 'function') cargarVault();
     } else {
-      alert('❌ Error al eliminar');
+      const error = await resp.json().catch(() => ({}));
+      alert('❌ Error al eliminar: ' + (error.error || 'Error desconocido'));
     }
   } catch (e) {
     console.error(e);
+    alert('❌ Error de conexión: ' + e.message);
   }
 }
 
+// ==========================================
+// 🚀 INICIAR CUANDO CARGUE LA PÁGINA
+// ==========================================
 document.addEventListener('DOMContentLoaded', cargarVault);
-</script>   
-</body>
-</html>
 
        
