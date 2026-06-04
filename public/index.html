@@ -10799,31 +10799,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <a href="/privacy.html" target="_blank" rel="noopener" 
        style="color:#00e676; text-decoration:none; font-size:0.9rem;">🔐 Ver Política de Privacidad</a>
   </div>
-</div>
-
-<script>
-// ==========================================
-// ⚖️ MOSTRAR PANEL LEGAL (sin sobreescribir)
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-  // ✅ Usar hook seguro sin sobreescribir showDashboard
-  const originalShowDashboard = window.showDashboard;
-  
-  window.showDashboard = function() {
-    // Llamar la función original si existe
-    if (typeof originalShowDashboard === 'function') {
-      try { originalShowDashboard(); } catch (e) { console.warn('Error en showDashboard original:', e); }
-    }
-    
-    // Mostrar panel legal después de un delay
-    setTimeout(() => {
-      const legalPanel = document.getElementById('legalPanel');
-      if (legalPanel) legalPanel.style.display = 'block';
-    }, 1300);
-  };
-});
-</script>
-
+ </div>
 <!-- 🔐 LÓGICA DE SESIÓN (CORREGIDA - CONSISTENTE) -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
