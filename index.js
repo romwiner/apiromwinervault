@@ -1089,21 +1089,29 @@ app.delete('/api/identity/revoke/all', authenticate, async(req, res) => {
     res.json({ success: true, message: 'Todos los accesos de apps revocados exitosamente' });
   } catch (e) { res.status(500).json({ error: 'Error al revocar accesos: ' + e.message }); }
 });
-// ✅ FIX: Eliminada duplicación de app.get('/api/identity/qr')
+// ✅ FIX: Endpoint QR corregido - sin duplicación, sin SVG truncado
 app.get('/api/identity/qr', authenticate, async(req, res) => {
   try {
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const qrData = JSON.stringify({ uid: user.uid, email: user.email, ref: user.refCode });
-    const encodedData = encodeURIComponent(qrData);
+    
+    // ✅ Solo devolver los datos, NO la URL del QR
+    // El frontend genera el QR localmente con generarQRLocal()
+    const qrData = {
+      uid: user.uid,
+      email: user.email,
+      ref: user.refCode,
+      ts: Date.now()
+    };
+    
     res.json({ 
       success: true, 
-      qrPayload: qrData, 
-    qrUrl: generarQRLocal(null, encodedData, 200) || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 200%22%3E%3Crect fill=%22%230b0c10%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%22100%22 y=%22105%22 text-anchor=%
+      qrPayload: JSON.stringify(qrData),
+      qrData: qrData,  // ✅ Objeto para que el frontend lo use directamente
       // ✅ Instrucciones de instalación para PC y móvil
       installGuide: {
-        mobile: "1. Escanea con la cámara\n2. Toca 'Agregar a pantalla de inicio'",
-        desktop: "1. Abre en Chrome/Edge\n2. Haz clic en 📥 de la barra\n3. ¡Listo!"
+        mobile: "1. Escanea con la cámara\n2. Toca 'Agregar a pantalla de inicio'\n3. Abre la app desde tu pantalla",
+        desktop: "1. Abre en Chrome/Edge/Firefox\n2. Haz clic en el ícono 📥 de la barra de direcciones\n3. Confirma la instalación\n4. ¡Listo! Usa la app desde tu escritorio"
       }
     });
   } catch (e) {
