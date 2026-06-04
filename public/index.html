@@ -9273,6 +9273,18 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div> 
  <script>
+   <!-- 🎬 VISOR MULTIMEDIA -->
+<div id="mediaModal" class="media-modal hidden">
+  <div class="media-container">
+    <div class="media-controls">
+      <span id="mediaTitle" class="media-title">📄 Archivo</span>
+      <button class="close-media" onclick="cerrarMedia()">✕</button>
+    </div>
+    <div id="mediaContent" style="padding:20px;min-height:300px;display:flex;align-items:center;justify-content:center;">
+      <p style="color:#8b95a5;">Cargando...</p>
+    </div>
+  </div>
+</div>
 // ==========================================
 // 📦 FUNCIÓN PARA CARGAR Y MOSTRAR EL VAULT
 // ==========================================
