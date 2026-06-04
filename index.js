@@ -1099,7 +1099,7 @@ app.get('/api/identity/qr', authenticate, async(req, res) => {
     res.json({ 
       success: true, 
       qrPayload: qrData, 
-      qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodedData,
+    qrUrl: generarQRLocal(null, encodedData, 200) || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 200%22%3E%3Crect fill=%22%230b0c10%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%22100%22 y=%22105%22 text-anchor=%
       // ✅ Instrucciones de instalación para PC y móvil
       installGuide: {
         mobile: "1. Escanea con la cámara\n2. Toca 'Agregar a pantalla de inicio'",
