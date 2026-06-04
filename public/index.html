@@ -10634,93 +10634,245 @@ async function editarMetadatos(id) {
     alert('❌ Error al editar: ' + error.message);
   }
 }
-
 // ==========================================
-// ⭐ FUNCIÓN: TOGGLE FAVORITO
+// ⭐ FUNCIÓN: TOGGLE FAVORITO (CORREGIDA)
 // ==========================================
 async function toggleFavorito(id) {
+  // ✅ Validar ID
+  if (!id || typeof id !== 'string') {
+    console.error('❌ ID de archivo inválido');
+    return;
+  }
+
   const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-  if (!token) return;
+  if (!token) {
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ Debes iniciar sesión', 'warning');
+    } else {
+      alert('⚠️ Debes iniciar sesión');
+    }
+    return;
+  }
+
+  const btn = document.getElementById('btnFavorito');
+  if (!btn) {
+    console.error('❌ Botón de favorito no encontrado');
+    return;
+  }
+
+  // ✅ Determinar acción actual usando data-attribute (más confiable que colores)
+  const esFavoritoActual = btn.dataset.favorite === 'true';
+  const nuevaAccion = esFavoritoActual ? 'remove' : 'add';
 
   try {
-    const respuesta = await fetch('https://apiromwinervault.onrender.com/api/marketplace/favorites', {
+    // ✅ RUTA RELATIVA (sin enlaces externos)
+    const respuesta = await fetch(`/api/marketplace/favorites`, {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + token,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ itemId: id, action: 'add' })
+      body: JSON.stringify({ 
+        itemId: id, 
+        action: nuevaAccion 
+      })
     });
 
-    const datos = await respuesta.json();
-    if (datos.success) {
-      const btn = document.getElementById('btnFavorito');
-      if (btn.style.background === 'rgb(171, 71, 188)') {
-        btn.style.background = '#2a2f3a';
-        btn.textContent = '☆';
-        alert('☆ Removido de favoritos');
+    // ✅ Manejo de sesión expirada
+    if (respuesta.status === 401) {
+      if (typeof handleSessionExpired === 'function') {
+        handleSessionExpired();
       } else {
+        alert('⚠️ Sesión expirada');
+      }
+      return;
+    }
+
+    if (!respuesta.ok) {
+      throw new Error(`Error HTTP: ${respuesta.status}`);
+    }
+
+    const datos = await respuesta.json();
+    
+    if (datos.success) {
+      // ✅ Actualizar estado visual usando data-attribute
+      btn.dataset.favorite = (!esFavoritoActual).toString();
+      
+      if (esFavoritoActual) {
+        // Remover de favoritos
+        btn.style.background = '#2a2f3a';
+        btn.style.color = '#fff';
+        btn.textContent = '☆';
+        btn.title = 'Agregar a favoritos';
+        
+        if (typeof showNotification === 'function') {
+          showNotification('☆ Removido de favoritos', 'info');
+        }
+      } else {
+        // Agregar a favoritos
         btn.style.background = '#ffd54f';
         btn.style.color = '#0b0c10';
         btn.textContent = '⭐';
-        alert('⭐ Agregado a favoritos');
+        btn.title = 'Quitar de favoritos';
+        
+        if (typeof showNotification === 'function') {
+          showNotification('⭐ Agregado a favoritos', 'success');
+        }
       }
+      
+      console.log(`✅ Favorito ${esFavoritoActual ? 'removido' : 'agregado'}: ${id}`);
+    } else {
+      throw new Error(datos.error || 'Error del servidor');
     }
   } catch (error) {
     console.error('❌ Error:', error);
-    alert('❌ Error: ' + error.message);
+    const msg = error.message || 'Error al actualizar favorito';
+    if (typeof showNotification === 'function') {
+      showNotification('❌ ' + msg, 'error');
+    } else {
+      alert('❌ ' + msg);
+    }
   }
 }
 
 // ==========================================
-// ❌ FUNCIÓN: CERRAR VISOR
+// ❌ FUNCIÓN: CERRAR VISOR (MEJORADA)
 // ==========================================
 function cerrarVisor() {
   const modal = document.getElementById('visorModal');
   const contenedor = document.getElementById('visorContenido');
+  const titulo = document.getElementById('visorTitulo');
+  const infoIzq = document.getElementById('visorInfoIzq');
+  const infoDer = document.getElementById('visorInfoDer');
+  const barraProgreso = document.getElementById('barraProgreso');
   
+  // ✅ Limpiar contenido del visor (previene mostrar archivo anterior)
   if (contenedor) {
+    // Detener y limpiar videos/audios
     const videos = contenedor.querySelectorAll('video');
     const audios = contenedor.querySelectorAll('audio');
-    videos.forEach(v => { v.pause(); v.src = ''; });
-    audios.forEach(a => { a.pause(); a.src = ''; });
+    videos.forEach(v => { 
+      v.pause(); 
+      v.removeAttribute('src'); 
+      v.load(); 
+    });
+    audios.forEach(a => { 
+      a.pause(); 
+      a.removeAttribute('src'); 
+      a.load(); 
+    });
+    
+    // ✅ Resetear contenido a estado inicial
+    contenedor.innerHTML = '<p style="color:#8b95a5;">Cargando...</p>';
   }
   
+  // ✅ Resetear información
+  if (titulo) titulo.textContent = '📄 Archivo';
+  if (infoIzq) infoIzq.innerHTML = '';
+  if (infoDer) infoDer.innerHTML = '';
+  if (barraProgreso) barraProgreso.style.display = 'none';
+  
+  // ✅ Resetear botones de control
+  const botonesOcultar = ['btnZoomIn', 'btnZoomOut', 'btnVelocidad', 'btnCopiar', 'btnImprimir'];
+  botonesOcultar.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.style.display = 'none';
+  });
+  
+  // ✅ Resetear botón de velocidad
+  const btnVelocidad = document.getElementById('btnVelocidad');
+  if (btnVelocidad) btnVelocidad.textContent = '⚡ 1x';
+  
+  // ✅ Cerrar modal
   if (modal) {
     modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
+    
+    // ✅ Salir de pantalla completa si está activa
     if (document.fullscreenElement) {
-      document.exitFullscreen();
+      document.exitFullscreen().catch(err => {
+        console.warn('No se pudo salir de pantalla completa:', err);
+      });
     }
   }
   
+  // ✅ Limpiar variables globales
   window.archivoActualId = null;
   window.archivoActual = null;
+  window.zoomActual = 1;
+  window.velocidadActual = 1;
+  
+  console.log('🔒 Visor cerrado');
 }
 
-// Cerrar visor con tecla ESC
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') cerrarVisor();
-});
+// ==========================================
+// ⌨️ CERRAR VISOR CON TECLA ESC (MEJORADO)
+// ==========================================
+// ✅ Flag para evitar múltiples listeners
+let escListenerAdded = false;
+
+if (!escListenerAdded) {
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      // ✅ Cerrar visor si está abierto
+      const visor = document.getElementById('visorModal');
+      if (visor && visor.style.display === 'block') {
+        cerrarVisor();
+        e.preventDefault();
+        return;
+      }
+      
+      // ✅ Cerrar otros modales abiertos
+      const modalesAbiertos = document.querySelectorAll('[style*="display: block"], [style*="display:block"]');
+      modalesAbiertos.forEach(modal => {
+        if (modal.id && modal.id.includes('Modal')) {
+          modal.style.display = 'none';
+          modal.setAttribute('aria-hidden', 'true');
+        }
+      });
+    }
+  });
+  escListenerAdded = true;
+}
 
 // ==========================================
-// 📥 FUNCIÓN: DESCARGAR ARCHIVO
+// 📥 FUNCIÓN: DESCARGAR ARCHIVO (MEJORADA)
 // ==========================================
 async function descargarArchivo(id) {
-  if (!verificarConexion()) return;
+  // ✅ Validar ID
+  if (!id || typeof id !== 'string') {
+    console.error('❌ ID de archivo inválido');
+    return;
+  }
+
+  // ✅ Verificar conexión (si la función existe)
+  if (typeof verificarConexion === 'function' && !verificarConexion()) return;
+
   const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
   if (!token) {
-    alert('⚠️ Debes iniciar sesión');
+    showNotification ? showNotification('⚠️ Debes iniciar sesión', 'warning') : alert('⚠️ Debes iniciar sesión');
     return;
   }
 
   try {
-    const respuesta = await fetch(`https://apiromwinervault.onrender.com/vault/${id}`, {
+    // ✅ RUTA RELATIVA (sin enlaces externos)
+    const respuesta = await fetch(`/vault/${encodeURIComponent(id)}`, {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer ' + token,
         'Content-Type': 'application/json'
       }
     });
+
+    // ✅ Manejo de sesión expirada
+    if (respuesta.status === 401) {
+      if (typeof handleSessionExpired === 'function') {
+        handleSessionExpired();
+      } else {
+        alert('⚠️ Sesión expirada. Inicia sesión nuevamente.');
+      }
+      return;
+    }
 
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
@@ -10731,58 +10883,126 @@ async function descargarArchivo(id) {
 
     const archivo = datos.secret;
     const tipo = archivo.fileType || 'application/octet-stream';
-    const nombre = archivo.fileName || archivo.titulo || 'archivo';
     
-    // Convertir base64 a blob
-    const byteCharacters = atob(archivo.contenido);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    // ✅ Sanitizar nombre de archivo (prevenir ataques)
+    let nombre = archivo.fileName || archivo.titulo || 'archivo';
+    nombre = String(nombre).replace(/[<>:"/\\|?*]/g, '_').substring(0, 100);
+
+    // ✅ Conversión base64 a blob MÁS EFICIENTE
+    const binaryString = atob(archivo.contenido);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: tipo });
-    
-    // Crear enlace de descarga
+    const blob = new Blob([bytes], { type: tipo });
+
+    // ✅ Crear enlace de descarga
     const url = URL.createObjectURL(blob);
     const enlace = document.createElement('a');
     enlace.href = url;
     enlace.download = nombre;
+    enlace.style.display = 'none';
     document.body.appendChild(enlace);
     enlace.click();
     document.body.removeChild(enlace);
-    URL.revokeObjectURL(url);
-    
+
+    // ✅ Cleanup inmediato
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
     console.log('✅ Archivo descargado:', nombre);
-    alert(`✅ Descargando: ${nombre}`);
+    
+    // ✅ Notificación no bloqueante
+    if (typeof showNotification === 'function') {
+      showNotification(`✅ Descargando: ${nombre}`, 'success');
+    }
   } catch (error) {
     console.error('❌ Error descargando:', error);
-    alert('❌ Error al descargar: ' + error.message);
+    if (typeof showNotification === 'function') {
+      showNotification('❌ Error al descargar: ' + error.message, 'error');
+    } else {
+      alert('❌ Error al descargar: ' + error.message);
+    }
   }
 }
 
 // ==========================================
-// 🗑️ FUNCIÓN: ELIMINAR ARCHIVO
+// 🗑️ FUNCIÓN: ELIMINAR ARCHIVO (MEJORADA)
 // ==========================================
 async function eliminarArchivo(id) {
+  // ✅ Validar ID
+  if (!id || typeof id !== 'string') {
+    console.error('❌ ID de archivo inválido');
+    return;
+  }
+
   if (!confirm('¿Estás seguro de eliminar este archivo? Esta acción no se puede deshacer.')) return;
+
   const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-  
+  if (!token) {
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ Debes iniciar sesión', 'warning');
+    } else {
+      alert('⚠️ Debes iniciar sesión');
+    }
+    return;
+  }
+
   try {
-    const resp = await fetch(`https://apiromwinervault.onrender.com/vault/${id}`, {
+    // ✅ RUTA RELATIVA (sin enlaces externos)
+    const resp = await fetch(`/vault/${encodeURIComponent(id)}`, {
       method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + token }
+      headers: { 
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
     });
+
+    // ✅ Manejo de sesión expirada
+    if (resp.status === 401) {
+      if (typeof handleSessionExpired === 'function') {
+        handleSessionExpired();
+      } else {
+        alert('⚠️ Sesión expirada.');
+      }
+      return;
+    }
+
     if (resp.ok) {
-      alert('✅ Archivo eliminado correctamente');
-      cerrarVisor();
+      if (typeof showNotification === 'function') {
+        showNotification('✅ Archivo eliminado correctamente', 'success');
+      } else {
+        alert('✅ Archivo eliminado correctamente');
+      }
+      
+      // ✅ Cerrar visor solo si la función existe
+      if (typeof cerrarVisor === 'function') cerrarVisor();
+      
+      // ✅ Recargar vault solo si la función existe
       if (typeof cargarVault === 'function') cargarVault();
     } else {
-      const error = await resp.json().catch(() => ({}));
-      alert('❌ Error al eliminar: ' + (error.error || 'Error desconocido'));
+      let errorMsg = 'Error desconocido';
+      try {
+        const error = await resp.json();
+        // ✅ Sanitizar mensaje del servidor
+        errorMsg = String(error.error || errorMsg).replace(/[<>]/g, '').substring(0, 100);
+      } catch (e) {
+        // Ignorar error de parseo
+      }
+      
+      if (typeof showNotification === 'function') {
+        showNotification('❌ Error al eliminar: ' + errorMsg, 'error');
+      } else {
+        alert('❌ Error al eliminar: ' + errorMsg);
+      }
     }
   } catch (e) {
-    console.error(e);
-    alert('❌ Error de conexión: ' + e.message);
+    console.error('❌ Error de conexión:', e);
+    const msg = e.message || 'Error de conexión';
+    if (typeof showNotification === 'function') {
+      showNotification('❌ ' + msg, 'error');
+    } else {
+      alert('❌ ' + msg);
+    }
   }
 }
 <!-- 🆕 FUNCIONES DEL VAULT (CORREGIDAS Y MEJORADAS) -->
