@@ -7450,584 +7450,1389 @@ function closeMediaPlayer() {
 
 })();
 </script>
+<script>
+// ============================================
+// 🛡️ MÓDULO ACTIONS, AUDIT Y WEBHOOKS - SEGURO
+// ============================================
+(function() {
+  'use strict';
 
-// === VAULT: ACTIONS - FUNCIONES MEJORADAS ===
-
-// ✅ Compartir archivo con sanitización y validación
-async function shareFile(fileId) {
-  // ✅ Sanitizar ID antes de usar
-  const safeId = sanitizeIdForEvent(fileId);
-  if (!safeId) {
-    showNotification('⚠️ ID de archivo inválido', 'error');
-    return;
+  // ============================================
+  // 🧹 SANITIZAR TEXTO (VERSIÓN UNIFICADA)
+  // ============================================
+  function sanitizeForDisplay(str, maxLen) {
+    if (!str) return '';
+    maxLen = maxLen || 100;
+    return String(str)
+      .trim()
+      // ✅ ELIMINAR todos los caracteres peligrosos
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F\x7F]/g, '')
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '')
+      .substring(0, maxLen);
   }
-  
-  try {
-    const pass = prompt('🔒 Contraseña opcional (Enter para ninguna):');
-    // ✅ Validar expiración: número entre 1 y 168 horas (1 semana)
-    const hoursInput = prompt('⏱️ Expirar en horas (1-168):', '24') || '24';
-    const hours = parseInt(hoursInput, 10);
-    if (isNaN(hours) || hours < 1 || hours > 168) {
-      showNotification('⚠️ Expiración debe estar entre 1 y 168 horas', 'error');
-      return;
+
+  // ============================================
+  // 📋 SANITIZAR JSON PARA MOSTRAR
+  // ============================================
+  function sanitizeJSONForDisplay(obj, maxLen) {
+    maxLen = maxLen || 80;
+    try {
+      var json = JSON.stringify(obj);
+      var sanitized = sanitizeForDisplay(json, maxLen);
+      return json.length > maxLen ? sanitized + '...' : sanitized;
+    } catch (e) {
+      return sanitizeForDisplay(String(obj), maxLen);
+    }
+  }
+
+  // ============================================
+  // 🔐 VALIDAR CONTRASEÑA PARA COMPARTIR
+  // ============================================
+  function validateSharePassword(pass) {
+    if (!pass || pass === '') return null;
+    
+    var trimmed = String(pass);
+    
+    // ✅ Longitud: 0 (vacía) o entre 4 y 64 caracteres
+    if (trimmed.length > 0 && trimmed.length < 4) {
+      return { valid: false, error: 'Mínimo 4 caracteres' };
+    }
+    if (trimmed.length > 64) {
+      return { valid: false, error: 'Máximo 64 caracteres' };
     }
     
-    const res = await req(`/api/vault/${safeId}/share`, 'POST', {
-      password: pass || null,
-      expiresInHours: hours
-    });
+    // ✅ Eliminar caracteres de control
+    trimmed = trimmed.replace(/[\x00-\x1F\x7F]/g, '');
     
-    // ✅ Copiar al portapapeles con fallback
-    if (navigator.clipboard && res.link) {
-      await navigator.clipboard.writeText(res.link);
-      showNotification('✅ Enlace copiado al portapapeles', 'success');
-    } else if (res.link) {
-      // Fallback para navegadores antiguos
-      const textarea = document.createElement('textarea');
-      textarea.value = res.link;
+    return { valid: true, password: trimmed };
+  }
+
+  // ============================================
+  // 📋 COPIAR AL PORTAPAPELES (CON FALLBACK)
+  // ============================================
+  function copyToClipboard(text) {
+    if (!text) return Promise.resolve(false);
+    
+    // ✅ Intentar con Clipboard API moderna
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text)
+        .then(function() { return true; })
+        .catch(function() {
+          // Fallback si falla
+          return fallbackCopy(text);
+        });
+    }
+    
+    // ✅ Fallback para navegadores antiguos o contextos no seguros
+    return fallbackCopy(text);
+  }
+
+  function fallbackCopy(text) {
+    try {
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+      textarea.setAttribute('readonly', '');
       document.body.appendChild(textarea);
       textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      showNotification('✅ Enlace copiado', 'success');
-    }
-    
-    log(`🔗 Share generado para: ${safeId}`, 'info');
-    
-  } catch (e) {
-    // ✅ Mensaje seguro: no exponer detalles internos
-    const safeMsg = 'Error al generar enlace de compartir';
-    log('❌ Share: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(`❌ ${safeMsg}`, 'error');
-  }
-}
-
-// ✅ Generar thumbnail con validación
-async function genThumb(fileId) {
-  const safeId = sanitizeIdForEvent(fileId);
-  if (!safeId) {
-    showNotification('⚠️ ID de archivo inválido', 'error');
-    return;
-  }
-  
-  try {
-    log('🖼️ Generando thumbnail...', 'info');
-    await req(`/api/vault/${safeId}/thumbnail`, 'POST');
-    showNotification('✅ Thumbnail generado', 'success');
-    log('✅ Thumbnail listo', 'success');
-  } catch (e) {
-    const safeMsg = 'Error generando thumbnail';
-    log('❌ Thumb: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(`❌ ${safeMsg}`, 'error');
-  }
-}
-
-// ✅ Mostrar versiones con sanitización
-async function showVersions(fileId) {
-  const safeId = sanitizeIdForEvent(fileId);
-  if (!safeId) {
-    showNotification('⚠️ ID de archivo inválido', 'error');
-    return;
-  }
-  
-  try {
-    const res = await req(`/api/vault/${safeId}/versions`);
-    const versions = res.versions || [];
-    
-    if (versions.length === 0) {
-      alert('📜 Historial de versiones:\n(vacío)');
-      return;
-    }
-    
-    // ✅ Sanitizar cada entrada antes de mostrar
-    const list = versions.map(v => {
-      const date = new Date(v.date);
-      const safeDate = !isNaN(date) ? date.toLocaleString() : 'Fecha inválida';
-      const safeV = sanitizeForDisplay(String(v.v), 20);
-      return `v${safeV} • ${safeDate}`;
-    }).join('\n');
-    
-    alert('📜 Historial de versiones:\n' + list);
-    
-  } catch (e) {
-    const safeMsg = 'Error cargando historial de versiones';
-    log('❌ Versiones: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(`❌ ${safeMsg}`, 'error');
-  }
-}
-
-// ✅ Agregar comentario con sanitización
-async function addComment(fileId) {
-  const safeId = sanitizeIdForEvent(fileId);
-  if (!safeId) {
-    showNotification('⚠️ ID de archivo inválido', 'error');
-    return;
-  }
-  
-  const txt = prompt('💬 Escribe tu comentario:');
-  if (!txt || !txt.trim()) return;
-  
-  // ✅ Sanitizar comentario antes de enviar
-  const safeTxt = sanitizeForDisplay(txt.trim(), 500);
-  
-  try {
-    await req(`/api/vault/${safeId}/comments`, 'POST', { content: safeTxt });
-    showNotification('✅ Comentario enviado', 'success');
-    log('✅ Comentario cifrado', 'success');
-  } catch (e) {
-    const safeMsg = 'Error enviando comentario';
-    log('❌ Comment: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(`❌ ${safeMsg}`, 'error');
-  }
-}
-
-// ✅ Cargar comentarios con sanitización
-async function loadComments(fileId) {
-  const safeId = sanitizeIdForEvent(fileId);
-  if (!safeId) {
-    showNotification('⚠️ ID de archivo inválido', 'error');
-    return;
-  }
-  
-  try {
-    const res = await req(`/api/vault/${safeId}/comments`);
-    const comments = res.comments || [];
-    
-    if (comments.length === 0) {
-      alert('💬 Comentarios:\n(vacío)');
-      return;
-    }
-    
-    // ✅ Sanitizar cada comentario antes de mostrar
-    const txt = comments.map(c => {
-      const date = new Date(c.date);
-      const safeDate = !isNaN(date) ? date.toLocaleTimeString() : 'Hora inválida';
-      const safeText = sanitizeForDisplay(c.text, 200);
-      return `[${safeDate}] ${safeText}`;
-    }).join('\n');
-    
-    alert('💬 Comentarios:\n' + txt);
-    
-  } catch (e) {
-    const safeMsg = 'Error cargando comentarios';
-    log('❌ LoadComments: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(`❌ ${safeMsg}`, 'error');
-  }
-} 
-
-// ✅ Helper para sanitizar texto antes de insertar en DOM/logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
-    .substring(0, maxLen);
-}
-
-// ✅ Helper para sanitizar JSON antes de mostrar en UI (previene XSS)
-function sanitizeJSONForDisplay(obj, maxLen = 80) {
-  try {
-    const json = JSON.stringify(obj);
-    return sanitizeForDisplay(json, maxLen) + (json.length > maxLen ? '...' : '');
-  } catch {
-    return sanitizeForDisplay(String(obj), maxLen);
-  }
-}
-
-// === AUDIT - FUNCIONES MEJORADAS ===
-
-// ✅ Mostrar auditoría con sanitización y accesibilidad
-async function showAuditLog() {
-  try {
-    const modal = document.getElementById('auditModal');
-    const logEl = document.getElementById('auditLog');
-    
-    if (!modal || !logEl) {
-      log('⚠️ Elementos de auditoría no encontrados', 'warning');
-      return;
-    }
-    
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false'); // ✅ Accesibilidad
-    
-    logEl.innerHTML = '<p style="text-align:center;color:#8b95a5" role="status">🔄 Cargando auditoría...</p>';
-    
-    const res = await req('/api/audit/export');
-    const logs = res.logs || [];
-    
-    if (logs.length === 0) {
-      logEl.innerHTML = '<p style="text-align:center;color:#8b95a5" role="status">📭 Sin actividad reciente</p>';
-      return;
-    }
-    
-    // ✅ Crear elementos con createElement en lugar de innerHTML con datos dinámicos
-    logEl.innerHTML = '';
-    logs.slice(0, 20).forEach(l => {
+      
+      var success = false;
       try {
-        const entry = document.createElement('div');
-        entry.className = 'audit-entry';
-        entry.setAttribute('role', 'listitem');
-        
-        // Action (sanitizado)
-        const action = document.createElement('b');
-        action.textContent = sanitizeForDisplay(l.action, 50) || 'Acción desconocida';
-        entry.appendChild(action);
-        entry.appendChild(document.createElement('br'));
-        
-        // Timestamp
-        const timeEl = document.createElement('small');
-        const time = new Date(l.timestamp || l.createdAt);
-        timeEl.textContent = !isNaN(time) ? time.toLocaleString() : 'Fecha inválida';
-        entry.appendChild(timeEl);
-        entry.appendChild(document.createElement('br'));
-        
-        // Data (sanitizado JSON)
-        const dataEl = document.createElement('span');
-        dataEl.style.color = '#8b95a5';
-        const dataObj = l.data || l.metadata || {};
-        dataEl.textContent = sanitizeJSONForDisplay(dataObj, 80);
-        entry.appendChild(dataEl);
-        
-        logEl.appendChild(entry);
+        success = document.execCommand('copy');
       } catch (e) {
-        console.error('❌ Error renderizando entrada de auditoría:', e);
+        success = false;
       }
-    });
-    
-    log('📋 Auditoría cargada', 'success');
-    
-  } catch (e) {
-    // ✅ Mensaje seguro: no exponer detalles internos
-    const safeMsg = 'Error cargando auditoría';
-    log('❌ Auditoría: ' + sanitizeForDisplay(e.message, 100), 'error');
-    
-    const logEl = document.getElementById('auditLog');
-    if (logEl) {
-      logEl.innerHTML = `<p style="color:#ff5252" role="alert">${safeMsg}</p>`;
+      
+      document.body.removeChild(textarea);
+      return Promise.resolve(success);
+    } catch (e) {
+      return Promise.resolve(false);
     }
-    showNotification(`❌ ${safeMsg}`, 'error');
   }
-}
 
-function closeAudit() {
-  const modal = document.getElementById('auditModal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
-  }
-  log('🔒 Modal de auditoría cerrado', 'info');
-}
-
-// ✅ Exportar auditoría con sanitización y validación
-async function exportAudit(type) {
-  // ✅ Validar tier antes de continuar
-  if (!['business', 'enterprise'].includes(userTier)) {
-    log('⚠️ Esta función requiere plan Business o Enterprise', 'warning');
-    showNotification('⚠️ Función exclusiva para planes superiores', 'warning');
-    return;
-  }
-  
-  // ✅ Sanitizar tipo antes de usar en URL
-  const safeType = sanitizeForDisplay(type, 20).replace(/[^a-z]/gi, '').toLowerCase();
-  if (!['gdpr', 'soc2', 'full'].includes(safeType)) {
-    log('⚠️ Tipo de reporte inválido', 'warning');
-    return;
-  }
-  
-  try {
-    log(`📄 Generando reporte ${safeType.toUpperCase()}...`, 'info');
+  // ============================================
+  // 🔗 COMPARTIR ARCHIVO (MEJORADO)
+  // ============================================
+  async function shareFile(fileId) {
+    var safeId = (typeof window.sanitizeIdForEvent === 'function') 
+      ? window.sanitizeIdForEvent(fileId) 
+      : String(fileId || '').replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
     
-    // ✅ Usar query params seguros (no interpolación directa)
-    const res = await req(`/api/audit/export?type=${encodeURIComponent(safeType)}`);
-    
-    const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    
-    // ✅ Sanitizar nombre de archivo
-    const date = new Date().toISOString().slice(0, 10);
-    a.download = `apiromwiner-${safeType}-${date}.json`;
-    
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url); // ✅ Cleanup
-    
-    log(`✅ Reporte ${safeType} descargado`, 'success');
-    showNotification('✅ Reporte descargado', 'success');
-    
-  } catch (e) {
-    const safeMsg = 'Error exportando reporte';
-    log('❌ Export: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(`❌ ${safeMsg}`, 'error');
-  }
-}
-
-// === WEBHOOKS - FUNCIONES MEJORADAS ===
-
-// ✅ Mostrar webhooks con validación de tier
-function showWebhooks() {
-  if (userTier !== 'enterprise') {
-    log('⚠️ Webhooks exclusivos para plan Enterprise', 'warning');
-    showNotification('⚠️ Función exclusiva para Enterprise', 'warning');
-    return;
-  }
-  
-  const modal = document.getElementById('webhookModal');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-  }
-  
-  if (typeof loadWebhooks === 'function') loadWebhooks();
-}
-
-function closeWebhooks() {
-  const modal = document.getElementById('webhookModal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-  }
-  log('🔒 Modal de webhooks cerrado', 'info');
-}
-
-// ✅ Cargar webhooks con mensaje seguro
-async function loadWebhooks() {
-  const list = document.getElementById('webhookList');
-  if (list) {
-    list.innerHTML = '<p style="font-size:0.8rem;color:#8b95a5" role="status">ℹ️ Webhooks se gestionan vía API admin</p>';
-  }
-}
-
-// ✅ Registrar webhook con validaciones fuertes
-async function registerWebhook() {
-  const urlInput = document.getElementById('webhookUrl');
-  const eventsSelect = document.getElementById('webhookEvents');
-  const secretInput = document.getElementById('webhookSecret');
-  
-  const rawUrl = urlInput?.value?.trim();
-  const events = eventsSelect?.value;
-  const secret = secretInput?.value?.trim() || (crypto?.randomUUID?.() || 'auto-secret-' + Date.now());
-  
-  // ✅ Validar URL: debe comenzar con https:// y ser misma origen o dominio permitido
-  if (!rawUrl || !/^https:\/\//.test(rawUrl)) {
-    showNotification('⚠️ Ingresa una URL válida que comience con https://', 'error');
-    if (urlInput) urlInput.focus();
-    return;
-  }
-  
-  // ✅ Sanitizar URL antes de usar (remover caracteres peligrosos)
-  const safeUrl = sanitizeForDisplay(rawUrl, 255).replace(/[<>]/g, '');
-  
-  try {
-    await req('/api/admin/webhooks', 'POST', { 
-      url: safeUrl, 
-      events: [sanitizeForDisplay(events, 50)], 
-      secret: sanitizeForDisplay(secret, 100) 
-    });
-    
-    log('✅ Webhook registrado', 'success');
-    closeWebhooks();
-    showNotification('✅ Webhook registrado', 'success');
-    
-  } catch (e) {
-    const safeMsg = 'Error registrando webhook';
-    log('❌ Webhook: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(`❌ ${safeMsg}`, 'error');
-  }
-}
-
-// === KEY ROTATION - FUNCIONES MEJORADAS ===
-
-// ✅ Rotar claves con validación de tier y sanitización
-async function rotateKeys() {
-  if (userTier !== 'enterprise') {
-    log('⚠️ Rotación de claves exclusiva para Enterprise', 'warning');
-    showNotification('⚠️ Función exclusiva para Enterprise', 'warning');
-    return;
-  }
-  
-  try {
-    log('🔄 Iniciando rotación de claves...', 'info');
-    const res = await req('/api/admin/rotate-keys', 'POST', {});
-    
-    // ✅ Sanitizar mensaje de respuesta antes de mostrar
-    const safeMsg = sanitizeForDisplay(res.message || 'Rotación programada', 100);
-    log('✅ ' + safeMsg, 'success');
-    showNotification('✅ Rotación programada', 'success');
-    
-  } catch (e) {
-    const safeMsg = 'Error en rotación de claves';
-    log('❌ Rotación: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(`❌ ${safeMsg}`, 'error');
-  }
-}
-
-// === WITHDRAW - FUNCIÓN MEJORADA ===
-
-// ✅ Retiro con mensaje seguro y logging
-async function withdraw() {
-  log('💸 Solicitud enviada. Te contactaremos para el pago seguro.', 'info');
-  showNotification('💸 Solicitud de retiro enviada', 'info');
-}
-
-// === IDENTITY QR - FUNCIÓN MEJORADA (100% LOCAL) ===
-
-// ✅ Mostrar QR de identidad con sanitización completa
-function showIdentityQR() {
-  if (!currentUser) {
-    log('⚠️ Sesión no válida', 'warning');
-    showNotification('⚠️ Inicia sesión para ver tu identidad', 'warning');
-    return;
-  }
-  
-  // ✅ Sanitizar cada campo antes de incluir en JSON
-  const safeData = {
-    uid: sanitizeForDisplay(currentUser.uid, 50) || 'demo',
-    email: sanitizeForDisplay(document.getElementById('uEmail')?.textContent, 100) || 'usuario@apiromwiner.com',
-    ref: sanitizeForDisplay(currentUser.refCode || localStorage.getItem('refCode') || 'ROM000', 20).replace(/[^a-zA-Z0-9]/g, ''),
-    tier: sanitizeForDisplay(userTier, 20).replace(/[^a-z]/gi, '') || 'personal'
-  };
-  
-  const jsonString = JSON.stringify(safeData);
-  
-  // ✅ Generar QR localmente (0% externos)
-  if (typeof generarQRLocal === 'function') {
-    generarQRLocal('idQrImg', jsonString, 200);
-  }
-  
-  // ✅ Mostrar datos sanitizados en UI
-  const dataEl = document.getElementById('idQrData');
-  if (dataEl) {
-    dataEl.textContent = sanitizeJSONForDisplay(safeData, 200);
-    dataEl.setAttribute('aria-label', 'Datos de identidad');
-  }
-  
-  // ✅ Mostrar modal con ARIA
-  const modal = document.getElementById('idModal');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-  }
-  
-  log('🆔 QR de identidad generado (100% local)', 'success');
-}
-   
-function closeIdModal() {
-  const modal = document.getElementById('idModal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-  }
-  log('🔒 Modal de identidad cerrado', 'info');
-}
-// ✅ Helper para sanitizar texto antes de insertar en DOM/logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
-    .substring(0, maxLen);
-}
-
-// ✅ Helper para validar URLs seguras (solo same-origin o rutas relativas)
-function isValidInternalUrl(url) {
-  if (!url) return false;
-  try {
-    // Permitir rutas relativas
-    if (url.startsWith('/')) return true;
-    // Permitir same-origin
-    const parsed = new URL(url, window.location.origin);
-    return parsed.origin === window.location.origin;
-  } catch {
-    return false;
-  }
-}
-
-// === PROMO - FUNCIONES MEJORADAS ===
-
-// ✅ Verificar promo con sanitización de mensaje
-async function checkPromo() {
-  try {
-    const s = await req('/api/promo/status');
-    if (s?.active) {
-      // ✅ Sanitizar mensaje antes de loguear (previene XSS)
-      const safeMsg = sanitizeForDisplay(s.message, 200);
-      log('🎁 ' + safeMsg, 'info');
+    if (!safeId) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ ID de archivo inválido', 'error', 3000);
+      }
+      return;
     }
-  } catch (e) {
-    // ✅ No exponer detalles de error
-    log('⚠️ Error verificando promo', 'warning');
-  }
-}
 
-// ✅ Mostrar promo con validación de URL segura
-async function showPromo() {
-  if (!token) {
-    scrollToAuth();
-    log('⚠️ Inicia sesión para acceder a la promo', 'warning');
-    return;
-  }
-  try {
-    const r = await req('/api/promo/checkout', 'POST');
-    if (r?.demo) {
-      log('✅ Pago promocional activado ($25)', 'success');
-      refresh();
-      showNotification('✅ Promo activada', 'success');
-    } else if (r?.url) {
-      // ✅ Validar URL antes de redirigir (previene open redirect)
-      if (isValidInternalUrl(r.url)) {
-        window.location.href = r.url;
+    // ✅ Verificar token
+    if (typeof window.getToken === 'function' && !window.getToken()) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Inicia sesión para compartir', 'warning', 3000);
+      }
+      return;
+    }
+
+    try {
+      // ✅ Contraseña opcional (con validación)
+      var pass = prompt('🔒 Contraseña opcional (dejar vacío para ninguna):');
+      if (pass === null) return; // Usuario canceló
+
+      var passValidation = validateSharePassword(pass);
+      if (passValidation && !passValidation.valid) {
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ ' + passValidation.error, 'error', 3000);
+        }
+        return;
+      }
+
+      // ✅ Expiración (1-168 horas = 1 semana)
+      var hoursInput = prompt('⏱️ Expirar en horas (1-168):', '24');
+      if (hoursInput === null) return; // Usuario canceló
+      
+      var hours = parseInt(hoursInput, 10);
+      if (isNaN(hours) || hours < 1 || hours > 168) {
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ Expiración debe estar entre 1 y 168 horas', 'error', 3000);
+        }
+        return;
+      }
+
+      // ✅ Llamar al backend
+      var res = await req('/api/vault/' + safeId + '/share', 'POST', {
+        password: passValidation ? passValidation.password : null,
+        expiresInHours: hours
+      });
+
+      // ✅ Copiar enlace al portapapeles
+      if (res && res.link) {
+        var copied = await copyToClipboard(res.link);
+        
+        if (copied) {
+          if (typeof window.showNotification === 'function') {
+            window.showNotification('✅ Enlace copiado al portapapeles', 'success', 3000);
+          }
+        } else {
+          // Fallback: mostrar el enlace para copiar manualmente
+          if (typeof window.showNotification === 'function') {
+            window.showNotification('🔗 Copia este enlace: ' + sanitizeForDisplay(res.link, 100), 'info', 8000);
+          }
+        }
+        
+        log('🔗 Share generado para: ' + safeId, 'info');
       } else {
-        log('⚠️ URL de redirección inválida', 'warning');
-        showNotification('⚠️ Error de redirección', 'error');
+        throw new Error('Respuesta inválida del servidor');
+      }
+
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error al generar enlace';
+      
+      if (errMsg.includes('401') || errMsg.includes('expirada')) {
+        msg = '❌ Sesión expirada';
+        if (typeof window.handleSessionExpired === 'function') {
+          window.handleSessionExpired();
+        }
+      } else if (errMsg.includes('403')) {
+        msg = '❌ No tienes permiso para compartir este archivo';
+      } else if (errMsg.includes('404')) {
+        msg = '❌ Archivo no encontrado';
+      }
+      
+      log('❌ Share: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 4000);
       }
     }
-  } catch (e) {
-    // ✅ Mensaje seguro: no exponer detalles internos
-    const safeMsg = 'Error procesando promo';
-    log('❌ ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(`❌ ${safeMsg}`, 'error');
   }
-}
 
-// === PWA INSTALL - MEJORADO ===
+  // ============================================
+  // 🖼️ GENERAR THUMBNAIL
+  // ============================================
+  async function genThumb(fileId) {
+    var safeId = (typeof window.sanitizeIdForEvent === 'function')
+      ? window.sanitizeIdForEvent(fileId)
+      : String(fileId || '').replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
+    
+    if (!safeId) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ ID de archivo inválido', 'error', 3000);
+      }
+      return;
+    }
 
-// ✅ Flag para evitar múltiples listeners
-let pwaListenerAttached = false;
-
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  deferredPrompt = e;
-  
-  const installBtn = document.getElementById('installBtn');
-  if (installBtn) {
-    installBtn.style.display = 'inline-block';
-    installBtn.setAttribute('aria-label', 'Instalar aplicación');
+    try {
+      log('🖼️ Generando thumbnail...', 'info');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('🖼️ Generando thumbnail...', 'info', 2000);
+      }
+      
+      await req('/api/vault/' + safeId + '/thumbnail', 'POST');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('✅ Thumbnail generado', 'success', 2500);
+      }
+      
+      log('✅ Thumbnail listo', 'success');
+      
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error generando thumbnail';
+      
+      if (errMsg.includes('415')) {
+        msg = '⚠️ Este tipo de archivo no soporta thumbnails';
+      } else if (errMsg.includes('404')) {
+        msg = '❌ Archivo no encontrado';
+      }
+      
+      log('❌ Thumb: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 4000);
+      }
+    }
   }
-  
-  log('📲 App lista para instalar', 'info');
-  showNotification('📲 App lista para instalar', 'info');
-});
 
-function installApp() {
-  if (deferredPrompt) {
+  // ============================================
+  // 📜 MOSTRAR VERSIONES (SIN ALERT)
+  // ============================================
+  async function showVersions(fileId) {
+    var safeId = (typeof window.sanitizeIdForEvent === 'function')
+      ? window.sanitizeIdForEvent(fileId)
+      : String(fileId || '').replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
+    
+    if (!safeId) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ ID de archivo inválido', 'error', 3000);
+      }
+      return;
+    }
+
+    try {
+      var res = await req('/api/vault/' + safeId + '/versions');
+      var versions = (res && res.versions) ? res.versions : [];
+
+      if (versions.length === 0) {
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('📜 Sin historial de versiones', 'info', 3000);
+        }
+        return;
+      }
+
+      // ✅ Construir lista sanitizada
+      var lines = [];
+      for (var i = 0; i < versions.length; i++) {
+        var v = versions[i];
+        var date = new Date(v.date || v.createdAt);
+        var safeDate = !isNaN(date.getTime()) ? date.toLocaleString() : 'Fecha inválida';
+        var safeV = sanitizeForDisplay(String(v.v || v.version || '?'), 20);
+        lines.push('v' + safeV + ' • ' + safeDate);
+      }
+
+      // ✅ Mostrar en notificación larga en lugar de alert
+      var mensaje = '📜 Historial (' + versions.length + ' versiones):\n' + lines.join('\n');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(mensaje, 'info', 8000);
+      }
+
+      log('📜 Versiones cargadas: ' + versions.length, 'success');
+
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error cargando historial';
+      
+      if (errMsg.includes('404')) {
+        msg = '❌ Archivo no encontrado';
+      }
+      
+      log('❌ Versiones: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 4000);
+      }
+    }
+  }
+
+  // ============================================
+  // 💬 AGREGAR COMENTARIO
+  // ============================================
+  async function addComment(fileId) {
+    var safeId = (typeof window.sanitizeIdForEvent === 'function')
+      ? window.sanitizeIdForEvent(fileId)
+      : String(fileId || '').replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
+    
+    if (!safeId) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ ID de archivo inválido', 'error', 3000);
+      }
+      return;
+    }
+
+    var txt = prompt('💬 Escribe tu comentario:');
+    if (!txt || !txt.trim()) return;
+
+    // ✅ Sanitizar y validar longitud
+    var safeTxt = sanitizeForDisplay(txt.trim(), 500);
+    
+    if (safeTxt.length < 1) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Comentario vacío o inválido', 'warning', 3000);
+      }
+      return;
+    }
+    
+    if (safeTxt.length > 500) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Comentario demasiado largo (máx 500 caracteres)', 'warning', 3000);
+      }
+      return;
+    }
+
+    try {
+      await req('/api/vault/' + safeId + '/comments', 'POST', { 
+        content: safeTxt 
+      });
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('✅ Comentario enviado', 'success', 2500);
+      }
+      
+      log('✅ Comentario agregado a: ' + safeId, 'success');
+      
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error enviando comentario';
+      
+      if (errMsg.includes('400')) {
+        msg = '❌ Comentario inválido';
+      } else if (errMsg.includes('404')) {
+        msg = '❌ Archivo no encontrado';
+      } else if (errMsg.includes('429')) {
+        msg = '⏳ Demasiados comentarios. Espera un momento';
+      }
+      
+      log('❌ Comment: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 4000);
+      }
+    }
+  }
+
+  // ============================================
+  // 👁️ CARGAR COMENTARIOS (SIN ALERT)
+  // ============================================
+  async function loadComments(fileId) {
+    var safeId = (typeof window.sanitizeIdForEvent === 'function')
+      ? window.sanitizeIdForEvent(fileId)
+      : String(fileId || '').replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
+    
+    if (!safeId) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ ID de archivo inválido', 'error', 3000);
+      }
+      return;
+    }
+
+    try {
+      var res = await req('/api/vault/' + safeId + '/comments');
+      var comments = (res && res.comments) ? res.comments : [];
+
+      if (comments.length === 0) {
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('💬 Sin comentarios', 'info', 3000);
+        }
+        return;
+      }
+
+      // ✅ Construir lista sanitizada
+      var lines = [];
+      for (var i = 0; i < comments.length; i++) {
+        var c = comments[i];
+        var date = new Date(c.date || c.createdAt);
+        var safeDate = !isNaN(date.getTime()) ? date.toLocaleTimeString() : 'Hora inválida';
+        var safeText = sanitizeForDisplay(c.text || c.content || '', 200);
+        lines.push('[' + safeDate + '] ' + safeText);
+      }
+
+      var mensaje = '💬 Comentarios (' + comments.length + '):\n' + lines.join('\n');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(mensaje, 'info', 10000);
+      }
+
+      log('💬 Comentarios cargados: ' + comments.length, 'success');
+
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error cargando comentarios';
+      
+      if (errMsg.includes('404')) {
+        msg = '❌ Archivo no encontrado';
+      }
+      
+      log('❌ LoadComments: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 4000);
+      }
+    }
+  }
+
+  // ============================================
+  // 📋 MOSTRAR AUDITORÍA (CON createElement)
+  // ============================================
+  async function showAuditLog() {
+    try {
+      var modal = document.getElementById('auditModal');
+      var logEl = document.getElementById('auditLog');
+
+      if (!modal || !logEl) {
+        log('⚠️ Elementos de auditoría no encontrados', 'warning');
+        return;
+      }
+
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+
+      // ✅ Limpiar con textContent (no innerHTML)
+      logEl.textContent = '';
+      var loadingP = document.createElement('p');
+      loadingP.style.textAlign = 'center';
+      loadingP.style.color = '#8b95a5';
+      loadingP.setAttribute('role', 'status');
+      loadingP.textContent = '🔄 Cargando auditoría...';
+      logEl.appendChild(loadingP);
+
+      var res = await req('/api/audit/export');
+      var logs = (res && res.logs) ? res.logs : [];
+
+      // Limpiar mensaje de carga
+      logEl.textContent = '';
+
+      if (logs.length === 0) {
+        var emptyP = document.createElement('p');
+        emptyP.style.textAlign = 'center';
+        emptyP.style.color = '#8b95a5';
+        emptyP.setAttribute('role', 'status');
+        emptyP.textContent = '📭 Sin actividad reciente';
+        logEl.appendChild(emptyP);
+        return;
+      }
+
+      // ✅ Crear elementos con createElement (anti-XSS)
+      var maxEntries = Math.min(20, logs.length);
+      for (var i = 0; i < maxEntries; i++) {
+        try {
+          var l = logs[i];
+          var entry = document.createElement('div');
+          entry.className = 'audit-entry';
+          entry.setAttribute('role', 'listitem');
+
+          // Acción
+          var action = document.createElement('b');
+          action.textContent = sanitizeForDisplay(l.action, 50) || 'Acción desconocida';
+          entry.appendChild(action);
+          entry.appendChild(document.createElement('br'));
+
+          // Timestamp
+          var timeEl = document.createElement('small');
+          var time = new Date(l.timestamp || l.createdAt);
+          timeEl.textContent = !isNaN(time.getTime()) ? time.toLocaleString() : 'Fecha inválida';
+          entry.appendChild(timeEl);
+          entry.appendChild(document.createElement('br'));
+
+          // Data
+          var dataEl = document.createElement('span');
+          dataEl.style.color = '#8b95a5';
+          var dataObj = l.data || l.metadata || {};
+          dataEl.textContent = sanitizeJSONForDisplay(dataObj, 80);
+          entry.appendChild(dataEl);
+
+          logEl.appendChild(entry);
+        } catch (itemError) {
+          log('❌ Error en entrada de auditoría: ' + sanitizeForDisplay(itemError.message || 'desconocido', 100), 'error');
+        }
+      }
+
+      log('📋 Auditoría cargada: ' + logs.length + ' entradas', 'success');
+
+    } catch (e) {
+      var safeMsg = 'Error cargando auditoría';
+      var errMsg = (e && e.message) ? e.message : '';
+      
+      log('❌ Auditoría: ' + sanitizeForDisplay(errMsg, 100), 'error');
+
+      var logEl = document.getElementById('auditLog');
+      if (logEl) {
+        logEl.textContent = '';
+        var errorP = document.createElement('p');
+        errorP.style.color = '#ff5252';
+        errorP.setAttribute('role', 'alert');
+        errorP.textContent = safeMsg;
+        logEl.appendChild(errorP);
+      }
+
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('❌ ' + safeMsg, 'error', 4000);
+      }
+    }
+  }
+
+  // ============================================
+  // 🔒 CERRAR AUDITORÍA
+  // ============================================
+  function closeAudit() {
+    try {
+      var modal = document.getElementById('auditModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+      log('🔒 Modal de auditoría cerrado', 'info');
+    } catch (error) {
+      log('❌ Error en closeAudit: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    }
+  }
+
+  // ============================================
+  // 📄 EXPORTAR AUDITORÍA
+  // ============================================
+  async function exportAudit(type) {
+    // ✅ Leer tier desde sessionStorage (NO variable global)
+    var userTier = 'personal';
+    try {
+      userTier = sessionStorage.getItem('userTier') || 'personal';
+    } catch (e) {}
+
+    if (userTier !== 'business' && userTier !== 'enterprise') {
+      log('⚠️ Esta función requiere plan Business o Enterprise', 'warning');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Función exclusiva para planes superiores', 'warning', 4000);
+      }
+      return;
+    }
+
+    // ✅ Sanitizar tipo con lista blanca
+    var safeType = String(type || '').toLowerCase().replace(/[^a-z]/g, '').substring(0, 20);
+    if (['gdpr', 'soc2', 'full'].indexOf(safeType) === -1) {
+      log('⚠️ Tipo de reporte inválido', 'warning');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Tipo de reporte inválido', 'warning', 3000);
+      }
+      return;
+    }
+
+    try {
+      log('📄 Generando reporte ' + safeType.toUpperCase() + '...', 'info');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('📄 Generando reporte...', 'info', 2000);
+      }
+
+      var res = await req('/api/audit/export?type=' + encodeURIComponent(safeType));
+
+      // ✅ Validar que haya datos
+      if (!res || !res.data) {
+        throw new Error('Respuesta sin datos');
+      }
+
+      // ✅ Limitar tamaño para evitar congelamiento (máx 10MB)
+      var jsonStr = JSON.stringify(res.data, null, 2);
+      if (jsonStr.length > 10 * 1024 * 1024) {
+        throw new Error('Reporte demasiado grande');
+      }
+
+      var blob = new Blob([jsonStr], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+
+      var date = new Date().toISOString().slice(0, 10);
+      a.download = 'apiromwiner-' + safeType + '-' + date + '.json';
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // ✅ Cleanup
+      setTimeout(function() {
+        URL.revokeObjectURL(url);
+      }, 1000);
+
+      log('✅ Reporte ' + safeType + ' descargado', 'success');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('✅ Reporte descargado', 'success', 3000);
+      }
+
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error exportando reporte';
+      
+      if (errMsg.includes('demasiado grande')) {
+        msg = '⚠️ Reporte demasiado grande. Contacta soporte';
+      } else if (errMsg.includes('403')) {
+        msg = '❌ No tienes permiso para exportar';
+      } else if (errMsg.includes('404')) {
+        msg = '❌ No hay datos para exportar';
+      }
+      
+      log('❌ Export: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 4000);
+      }
+    }
+  }
+
+  // ============================================
+  // 🌐 MOSTRAR WEBHOOKS
+  // ============================================
+  function showWebhooks() {
+    // ✅ Leer tier desde sessionStorage
+    var userTier = 'personal';
+    try {
+      userTier = sessionStorage.getItem('userTier') || 'personal';
+    } catch (e) {}
+
+    if (userTier !== 'enterprise') {
+      log('⚠️ Webhooks exclusivos para plan Enterprise', 'warning');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Función exclusiva para Enterprise', 'warning', 4000);
+      }
+      return;
+    }
+
+    try {
+      var modal = document.getElementById('webhookModal');
+      if (!modal) {
+        log('⚠️ Modal de webhooks no encontrado', 'warning');
+        return;
+      }
+      
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+
+      if (typeof window.loadWebhooks === 'function') {
+        window.loadWebhooks();
+      } else {
+        log('⚠️ loadWebhooks no disponible', 'warning');
+      }
+      
+    } catch (error) {
+      log('❌ Error en showWebhooks: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    }
+  }
+
+  // ============================================
+  // 🔒 CERRAR WEBHOOKS
+  // ============================================
+  function closeWebhooks() {
+    try {
+      var modal = document.getElementById('webhookModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+      log('🔒 Modal de webhooks cerrado', 'info');
+    } catch (error) {
+      log('❌ Error en closeWebhooks: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    }
+  }
+
+  // ============================================
+  // 🌐 EXPONER FUNCIONES
+  // ============================================
+  window.sanitizeForDisplay = sanitizeForDisplay;
+  window.sanitizeJSONForDisplay = sanitizeJSONForDisplay;
+  window.shareFile = shareFile;
+  window.genThumb = genThumb;
+  window.showVersions = showVersions;
+  window.addComment = addComment;
+  window.loadComments = loadComments;
+  window.showAuditLog = showAuditLog;
+  window.closeAudit = closeAudit;
+  window.exportAudit = exportAudit;
+  window.showWebhooks = showWebhooks;
+  window.closeWebhooks = closeWebhooks;
+
+})();
+</script>
+<script>
+// ============================================
+// 🛡️ MÓDULO WEBHOOKS, KEYS, QR, PROMO Y PWA - SEGURO
+// ============================================
+(function() {
+  'use strict';
+
+  // ============================================
+  // 🧹 SANITIZAR TEXTO (VERSIÓN UNIFICADA)
+  // ============================================
+  function sanitizeForDisplay(str, maxLen) {
+    if (!str) return '';
+    maxLen = maxLen || 100;
+    return String(str)
+      .trim()
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F\x7F]/g, '')
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '')
+      .substring(0, maxLen);
+  }
+
+  // ============================================
+  // 📋 SANITIZAR JSON PARA MOSTRAR
+  // ============================================
+  function sanitizeJSONForDisplay(obj, maxLen) {
+    maxLen = maxLen || 80;
+    try {
+      var json = JSON.stringify(obj);
+      var sanitized = sanitizeForDisplay(json, maxLen);
+      return json.length > maxLen ? sanitized + '...' : sanitized;
+    } catch (e) {
+      return sanitizeForDisplay(String(obj), maxLen);
+    }
+  }
+
+  // ============================================
+  // 🔐 VALIDAR URL DE WEBHOOK (ESTRICTA)
+  // ============================================
+  function isValidWebhookUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    
+    var trimmed = url.trim();
+    
+    // ✅ Debe empezar con https://
+    if (!/^https:\/\//i.test(trimmed)) {
+      return false;
+    }
+    
+    // ✅ Longitud razonable
+    if (trimmed.length < 12 || trimmed.length > 500) {
+      return false;
+    }
+    
+    try {
+      var parsed = new URL(trimmed);
+      
+      // ✅ Solo permitir puertos estándar (443 para HTTPS)
+      if (parsed.port && parsed.port !== '443') {
+        return false;
+      }
+      
+      // ✅ Bloquear IPs locales/privadas
+      var hostname = parsed.hostname.toLowerCase();
+      if (hostname === 'localhost' || 
+          hostname === '127.0.0.1' || 
+          hostname === '::1' ||
+          hostname === '0.0.0.0' ||
+          hostname.endsWith('.local') ||
+          hostname.endsWith('.internal') ||
+          /^10\./.test(hostname) ||
+          /^192\.168\./.test(hostname) ||
+          /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)) {
+        return false;
+      }
+      
+      // ✅ Debe tener un TLD válido (al menos un punto)
+      if (hostname.indexOf('.') === -1) {
+        return false;
+      }
+      
+      // ✅ No permitir caracteres sospechosos en path
+      if (/[<>"'`]/.test(trimmed)) {
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ============================================
+  // 🔐 VALIDAR URL INTERNA (ANTI OPEN REDIRECT)
+  // ============================================
+  function isValidInternalUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    
+    try {
+      // Permitir rutas relativas
+      if (url.charAt(0) === '/') {
+        // ✅ Evitar //evil.com (protocol-relative URLs)
+        if (url.charAt(1) === '/') return false;
+        return true;
+      }
+      
+      // Permitir same-origin
+      var parsed = new URL(url, window.location.origin);
+      return parsed.origin === window.location.origin;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ============================================
+  // 🎲 GENERAR ID ALEATORIO (sin crypto.randomUUID)
+  // ============================================
+  function generateRandomId() {
+    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var result = '';
+    var timestamp = Date.now().toString(36);
+    
+    for (var i = 0; i < 32; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    return timestamp + '-' + result;
+  }
+
+  // ============================================
+  // 🌐 CARGAR WEBHOOKS
+  // ============================================
+  function loadWebhooks() {
+    try {
+      var list = document.getElementById('webhookList');
+      if (list) {
+        // ✅ Usar textContent en lugar de innerHTML
+        list.textContent = '';
+        var p = document.createElement('p');
+        p.style.fontSize = '0.8rem';
+        p.style.color = '#8b95a5';
+        p.setAttribute('role', 'status');
+        p.textContent = 'ℹ️ Webhooks se gestionan vía API admin';
+        list.appendChild(p);
+      }
+    } catch (error) {
+      log('❌ Error en loadWebhooks: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    }
+  }
+
+  // ============================================
+  // 📡 REGISTRAR WEBHOOK (SEGURO)
+  // ============================================
+  async function registerWebhook() {
+    try {
+      var urlInput = document.getElementById('webhookUrl');
+      var eventsSelect = document.getElementById('webhookEvents');
+      var secretInput = document.getElementById('webhookSecret');
+      
+      var rawUrl = (urlInput && urlInput.value) ? urlInput.value.trim() : '';
+      var events = (eventsSelect && eventsSelect.value) ? eventsSelect.value : '';
+      
+      // ✅ VALIDACIÓN ESTRICTA DE URL
+      if (!isValidWebhookUrl(rawUrl)) {
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ URL inválida. Debe ser HTTPS, dominio público válido', 'error', 4000);
+        }
+        if (urlInput) {
+          urlInput.classList.add('error');
+          urlInput.focus();
+          setTimeout(function() {
+            if (urlInput) urlInput.classList.remove('error');
+          }, 2000);
+        }
+        return;
+      }
+      
+      // ✅ Validar evento
+      var eventosPermitidos = ['upload', 'download', 'share', 'delete', 'payment', 'all'];
+      var safeEvent = String(events).toLowerCase().replace(/[^a-z]/g, '').substring(0, 20);
+      if (eventosPermitidos.indexOf(safeEvent) === -1) {
+        safeEvent = 'all';
+      }
+      
+      // ✅ IMPORTANTE: NO enviar secret al servidor
+      // El backend debe generar el secret y devolverlo UNA SOLA VEZ
+      // Si el usuario proporcionó un secret, lo enviamos como "customSecret" 
+      // para que el backend decida si lo acepta (con validación propia)
+      var customSecret = null;
+      if (secretInput && secretInput.value && secretInput.value.trim().length >= 16) {
+        // ✅ Validar longitud mínima del secret personalizado
+        var secretTrimmed = secretInput.value.trim();
+        if (secretTrimmed.length > 128) {
+          if (typeof window.showNotification === 'function') {
+            window.showNotification('⚠️ Secret demasiado largo (máx 128 caracteres)', 'error', 3000);
+          }
+          return;
+        }
+        // ✅ Solo caracteres seguros
+        if (!/^[a-zA-Z0-9_\-]+$/.test(secretTrimmed)) {
+          if (typeof window.showNotification === 'function') {
+            window.showNotification('⚠️ Secret solo puede contener letras, números, _ y -', 'error', 3000);
+          }
+          return;
+        }
+        customSecret = secretTrimmed;
+      }
+      
+      // ✅ Llamar al backend
+      var payload = {
+        url: rawUrl,
+        events: [safeEvent]
+      };
+      
+      // ✅ Solo enviar customSecret si el usuario lo proporcionó
+      // El backend DEBE validarlo y generar uno propio si no se envía
+      if (customSecret) {
+        payload.customSecret = customSecret;
+      }
+      
+      var res = await req('/api/admin/webhooks', 'POST', payload);
+      
+      // ✅ IMPORTANTE: Si el backend devuelve el secret generado, mostrarlo UNA SOLA VEZ
+      if (res && res.generatedSecret) {
+        // ✅ Mostrar el secret al usuario con advertencia
+        var secretMsg = '⚠️ Guarda este secret (solo se muestra una vez):\n\n' + res.generatedSecret;
+        
+        if (typeof window.showNotification === 'function') {
+          window.showNotification(secretMsg, 'warning', 15000);
+        }
+        
+        log('⚠️ Webhook secret generado (mostrar una sola vez)', 'warning');
+      }
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('✅ Webhook registrado', 'success', 3000);
+      }
+      
+      log('✅ Webhook registrado', 'success');
+      
+      // ✅ Limpiar formulario
+      if (urlInput) urlInput.value = '';
+      if (secretInput) secretInput.value = '';
+      if (eventsSelect) eventsSelect.selectedIndex = 0;
+      
+      if (typeof window.closeWebhooks === 'function') {
+        window.closeWebhooks();
+      }
+      
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error registrando webhook';
+      
+      if (errMsg.includes('400')) {
+        msg = '❌ URL o datos inválidos';
+      } else if (errMsg.includes('403')) {
+        msg = '❌ No tienes permisos de administrador';
+      } else if (errMsg.includes('409')) {
+        msg = '⚠️ Ya existe un webhook para esa URL';
+      }
+      
+      log('❌ Webhook: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 4000);
+      }
+    }
+  }
+
+  // ============================================
+  // 🔄 ROTAR CLAVES (CON CONFIRMACIÓN)
+  // ============================================
+  async function rotateKeys() {
+    // ✅ Leer tier desde sessionStorage
+    var userTier = 'personal';
+    try {
+      userTier = sessionStorage.getItem('userTier') || 'personal';
+    } catch (e) {}
+    
+    if (userTier !== 'enterprise') {
+      log('⚠️ Rotación de claves exclusiva para Enterprise', 'warning');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Función exclusiva para Enterprise', 'warning', 4000);
+      }
+      return;
+    }
+    
+    // ✅ CONFIRMACIÓN OBLIGATORIA (operación destructiva)
+    var confirmacion1 = confirm('⚠️ ADVERTENCIA: Esta acción rotará todas las claves de cifrado.\n\nLos archivos existentes deberán ser re-cifrados.\n\n¿Continuar?');
+    if (!confirmacion1) {
+      log('ℹ️ Rotación de claves cancelada por usuario', 'info');
+      return;
+    }
+    
+    // ✅ Segunda confirmación para operaciones críticas
+    var confirmacion2 = confirm('⚠️ ÚLTIMA ADVERTENCIA:\n\nEsta acción no se puede deshacer.\nAsegúrate de tener una copia de seguridad.\n\n¿Estás completamente seguro?');
+    if (!confirmacion2) {
+      log('ℹ️ Rotación de claves cancelada en segunda confirmación', 'info');
+      return;
+    }
+    
+    try {
+      log('🔄 Iniciando rotación de claves...', 'info');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('🔄 Rotando claves... esto puede tardar', 'info', 5000);
+      }
+      
+      var res = await req('/api/admin/rotate-keys', 'POST', {});
+      
+      var safeMsg = sanitizeForDisplay((res && res.message) ? res.message : 'Rotación programada', 100);
+      log('✅ ' + safeMsg, 'success');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('✅ Rotación programada correctamente', 'success', 4000);
+      }
+      
+      // ✅ Refresh para actualizar UI
+      if (typeof window.refresh === 'function') {
+        setTimeout(function() {
+          window.refresh();
+        }, 2000);
+      }
+      
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error en rotación de claves';
+      
+      if (errMsg.includes('403')) {
+        msg = '❌ No tienes permisos de administrador';
+      } else if (errMsg.includes('409')) {
+        msg = '⚠️ Ya hay una rotación en progreso';
+      } else if (errMsg.includes('500')) {
+        msg = '❌ Error del servidor. Contacta soporte';
+      }
+      
+      log('❌ Rotación: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 5000);
+      }
+    }
+  }
+
+  // ============================================
+  // 💸 RETIRO (CON VALIDACIÓN)
+  // ============================================
+  async function withdraw() {
+    try {
+      // ✅ Verificar token
+      if (typeof window.getToken === 'function' && !window.getToken()) {
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ Inicia sesión para solicitar retiro', 'warning', 3000);
+        }
+        return;
+      }
+      
+      // ✅ Confirmación
+      var confirmacion = confirm('💸 ¿Deseas solicitar un retiro?\n\nTe contactaremos para coordinar el pago seguro.');
+      if (!confirmacion) return;
+      
+      // ✅ Enviar solicitud al backend
+      var res = await req('/api/wallet/withdraw', 'POST', {
+        requestedAt: new Date().toISOString()
+      });
+      
+      var safeMsg = (res && res.message) ? res.message : 'Solicitud enviada. Te contactaremos pronto.';
+      
+      log('💸 ' + sanitizeForDisplay(safeMsg, 100), 'info');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('💸 ' + sanitizeForDisplay(safeMsg, 150), 'info', 5000);
+      }
+      
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error solicitando retiro';
+      
+      if (errMsg.includes('400')) {
+        msg = '❌ Saldo insuficiente o datos inválidos';
+      } else if (errMsg.includes('429')) {
+        msg = '⏳ Ya tienes una solicitud pendiente';
+      }
+      
+      log('❌ Withdraw: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 4000);
+      }
+    }
+  }
+
+  // ============================================
+  // 🆔 MOSTRAR QR DE IDENTIDAD (100% LOCAL)
+  // ============================================
+  function showIdentityQR() {
+    try {
+      // ✅ Verificar sesión
+      var token = null;
+      if (typeof window.getToken === 'function') {
+        token = window.getToken();
+      }
+      
+      if (!token) {
+        log('⚠️ Sesión no válida', 'warning');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ Inicia sesión para ver tu identidad', 'warning', 3000);
+        }
+        return;
+      }
+      
+      // ✅ Leer datos de sessionStorage (NO variables globales)
+      var userEmail = 'usuario';
+      try {
+        var stored = sessionStorage.getItem('userEmail');
+        if (stored) {
+          userEmail = stored.split('@')[0] || 'usuario';
+        }
+      } catch (e) {}
+      
+      var userTier = 'personal';
+      try {
+        userTier = sessionStorage.getItem('userTier') || 'personal';
+      } catch (e) {}
+      
+      var refCode = 'ROM000';
+      try {
+        refCode = sessionStorage.getItem('refCode') || 'ROM000';
+      } catch (e) {}
+      
+      // ✅ Sanitizar cada campo
+      var safeData = {
+        email: sanitizeForDisplay(userEmail, 50),
+        ref: sanitizeForDisplay(refCode, 20).replace(/[^a-zA-Z0-9]/g, ''),
+        tier: sanitizeForDisplay(userTier, 20).replace(/[^a-z]/gi, '') || 'personal',
+        ts: Date.now()
+      };
+      
+      var jsonString = JSON.stringify(safeData);
+      
+      // ✅ Generar QR localmente
+      if (typeof window.generarQRLocal === 'function') {
+        window.generarQRLocal('idQrImg', jsonString, 200);
+      }
+      
+      // ✅ Mostrar datos sanitizados en UI
+      var dataEl = document.getElementById('idQrData');
+      if (dataEl) {
+        dataEl.textContent = sanitizeJSONForDisplay(safeData, 200);
+        dataEl.setAttribute('aria-label', 'Datos de identidad');
+      }
+      
+      // ✅ Mostrar modal con ARIA
+      var modal = document.getElementById('idModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+      
+      log('🆔 QR de identidad generado (100% local)', 'success');
+      
+    } catch (error) {
+      log('❌ Error en showIdentityQR: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('❌ Error mostrando identidad', 'error', 3000);
+      }
+    }
+  }
+
+  // ============================================
+  // 🔒 CERRAR MODAL DE IDENTIDAD
+  // ============================================
+  function closeIdModal() {
+    try {
+      var modal = document.getElementById('idModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+      log('🔒 Modal de identidad cerrado', 'info');
+    } catch (error) {
+      log('❌ Error en closeIdModal: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    }
+  }
+
+  // ============================================
+  // 🎁 VERIFICAR PROMO
+  // ============================================
+  async function checkPromo() {
+    try {
+      var s = await req('/api/promo/status');
+      if (s && s.active) {
+        var safeMsg = sanitizeForDisplay(s.message || '', 200);
+        log('🎁 ' + safeMsg, 'info');
+      }
+    } catch (e) {
+      log('⚠️ Error verificando promo', 'warning');
+    }
+  }
+
+  // ============================================
+  // 🎁 MOSTRAR PROMO (ANTI OPEN REDIRECT)
+  // ============================================
+  async function showPromo() {
+    // ✅ Verificar token
+    var token = null;
+    if (typeof window.getToken === 'function') {
+      token = window.getToken();
+    }
+    
+    if (!token) {
+      if (typeof window.scrollToAuth === 'function') {
+        window.scrollToAuth();
+      }
+      log('⚠️ Inicia sesión para acceder a la promo', 'warning');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Inicia sesión para acceder a la promo', 'warning', 3000);
+      }
+      return;
+    }
+    
+    try {
+      var r = await req('/api/promo/checkout', 'POST');
+      
+      if (r && r.demo) {
+        log('✅ Pago promocional activado ($25)', 'success');
+        
+        if (typeof window.refresh === 'function') {
+          window.refresh();
+        }
+        
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('✅ Promo activada', 'success', 3000);
+        }
+      } else if (r && r.url) {
+        // ✅ VALIDACIÓN ESTRICTA ANTI OPEN REDIRECT
+        var url = r.url;
+        
+        if (!isValidInternalUrl(url)) {
+          log('⚠️ URL de redirección inválida bloqueada: ' + sanitizeForDisplay(url, 100), 'warning');
+          if (typeof window.showNotification === 'function') {
+            window.showNotification('⚠️ Error de redirección', 'error', 3000);
+          }
+          return;
+        }
+        
+        // ✅ Redirigir solo si es URL interna válida
+        log('🔗 Redirigiendo a: ' + sanitizeForDisplay(url, 100), 'info');
+        window.location.href = url;
+      } else {
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ Promo no disponible', 'warning', 3000);
+        }
+      }
+      
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error procesando promo';
+      
+      if (errMsg.includes('401') || errMsg.includes('expirada')) {
+        msg = '❌ Sesión expirada';
+        if (typeof window.handleSessionExpired === 'function') {
+          window.handleSessionExpired();
+        }
+      } else if (errMsg.includes('404')) {
+        msg = '⚠️ Promo no disponible';
+      }
+      
+      log('❌ Promo: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 4000);
+      }
+    }
+  }
+
+  // ============================================
+  // 📲 PWA INSTALL
+  // ============================================
+  var deferredPrompt = null;
+  var pwaListenerAttached = false;
+
+  function setupPwaListener() {
+    if (pwaListenerAttached) return;
+    
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      
+      var installBtn = document.getElementById('installBtn');
+      if (installBtn) {
+        installBtn.style.display = 'inline-block';
+        installBtn.setAttribute('aria-label', 'Instalar aplicación');
+      }
+      
+      log('📲 App lista para instalar', 'info');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('📲 App lista para instalar', 'info', 3000);
+      }
+    });
+    
+    // ✅ Listener para cuando la app se instala
+    window.addEventListener('appinstalled', function() {
+      deferredPrompt = null;
+      var installBtn = document.getElementById('installBtn');
+      if (installBtn) {
+        installBtn.style.display = 'none';
+      }
+      log('✅ App instalada correctamente', 'success');
+    });
+    
+    pwaListenerAttached = true;
+  }
+
+  function installApp() {
+    if (!deferredPrompt) {
+      log('ℹ️ Usa el menú del navegador → "Agregar a pantalla de inicio"', 'info');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('ℹ️ Usa el menú del navegador para instalar', 'info', 4000);
+      }
+      return;
+    }
+    
     deferredPrompt.prompt();
-    deferredPrompt.userChoice?.then(function(res) {
-      if (res?.outcome === 'accepted') {
+    
+    deferredPrompt.userChoice.then(function(res) {
+      if (res && res.outcome === 'accepted') {
         log('✅ App instalada', 'success');
-        showNotification('✅ App instalada', 'success');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('✅ App instalada', 'success', 3000);
+        }
+      } else {
+        log('⚠️ Instalación cancelada', 'warning');
       }
       deferredPrompt = null;
-      const installBtn = document.getElementById('installBtn');
-      if (installBtn) installBtn.style.display = 'none';
-    }).catch(() => {
-      log('⚠️ Instalación cancelada', 'warning');
+      
+      var installBtn = document.getElementById('installBtn');
+      if (installBtn) {
+        installBtn.style.display = 'none';
+      }
+    }).catch(function(error) {
+      log('⚠️ Error en instalación: ' + (error && error.message ? error.message : 'desconocido'), 'warning');
+      deferredPrompt = null;
     });
-  } else {
-    log('ℹ️ Usa el menú del navegador → "Agregar a pantalla de inicio"', 'info');
-    showNotification('ℹ️ Usa el menú del navegador para instalar', 'info');
   }
-}
+
+  // ✅ Configurar listener PWA inmediatamente
+  setupPwaListener();
+
+  // ============================================
+  // 🌐 EXPONER FUNCIONES
+  // ============================================
+  window.sanitizeForDisplay = sanitizeForDisplay;
+  window.sanitizeJSONForDisplay = sanitizeJSONForDisplay;
+  window.isValidWebhookUrl = isValidWebhookUrl;
+  window.isValidInternalUrl = isValidInternalUrl;
+  window.loadWebhooks = loadWebhooks;
+  window.registerWebhook = registerWebhook;
+  window.rotateKeys = rotateKeys;
+  window.withdraw = withdraw;
+  window.showIdentityQR = showIdentityQR;
+  window.closeIdModal = closeIdModal;
+  window.checkPromo = checkPromo;
+  window.showPromo = showPromo;
+  window.installApp = installApp;
+
+})();
+</script>
 
 // === SERVICE WORKER - MEJORADO ===
 
