@@ -8833,78 +8833,395 @@ function closeMediaPlayer() {
 
 })();
 </script>
+<script>
+// ============================================
+// 🛡️ MÓDULO SERVICE WORKER, ZERO-KNOWLEDGE Y ONLINE STATUS
+// ============================================
+(function() {
+  'use strict';
 
-// === SERVICE WORKER - MEJORADO ===
+  // ============================================
+  // 🧹 SANITIZAR TEXTO (VERSIÓN LOCAL)
+  // ============================================
+  function sanitizeLocal(str, maxLen) {
+    if (!str) return '';
+    maxLen = maxLen || 100;
+    return String(str)
+      .trim()
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F\x7F]/g, '')
+      .substring(0, maxLen);
+  }
 
-if ('serviceWorker' in navigator) {
-  // ✅ Registrar solo si no está ya registrado
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    const alreadyRegistered = registrations.some(r => r.scope === window.location.origin + '/');
-    if (!alreadyRegistered) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(() => log('🛡️ Sistema seguro activo', 'success'))
-        .catch(e => log('⚠️ SW: ' + sanitizeForDisplay(e.message, 100), 'warning'));
+  // ============================================
+  // 📝 LOG LOCAL (fallback si no existe window.log)
+  // ============================================
+  function logLocal(mensaje, nivel) {
+    nivel = nivel || 'info';
+    var iconos = { info: 'ℹ️', warning: '⚠️', error: '❌', success: '✅' };
+    var icono = iconos[nivel] || 'ℹ️';
+    var msg = sanitizeLocal(mensaje, 300);
+    
+    if (typeof window.log === 'function') {
+      window.log(mensaje, nivel);
+    } else {
+      console.log(icono + ' [' + new Date().toLocaleTimeString() + '] ' + msg);
+    }
+  }
+
+  // ============================================
+  // 🛡️ SERVICE WORKER - REGISTRO SEGURO
+  // ============================================
+  function registerServiceWorker() {
+    try {
+      if (!('serviceWorker' in navigator)) {
+        logLocal('⚠️ Service Worker no soportado', 'warning');
+        return;
+      }
+
+      // ✅ Verificar que estamos en contexto seguro (HTTPS o localhost)
+      if (window.location.protocol !== 'https:' && 
+          window.location.hostname !== 'localhost' && 
+          window.location.hostname !== '127.0.0.1') {
+        logLocal('⚠️ SW requiere HTTPS', 'warning');
+        return;
+      }
+
+      // ✅ Verificar si ya está registrado
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        var alreadyRegistered = false;
+        var expectedScope = window.location.origin + '/';
+        
+        for (var i = 0; i < registrations.length; i++) {
+          if (registrations[i].scope === expectedScope) {
+            alreadyRegistered = true;
+            break;
+          }
+        }
+
+        if (alreadyRegistered) {
+          logLocal('🛡️ Service Worker ya registrado', 'info');
+          return;
+        }
+
+        // ✅ Registrar SW
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(reg) {
+            logLocal('🛡️ Sistema seguro activo', 'success');
+            
+            // ✅ Verificar actualizaciones periódicamente
+            setInterval(function() {
+              reg.update().catch(function(e) {
+                logLocal('⚠️ Error actualizando SW: ' + sanitizeLocal(e.message || 'desconocido', 100), 'warning');
+              });
+            }, 60 * 60 * 1000); // Cada hora
+          })
+          .catch(function(e) {
+            logLocal('⚠️ SW: ' + sanitizeLocal(e.message || 'desconocido', 100), 'warning');
+          });
+      }).catch(function(e) {
+        logLocal('⚠️ Error verificando SW: ' + sanitizeLocal(e.message || 'desconocido', 100), 'warning');
+      });
+
+    } catch (error) {
+      logLocal('❌ Error en registerServiceWorker: ' + sanitizeLocal(error.message || 'desconocido', 100), 'error');
+    }
+  }
+
+  // ✅ Registrar SW al cargar
+  registerServiceWorker();
+
+  // ============================================
+  // 🔐 ZERO-KNOWLEDGE - TOGGLE SEGURO
+  // ============================================
+  function toggleZeroKnowledge() {
+    try {
+      // ✅ VERIFICAR AUTENTICACIÓN antes de cambiar ZK
+      var token = null;
+      if (typeof window.getToken === 'function') {
+        token = window.getToken();
+      }
+      
+      if (!token) {
+        logLocal('⚠️ Inicia sesión para cambiar Zero-Knowledge', 'warning');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ Inicia sesión para cambiar Zero-Knowledge', 'warning', 3000);
+        }
+        // ✅ Revertir toggle visualmente
+        var zkToggle = document.getElementById('zkToggle');
+        if (zkToggle) zkToggle.checked = false;
+        return;
+      }
+
+      var zkToggle = document.getElementById('zkToggle');
+      if (!zkToggle) {
+        logLocal('⚠️ Toggle ZK no encontrado', 'warning');
+        return;
+      }
+
+      var enabled = !!zkToggle.checked;
+
+      // ✅ CONFIRMACIÓN para activar ZK (operación crítica)
+      if (enabled) {
+        var confirmacion = confirm(
+          '🔐 ACTIVAR ZERO-KNOWLEDGE\n\n' +
+          '⚠️ ADVERTENCIA IMPORTANTE:\n\n' +
+          '• Tus archivos serán cifrados con una clave que SOLO tú conoces\n' +
+          '• Si pierdes tu contraseña, NO podremos recuperar tus datos\n' +
+          '• El soporte técnico NO podrá acceder a tu contenido\n' +
+          '• Esta configuración se sincronizará con tu cuenta\n\n' +
+          '¿Estás seguro de activar Zero-Knowledge?'
+        );
+        
+        if (!confirmacion) {
+          // ✅ Revertir toggle
+          zkToggle.checked = false;
+          logLocal('ℹ️ Activación de ZK cancelada por usuario', 'info');
+          return;
+        }
+
+        // ✅ Segunda confirmación para operaciones críticas
+        var confirmacion2 = confirm(
+          '⚠️ ÚLTIMA ADVERTENCIA\n\n' +
+          'Una vez activado Zero-Knowledge:\n\n' +
+          '• NO podremos recuperar tu contraseña\n' +
+          '• NO podremos acceder a tus archivos cifrados\n' +
+          '• Si olvidas tu contraseña, perderás el acceso permanentemente\n\n' +
+          '¿Confirmas que entiendes y deseas continuar?'
+        );
+        
+        if (!confirmacion2) {
+          zkToggle.checked = false;
+          logLocal('ℹ️ Activación de ZK cancelada en segunda confirmación', 'info');
+          return;
+        }
+      } else {
+        // ✅ Confirmación para DESACTIVAR ZK
+        var confirmDesactivar = confirm(
+          '🔓 DESACTIVAR ZERO-KNOWLEDGE\n\n' +
+          '⚠️ Al desactivar Zero-Knowledge:\n\n' +
+          '• Los archivos existentes deberán ser descifrados\n' +
+          '• El servidor tendrá acceso a las claves de descifrado\n' +
+          '• Perderás la garantía de privacidad total\n\n' +
+          '¿Deseas continuar?'
+        );
+        
+        if (!confirmDesactivar) {
+          zkToggle.checked = true;
+          logLocal('ℹ️ Desactivación de ZK cancelada', 'info');
+          return;
+        }
+      }
+
+      // ✅ NOTIFICAR AL BACKEND del cambio de ZK
+      // Esto es CRÍTICO: el backend debe saber el estado real de ZK
+      var endpoint = enabled ? '/api/settings/zero-knowledge/enable' : '/api/settings/zero-knowledge/disable';
+      
+      req(endpoint, 'POST', {
+        enabled: enabled,
+        timestamp: new Date().toISOString()
+      }).then(function(res) {
+        // ✅ Éxito: guardar preferencia localmente
+        try {
+          sessionStorage.setItem('zeroKnowledge', enabled ? 'true' : 'false');
+        } catch (e) {}
+
+        // ✅ Actualizar UI
+        updateZeroKnowledgeUI(enabled);
+
+        logLocal(enabled ? '🔐 Zero-Knowledge: ACTIVADO' : '🔓 Zero-Knowledge: desactivado', 'success');
+        
+        if (typeof window.showNotification === 'function') {
+          var msg = enabled 
+            ? '🔐 Zero-Knowledge activado. Tus archivos están ahora bajo tu control total.'
+            : '🔓 Zero-Knowledge desactivado.';
+          window.showNotification(msg, enabled ? 'success' : 'info', 4000);
+        }
+
+      }).catch(function(e) {
+        // ✅ Error: REVERTIR toggle
+        zkToggle.checked = !enabled;
+        
+        var errMsg = (e && e.message) ? e.message : '';
+        var msg = '❌ Error cambiando Zero-Knowledge';
+        
+        if (errMsg.includes('400')) {
+          msg = '❌ Datos inválidos';
+        } else if (errMsg.includes('403')) {
+          msg = '❌ No tienes permisos para cambiar esta configuración';
+        } else if (errMsg.includes('409')) {
+          msg = '⚠️ Conflicto. Recarga la página e intenta de nuevo';
+        }
+        
+        logLocal('❌ ZK toggle: ' + sanitizeLocal(errMsg, 100), 'error');
+        
+        if (typeof window.showNotification === 'function') {
+          window.showNotification(msg, 'error', 4000);
+        }
+      });
+
+    } catch (error) {
+      logLocal('❌ Error en toggleZeroKnowledge: ' + sanitizeLocal(error.message || 'desconocido', 100), 'error');
+      
+      // ✅ Revertir toggle en caso de error
+      var zkToggle = document.getElementById('zkToggle');
+      if (zkToggle) {
+        zkToggle.checked = !zkToggle.checked;
+      }
+    }
+  }
+
+  // ============================================
+  // 🎨 ACTUALIZAR UI DE ZERO-KNOWLEDGE
+  // ============================================
+  function updateZeroKnowledgeUI(enabled) {
+    try {
+      var warning = document.getElementById('zkWarning');
+      if (warning) {
+        warning.style.display = enabled ? 'block' : 'none';
+        warning.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+      }
+
+      var exportWarning = document.getElementById('zkExportWarning');
+      if (exportWarning) {
+        if (enabled) {
+          exportWarning.classList.remove('hidden');
+        } else {
+          exportWarning.classList.add('hidden');
+        }
+        exportWarning.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+      }
+
+      // ✅ Actualizar badge visual si existe
+      var zkBadge = document.getElementById('zkBadge');
+      if (zkBadge) {
+        zkBadge.textContent = enabled ? '🔐 ZK ON' : '🔓 ZK OFF';
+        zkBadge.className = enabled ? 'zk-badge active' : 'zk-badge inactive';
+      }
+
+    } catch (error) {
+      logLocal('❌ Error en updateZeroKnowledgeUI: ' + sanitizeLocal(error.message || 'desconocido', 100), 'error');
+    }
+  }
+
+  // ============================================
+  // 📥 CARGAR PREFERENCIA ZERO-KNOWLEDGE
+  // ============================================
+  function loadZeroKnowledgePref() {
+    try {
+      // ✅ Leer desde sessionStorage (NO localStorage)
+      var zk = false;
+      try {
+        zk = sessionStorage.getItem('zeroKnowledge') === 'true';
+      } catch (e) {}
+
+      var toggle = document.getElementById('zkToggle');
+      if (toggle) {
+        toggle.checked = zk;
+        
+        // ✅ Agregar listener si no existe
+        if (!toggle.dataset.zkListenerAttached) {
+          toggle.addEventListener('change', toggleZeroKnowledge);
+          toggle.dataset.zkListenerAttached = 'true';
+        }
+      }
+
+      // ✅ Actualizar UI
+      updateZeroKnowledgeUI(zk);
+
+      logLocal('🔐 Preferencia ZK cargada: ' + (zk ? 'ACTIVADO' : 'desactivado'), 'info');
+
+    } catch (error) {
+      logLocal('❌ Error en loadZeroKnowledgePref: ' + sanitizeLocal(error.message || 'desconocido', 100), 'error');
+    }
+  }
+
+  // ✅ Cargar preferencia al iniciar
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      loadZeroKnowledgePref();
+    } catch (e) {
+      logLocal('⚠️ Error cargando preferencia ZK', 'warning');
     }
   });
-}
 
-// === ZERO-KNOWLEDGE - MEJORADO ===
+  // ============================================
+  // 🌐 ACTUALIZAR ESTADO ONLINE/OFFLINE
+  // ============================================
+  function updateOnlineStatus(isOnline) {
+    try {
+      var dot = document.getElementById('apiStatus');
+      var text = document.getElementById('statusText');
 
-function toggleZeroKnowledge() {
-  const zkToggle = document.getElementById('zkToggle');
-  const enabled = zkToggle?.checked;
-  
-  if (enabled !== undefined) {
-    localStorage.setItem('zeroKnowledge', enabled ? 'true' : 'false');
-    
-    const warning = document.getElementById('zkWarning');
-    if (warning) {
-      warning.style.display = enabled ? 'block' : 'none';
-      warning.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+      if (!dot || !text) {
+        return;
+      }
+
+      // ✅ Actualizar clase del indicador
+      if (isOnline) {
+        dot.className = 'status-dot online';
+      } else {
+        dot.className = 'status-dot offline';
+      }
+
+      // ✅ Accesibilidad
+      dot.setAttribute('aria-label', isOnline ? 'Conectado' : 'Desconectado');
+
+      // ✅ Obtener nombre de BD si existe
+      var db = '';
+      if (text.dataset && text.dataset.db) {
+        db = text.dataset.db;
+      }
+
+      // ✅ Actualizar texto
+      if (isOnline) {
+        text.textContent = '✅ Online' + (db ? ' • ' + db : '');
+        text.style.color = '#00e676';
+      } else {
+        text.textContent = '📴 Offline - Cambios se sincronizarán después';
+        text.style.color = '#ffb74d';
+      }
+
+      text.setAttribute('aria-live', 'polite');
+
+    } catch (error) {
+      logLocal('❌ Error en updateOnlineStatus: ' + sanitizeLocal(error.message || 'desconocido', 100), 'error');
     }
+  }
+
+  // ✅ Listeners de conexión
+  window.addEventListener('online', function() {
+    updateOnlineStatus(true);
+    logLocal('🟢 Conexión restaurada', 'success');
     
-    const exportWarning = document.getElementById('zkExportWarning');
-    if (exportWarning) {
-      exportWarning.classList.toggle('hidden', !enabled);
-      exportWarning.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+    // ✅ Intentar sincronizar cambios pendientes
+    if (typeof window.syncPendingChanges === 'function') {
+      window.syncPendingChanges();
     }
-    
-    log(enabled ? '🔐 Zero-Knowledge: ACTIVADO' : '🔓 Zero-Knowledge: desactivado', 'info');
-  }
-}
+  });
 
-function loadZeroKnowledgePref() {
-  const zk = localStorage.getItem('zeroKnowledge') === 'true';
-  
-  const toggle = document.getElementById('zkToggle');
-  if (toggle) toggle.checked = zk;
-  
-  const warning = document.getElementById('zkWarning');
-  if (warning) {
-    warning.style.display = zk ? 'block' : 'none';
-    warning.setAttribute('aria-hidden', zk ? 'false' : 'true');
-  }
-  
-  const exportWarning = document.getElementById('zkExportWarning');
-  if (exportWarning) {
-    exportWarning.classList.toggle('hidden', !zk);
-    exportWarning.setAttribute('aria-hidden', zk ? 'false' : 'true');
-  }
-}
-
-function updateOnlineStatus(isOnline) {
-  const dot = document.getElementById('apiStatus');
-  const text = document.getElementById('statusText');
-  
-  if (dot && text) {
-    dot.className = 'status-dot ' + (isOnline ? 'online' : 'offline');
-    dot.setAttribute('aria-label', isOnline ? 'Conectado' : 'Desconectado');
+  window.addEventListener('offline', function() {
+    updateOnlineStatus(false);
+    logLocal('🔴 Conexión perdida', 'warning');
     
-    const db = text.dataset?.db || '';
-    text.textContent = isOnline ? `✅ Online • ${db}` : '📴 Offline - Cambios se sincronizarán después';
-    text.setAttribute('aria-live', 'polite');
-  }
-}
+    if (typeof window.showNotification === 'function') {
+      window.showNotification('📴 Sin conexión. Los cambios se sincronizarán al reconectar', 'warning', 5000);
+    }
+  });
+
+  // ✅ Verificar estado inicial
+  updateOnlineStatus(navigator.onLine);
+
+  // ============================================
+  // 🌐 EXPONER FUNCIONES
+  // ============================================
+  window.registerServiceWorker = registerServiceWorker;
+  window.toggleZeroKnowledge = toggleZeroKnowledge;
+  window.loadZeroKnowledgePref = loadZeroKnowledgePref;
+  window.updateOnlineStatus = updateOnlineStatus;
+  window.updateZeroKnowledgeUI = updateZeroKnowledgeUI;
+
+})();
+</script>
 
 // === EXPORT/IMPORT/SYNC - FUNCIONES MEJORADAS ===
 
