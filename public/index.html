@@ -6701,521 +6701,755 @@ function closeMediaPlayer() {
 })();
 </script>
 
-// 🔐 Simular cifrado Envelope (local, sin conexiones externas)
-async function simulateEnvelopeEncryption(titulo, categoria) {
-  // ✅ En producción: usar WebCrypto API para cifrado real
-  // Aquí simulamos con hash + timestamp para demo segura
-  const data = `${titulo}|${categoria}|${Date.now()}|${Math.random().toString(36).slice(2)}`;
-  
-  // Hash simple (SHA-256 simulado para demo)
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  
-  // Retornar "contenido cifrado" simulado
-  return `ENC:v1:${Math.abs(hash).toString(16)}:${btoa(data).slice(0, 50)}...`;
-}
+<script>
+// ============================================
+// 🛡️ MÓDULO VAULT COMPLETO - SEGURO
+// ============================================
+(function() {
+  'use strict';
 
-// === VAULT: UPLOAD FILE - FUNCIONES FORTALECIDAS ===
+  // ============================================
+  // 🧹 SANITIZAR TEXTO (VERSIÓN UNIFICADA)
+  // ============================================
+  function sanitizeForDisplay(str, maxLen) {
+    if (!str) return '';
+    maxLen = maxLen || 100;
+    return String(str)
+      .trim()
+      // ✅ ELIMINAR todos los caracteres peligrosos (NO escapar)
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F\x7F]/g, '')
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '')
+      .substring(0, maxLen);
+  }
 
-// ✅ Abrir modal con reset completo y foco accesible
-function openUpload() {
-  const modal = document.getElementById('uploadModal');
-  if (!modal) return;
-  
-  modal.classList.remove('hidden');
-  modal.setAttribute('aria-hidden', 'false');
-  
-  // ✅ Resetear todos los campos con null checks
-  const fields = [
-    { id: 'uploadTitle', type: 'text', reset: '' },
-    { id: 'uploadFile', type: 'file', reset: '' },
-    { id: 'uploadPrice', type: 'number', reset: '' },
-    { id: 'uploadForSale', type: 'checkbox', reset: false }
-  ];
-  
-  fields.forEach(({ id, type, reset }) => {
-    const el = document.getElementById(id);
-    if (el) {
-      if (type === 'checkbox') el.checked = reset;
-      else el.value = reset;
-      el.classList.remove('error');
-      el.removeAttribute('aria-invalid');
-    }
-  });
-  
-  // ✅ Resetear UI de progreso
-  const progress = document.getElementById('uploadProgress');
-  const progressFill = document.getElementById('uploadProgressFill');
-  const status = document.getElementById('uploadStatus');
-  const btn = document.getElementById('uploadBtn');
-  const priceSection = document.getElementById('priceSection');
-  
-  if (progress) progress.classList.add('hidden');
-  if (progressFill) progressFill.style.width = '0%';
-  if (status) {
-    status.textContent = '';
-    status.style.color = '';
+  // ============================================
+  // 🔐 SANITIZAR NOMBRE DE ARCHIVO
+  // ============================================
+  function sanitizeFileName(name) {
+    if (!name || typeof name !== 'string') return 'archivo';
+    
+    return String(name)
+      .trim()
+      // Eliminar caracteres peligrosos
+      .replace(/[<>:"/\\|?*\x00-\x1F\x7F]/g, '_')
+      // Reemplazar espacios con guiones
+      .replace(/\s+/g, '_')
+      // Solo permitir caracteres seguros
+      .replace(/[^a-zA-Z0-9._\-]/g, '')
+      .substring(0, 100) || 'archivo';
   }
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = '✅ Subir y Cifrar';
-  }
-  if (priceSection) priceSection.style.display = 'none';
-  
-  // ✅ Enfocar primer input para accesibilidad
-  const titleInput = document.getElementById('uploadTitle');
-  if (titleInput) {
-    setTimeout(() => titleInput.focus(), 100);
-  }
-}
 
-// ✅ Cerrar modal con limpieza de estado
-function closeUpload() {
-  const modal = document.getElementById('uploadModal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
+  // ============================================
+  // 🔢 SANITIZAR ID PARA EVENTOS
+  // ============================================
+  function sanitizeIdForEvent(str) {
+    if (!str) return '';
+    return String(str).replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
   }
-}
 
-// ✅ Event listener para toggle de precio (con cleanup)
-let uploadForSaleListener = null;
-function setupUploadForSaleListener() {
-  // ✅ Evitar múltiples listeners
-  if (uploadForSaleListener) return;
-  
-  const toggle = document.getElementById('uploadForSale');
-  const priceSection = document.getElementById('priceSection');
-  
-  if (toggle && priceSection) {
-    uploadForSaleListener = function(e) {
-      priceSection.style.display = e.target.checked ? 'block' : 'none';
-      // ✅ Resetear precio al desmarcar
-      if (!e.target.checked) {
-        const priceInput = document.getElementById('uploadPrice');
-        if (priceInput) priceInput.value = '';
+  // ============================================
+  // 🔐 CIFRADO ENVELOPE SIMULADO (MEJORADO)
+  // ============================================
+  function simulateEnvelopeEncryption(titulo, categoria) {
+    try {
+      var data = {
+        t: titulo,
+        c: categoria,
+        ts: Date.now(),
+        r: Math.random().toString(36).slice(2, 12)
+      };
+      
+      var json = JSON.stringify(data);
+      
+      // ✅ Codificación base64 (NO es cifrado real, solo ofuscación)
+      // En producción: usar WebCrypto API
+      var encoded = btoa(unescape(encodeURIComponent(json)));
+      
+      // ✅ Hash simple para identificación
+      var hash = 0;
+      for (var i = 0; i < json.length; i++) {
+        var char = json.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
       }
-    };
-    toggle.addEventListener('change', uploadForSaleListener);
+      
+      return 'ENC:v2:' + Math.abs(hash).toString(16) + ':' + encoded.slice(0, 50) + '...';
+      
+    } catch (error) {
+      return 'ENC:error';
+    }
   }
-}
-// ✅ Llamar una vez al iniciar la app
-document.addEventListener('DOMContentLoaded', setupUploadForSaleListener);
 
-// ✅ Flag para prevenir uploads simultáneos
-let isUploading = false;
-
-// ✅ Subir archivo con validaciones robustas y cleanup garantizado
-async function doUpload(event) {
-  if (event) event.preventDefault();
-  
-  // ✅ Prevenir múltiples uploads simultáneos
-  if (isUploading) {
-    showNotification('⚠️ Ya hay una subida en progreso', 'warning');
-    return;
-  }
-  
-  // ✅ Obtener y sanitizar inputs
-  const titleInput = document.getElementById('uploadTitle');
-  const fileInput = document.getElementById('uploadFile');
-  const catSelect = document.getElementById('uploadCat');
-  const forSaleCheck = document.getElementById('uploadForSale');
-  const priceInput = document.getElementById('uploadPrice');
-  
-  const rawTitle = titleInput?.value || '';
-  const titulo = sanitizeForDisplay(rawTitle, 100);
-  const cat = catSelect?.value || 'general';
-  const file = fileInput?.files?.[0];
-  const forSale = !!forSaleCheck?.checked;
-  const price = forSale ? (parseFloat(priceInput?.value) || 0) : 0;
-  
-  // ✅ Validaciones con feedback visual
-  if (!titulo || titulo.length < 3) {
-    showNotification('⚠️ El título debe tener al menos 3 caracteres', 'error');
-    if (titleInput) {
-      titleInput.classList.add('error');
-      titleInput.setAttribute('aria-invalid', 'true');
-      titleInput.focus();
-      setTimeout(() => {
-        titleInput.classList.remove('error');
-        titleInput.removeAttribute('aria-invalid');
-      }, 2000);
-    }
-    return;
-  }
-  
-  if (!file) {
-    showNotification('⚠️ Selecciona un archivo para subir', 'error');
-    if (fileInput) {
-      fileInput.classList.add('error');
-      fileInput.focus();
-      setTimeout(() => fileInput.classList.remove('error'), 2000);
-    }
-    return;
-  }
-  
-  // ✅ Validar tipo de archivo (lista blanca segura)
-  const allowedTypes = [
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'application/pdf', 'application/msword', 
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain', 'text/markdown',
-    'audio/mpeg', 'audio/wav', 'audio/ogg',
-    'video/mp4', 'video/webm',
-    'application/zip', 'application/x-rar-compressed'
-  ];
-  const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'txt', 'md', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'zip', 'rar'];
-  
-  const ext = file.name.split('.').pop()?.toLowerCase() || '';
-  if (!allowedTypes.includes(file.type) && !allowedExts.includes(ext)) {
-    showNotification(`⚠️ Formato no soportado: .${ext}`, 'error');
-    if (fileInput) {
-      fileInput.value = ''; // Limpiar selección inválida
-      fileInput.classList.add('error');
-      setTimeout(() => fileInput.classList.remove('error'), 2000);
-    }
-    return;
-  }
-  
-  // ✅ Validar tamaño según tier
-  const maxSizeMB = { personal: 100, business: 500, enterprise: 5000 }[userTier] || 100;
-  const fileMB = file.size / (1024 * 1024);
-  
-  if (fileMB > maxSizeMB) {
-    showNotification(`⚠️ Archivo muy grande (${fileMB.toFixed(1)}MB). Tu plan permite hasta ${maxSizeMB}MB`, 'error');
-    return;
-  }
-  
-  // ✅ Validar precio si es para venta
-  if (forSale && (isNaN(price) || price < 1 || price > 9999)) {
-    showNotification('⚠️ El precio debe estar entre $1.00 y $9,999.00 USD', 'error');
-    if (priceInput) {
-      priceInput.classList.add('error');
-      priceInput.focus();
-      setTimeout(() => priceInput.classList.remove('error'), 2000);
-    }
-    return;
-  }
-  
-  // ✅ Referencias UI con null checks
-  const progress = document.getElementById('uploadProgress');
-  const progressFill = document.getElementById('uploadProgressFill');
-  const status = document.getElementById('uploadStatus');
-  const btn = document.getElementById('uploadBtn');
-  
-  // ✅ Marcar como subiendo
-  isUploading = true;
-  
-  // UI: estado de carga
-  if (progress) progress.classList.remove('hidden');
-  if (progressFill) {
-    progressFill.style.width = '0%';
-    progressFill.setAttribute('aria-valuenow', '0');
-  }
-  if (status) {
-    status.textContent = '🔐 Cifrando archivo...';
-    status.style.color = '#00e676';
-    status.setAttribute('aria-live', 'polite');
-  }
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = '⏳ Subiendo...';
-    btn.setAttribute('aria-busy', 'true');
-  }
-  
-  // ✅ Control de progreso con cleanup garantizado
-  let prog = 0;
-  let interval = null;
-  const startProgress = () => {
-    interval = setInterval(() => {
-      prog = Math.min(90, prog + Math.random() * 8 + 2); // Progreso realista
+  // ============================================
+  // 📤 ABRIR MODAL DE UPLOAD
+  // ============================================
+  function openUpload() {
+    try {
+      var modal = document.getElementById('uploadModal');
+      if (!modal) {
+        log('⚠️ Modal de upload no encontrado', 'warning');
+        return;
+      }
+      
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      
+      // ✅ Resetear todos los campos
+      var fields = [
+        { id: 'uploadTitle', type: 'text' },
+        { id: 'uploadFile', type: 'file' },
+        { id: 'uploadPrice', type: 'number' },
+        { id: 'uploadForSale', type: 'checkbox' },
+        { id: 'uploadCat', type: 'select' }
+      ];
+      
+      for (var i = 0; i < fields.length; i++) {
+        var el = document.getElementById(fields[i].id);
+        if (el) {
+          if (fields[i].type === 'checkbox') {
+            el.checked = false;
+          } else if (fields[i].type === 'select') {
+            el.selectedIndex = 0;
+          } else {
+            el.value = '';
+          }
+          el.classList.remove('error');
+          el.removeAttribute('aria-invalid');
+        }
+      }
+      
+      // ✅ Resetear UI de progreso
+      var progress = document.getElementById('uploadProgress');
+      var progressFill = document.getElementById('uploadProgressFill');
+      var status = document.getElementById('uploadStatus');
+      var btn = document.getElementById('uploadBtn');
+      var priceSection = document.getElementById('priceSection');
+      
+      if (progress) progress.classList.add('hidden');
       if (progressFill) {
-        progressFill.style.width = Math.round(prog) + '%';
-        progressFill.setAttribute('aria-valuenow', Math.round(prog));
+        progressFill.style.width = '0%';
+        progressFill.setAttribute('aria-valuenow', '0');
       }
-    }, 250);
-  };
+      if (status) {
+        status.textContent = '';
+        status.style.color = '';
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '✅ Subir y Cifrar';
+        btn.removeAttribute('aria-busy');
+      }
+      if (priceSection) priceSection.style.display = 'none';
+      
+      // ✅ Configurar listener de toggle de precio
+      setupUploadForSaleListener();
+      
+      // ✅ Enfocar primer input
+      var titleInput = document.getElementById('uploadTitle');
+      if (titleInput) {
+        setTimeout(function() {
+          try {
+            titleInput.focus();
+          } catch (e) {}
+        }, 100);
+      }
+      
+      log('📤 Modal de upload abierto', 'info');
+      
+    } catch (error) {
+      log('❌ Error en openUpload: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    }
+  }
+
+  // ============================================
+  // 🔒 CERRAR MODAL DE UPLOAD
+  // ============================================
+  function closeUpload() {
+    try {
+      var modal = document.getElementById('uploadModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+      
+      // ✅ LIMPIAR file input (crítico)
+      var fileInput = document.getElementById('uploadFile');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
+      log('🔒 Modal de upload cerrado', 'info');
+      
+    } catch (error) {
+      log('❌ Error en closeUpload: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    }
+  }
+
+  // ============================================
+  // 🎛️ LISTENER DE TOGGLE PRECIO
+  // ============================================
+  var uploadForSaleListenerAttached = false;
   
-  const stopProgress = () => {
-    if (interval) {
-      clearInterval(interval);
-      interval = null;
+  function setupUploadForSaleListener() {
+    if (uploadForSaleListenerAttached) return;
+    
+    var toggle = document.getElementById('uploadForSale');
+    var priceSection = document.getElementById('priceSection');
+    
+    if (toggle && priceSection) {
+      toggle.addEventListener('change', function(e) {
+        priceSection.style.display = e.target.checked ? 'block' : 'none';
+        
+        if (!e.target.checked) {
+          var priceInput = document.getElementById('uploadPrice');
+          if (priceInput) priceInput.value = '';
+        }
+      });
+      
+      uploadForSaleListenerAttached = true;
     }
-  };
-  
-  try {
-    // ✅ Iniciar progreso simulado
-    startProgress();
+  }
+
+  // ✅ Configurar listener inmediatamente (no esperar DOMContentLoaded)
+  setupUploadForSaleListener();
+
+  // ============================================
+  // 📦 FLAG DE UPLOAD EN PROGRESO
+  // ============================================
+  var isUploading = false;
+
+  // ============================================
+  // 📤 SUBIR ARCHIVO (COMPLETO Y SEGURO)
+  // ============================================
+  async function doUpload(event) {
+    if (event) event.preventDefault();
     
-    // ✅ Preparar FormData con validación
-    const formData = new FormData();
-    formData.append('titulo', titulo);
-    formData.append('categoria', cat);
-    formData.append('forSale', forSale.toString());
-    if (forSale) formData.append('price', price.toFixed(2));
-    formData.append('archivo', file, file.name); // ✅ Nombre original preservado
-    
-    // ✅ Headers seguros
-    const headers = { 'Authorization': `Bearer ${token}` };
-    
-    // ✅ Fetch con AbortController para cancelación
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2min timeout para uploads grandes
-    
-    // ✅ Enviar al backend
-    const r = await fetch(API + '/vault', {
-      method: 'POST',
-      headers,
-      body: formData,
-      signal: controller.signal,
-      credentials: 'same-origin'
-    });
-    
-    clearTimeout(timeoutId);
-    stopProgress();
-    
-    // ✅ Procesar respuesta
-    if (progressFill) {
-      progressFill.style.width = '100%';
-      progressFill.setAttribute('aria-valuenow', '100');
+    // ✅ Prevenir múltiples uploads
+    if (isUploading) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⏳ Ya hay una subida en progreso', 'warning', 2000);
+      }
+      return;
     }
     
-    const j = await r.json?.() || {};
-    
-    if (!r.ok) {
-      throw new Error(j.error || `Error HTTP ${r.status}`);
+    // ✅ Verificar token antes de continuar
+    var token = null;
+    if (typeof window.getToken === 'function') {
+      token = window.getToken();
     }
     
-    // ✅ Éxito
-    if (status) {
-      status.textContent = '✅ Archivo subido y cifrado';
-      status.style.color = '#00e676';
+    if (!token) {
+      log('⚠️ Sin token, no se puede subir', 'warning');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Inicia sesión para subir archivos', 'warning', 3000);
+      }
+      if (typeof window.handleSessionExpired === 'function') {
+        window.handleSessionExpired();
+      }
+      return;
     }
     
-    // ✅ Sanitizar título antes de loguear (previene XSS)
-    const safeTitle = sanitizeForDisplay(titulo, 50);
-    log(`📦 ${safeTitle} guardado • ${fileMB.toFixed(1)}MB • ${cat}`, 'success');
-    showNotification('✅ Archivo subido exitosamente', 'success');
+    // ✅ Obtener elementos
+    var titleInput = document.getElementById('uploadTitle');
+    var fileInput = document.getElementById('uploadFile');
+    var catSelect = document.getElementById('uploadCat');
+    var forSaleCheck = document.getElementById('uploadForSale');
+    var priceInput = document.getElementById('uploadPrice');
     
-    // ✅ Reset y refresh con delay para feedback visual
-    setTimeout(() => {
-      closeUpload();
-      if (typeof refresh === 'function') refresh();
-      if (typeof showVault === 'function') showVault();
-    }, 1200);
+    var rawTitle = (titleInput && titleInput.value) ? titleInput.value : '';
+    var titulo = sanitizeForDisplay(rawTitle, 100);
+    var cat = (catSelect && catSelect.value) ? catSelect.value : 'general';
+    var file = (fileInput && fileInput.files && fileInput.files[0]) ? fileInput.files[0] : null;
+    var forSale = forSaleCheck ? !!forSaleCheck.checked : false;
+    var price = forSale ? (parseFloat(priceInput && priceInput.value ? priceInput.value : '0') || 0) : 0;
     
-  } catch (e) {
-    stopProgress();
+    // ============================================
+    // 🧪 VALIDACIONES
+    // ============================================
     
-    // ✅ Resetear progreso visual
+    // Título
+    if (!titulo || titulo.length < 3) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ El título debe tener al menos 3 caracteres', 'error', 3000);
+      }
+      if (titleInput) {
+        titleInput.classList.add('error');
+        titleInput.setAttribute('aria-invalid', 'true');
+        titleInput.focus();
+        setTimeout(function() {
+          if (titleInput) {
+            titleInput.classList.remove('error');
+            titleInput.removeAttribute('aria-invalid');
+          }
+        }, 2000);
+      }
+      return;
+    }
+    
+    // Archivo
+    if (!file) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Selecciona un archivo para subir', 'error', 3000);
+      }
+      if (fileInput) {
+        fileInput.classList.add('error');
+        fileInput.focus();
+        setTimeout(function() {
+          if (fileInput) fileInput.classList.remove('error');
+        }, 2000);
+      }
+      return;
+    }
+    
+    // ✅ Lista blanca de tipos de archivo
+    var allowedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain', 'text/markdown',
+      'audio/mpeg', 'audio/wav', 'audio/ogg',
+      'video/mp4', 'video/webm',
+      'application/zip', 'application/x-rar-compressed'
+    ];
+    
+    var allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'txt', 'md', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'zip', 'rar'];
+    
+    var fileName = sanitizeFileName(file.name);
+    var extParts = fileName.split('.');
+    var ext = extParts.length > 1 ? extParts[extParts.length - 1].toLowerCase() : '';
+    
+    if (allowedTypes.indexOf(file.type) === -1 && allowedExts.indexOf(ext) === -1) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Formato no soportado: .' + ext, 'error', 3000);
+      }
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.classList.add('error');
+        setTimeout(function() {
+          if (fileInput) fileInput.classList.remove('error');
+        }, 2000);
+      }
+      return;
+    }
+    
+    // ✅ Validar tamaño según tier
+    var userTier = 'personal';
+    try {
+      userTier = sessionStorage.getItem('userTier') || 'personal';
+    } catch (e) {}
+    
+    var maxSizeMB = 100;
+    if (userTier === 'business') maxSizeMB = 500;
+    else if (userTier === 'enterprise') maxSizeMB = 5000;
+    
+    var fileMB = file.size / (1024 * 1024);
+    
+    if (fileMB > maxSizeMB) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Archivo muy grande (' + fileMB.toFixed(1) + 'MB). Tu plan permite hasta ' + maxSizeMB + 'MB', 'error', 4000);
+      }
+      return;
+    }
+    
+    // Validar precio
+    if (forSale && (isNaN(price) || price < 1 || price > 9999)) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ El precio debe estar entre $1.00 y $9,999.00 USD', 'error', 3000);
+      }
+      if (priceInput) {
+        priceInput.classList.add('error');
+        priceInput.focus();
+        setTimeout(function() {
+          if (priceInput) priceInput.classList.remove('error');
+        }, 2000);
+      }
+      return;
+    }
+    
+    // ============================================
+    // 🎨 UI: ESTADO DE CARGA
+    // ============================================
+    var progress = document.getElementById('uploadProgress');
+    var progressFill = document.getElementById('uploadProgressFill');
+    var status = document.getElementById('uploadStatus');
+    var btn = document.getElementById('uploadBtn');
+    
+    isUploading = true;
+    
+    if (progress) progress.classList.remove('hidden');
     if (progressFill) {
       progressFill.style.width = '0%';
       progressFill.setAttribute('aria-valuenow', '0');
     }
-    
-    // ✅ Mensajes de error específicos
-    let errorMsg = e.message;
-    if (e.name === 'AbortError') {
-      errorMsg = '⏱️ La subida tardó demasiado. Verifica tu conexión.';
-    } else if (errorMsg.includes('401')) {
-      errorMsg = '❌ Sesión expirada. Inicia sesión de nuevo.';
-    } else if (errorMsg.includes('413')) {
-      errorMsg = '⚠️ Archivo demasiado grande para el servidor.';
-    } else if (errorMsg.includes('400')) {
-      errorMsg = '❌ Datos inválidos. Verifica el formulario.';
-    }
-    
     if (status) {
-      status.textContent = '❌ Error: ' + sanitizeForDisplay(errorMsg, 100);
-      status.style.color = '#ff5252';
+      status.textContent = '🔐 Cifrando archivo...';
+      status.style.color = '#00e676';
+      status.setAttribute('aria-live', 'polite');
     }
-    
-    log('❌ Upload fallido: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(sanitizeForDisplay(errorMsg, 100), 'error');
-    console.error('Upload error details:', { name: e.name, message: e.message, stack: e.stack });
-    
-  } finally {
-    // ✅ Cleanup garantizado: siempre restaurar UI
-    isUploading = false;
-    stopProgress(); // ✅ Asegurar que el intervalo se limpie
-    
     if (btn) {
-      btn.disabled = false;
-      btn.textContent = '✅ Subir y Cifrar';
-      btn.removeAttribute('aria-busy');
-    }
-  }
-}
-// ✅ Helper para sanitizar texto antes de insertar en DOM/logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
-    .substring(0, maxLen);
-}
-
-// ✅ Helper para sanitizar IDs usados en onclick (previene inyección de código)
-function sanitizeIdForEvent(str) {
-  if (!str) return '';
-  return String(str).replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
-}
-
-// === VAULT: LIST - FUNCIONES MEJORADAS ===
-
-// ✅ Mostrar vault con sanitización y accesibilidad
-async function showVault() {
-  try {
-    const modal = document.getElementById('vaultModal');
-    const list = document.getElementById('vaultList');
-    
-    if (!modal || !list) {
-      log('⚠️ Elementos del vault no encontrados', 'warning');
-      return;
+      btn.disabled = true;
+      btn.textContent = '⏳ Subiendo...';
+      btn.setAttribute('aria-busy', 'true');
     }
     
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false'); // ✅ Accesibilidad
+    // ✅ Control de progreso
+    var prog = 0;
+    var interval = null;
     
-    list.innerHTML = '<p style="text-align:center;color:#8b95a5" role="status">🔄 Cargando...</p>';
-    
-    const res = await req('/vault');
-    const items = res.items || [];
-    
-    if (items.length === 0) {
-      list.innerHTML = '<p style="text-align:center;color:#8b95a5" role="status">📭 Tu vault está vacío</p>';
-      return;
-    }
-    
-    // ✅ Crear elementos con createElement en lugar de innerHTML con datos dinámicos
-    list.innerHTML = '';
-    items.forEach(item => {
-      try {
-        const card = document.createElement('div');
-        card.className = 'vault-item';
-        card.setAttribute('role', 'listitem');
-        
-        // Header
-        const header = document.createElement('div');
-        header.className = 'vault-item-header';
-        
-        const title = document.createElement('span');
-        title.className = 'vault-item-title';
-        // ✅ Sanitizar título antes de insertar
-        title.textContent = sanitizeForDisplay(item.titulo, 100) || 'Sin título';
-        
-        header.appendChild(title);
-        
-        if (item.isForSale) {
-          const badge = document.createElement('span');
-          badge.className = 'encryption-badge';
-          badge.textContent = `💰 $${Number(item.price || 0).toFixed(2)}`;
-          header.appendChild(badge);
+    var startProgress = function() {
+      interval = setInterval(function() {
+        prog = Math.min(90, prog + Math.random() * 8 + 2);
+        if (progressFill) {
+          progressFill.style.width = Math.round(prog) + '%';
+          progressFill.setAttribute('aria-valuenow', String(Math.round(prog)));
         }
-        
-        card.appendChild(header);
-        
-        // Meta
-        const meta = document.createElement('div');
-        meta.className = 'vault-item-meta';
-        const tipo = item.tipo === 'archivo' 
-          ? `📁 ${sanitizeForDisplay(item.fileName, 50)}` 
-          : '📝 Texto';
-        const categoria = sanitizeForDisplay(item.categoria, 30);
-        meta.textContent = `${tipo} • ${categoria} • 🔐 Cifrado`;
-        card.appendChild(meta);
-        
-        // Actions
-        const actions = document.createElement('div');
-        actions.style.cssText = 'margin-top:8px;display:flex;flex-wrap:wrap;gap:4px';
-        
-        // ✅ Usar dataset + event listeners en lugar de onclick inline
-        const isMedia = item.fileName && (
-          item.fileName.toLowerCase().endsWith('.mp4') || 
-          item.fileName.toLowerCase().endsWith('.mp3') || 
-          item.fileName.toLowerCase().endsWith('.wav') || 
-          item.fileName.toLowerCase().endsWith('.ogg')
-        );
-        
-        if (isMedia) {
-          const playBtn = document.createElement('button');
-          playBtn.className = 'play-btn';
-          playBtn.textContent = '▶️ Reproducir';
-          playBtn.dataset.fileId = sanitizeIdForEvent(item._id);
-          playBtn.dataset.mediaType = item.fileName.toLowerCase().includes('mp4') ? 'video' : 'audio';
-          playBtn.addEventListener('click', () => {
-            if (typeof playMedia === 'function') {
-              playMedia(playBtn.dataset.fileId, playBtn.dataset.mediaType);
-            }
-          });
-          actions.appendChild(playBtn);
-        }
-        
-        // Botones genéricos con dataset
-        const actionsConfig = [
-          { label: '🔗 Compartir', fn: 'shareFile', color: '#29b6f6' },
-          { label: '🌿 Git', fn: 'showGitLog', color: '#8ab4f8' },
-          { label: '🖼️ Thumb', fn: 'genThumb', color: '#66bb6a' },
-          { label: '📜 Historial', fn: 'showVersions', color: '#ffa726' },
-          { label: '💬 Comentar', fn: 'addComment', color: '#ab47bc' },
-          { label: '👁️ Ver', fn: 'loadComments', color: '#8b95a5' }
-        ];
-        
-        actionsConfig.forEach(({ label, fn, color }) => {
-          const btn = document.createElement('button');
-          btn.textContent = label;
-          btn.style.cssText = `width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid ${color};color:${color}`;
-          btn.dataset.fileId = sanitizeIdForEvent(item._id);
-          btn.addEventListener('click', () => {
-            if (typeof window[fn] === 'function') {
-              window[fn](btn.dataset.fileId);
-            }
-          });
-          actions.appendChild(btn);
-        });
-        
-        card.appendChild(actions);
-        
-        // Sales
-        if (item.sales > 0) {
-          const salesMeta = document.createElement('div');
-          salesMeta.className = 'vault-item-meta';
-          salesMeta.textContent = `📈 ${item.sales} ventas`;
-          card.appendChild(salesMeta);
-        }
-        
-        list.appendChild(card);
-      } catch (e) {
-        console.error('❌ Error renderizando item:', item._id, e);
+      }, 250);
+    };
+    
+    var stopProgress = function() {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
       }
-    });
+    };
     
-    log(`🗄️ Vault: ${items.length} activos`, 'success');
-    
-  } catch (e) {
-    // ✅ Mensaje seguro: no exponer detalles internos
-    const safeMsg = 'Error cargando vault';
-    log('❌ Vault: ' + sanitizeForDisplay(e.message, 100), 'error');
-    
-    const list = document.getElementById('vaultList');
-    if (list) {
-      list.innerHTML = `<p style="color:#ff5252" role="alert">${safeMsg}</p>`;
+    try {
+      startProgress();
+      
+      // ✅ Preparar FormData
+      var formData = new FormData();
+      formData.append('titulo', titulo);
+      formData.append('categoria', cat);
+      formData.append('forSale', forSale.toString());
+      if (forSale) formData.append('price', price.toFixed(2));
+      formData.append('archivo', file, fileName);
+      
+      // ✅ Usar req() con configuración especial para FormData
+      // Nota: req() debe manejar FormData sin setear Content-Type
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function() {
+        controller.abort();
+      }, 120000); // 2 minutos
+      
+      var fetchOptions = {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token
+          // ✅ NO setear Content-Type para FormData (el navegador lo hace)
+        },
+        body: formData,
+        signal: controller.signal,
+        credentials: 'same-origin'
+      };
+      
+      var r = await fetch('/api/vault', fetchOptions);
+      clearTimeout(timeoutId);
+      stopProgress();
+      
+      // ✅ Procesar respuesta
+      if (progressFill) {
+        progressFill.style.width = '100%';
+        progressFill.setAttribute('aria-valuenow', '100');
+      }
+      
+      var j = {};
+      try {
+        j = await r.json();
+      } catch (e) {
+        j = {};
+      }
+      
+      if (!r.ok) {
+        throw new Error(j.error || j.message || ('Error HTTP ' + r.status));
+      }
+      
+      // ✅ Éxito
+      if (status) {
+        status.textContent = '✅ Archivo subido y cifrado';
+        status.style.color = '#00e676';
+      }
+      
+      var safeTitle = sanitizeForDisplay(titulo, 50);
+      log('📦 ' + safeTitle + ' guardado • ' + fileMB.toFixed(1) + 'MB • ' + cat, 'success');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('✅ Archivo subido exitosamente', 'success', 3000);
+      }
+      
+      // ✅ Reset y refresh
+      setTimeout(function() {
+        closeUpload();
+        if (typeof window.refresh === 'function') window.refresh();
+        if (typeof window.showVault === 'function') window.showVault();
+      }, 1200);
+      
+    } catch (e) {
+      stopProgress();
+      
+      if (progressFill) {
+        progressFill.style.width = '0%';
+        progressFill.setAttribute('aria-valuenow', '0');
+      }
+      
+      // ✅ Mensajes de error seguros
+      var errorMsg = '❌ Error al subir archivo';
+      var errMsg = (e && e.message) ? e.message : '';
+      
+      if (e && e.name === 'AbortError') {
+        errorMsg = '⏱️ La subida tardó demasiado. Verifica tu conexión.';
+      } else if (errMsg.includes('401') || errMsg.includes('expirada')) {
+        errorMsg = '❌ Sesión expirada. Inicia sesión de nuevo.';
+        if (typeof window.handleSessionExpired === 'function') {
+          window.handleSessionExpired();
+        }
+      } else if (errMsg.includes('413')) {
+        errorMsg = '⚠️ Archivo demasiado grande para el servidor.';
+      } else if (errMsg.includes('400')) {
+        errorMsg = '❌ Datos inválidos. Verifica el formulario.';
+      } else if (errMsg.includes('409')) {
+        errorMsg = '⚠️ Ya existe un archivo con ese nombre.';
+      } else if (errMsg.includes('507') || errMsg.toLowerCase().includes('quota')) {
+        errorMsg = '⚠️ Almacenamiento lleno. Libera espacio o actualiza tu plan.';
+      }
+      
+      if (status) {
+        status.textContent = errorMsg;
+        status.style.color = '#ff5252';
+      }
+      
+      log('❌ Upload fallido: ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(errorMsg, 'error', 4000);
+      }
+      
+      // ✅ Delay anti-fuerza bruta
+      await new Promise(function(r) { setTimeout(r, 2000); });
+      
+    } finally {
+      isUploading = false;
+      stopProgress();
+      
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '✅ Subir y Cifrar';
+        btn.removeAttribute('aria-busy');
+      }
     }
-    showNotification(`❌ ${safeMsg}`, 'error');
   }
-}
 
-function closeVault() {
-  const modal = document.getElementById('vaultModal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
+  // ============================================
+  // 🗄️ MOSTRAR VAULT (COMPLETO Y SEGURO)
+  // ============================================
+  async function showVault() {
+    try {
+      var modal = document.getElementById('vaultModal');
+      var list = document.getElementById('vaultList');
+      
+      if (!modal || !list) {
+        log('⚠️ Elementos del vault no encontrados', 'warning');
+        return;
+      }
+      
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      
+      // ✅ Usar textContent en lugar de innerHTML para seguridad
+      list.textContent = '';
+      var loadingP = document.createElement('p');
+      loadingP.style.textAlign = 'center';
+      loadingP.style.color = '#8b95a5';
+      loadingP.setAttribute('role', 'status');
+      loadingP.textContent = '🔄 Cargando...';
+      list.appendChild(loadingP);
+      
+      // ✅ Llamar al API
+      var res = await req('/api/vault', 'GET');
+      var items = (res && res.items) ? res.items : [];
+      
+      // Limpiar mensaje de carga
+      list.textContent = '';
+      
+      if (items.length === 0) {
+        var emptyP = document.createElement('p');
+        emptyP.style.textAlign = 'center';
+        emptyP.style.color = '#8b95a5';
+        emptyP.setAttribute('role', 'status');
+        emptyP.textContent = '📭 Tu vault está vacío';
+        list.appendChild(emptyP);
+        return;
+      }
+      
+      // ✅ Crear elementos con createElement (anti-XSS)
+      for (var i = 0; i < items.length; i++) {
+        try {
+          var item = items[i];
+          var card = document.createElement('div');
+          card.className = 'vault-item';
+          card.setAttribute('role', 'listitem');
+          
+          // Header
+          var header = document.createElement('div');
+          header.className = 'vault-item-header';
+          
+          var title = document.createElement('span');
+          title.className = 'vault-item-title';
+          title.textContent = sanitizeForDisplay(item.titulo, 100) || 'Sin título';
+          header.appendChild(title);
+          
+          if (item.isForSale || item.forSale) {
+            var badge = document.createElement('span');
+            badge.className = 'encryption-badge';
+            var priceNum = Number(item.price || 0);
+            badge.textContent = '💰 $' + priceNum.toFixed(2);
+            header.appendChild(badge);
+          }
+          
+          card.appendChild(header);
+          
+          // Meta
+          var meta = document.createElement('div');
+          meta.className = 'vault-item-meta';
+          
+          var tipo = '📝 Texto';
+          if (item.tipo === 'archivo' || item.fileName) {
+            tipo = '📁 ' + sanitizeForDisplay(item.fileName, 50);
+          }
+          
+          var categoria = sanitizeForDisplay(item.categoria, 30);
+          meta.textContent = tipo + ' • ' + categoria + ' • 🔐 Cifrado';
+          card.appendChild(meta);
+          
+          // Actions
+          var actions = document.createElement('div');
+          actions.style.cssText = 'margin-top:8px;display:flex;flex-wrap:wrap;gap:4px';
+          
+          // ✅ Detectar si es media
+          var fileNameLower = (item.fileName || '').toLowerCase();
+          var isMedia = fileNameLower.endsWith('.mp4') || 
+                       fileNameLower.endsWith('.mp3') || 
+                       fileNameLower.endsWith('.wav') || 
+                       fileNameLower.endsWith('.ogg');
+          
+          if (isMedia) {
+            var playBtn = document.createElement('button');
+            playBtn.className = 'play-btn';
+            playBtn.textContent = '▶️ Reproducir';
+            playBtn.dataset.fileId = sanitizeIdForEvent(item._id || item.id);
+            playBtn.dataset.mediaType = fileNameLower.includes('mp4') ? 'video' : 'audio';
+            
+            (function(btn) {
+              btn.addEventListener('click', function() {
+                if (typeof window.playMedia === 'function') {
+                  window.playMedia(btn.dataset.fileId, btn.dataset.mediaType);
+                }
+              });
+            })(playBtn);
+            
+            actions.appendChild(playBtn);
+          }
+          
+          // Botones genéricos
+          var actionsConfig = [
+            { label: '🔗 Compartir', fn: 'shareFile', color: '#29b6f6' },
+            { label: '🌿 Git', fn: 'showGitLog', color: '#8ab4f8' },
+            { label: '🖼️ Thumb', fn: 'genThumb', color: '#66bb6a' },
+            { label: '📜 Historial', fn: 'showVersions', color: '#ffa726' },
+            { label: '💬 Comentar', fn: 'addComment', color: '#ab47bc' },
+            { label: '👁️ Ver', fn: 'loadComments', color: '#8b95a5' }
+          ];
+          
+          for (var j = 0; j < actionsConfig.length; j++) {
+            var config = actionsConfig[j];
+            var btn = document.createElement('button');
+            btn.textContent = config.label;
+            btn.style.cssText = 'width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid ' + config.color + ';color:' + config.color;
+            btn.dataset.fileId = sanitizeIdForEvent(item._id || item.id);
+            
+            (function(b, fn) {
+              b.addEventListener('click', function() {
+                if (typeof window[fn] === 'function') {
+                  window[fn](b.dataset.fileId);
+                }
+              });
+            })(btn, config.fn);
+            
+            actions.appendChild(btn);
+          }
+          
+          card.appendChild(actions);
+          
+          // Sales
+          if (item.sales && item.sales > 0) {
+            var salesMeta = document.createElement('div');
+            salesMeta.className = 'vault-item-meta';
+            salesMeta.textContent = '📈 ' + Number(item.sales) + ' ventas';
+            card.appendChild(salesMeta);
+          }
+          
+          list.appendChild(card);
+          
+        } catch (itemError) {
+          log('❌ Error renderizando item: ' + sanitizeForDisplay(itemError.message || 'desconocido', 100), 'error');
+        }
+      }
+      
+      log('🗄️ Vault: ' + items.length + ' activos', 'success');
+      
+    } catch (e) {
+      var safeMsg = 'Error cargando vault';
+      log('❌ Vault: ' + sanitizeForDisplay((e && e.message) ? e.message : 'desconocido', 100), 'error');
+      
+      var list = document.getElementById('vaultList');
+      if (list) {
+        list.textContent = '';
+        var errorP = document.createElement('p');
+        errorP.style.color = '#ff5252';
+        errorP.setAttribute('role', 'alert');
+        errorP.textContent = safeMsg;
+        list.appendChild(errorP);
+      }
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('❌ ' + safeMsg, 'error', 4000);
+      }
+    }
   }
-  log('🔒 Modal de vault cerrado', 'info');
-}
+
+  // ============================================
+  // 🔒 CERRAR VAULT
+  // ============================================
+  function closeVault() {
+    try {
+      var modal = document.getElementById('vaultModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+      log('🔒 Modal de vault cerrado', 'info');
+    } catch (error) {
+      log('❌ Error en closeVault: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    }
+  }
+
+  // ============================================
+  // 🌐 EXPONER FUNCIONES
+  // ============================================
+  window.sanitizeForDisplay = sanitizeForDisplay;
+  window.sanitizeFileName = sanitizeFileName;
+  window.sanitizeIdForEvent = sanitizeIdForEvent;
+  window.simulateEnvelopeEncryption = simulateEnvelopeEncryption;
+  window.openUpload = openUpload;
+  window.closeUpload = closeUpload;
+  window.doUpload = doUpload;
+  window.showVault = showVault;
+  window.closeVault = closeVault;
+
+})();
+</script>
 
 // === VAULT: ACTIONS - FUNCIONES MEJORADAS ===
 
