@@ -265,25 +265,24 @@ async function connectToMongo() {
     mongoReady = false;
   }
 } // ← ✅ Solo UNA llave aquí, que cierra connectToMongo()
-// 🔐 SEGURIDAD
+
+// 🔐 SEGURIDAD MÁXIMA - SIN ENLACES EXTERNOS
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'", "https:", "http:"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"], // ✅ FIX: CDN permitido
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       scriptSrcAttr: ["'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:", "http:"],
-     // ANTES ❌
-
-
-// DESPUÉS ✅
-fetch(`/vault/${id}`, ...)
-      fontSrc: ["'self'", "https:", "data:"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      fontSrc: ["'self'", "data:"],
       objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
+      mediaSrc: ["'self'", "blob:"],
       frameSrc: ["https://checkout.stripe.com"],
+      connectSrc: ["'self'", "https://api.stripe.com", "wss:", "ws:"],
       workerSrc: ["'self'", "blob:"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
       upgradeInsecureRequests: []
     }
   },
@@ -291,6 +290,7 @@ fetch(`/vault/${id}`, ...)
   crossOriginOpenerPolicy: false,
   crossOriginResourcePolicy: false
 }));
+
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true);
@@ -310,11 +310,13 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Vault-Sig', 'X-Requested-With', 'Accept', 'Origin']
 }));
+
 app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('/api/status''', (req, res) => {
+
+app.get('/api/status', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 // 📁 UPLOADS
