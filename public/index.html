@@ -6281,234 +6281,425 @@ function closeMediaPlayer() {
 
 })();
 </script>
+<script>
+// ============================================
+// 🛡️ MÓDULO QUOTA Y VAULT - SEGURO
+// ============================================
+(function() {
+  'use strict';
 
-// === QUOTA: DISPLAY MEJORADO CON ACCESIBILIDAD ===
-function updateQuotaDisplay() {
-  if (!userQuota) return;
-  
-  // ✅ Null checks seguros para todos los elementos DOM
-  const display = document.getElementById('quotaDisplay');
-  const fill = document.getElementById('quotaFill');
-  const text = document.getElementById('quotaText');
-  
-  if (!display || !fill || !text) {
-    log('⚠️ Elementos de quota no encontrados', 'warning');
-    return;
+  // ============================================
+  // 🧹 SANITIZAR TEXTO PARA MOSTRAR (MEJORADO)
+  // ============================================
+  function sanitizeForDisplay(str, maxLen) {
+    if (!str) return '';
+    maxLen = maxLen || 100;
+    return String(str)
+      .trim()
+      // ✅ Eliminar TODOS los caracteres peligrosos
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F\x7F]/g, '')
+      // ✅ Eliminar protocolos peligrosos
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '')
+      .substring(0, maxLen);
   }
-  
-  const used = Number(userQuota.usedGB || 0);
-  const limit = userQuota.tier?.storageLimitGB;
-  
-  // ✅ Caso: almacenamiento ilimitado
-  if (limit === -1 || limit === Infinity) {
-    text.textContent = '📦 Almacenamiento ilimitado';
-    text.className = '';
-    text.setAttribute('aria-label', 'Tu plan tiene almacenamiento ilimitado');
-    fill.style.width = '100%';
-    fill.setAttribute('aria-valuenow', '100');
-    display.classList.remove('hidden');
-    display.setAttribute('aria-hidden', 'false');
-    return;
+
+  // ============================================
+  // 🏷️ SANITIZAR CATEGORÍA (lista blanca)
+  // ============================================
+  function sanitizeCategoria(cat) {
+    if (!cat || typeof cat !== 'string') return 'general';
+    
+    // ✅ Lista blanca de categorías permitidas
+    const permitidas = [
+      'general', 'documentos', 'imagenes', 'videos', 
+      'musica', 'codigo', 'contraseñas', 'notas', 'otros'
+    ];
+    
+    const limpio = String(cat).toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20);
+    
+    if (permitidas.indexOf(limpio) !== -1) {
+      return limpio;
+    }
+    
+    return 'general';
   }
-  
-  // ✅ Caso: límite definido
-  if (limit && limit > 0) {
-    const percent = Math.min(100, Math.max(0, (used / limit) * 100));
-    const percentRounded = Math.round(percent);
-    
-    // Actualizar barra de progreso con atributos ARIA
-    fill.style.width = percentRounded + '%';
-    fill.setAttribute('aria-valuenow', percentRounded);
-    fill.setAttribute('aria-valuemin', '0');
-    fill.setAttribute('aria-valuemax', '100');
-    
-    // Actualizar texto con formato consistente
-    text.textContent = `${used.toFixed(2)} GB / ${limit} GB`;
-    
-    // ✅ Alertas visuales y de accesibilidad según uso
-    if (percent >= 90) {
-      text.className = 'quota-critical';
-      text.textContent += ' ⚠️ Casi lleno';
-      text.setAttribute('aria-label', `Almacenamiento crítico: ${percentRounded}% usado`);
-      // ✅ Notificación única para no saturar
-      if (!display.dataset.criticalNotified) {
-        showNotification('⚠️ Tu almacenamiento está casi lleno (90%)', 'warning', 8000);
-        display.dataset.criticalNotified = 'true';
+
+  // ============================================
+  // 🔐 SIMULAR CIFRADO ENVELOPE (local, sin backend)
+  // ============================================
+  function simulateEnvelopeEncryption(titulo, categoria) {
+    // ✅ En producción: usar WebCrypto API para cifrado real
+    // Por ahora: simulación con base64 (NO es cifrado real)
+    try {
+      const contenido = {
+        titulo: titulo,
+        categoria: categoria,
+        timestamp: Date.now(),
+        version: 'envelope-v1-simulated'
+      };
+      
+      // ⚠️ ADVERTENCIA: Esto NO es cifrado real
+      // Solo es una simulación para demo
+      const json = JSON.stringify(contenido);
+      const encoded = btoa(unescape(encodeURIComponent(json)));
+      
+      return Promise.resolve('SIMULATED_' + encoded);
+    } catch (error) {
+      return Promise.reject(new Error('Error en cifrado simulado'));
+    }
+  }
+
+  // ============================================
+  // 📊 ACTUALIZAR DISPLAY DE QUOTA (COMPLETO)
+  // ============================================
+  function updateQuotaDisplay(quotaData) {
+    try {
+      // ✅ Obtener quota de parámetro o sessionStorage
+      let userQuota = quotaData;
+      
+      if (!userQuota) {
+        try {
+          const stored = sessionStorage.getItem('userQuota');
+          if (stored) {
+            userQuota = JSON.parse(stored);
+          }
+        } catch (e) {}
       }
-    } else if (percent >= 75) {
-      text.className = 'quota-warning';
-      text.textContent += ' ⚠️ Considera limpiar';
-      text.setAttribute('aria-label', `Almacenamiento: ${percentRounded}% usado`);
-      delete display.dataset.criticalNotified;
-    } else {
-      text.className = '';
-      text.setAttribute('aria-label', `Almacenamiento: ${percentRounded}% usado`);
-      delete display.dataset.criticalNotified;
-    }
-    
-    display.classList.remove('hidden');
-    display.setAttribute('aria-hidden', 'false');
-    
-  } else {
-    // ✅ Caso: sin datos de quota
-    display.classList.add('hidden');
-    display.setAttribute('aria-hidden', 'true');
-  }
-}
-// ✅ Helper para sanitizar texto antes de insertar en DOM/logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[<>]/g, '')
-    .replace(/javascript:/gi, '')
-    .replace(/"/g, '&quot;')
-    .substring(0, maxLen);
-}
 
-// === VAULT: CREATE TEXT - FUNCIONES MEJORADAS ===
+      if (!userQuota || typeof userQuota !== 'object') {
+        log('⚠️ No hay datos de quota', 'warning');
+        return;
+      }
 
-// ✅ Abrir modal con validación de existencia y accesibilidad
-function openCreate() {
-  const modal = document.getElementById('createModal');
-  if (!modal) {
-    log('⚠️ Modal de creación no encontrado', 'warning');
-    return;
-  }
-  
-  modal.classList.remove('hidden');
-  modal.setAttribute('aria-hidden', 'false');
-  
-  // ✅ Enfocar primer input para accesibilidad
-  const titleInput = document.getElementById('itemTitle');
-  if (titleInput) {
-    setTimeout(() => titleInput.focus(), 100);
-  }
-  
-  log('📤 Modal de creación abierto', 'info');
-}
+      // ✅ Guardar en sessionStorage para persistencia
+      try {
+        sessionStorage.setItem('userQuota', JSON.stringify(userQuota));
+      } catch (e) {}
 
-// ✅ Cerrar modal con limpieza segura de todos los campos
-function closeCreate() {
-  const modal = document.getElementById('createModal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-  }
-  
-  // ✅ Resetear formulario con null checks para evitar errores
-  const inputs = ['itemTitle', 'itemPrice', 'itemForSale', 'itemCat'];
-  inputs.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      if (el.type === 'checkbox') el.checked = false;
-      else if (el.tagName === 'SELECT') el.selectedIndex = 0;
-      else el.value = '';
-      el.classList.remove('error');
-      el.removeAttribute('aria-invalid');
-    }
-  });
-  
-  log('🔒 Modal de creación cerrado', 'info');
-}
+      // ✅ Null checks seguros
+      const display = document.getElementById('quotaDisplay');
+      const fill = document.getElementById('quotaFill');
+      const text = document.getElementById('quotaText');
 
-// ✅ Publicar texto con validaciones fuertes y seguridad
-async function publish(event) {
-  if (event) event.preventDefault();
-  
-  // ✅ Obtener y sanitizar inputs para prevenir XSS
-  const titleInput = document.getElementById('itemTitle');
-  const priceInput = document.getElementById('itemPrice');
-  const catSelect = document.getElementById('itemCat');
-  const forSaleCheck = document.getElementById('itemForSale');
-  
-  const rawTitle = titleInput?.value || '';
-  const titulo = sanitizeForDisplay(rawTitle, 100); // ✅ Sanitizar para XSS
-  const price = parseFloat(priceInput?.value) || 0;
-  const categoria = catSelect?.value || 'general';
-  const forSale = !!forSaleCheck?.checked;
-  
-  // ✅ Validaciones con feedback específico y visual
-  if (!titulo || titulo.length < 3) {
-    showNotification('⚠️ El título debe tener al menos 3 caracteres', 'error');
-    if (titleInput) {
-      titleInput.classList.add('error');
-      titleInput.setAttribute('aria-invalid', 'true');
-      titleInput.focus();
-      setTimeout(() => {
-        titleInput.classList.remove('error');
-        titleInput.removeAttribute('aria-invalid');
-      }, 2000);
-    }
-    return;
-  }
-  
-  // ✅ Validar precio: no negativo, máximo razonable, solo si es para venta
-  if (forSale && (isNaN(price) || price < 1 || price > 9999)) {
-    showNotification('⚠️ El precio debe estar entre $1.00 y $9,999.00 USD', 'error');
-    if (priceInput) {
-      priceInput.classList.add('error');
-      priceInput.setAttribute('aria-invalid', 'true');
-      priceInput.focus();
-      setTimeout(() => {
-        priceInput.classList.remove('error');
-        priceInput.removeAttribute('aria-invalid');
-      }, 2000);
-    }
-    return;
-  }
-  
-  // ✅ Referencia segura al botón con fallback
-  const btn = event?.currentTarget || document.querySelector('#createModal button[onclick="publish()"]');
-  
-  try {
-    // UI: estado de carga con feedback accesible
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '📤 Publicando...';
-      btn.setAttribute('aria-busy', 'true');
-    }
-    
-    // ✅ Contenido cifrado simulado (en producción: cifrado real con WebCrypto)
-    const encryptedContent = await simulateEnvelopeEncryption(titulo, categoria);
-    
-    // ✅ Enviar al backend con datos validados
-    await req('/vault', 'POST', {
-      titulo,
-      price: forSale ? price : 0,
-      categoria,
-      forSale,
-      contenido: encryptedContent,
-      encrypted: true,
-      encryptionMethod: 'envelope-v1'
-    }, false);
-    
-    log('📦 Activo publicado y cifrado', 'success');
-    showNotification('✅ Contenido publicado', 'success');
-    
-    // ✅ Reset y refresh para mantener UI sincronizada
-    closeCreate();
-    if (typeof refresh === 'function') refresh();
-    if (typeof showVault === 'function') showVault();
-    
-  } catch (e) {
-    // ✅ Mensajes de error específicos para mejor UX
-    const msg = e.message.includes('400') ? '❌ Datos inválidos' : 
-                e.message.includes('401') ? '❌ Sesión expirada' : 
-                e.message.includes('403') ? '❌ Acceso denegado' : 
-                '❌ Error publicando';
-    
-    log(msg + ': ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(msg, 'error');
-    
-  } finally {
-    // ✅ Restaurar UI siempre, incluyendo atributos ARIA
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '✅ Publicar en Venta';
-      btn.removeAttribute('aria-busy');
+      if (!display || !fill || !text) {
+        log('⚠️ Elementos de quota no encontrados', 'warning');
+        return;
+      }
+
+      const used = Number(userQuota.usedGB || 0);
+      const limit = (userQuota.tier && userQuota.tier.storageLimitGB) || null;
+
+      // ✅ Caso: almacenamiento ilimitado
+      if (limit === -1 || limit === Infinity || limit === null) {
+        text.textContent = '📦 Almacenamiento ilimitado';
+        text.className = '';
+        text.setAttribute('aria-label', 'Tu plan tiene almacenamiento ilimitado');
+        fill.style.width = '100%';
+        fill.setAttribute('aria-valuenow', '100');
+        display.classList.remove('hidden');
+        display.setAttribute('aria-hidden', 'false');
+        return;
+      }
+
+      // ✅ Caso: límite definido
+      if (limit && limit > 0) {
+        const percent = Math.min(100, Math.max(0, (used / limit) * 100));
+        const percentRounded = Math.round(percent);
+        const usedStr = used.toFixed(2);
+        const limitStr = String(limit);
+
+        // ✅ Actualizar barra de progreso con ARIA
+        fill.style.width = percentRounded + '%';
+        fill.setAttribute('aria-valuenow', String(percentRounded));
+        fill.setAttribute('aria-valuemin', '0');
+        fill.setAttribute('aria-valuemax', '100');
+
+        // ✅ Texto con formato consistente (sin template literals en atributos)
+        const textoBase = usedStr + ' GB / ' + limitStr + ' GB';
+        text.textContent = textoBase;
+
+        // ✅ Alertas visuales según uso
+        if (percent >= 90) {
+          text.className = 'quota-critical';
+          text.textContent = textoBase + ' ⚠️ Casi lleno';
+          text.setAttribute('aria-label', 'Almacenamiento crítico: ' + percentRounded + '% usado');
+          
+          // Notificación única
+          if (!display.dataset.criticalNotified) {
+            if (typeof window.showNotification === 'function') {
+              window.showNotification('⚠️ Tu almacenamiento está casi lleno (90%)', 'warning', 8000);
+            }
+            display.dataset.criticalNotified = 'true';
+          }
+        } else if (percent >= 75) {
+          text.className = 'quota-warning';
+          text.textContent = textoBase + ' ⚠️ Considera limpiar';
+          text.setAttribute('aria-label', 'Almacenamiento: ' + percentRounded + '% usado');
+          delete display.dataset.criticalNotified;
+        } else {
+          text.className = '';
+          text.setAttribute('aria-label', 'Almacenamiento: ' + percentRounded + '% usado');
+          delete display.dataset.criticalNotified;
+        }
+
+        display.classList.remove('hidden');
+        display.setAttribute('aria-hidden', 'false');
+
+      } else {
+        // ✅ Caso: sin datos válidos
+        display.classList.add('hidden');
+        display.setAttribute('aria-hidden', 'true');
+      }
+
+    } catch (error) {
+      log('❌ Error en updateQuotaDisplay: ' + (error && error.message ? error.message : 'desconocido'), 'error');
     }
   }
-}
+
+  // ============================================
+  // 📤 ABRIR MODAL DE CREACIÓN
+  // ============================================
+  function openCreate() {
+    try {
+      const modal = document.getElementById('createModal');
+      if (!modal) {
+        log('⚠️ Modal de creación no encontrado', 'warning');
+        return;
+      }
+
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+
+      // ✅ Enfocar primer input con delay
+      const titleInput = document.getElementById('itemTitle');
+      if (titleInput) {
+        setTimeout(function() {
+          try {
+            titleInput.focus();
+          } catch (e) {}
+        }, 100);
+      }
+
+      log('📤 Modal de creación abierto', 'info');
+
+    } catch (error) {
+      log('❌ Error en openCreate: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    }
+  }
+
+  // ============================================
+  // 🔒 CERRAR MODAL DE CREACIÓN
+  // ============================================
+  function closeCreate() {
+    try {
+      const modal = document.getElementById('createModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+
+      // ✅ Resetear formulario con validación
+      var inputs = ['itemTitle', 'itemPrice', 'itemForSale', 'itemCat'];
+      for (var i = 0; i < inputs.length; i++) {
+        var el = document.getElementById(inputs[i]);
+        if (el) {
+          if (el.type === 'checkbox') {
+            el.checked = false;
+          } else if (el.tagName === 'SELECT') {
+            el.selectedIndex = 0;
+          } else {
+            el.value = '';
+          }
+          el.classList.remove('error');
+          el.removeAttribute('aria-invalid');
+        }
+      }
+
+      log('🔒 Modal de creación cerrado', 'info');
+
+    } catch (error) {
+      log('❌ Error en closeCreate: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    }
+  }
+
+  // ============================================
+  // 📦 PUBLICAR CONTENIDO (COMPLETO Y SEGURO)
+  // ============================================
+  async function publish(event) {
+    if (event) event.preventDefault();
+
+    // ✅ Obtener elementos
+    var titleInput = document.getElementById('itemTitle');
+    var priceInput = document.getElementById('itemPrice');
+    var catSelect = document.getElementById('itemCat');
+    var forSaleCheck = document.getElementById('itemForSale');
+
+    var rawTitle = (titleInput && titleInput.value) ? titleInput.value : '';
+    var rawPrice = (priceInput && priceInput.value) ? priceInput.value : '0';
+    var rawCat = (catSelect && catSelect.value) ? catSelect.value : 'general';
+    var forSale = forSaleCheck ? !!forSaleCheck.checked : false;
+
+    // ✅ Sanitizar y validar título
+    var titulo = sanitizeForDisplay(rawTitle, 100);
+    
+    if (!titulo || titulo.length < 3) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ El título debe tener al menos 3 caracteres', 'error', 3000);
+      }
+      if (titleInput) {
+        titleInput.classList.add('error');
+        titleInput.setAttribute('aria-invalid', 'true');
+        titleInput.focus();
+        setTimeout(function() {
+          if (titleInput) {
+            titleInput.classList.remove('error');
+            titleInput.removeAttribute('aria-invalid');
+          }
+        }, 2000);
+      }
+      return;
+    }
+
+    // ✅ Validar longitud máxima
+    if (titulo.length > 100) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ El título es demasiado largo (máx 100 caracteres)', 'error', 3000);
+      }
+      return;
+    }
+
+    // ✅ Validar precio
+    var price = parseFloat(rawPrice);
+    if (isNaN(price)) price = 0;
+
+    if (forSale && (price < 1 || price > 9999)) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ El precio debe estar entre $1.00 y $9,999.00 USD', 'error', 3000);
+      }
+      if (priceInput) {
+        priceInput.classList.add('error');
+        priceInput.setAttribute('aria-invalid', 'true');
+        priceInput.focus();
+        setTimeout(function() {
+          if (priceInput) {
+            priceInput.classList.remove('error');
+            priceInput.removeAttribute('aria-invalid');
+          }
+        }, 2000);
+      }
+      return;
+    }
+
+    // ✅ Sanitizar categoría con lista blanca
+    var categoria = sanitizeCategoria(rawCat);
+
+    // ✅ Referencia segura al botón
+    var btn = (event && event.currentTarget) || 
+              document.querySelector('#createModal button[onclick*="publish"]') ||
+              document.querySelector('#publishBtn');
+
+    // ✅ Proteger contra doble clic
+    if (btn && btn.disabled) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⏳ Espera, publicando...', 'info', 1500);
+      }
+      return;
+    }
+
+    var textoOriginal = (btn && btn.textContent) ? btn.textContent : '✅ Publicar en Venta';
+
+    try {
+      // UI: estado de carga
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '📤 Publicando...';
+        btn.setAttribute('aria-busy', 'true');
+      }
+
+      // ✅ Cifrado simulado
+      var encryptedContent = await simulateEnvelopeEncryption(titulo, categoria);
+
+      // ✅ Enviar al backend
+      await req('/api/vault', 'POST', {
+        titulo: titulo,
+        price: forSale ? price : 0,
+        categoria: categoria,
+        forSale: forSale,
+        contenido: encryptedContent,
+        encrypted: true,
+        encryptionMethod: 'envelope-v1-simulated'
+      });
+
+      log('📦 Activo publicado y cifrado', 'success');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('✅ Contenido publicado correctamente', 'success', 3000);
+      }
+
+      // ✅ Limpiar formulario
+      closeCreate();
+
+      // ✅ Refresh y mostrar vault
+      if (typeof window.refresh === 'function') {
+        window.refresh();
+      }
+      if (typeof window.showVault === 'function') {
+        window.showVault();
+      }
+
+    } catch (error) {
+      // ✅ Manejo seguro de errores
+      var errMsg = (error && error.message) ? error.message : '';
+      var msg = '❌ Error publicando';
+
+      if (errMsg.includes('400') || errMsg.toLowerCase().includes('inválid')) {
+        msg = '❌ Datos inválidos';
+      } else if (errMsg.includes('401') || errMsg.includes('expirada')) {
+        msg = '❌ Sesión expirada';
+        if (typeof window.handleSessionExpired === 'function') {
+          window.handleSessionExpired();
+        }
+      } else if (errMsg.includes('403')) {
+        msg = '❌ Acceso denegado';
+      } else if (errMsg.includes('413')) {
+        msg = '❌ Contenido demasiado grande';
+      } else if (errMsg.includes('429')) {
+        msg = '⏳ Demasiados intentos. Espera un momento';
+      }
+
+      log(msg + ': ' + sanitizeForDisplay(errMsg, 100), 'error');
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(msg, 'error', 4000);
+      }
+
+      // ✅ Delay anti-fuerza bruta
+      await new Promise(function(r) { setTimeout(r, 2000); });
+
+    } finally {
+      // ✅ Restaurar UI siempre
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+        btn.removeAttribute('aria-busy');
+      }
+    }
+  }
+
+  // ============================================
+  // 🌐 EXPONER FUNCIONES
+  // ============================================
+  window.sanitizeForDisplay = sanitizeForDisplay;
+  window.sanitizeCategoria = sanitizeCategoria;
+  window.updateQuotaDisplay = updateQuotaDisplay;
+  window.openCreate = openCreate;
+  window.closeCreate = closeCreate;
+  window.publish = publish;
+
+})();
+</script>
 
 // 🔐 Simular cifrado Envelope (local, sin conexiones externas)
 async function simulateEnvelopeEncryption(titulo, categoria) {
