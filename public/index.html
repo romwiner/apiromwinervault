@@ -5235,147 +5235,10 @@ async function toggleFavorite() {
     }
   }
 }
-// === MEDIA PLAYER: FUNCIONES MEJORADAS (100% LOCAL, 0% EXTERNOS) ===
-
-// ✅ Helper para generar placeholder de video/audio como data URL (sin conexiones externas)
-function generateMediaPlaceholder(type = 'video', fileName = '') {
-  const width = type === 'video' ? 640 : 300;
-  const height = type === 'video' ? 360 : 60;
-  const safeName = sanitizeForLog(fileName, 30);
-  
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
-      <rect fill="#0b0c10" width="${width}" height="${height}"/>
-      <text x="50%" y="45%" text-anchor="middle" fill="#00e676" font-family="system-ui" font-size="14">🔐 ${type === 'video' ? 'Video' : 'Audio'} cifrado</text>
-      <text x="50%" y="65%" text-anchor="middle" fill="#8b95a5" font-family="system-ui" font-size="10">${safeName || 'Archivo'}</text>
-      <text x="50%" y="80%" text-anchor="middle" fill="#66bb6a" font-family="system-ui" font-size="9">Requiere desencriptación local</text>
-    </svg>`.trim();
-  
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
-// 🎬 Abrir reproductor seguro - versión 100% local (sin enlaces externos)
-function openSecurePlayer(fileId, fileName, fileType = 'auto') {
-  const modal = document.getElementById('mediaPlayerModal');
-  const video = document.getElementById('videoPlayer');
-  const audio = document.getElementById('audioPlayer');
-  const title = document.getElementById('mediaTitle');
-  const error = document.getElementById('mediaError');
-  
-  if (!modal || !video || !audio) {
-    log('⚠️ Elementos del reproductor no encontrados', 'warning');
-    return;
-  }
-  
-  // Resetear estado
-  video.classList.add('hidden');
-  audio.classList.add('hidden');
-  video.pause();
-  audio.pause();
-  video.src = '';
-  audio.src = '';
-  video.removeAttribute('poster');
-  if (error) {
-    error.style.display = 'none';
-    error.textContent = '';
-    error.removeAttribute('aria-live');
-  }
-  
-  // Determinar tipo de media
-  const ext = (fileName?.split('.').pop() || '').toLowerCase();
-  const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(ext) || fileType === 'video';
-  const isAudio = ['mp3', 'wav', 'ogg', 'm4a'].includes(ext) || fileType === 'audio';
-  
-  // ✅ Sanitizar fileName antes de mostrar en UI
-  const safeFileName = sanitizeForLog(fileName, 50);
-  if (title) {
-    title.textContent = safeFileName || 'Reproduciendo...';
-    title.setAttribute('aria-label', `Archivo: ${safeFileName}`);
-  }
-  
-  // 🔐 MODO SEGURO: Sin URLs externas. Solo placeholders locales o data URLs.
-  
-  if (isVideo) {
-    // ✅ Usar placeholder SVG embebido (data URL) en lugar de video externo
-    video.classList.remove('hidden');
-    video.setAttribute('aria-label', 'Vista previa de video cifrado');
-    video.setAttribute('poster', generateMediaPlaceholder('video', safeFileName));
-    
-    // ✅ En producción: URL relativa firmada con token, ej: `/api/vault/stream/${fileId}?token=${token}`
-    // video.src = `/api/vault/stream/${fileId}`;
-    
-    // Demo offline: mostrar mensaje en lugar de intentar reproducir
-    if (error) {
-      error.innerHTML = '🔐 <b>Vista previa segura:</b> El contenido cifrado solo se reproduce tras desencriptación local con tu clave maestra.';
-      error.style.display = 'block';
-      error.style.color = '#00e676';
-      error.setAttribute('role', 'status');
-      error.setAttribute('aria-live', 'polite');
-    }
-    
-  } else if (isAudio) {
-    // ✅ Usar placeholder para audio
-    audio.classList.remove('hidden');
-    audio.setAttribute('aria-label', 'Vista previa de audio cifrado');
-    
-    // ✅ En producción: URL relativa firmada
-    // audio.src = `/api/vault/stream/${fileId}`;
-    
-    // Demo offline
-    if (error) {
-      error.innerHTML = '🔐 <b>Vista previa segura:</b> El audio cifrado requiere tu clave para reproducirse localmente.';
-      error.style.display = 'block';
-      error.style.color = '#00e676';
-      error.setAttribute('role', 'status');
-      error.setAttribute('aria-live', 'polite');
-    }
-    
-  } else {
-    // Tipo no soportado para preview
-    if (error) {
-      error.textContent = '⚠️ Este formato requiere descarga y apertura con aplicación externa.';
-      error.style.display = 'block';
-      error.style.color = '#ffb74d';
-      error.setAttribute('role', 'alert');
-    }
-  }
-  
-  // ✅ Mostrar modal con ARIA
-  modal.classList.remove('hidden');
-  modal.setAttribute('aria-hidden', 'false');
-  
-  // ✅ Sanitizar fileName antes de loguear
-  log(`🎬 Reproductor abierto: ${safeFileName}`, 'info');
-}
-
-function closeMediaPlayer() {
-  const modal = document.getElementById('mediaPlayerModal');
-  const video = document.getElementById('videoPlayer');
-  const audio = document.getElementById('audioPlayer');
-  
-  if (video) { 
-    video.pause(); 
-    video.src = ''; 
-    video.removeAttribute('poster');
-    video.classList.add('hidden'); 
-  }
-  if (audio) { 
-    audio.pause(); 
-    audio.src = ''; 
-    audio.classList.add('hidden'); 
-  }
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
-  }
-  
-  log('🎬 Reproductor cerrado', 'info');
-}
-
 <script>
 // ============================================
 // 🛡️ MÓDULO COMPLETO - AUTO-CONTENIDO
-// No depende de librerías externas
+// 100% LOCAL, 0% EXTERNOS, MÁXIMA SEGURIDAD
 // ============================================
 (function() {
   'use strict';
@@ -5383,6 +5246,23 @@ function closeMediaPlayer() {
   // 🔒 Evitar que se cargue dos veces
   if (window.__AuthModuloCargado) return;
   window.__AuthModuloCargado = true;
+
+  // ============================================
+  // 🔐 FUNCIÓN sanitizeForLog() - SANITIZACIÓN SEGURA
+  // ============================================
+  window.sanitizeForLog = function(text, maxLength) {
+    if (!text || typeof text !== 'string') return 'archivo';
+    maxLength = maxLength || 50;
+    
+    // Eliminar caracteres peligrosos y limitar longitud
+    var sanitized = text
+      .replace(/[<>'"]/g, '') // Eliminar caracteres HTML peligrosos
+      .replace(/[^\w\s\-\.]/g, '') // Solo permitir caracteres seguros
+      .trim()
+      .substring(0, maxLength);
+    
+    return sanitized || 'archivo';
+  };
 
   // ============================================
   // 📝 FUNCIÓN log() - REGISTRO SEGURO
@@ -5435,6 +5315,228 @@ function closeMediaPlayer() {
     }, duracion);
   };
 
+  // ============================================
+  // 🎬 MEDIA PLAYER: FUNCIONES MEJORADAS
+  // 100% LOCAL, 0% EXTERNOS
+  // ============================================
+
+  // ✅ Helper para generar placeholder de video/audio como data URL
+  window.generateMediaPlaceholder = function(type, fileName) {
+    type = type || 'video';
+    fileName = fileName || '';
+    
+    const width = type === 'video' ? 640 : 300;
+    const height = type === 'video' ? 360 : 60;
+    const safeName = sanitizeForLog(fileName, 30);
+    
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '">' +
+      '<rect fill="#0b0c10" width="' + width + '" height="' + height + '"/>' +
+      '<text x="50%" y="45%" text-anchor="middle" fill="#00e676" font-family="system-ui" font-size="14">🔐 ' + (type === 'video' ? 'Video' : 'Audio') + ' cifrado</text>' +
+      '<text x="50%" y="65%" text-anchor="middle" fill="#8b95a5" font-family="system-ui" font-size="10">' + (safeName || 'Archivo') + '</text>' +
+      '<text x="50%" y="80%" text-anchor="middle" fill="#66bb6a" font-family="system-ui" font-size="9">Requiere desencriptación local</text>' +
+      '</svg>';
+    
+    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  };
+
+  // ✅ Validar tipo de archivo de forma segura
+  window.validateMediaType = function(fileName, fileType) {
+    if (!fileName || typeof fileName !== 'string') {
+      return { valid: false, type: null, error: 'Nombre de archivo inválido' };
+    }
+    
+    const extension = fileName.toLowerCase().split('.').pop();
+    fileType = fileType || 'auto';
+    
+    const validTypes = {
+      video: ['mp4', 'webm', 'ogg', 'mov', 'avi'],
+      audio: ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']
+    };
+    
+    let detectedType = fileType;
+    
+    if (detectedType === 'auto') {
+      if (validTypes.video.indexOf(extension) !== -1) {
+        detectedType = 'video';
+      } else if (validTypes.audio.indexOf(extension) !== -1) {
+        detectedType = 'audio';
+      } else {
+        return { valid: false, type: null, error: 'Tipo de archivo no soportado: .' + extension };
+      }
+    }
+    
+    if (!validTypes[detectedType] || validTypes[detectedType].indexOf(extension) === -1) {
+      return { valid: false, type: detectedType, error: 'Extensión .' + extension + ' no válida para ' + detectedType };
+    }
+    
+    return { valid: true, type: detectedType, error: null };
+  };
+
+  // 🎬 Abrir reproductor seguro - versión 100% local
+  window.openSecurePlayer = function(fileId, fileName, fileType) {
+    const modal = document.getElementById('mediaPlayerModal');
+    const video = document.getElementById('videoPlayer');
+    const audio = document.getElementById('audioPlayer');
+    const title = document.getElementById('mediaTitle');
+    const error = document.getElementById('mediaError');
+    
+    if (!modal || !video || !audio) {
+      log('⚠️ Elementos del reproductor no encontrados', 'warning');
+      showNotification('Error: Elementos del reproductor no disponibles', 'error');
+      return;
+    }
+    
+    // Validar fileId
+    if (!fileId || typeof fileId !== 'string') {
+      log('⚠️ ID de archivo inválido', 'warning');
+      showNotification('Error: ID de archivo inválido', 'error');
+      return;
+    }
+    
+    // Validar tipo de archivo
+    const validation = validateMediaType(fileName, fileType);
+    if (!validation.valid) {
+      log('⚠️ ' + validation.error, 'warning');
+      showNotification(validation.error, 'warning');
+      return;
+    }
+    
+    // Resetear estado
+    video.classList.add('hidden');
+    audio.classList.add('hidden');
+    video.pause();
+    audio.pause();
+    video.src = '';
+    audio.src = '';
+    video.removeAttribute('poster');
+    
+    if (error) {
+      error.style.display = 'none';
+      error.textContent = '';
+      error.removeAttribute('aria-live');
+      error.removeAttribute('role');
+    }
+    
+    // Sanitizar fileName antes de mostrar en UI
+    const safeFileName = sanitizeForLog(fileName, 50);
+    
+    if (title) {
+      title.textContent = safeFileName || 'Reproduciendo...';
+      title.setAttribute('aria-label', 'Archivo: ' + safeFileName);
+    }
+    
+    // MODO SEGURO: Sin URLs externas. Solo placeholders locales o data URLs.
+    
+    if (validation.type === 'video') {
+      // Usar placeholder SVG embebido (data URL)
+      video.classList.remove('hidden');
+      video.setAttribute('aria-label', 'Vista previa de video cifrado');
+      video.setAttribute('poster', generateMediaPlaceholder('video', safeFileName));
+      
+      // En producción: URL relativa firmada con token
+      // video.src = '/api/vault/stream/' + encodeURIComponent(fileId) + '?token=' + encodeURIComponent(token);
+      
+      // Demo offline: mostrar mensaje seguro
+      if (error) {
+        error.textContent = '🔐 Vista previa segura: El contenido cifrado solo se reproduce tras desencriptación local con tu clave maestra.';
+        error.style.display = 'block';
+        error.style.color = '#00e676';
+        error.setAttribute('role', 'status');
+        error.setAttribute('aria-live', 'polite');
+      }
+      
+    } else if (validation.type === 'audio') {
+      // Usar placeholder para audio
+      audio.classList.remove('hidden');
+      audio.setAttribute('aria-label', 'Vista previa de audio cifrado');
+      
+      // En producción: URL relativa firmada
+      // audio.src = '/api/vault/stream/' + encodeURIComponent(fileId) + '?token=' + encodeURIComponent(token);
+      
+      // Demo offline
+      if (error) {
+        error.textContent = '🔐 Vista previa segura: El audio cifrado requiere tu clave para reproducirse localmente.';
+        error.style.display = 'block';
+        error.style.color = '#00e676';
+        error.setAttribute('role', 'status');
+        error.setAttribute('aria-live', 'polite');
+      }
+      
+    } else {
+      // Tipo no soportado para preview
+      if (error) {
+        error.textContent = '⚠️ Este formato requiere descarga y apertura con aplicación externa.';
+        error.style.display = 'block';
+        error.style.color = '#ffb74d';
+        error.setAttribute('role', 'alert');
+      }
+    }
+    
+    // Mostrar modal con ARIA
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    
+    log('🎬 Reproductor abierto: ' + safeFileName, 'info');
+  };
+
+  // ✅ Cerrar reproductor de forma segura
+  window.closeMediaPlayer = function() {
+    const modal = document.getElementById('mediaPlayerModal');
+    const video = document.getElementById('videoPlayer');
+    const audio = document.getElementById('audioPlayer');
+    
+    if (video) { 
+      video.pause(); 
+      if (video.src && video.src.startsWith('blob:')) {
+        URL.revokeObjectURL(video.src);
+      }
+      video.src = ''; 
+      video.removeAttribute('poster');
+      video.classList.add('hidden'); 
+    }
+    
+    if (audio) { 
+      audio.pause(); 
+      if (audio.src && audio.src.startsWith('blob:')) {
+        URL.revokeObjectURL(audio.src);
+      }
+      audio.src = ''; 
+      audio.classList.add('hidden'); 
+    }
+    
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    
+    log('🎬 Reproductor cerrado', 'info');
+  };
+
+  // ✅ Event listeners para cerrar con ESC o clic fuera
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('mediaPlayerModal');
+    
+    if (modal) {
+      // Cerrar con tecla ESC
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+          closeMediaPlayer();
+        }
+      });
+      
+      // Cerrar al hacer clic fuera del contenido
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          closeMediaPlayer();
+        }
+      });
+    }
+  });
+
+  log('✅ Módulo de autenticación y media player cargado correctamente', 'success');
+
+})();
+</script>
   // ============================================
   // 🔐 SANITIZAR EMAIL (MEJORADO - SEGURO)
   // ============================================
