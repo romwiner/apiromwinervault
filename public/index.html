@@ -3863,6 +3863,369 @@ function closeMediaPlayer() {
     }
   }
 
+<script>
+// ============================================
+// 🛡️ MÓDULO DE AUTENTICACIÓN COMPLETO
+// Auto-contenido - Sin dependencias externas
+// ============================================
+(function() {
+  'use strict';
+
+  // 🔒 Evitar carga duplicada
+  if (window.__AuthModuloCargado) return;
+  window.__AuthModuloCargado = true;
+
+  // ============================================
+  // 📝 FUNCIÓN log() - REGISTRO SEGURO
+  // ============================================
+  window.log = function(mensaje, nivel) {
+    nivel = nivel || 'info';
+    const iconos = { info: 'ℹ️', warning: '⚠️', error: '❌', success: '✅' };
+    const icono = iconos[nivel] || 'ℹ️';
+    const msg = String(mensaje).replace(/</g, '&lt;').substring(0, 300);
+    console.log(icono + ' [' + new Date().toLocaleTimeString() + '] ' + msg);
+  };
+
+  // ============================================
+  // 🔔 FUNCIÓN showNotification() - NOTIFICACIONES
+  // ============================================
+  window.showNotification = function(mensaje, tipo, duracion) {
+    if (!mensaje) return;
+    tipo = tipo || 'info';
+    duracion = duracion || 3000;
+
+    const colores = {
+      success: '#00e676',
+      error: '#ff5252',
+      warning: '#ffb74d',
+      info: '#40c4ff'
+    };
+    const color = colores[tipo] || colores.info;
+
+    const notif = document.createElement('div');
+    notif.setAttribute('role', 'alert');
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.92);color:' + color + ';padding:14px 20px;border-radius:8px;border-left:4px solid ' + color + ';z-index:99999;font-family:system-ui,sans-serif;font-size:0.95rem;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,0.4);opacity:0;transform:translateX(400px);transition:all 0.3s ease;';
+    
+    notif.textContent = String(mensaje).substring(0, 200);
+    document.body.appendChild(notif);
+
+    setTimeout(function() {
+      notif.style.opacity = '1';
+      notif.style.transform = 'translateX(0)';
+    }, 10);
+
+    setTimeout(function() {
+      notif.style.opacity = '0';
+      notif.style.transform = 'translateX(400px)';
+      setTimeout(function() { if (notif.parentNode) notif.remove(); }, 300);
+    }, duracion);
+  };
+
+  // ============================================
+  // 🔐 SANITIZAR EMAIL (SEGURO)
+  // ============================================
+  function sanitizeEmail(email) {
+    if (!email || typeof email !== 'string') return '';
+    return String(email)
+      .trim()
+      .toLowerCase()
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F]/g, '')
+      .replace(/[^a-z0-9@._+\-]/g, '')
+      .substring(0, 255);
+  }
+
+  // ============================================
+  // 🔑 VALIDAR CONTRASEÑA (SEGURO)
+  // ============================================
+  function validatePasswordStrength(pass) {
+    const errores = [];
+    if (!pass || typeof pass !== 'string') return ['contraseña vacía'];
+    if (pass.length < 8) errores.push('mínimo 8 caracteres');
+    if (pass.length > 128) errores.push('máximo 128 caracteres');
+    if (!/[A-Z]/.test(pass)) errores.push('1 mayúscula');
+    if (!/[a-z]/.test(pass)) errores.push('1 minúscula');
+    if (!/[0-9]/.test(pass)) errores.push('1 número');
+    if (!/[^a-zA-Z0-9]/.test(pass)) errores.push('1 símbolo');
+
+    const comunes = ['password', '12345678', 'qwerty', 'admin123', 'letmein', 'welcome', 'abc123'];
+    if (comunes.indexOf(pass.toLowerCase()) !== -1) {
+      errores.push('contraseña muy común');
+    }
+    return errores;
+  }
+
+  // ============================================
+  // 🔐 FUNCIÓN req() - PETICIÓN HTTP SEGURA
+  // ============================================
+  async function req(endpoint, metodo, datos) {
+    const url = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    
+    const opciones = {
+      method: metodo || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin'
+    };
+
+    let token = null;
+    try {
+      token = sessionStorage.getItem('token');
+    } catch (e) {}
+    
+    if (token) {
+      opciones.headers['Authorization'] = 'Bearer ' + token;
+    }
+
+    if (datos && metodo !== 'GET') {
+      opciones.body = JSON.stringify(datos);
+    }
+
+    const res = await fetch(url, opciones);
+
+    if (res.status === 401) {
+      try { sessionStorage.clear(); } catch (e) {}
+      if (typeof handleSessionExpired === 'function') {
+        handleSessionExpired();
+      }
+      throw new Error('401: Sesión expirada');
+    }
+
+    if (res.status === 403) {
+      throw new Error('403: Acceso denegado');
+    }
+
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (e) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+    }
+
+    if (!res.ok) {
+      throw new Error(data.message || ('HTTP ' + res.status));
+    }
+
+    return data;
+  }
+
+  // ============================================
+  // 🔐 MANEJO DE RESPUESTA DE LOGIN (COMPLETO)
+  // ============================================
+  async function manejarRespuestaLogin(r, email, emailInput, passInput, btn) {
+    try {
+      if (!r || typeof r !== 'object') {
+        throw new Error('Respuesta inválida');
+      }
+
+      if (!r.token || typeof r.token !== 'string') {
+        throw new Error('Token no recibido');
+      }
+      const partesToken = r.token.split('.');
+      if (partesToken.length !== 3) {
+        throw new Error('Token con formato inválido');
+      }
+
+      const emailLimpio = String(email)
+        .toLowerCase()
+        .replace(/[^a-z0-9@._+\-]/g, '')
+        .substring(0, 255);
+
+      // Almacenamiento seguro con sessionStorage
+      try {
+        sessionStorage.setItem('token', r.token);
+        sessionStorage.setItem('userEmail', emailLimpio);
+      } catch (e) {
+        throw new Error('No se pudo guardar la sesión');
+      }
+
+      const userTier = (r.user && typeof r.user.tier === 'string') 
+        ? r.user.tier.replace(/[^a-z]/gi, '').substring(0, 20) 
+        : 'personal';
+      
+      sessionStorage.setItem('userTier', userTier);
+
+      const isAdminVisual = !!(r.user && r.user.isAdmin === true);
+      if (isAdminVisual) {
+        sessionStorage.setItem('isAdminVisual', 'true');
+      }
+
+      if (typeof loadUser === 'function') {
+        await loadUser();
+      }
+      if (typeof showDashboard === 'function') {
+        showDashboard();
+      }
+
+      log('✅ Acceso concedido • Tier: ' + userTier, 'success');
+      if (typeof showNotification === 'function') {
+        showNotification('✅ Sesión iniciada', 'success', 2500);
+      }
+
+    } catch (error) {
+      const mensaje = '❌ Error al iniciar sesión';
+      log('❌ ' + (error && error.message ? error.message : 'desconocido'), 'error');
+      if (typeof showNotification === 'function') {
+        showNotification(mensaje, 'error', 4000);
+      }
+
+      if (emailInput) {
+        emailInput.classList.add('error');
+        emailInput.setAttribute('aria-invalid', 'true');
+      }
+
+      if (passInput) passInput.value = '';
+
+      await new Promise(function(r) { setTimeout(r, 1500); });
+      
+      throw error;
+    }
+  }
+
+  // ============================================
+  // 🔐 FUNCIÓN LOGIN (COMPLETA)
+  // ============================================
+  async function login(event) {
+    if (event) event.preventDefault();
+
+    const emailInput = document.getElementById('email');
+    const passInput = document.getElementById('pass');
+    const rawEmail = (emailInput && emailInput.value) ? emailInput.value.trim() : '';
+    const pass = (passInput && passInput.value) ? passInput.value : '';
+
+    const email = sanitizeEmail(rawEmail);
+
+    if (!email || !pass) {
+      log('⚠️ Campos incompletos', 'warning');
+      showNotification('⚠️ Completa todos los campos', 'warning');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      log('⚠️ Email inválido', 'warning');
+      showNotification('⚠️ Ingresa un email válido', 'warning');
+      if (emailInput) {
+        emailInput.classList.add('error');
+        emailInput.setAttribute('aria-invalid', 'true');
+      }
+      return;
+    }
+
+    const erroresPass = validatePasswordStrength(pass);
+    if (erroresPass.length > 0) {
+      log('⚠️ Contraseña débil: ' + erroresPass.join(', '), 'warning');
+      showNotification('⚠️ Contraseña insegura', 'warning');
+      if (passInput) passInput.classList.add('error');
+      return;
+    }
+
+    const btn = (event && event.currentTarget) || 
+                document.querySelector('#authSection button[type="submit"]') ||
+                document.querySelector('button[onclick*="login"]');
+
+    if (btn && btn.disabled) {
+      showNotification('⏳ Espera, procesando...', 'info', 1500);
+      return;
+    }
+
+    const textoOriginal = (btn && btn.textContent) ? btn.textContent : 'Iniciar sesión';
+
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '🔐 Conectando...';
+        btn.setAttribute('aria-busy', 'true');
+      }
+      if (emailInput) {
+        emailInput.classList.remove('error');
+        emailInput.removeAttribute('aria-invalid');
+      }
+      if (passInput) {
+        passInput.classList.remove('error');
+        passInput.removeAttribute('aria-invalid');
+      }
+
+      const r = await req('/api/auth/login', 'POST', { email: email, password: pass });
+
+      await manejarRespuestaLogin(r, email, emailInput, passInput, btn);
+
+    } catch (error) {
+      const msg = (error && error.message && error.message.includes('401')) 
+        ? '❌ Credenciales inválidas' 
+        : (error && error.message && error.message.includes('403'))
+        ? '❌ Acceso denegado'
+        : '❌ Error de conexión';
+      
+      log(msg, 'error');
+      showNotification(msg, 'error', 4000);
+
+      if (emailInput) {
+        emailInput.classList.add('error');
+        emailInput.setAttribute('aria-invalid', 'true');
+        setTimeout(function() {
+          emailInput.classList.remove('error');
+          emailInput.removeAttribute('aria-invalid');
+        }, 2000);
+      }
+
+      if (passInput) passInput.value = '';
+
+      await new Promise(function(r) { setTimeout(r, 1500); });
+
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+        btn.removeAttribute('aria-busy');
+      }
+    }
+  }
+
+  // ============================================
+  // 🚪 FUNCIÓN LOGOUT
+  // ============================================
+  function logout() {
+    try {
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin'
+      }).catch(function() {});
+    } catch (e) {}
+    
+    try {
+      sessionStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userTier');
+      localStorage.removeItem('isAdmin');
+    } catch (e) {}
+    
+    showNotification('👋 Sesión cerrada', 'info', 2000);
+    
+    setTimeout(function() {
+      window.location.href = '/';
+    }, 800);
+  }
+
+  // ============================================
+  // 🚀 FUNCIÓN init()
+  // ============================================
+  function init() {
+    try {
+      log('🚀 Inicializando aplicación...', 'info');
+      
+      if (typeof checkAPI === 'function') {
+        setTimeout(function() { checkAPI(); }, 500);
+      }
+      
+      log('✅ Interfaz lista', 'success');
+    } catch (error) {
+      log('❌ Error en init: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+      showNotification('Error al cargar la aplicación', 'error', 4000);
+    }
+  }
+
   // ============================================
   // 📱 INICIALIZACIÓN AL CARGAR
   // ============================================
@@ -3878,70 +4241,209 @@ function closeMediaPlayer() {
   // Exponer funciones globalmente
   window.sanitizeEmail = sanitizeEmail;
   window.validatePasswordStrength = validatePasswordStrength;
+  window.req = req;
+  window.manejarRespuestaLogin = manejarRespuestaLogin;
   window.login = login;
   window.logout = logout;
   window.init = init;
 
 })();
 </script>
+    // ============================================
+    // 🛡️ ALMACENAMIENTO SEGURO
+    // ============================================
     
-    // 🔐 Envío seguro: password nunca se loguea ni se expone
-    const r = await req('/login', 'POST', { email, password: pass });
-    
-    // Validar respuesta
-    if (!r.token) throw new Error('Respuesta inválida del servidor');
-    
-    // Almacenar sesión de forma segura
-    token = r.token;
-    localStorage.setItem('token', token);
-    localStorage.setItem('userEmail', email); // ✅ Email ya sanitizado
-    
-    // Tier y roles (siempre verificar en backend en cada request sensible)
-    userTier = r.user?.tier || 'personal';
-    localStorage.setItem('userTier', userTier);
-    
-    if (r.user?.isAdmin) {
-      localStorage.setItem('isAdmin', 'true');
-      isAdmin = true;
+    // ✅ USAR sessionStorage en lugar de localStorage
+    // sessionStorage se borra al cerrar la pestaña (más seguro)
+    try {
+      sessionStorage.setItem('token', r.token);
+      sessionStorage.setItem('userEmail', emailLimpio);
+    } catch (e) {
+      throw new Error('No se pudo guardar la sesión');
     }
+
+    // ⚠️ NO guardar isAdmin ni userTier como "verdad"
+    // Solo se guardan como REFERENCIA VISUAL, NO para decisiones de seguridad
+    const userTier = (r.user && typeof r.user.tier === 'string') 
+      ? r.user.tier.replace(/[^a-z]/gi, '').substring(0, 20) 
+      : 'personal';
     
-    // Cargar perfil y mostrar dashboard
-    await loadUser();
-    showDashboard();
-    
-    // ✅ Sanitizar userTier antes de loguear (previene XSS)
-    const safeTier = String(userTier).replace(/[^a-z]/gi, '').substring(0, 20);
-    log('✅ Acceso concedido • Tier: ' + safeTier, 'success');
-    showNotification('✅ Sesión iniciada', 'success');
-    
-  } catch (e) {
-    // ✅ Manejo seguro de errores: no exponer detalles internos
-    const msg = e.message.includes('401') ? '❌ Credenciales inválidas' : 
-                e.message.includes('403') ? '❌ Acceso denegado' : 
-                '❌ Error de conexión';
-    
-    log(msg, 'error');
-    showNotification(msg, 'error');
-    
-    // Feedback visual en el input con ARIA
-    if (emailInput && e.message.includes('401')) {
+    // ✅ Tier solo como referencia visual (el backend verifica SIEMPRE)
+    sessionStorage.setItem('userTier', userTier);
+
+    // ✅ isAdmin SOLO como referencia visual
+    // ⚠️ EL BACKEND DEBE VERIFICAR ESTO EN CADA PETICIÓN SENSIBLE
+    const isAdminVisual = !!(r.user && r.user.isAdmin === true);
+    if (isAdminVisual) {
+      sessionStorage.setItem('isAdminVisual', 'true');
+    }
+
+    // ============================================
+    // 🚀 CARGAR USUARIO Y MOSTRAR DASHBOARD
+    // ============================================
+    if (typeof loadUser === 'function') {
+      await loadUser();
+    }
+    if (typeof showDashboard === 'function') {
+      showDashboard();
+    }
+
+    // ✅ Log seguro (sin exponer datos sensibles)
+    log('✅ Acceso concedido • Tier: ' + userTier, 'success');
+    if (typeof showNotification === 'function') {
+      showNotification('✅ Sesión iniciada', 'success', 2500);
+    }
+
+  } catch (error) {
+    // ✅ Manejo seguro de errores
+    const mensaje = '❌ Error al iniciar sesión';
+    log('❌ ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    if (typeof showNotification === 'function') {
+      showNotification(mensaje, 'error', 4000);
+    }
+
+    // Feedback visual
+    if (emailInput) {
       emailInput.classList.add('error');
       emailInput.setAttribute('aria-invalid', 'true');
-      setTimeout(() => {
-        emailInput.classList.remove('error');
-        emailInput.removeAttribute('aria-invalid');
-      }, 2000);
     }
+
+    // ✅ LIMPIAR contraseña tras fallo (seguridad)
+    if (passInput) passInput.value = '';
+
+    // ✅ Delay anti-fuerza bruta (1.5 segundos)
+    await new Promise(function(r) { setTimeout(r, 1500); });
     
-  } finally {
-    // Restaurar UI siempre
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '🔓 Iniciar Sesión';
-      btn.removeAttribute('aria-busy');
-    }
+    throw error; // Re-lanzar para que el catch externo lo maneje
   }
 }
+
+// ============================================
+// 🔐 FUNCIÓN req() - PETICIÓN HTTP SEGURA
+// (si no la tienes, aquí está la versión segura)
+// ============================================
+async function req(endpoint, metodo, datos) {
+  const url = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+  
+  const opciones = {
+    method: metodo || 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    credentials: 'same-origin'
+  };
+
+  // ✅ Agregar token si existe (para peticiones autenticadas)
+  let token = null;
+  try {
+    token = sessionStorage.getItem('token');
+  } catch (e) {}
+  
+  if (token) {
+    opciones.headers['Authorization'] = 'Bearer ' + token;
+  }
+
+  // ✅ Agregar body solo si hay datos y no es GET
+  if (datos && metodo !== 'GET') {
+    opciones.body = JSON.stringify(datos);
+  }
+
+  const res = await fetch(url, opciones);
+
+  // ✅ Manejo de sesión expirada
+  if (res.status === 401) {
+    // Limpiar sesión
+    try { sessionStorage.clear(); } catch (e) {}
+    if (typeof handleSessionExpired === 'function') {
+      handleSessionExpired();
+    }
+    throw new Error('401: Sesión expirada');
+  }
+
+  // ✅ Manejo de acceso denegado
+  if (res.status === 403) {
+    throw new Error('403: Acceso denegado');
+  }
+
+  // ✅ Parsear respuesta
+  let data = {};
+  try {
+    data = await res.json();
+  } catch (e) {
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+  }
+
+  if (!res.ok) {
+    throw new Error(data.message || ('HTTP ' + res.status));
+  }
+
+  return data;
+}
+
+// ============================================
+// 🔓 FUNCIÓN LOGOUT SEGURA
+// ============================================
+function logout() {
+  try {
+    // ✅ Llamar al backend para invalidar token
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin'
+    }).catch(function() {});
+  } catch (e) {}
+  
+  // ✅ Limpiar TODA la sesión del cliente
+  try {
+    sessionStorage.clear();
+    // También limpiar localStorage por si quedó algo viejo
+    localStorage.removeItem('token');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userTier');
+    localStorage.removeItem('isAdmin');
+  } catch (e) {}
+  
+  if (typeof showNotification === 'function') {
+    showNotification('👋 Sesión cerrada', 'info', 2000);
+  }
+  
+  setTimeout(function() {
+    window.location.href = '/';
+  }, 800);
+}
+
+// ============================================
+// 🔍 FUNCIÓN PARA VERIFICAR SI ES ADMIN
+// ⚠️ SOLO PARA MOSTRAR/OCULTAR BOTONES EN LA UI
+// EL BACKEND DEBE VERIFICAR SIEMPRE
+// ============================================
+function esAdminVisual() {
+  try {
+    return sessionStorage.getItem('isAdminVisual') === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+// ============================================
+// 🔍 OBTENER TOKEN DE FORMA SEGURA
+// ============================================
+function getToken() {
+  try {
+    return sessionStorage.getItem('token') || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ============================================
+// 🌐 EXPONER FUNCIONES
+// ============================================
+window.manejarRespuestaLogin = manejarRespuestaLogin;
+window.req = req;
+window.logout = logout;
+window.esAdminVisual = esAdminVisual;
+window.getToken = getToken;
 
 // ✨ Registro mejorado: validaciones fuertes y feedback claro
 async function register(event) {
