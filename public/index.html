@@ -15355,5 +15355,226 @@ document.addEventListener('keydown', (e) => {
 // La función cargarVault() se llamará desde el script principal
 // cuando el usuario inicie sesión
 </script>
+ enque parte insato esto exactamente dame linea  <!-- 📱 SCRIPTS ESENCIALES (CORREGIDO) -->
+<script>
+  // ============================================
+  // 🛡️ HELPER: SANITIZAR TEXTO (si no existe)
+  // ============================================
+  if (typeof sanitizeForDisplay !== 'function') {
+    function sanitizeForDisplay(texto, maxLen = 100) {
+      if (texto === null || texto === undefined) return '';
+      return String(texto)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .substring(0, maxLen);
+    }
+  }
+
+  // ============================================
+  // 📱 REGISTRAR SERVICE WORKER PARA PWA
+  // ============================================
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('✅ PWA registrado:', reg.scope))
+      .catch(err => console.warn('⚠️ SW no disponible:', err.message));
+  }
+
+  // ============================================
+  // 🔍 VERIFICAR CONEXIÓN AL API
+  // ============================================
+  async function checkAPI() {
+    const statusDiv = document.getElementById('apiStatus');
+    const statusText = document.getElementById('statusText');
+    const responsePre = document.getElementById('apiResponse');
+    
+    // ✅ Validar que los elementos existan
+    if (!statusDiv || !statusText) {
+      console.warn('⚠️ Elementos de estado no encontrados');
+      return;
+    }
+    
+    statusDiv.style.display = 'inline-block';
+    statusText.textContent = 'Consultando...';
+    
+    if (responsePre) {
+      responsePre.textContent = 'Consultando...';
+    }
+    
+    try {
+      const res = await fetch('/api/status');
+      
+      // ✅ Manejo de sesión expirada
+      if (res.status === 401) {
+        if (typeof handleSessionExpired === 'function') {
+          handleSessionExpired();
+        }
+        return;
+      }
+      
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      
+      const data = await res.json();
+      
+      // ✅ Actualizar indicadores visuales
+      if (data.success || data.status === 'online') {
+        statusDiv.className = 'status-dot online';
+        statusText.textContent = `✅ Online • ${data.database || 'MongoDB'}`;
+        statusText.style.color = '#00e676';
+        
+        if (responsePre) {
+          responsePre.textContent = JSON.stringify(data, null, 2);
+          responsePre.style.color = '#00e676';
+        }
+        
+        console.log('🟢 API responde correctamente');
+      } else {
+        statusDiv.className = 'status-dot offline';
+        statusText.textContent = '⚠️ Mantenimiento';
+        statusText.style.color = '#ffb74d';
+        
+        if (responsePre) {
+          responsePre.textContent = JSON.stringify(data, null, 2);
+          responsePre.style.color = '#ffb74d';
+        }
+      }
+    } catch (e) {
+      statusDiv.className = 'status-dot offline';
+      statusText.textContent = '❌ Sin conexión';
+      statusText.style.color = '#ff5252';
+      
+      if (responsePre) {
+        responsePre.textContent = '❌ Error: ' + sanitizeForDisplay(e.message, 100);
+        responsePre.style.color = '#ff5252';
+      }
+      
+      console.warn('⚠️ API no responde:', e.message);
+    }
+  }
+
+  // ============================================
+  // 📤 MODAL DE SUBIDA (DEMO) - CORREGIDO
+  // ============================================
+  function openUploadModal() {
+    const modal = document.getElementById('uploadModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      
+      // ✅ Enfocar el primer input para accesibilidad
+      const titleInput = document.getElementById('uploadTitle');
+      if (titleInput) {
+        setTimeout(() => titleInput.focus(), 100);
+      }
+    }
+  }
+  
+  function closeUploadModal() {
+    const modal = document.getElementById('uploadModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    
+    // ✅ Resetear formulario con validación
+    const titleInput = document.getElementById('uploadTitle');
+    if (titleInput) titleInput.value = '';
+  }
+  
+  function demoUpload() {
+    // ✅ Obtener y validar elementos
+    const titleInput = document.getElementById('uploadTitle');
+    const catSelect = document.getElementById('uploadCat');
+    const vaultContent = document.getElementById('vaultContent');
+    
+    if (!titleInput || !catSelect || !vaultContent) {
+      console.error('❌ Elementos del modal no encontrados');
+      if (typeof showNotification === 'function') {
+        showNotification('❌ Error en el formulario', 'error');
+      }
+      return;
+    }
+    
+    // ✅ SANITIZAR datos antes de usar (previene XSS)
+    const title = sanitizeForDisplay(titleInput.value || 'Archivo sin título', 100);
+    const cat = sanitizeForDisplay(catSelect.value, 50);
+    const hora = new Date().toLocaleTimeString();
+    
+    // ✅ Usar createElement en lugar de innerHTML (más seguro)
+    vaultContent.innerHTML = '';
+    
+    // Mensaje de éxito
+    const successDiv = document.createElement('div');
+    successDiv.style.cssText = 'background:rgba(0,230,118,0.1);padding:12px;border-radius:8px;margin-bottom:12px;border-left:3px solid #00e676';
+    
+    const successTitle = document.createElement('p');
+    successTitle.style.cssText = 'margin:0;color:#00e676;font-weight:600';
+    successTitle.textContent = '✅ Archivo guardado (modo demo)';
+    
+    const successDetail = document.createElement('p');
+    successDetail.style.cssText = 'margin:4px 0 0;font-size:0.85rem;color:#b0b8c4';
+    successDetail.textContent = `${title} • ${cat}`;
+    
+    successDiv.appendChild(successTitle);
+    successDiv.appendChild(successDetail);
+    vaultContent.appendChild(successDiv);
+    
+    // Item del vault
+    const vaultItem = document.createElement('div');
+    vaultItem.className = 'vault-item';
+    
+    const header = document.createElement('div');
+    header.className = 'vault-item-header';
+    
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'vault-item-title';
+    titleSpan.textContent = title;
+    
+    const badge = document.createElement('span');
+    badge.className = 'encryption-badge';
+    badge.textContent = '🔐 Cifrado';
+    
+    header.appendChild(titleSpan);
+    header.appendChild(badge);
+    
+    const meta = document.createElement('div');
+    meta.className = 'vault-item-meta';
+    meta.textContent = `📁 ${cat} • 🕒 ${hora}`;
+    
+    vaultItem.appendChild(header);
+    vaultItem.appendChild(meta);
+    vaultContent.appendChild(vaultItem);
+    
+    // Botón para subir otro
+    const btnOtro = document.createElement('button');
+    btnOtro.textContent = '📤 Subir otro archivo';
+    btnOtro.addEventListener('click', openUploadModal);
+    vaultContent.appendChild(btnOtro);
+    
+    closeUploadModal();
+    
+    if (typeof showNotification === 'function') {
+      showNotification('✅ Archivo guardado (demo)', 'success');
+    }
+    
+    console.log(`📦 Archivo demo guardado: ${title} (${cat})`);
+  }
+
+  // ============================================
+  // 🔄 AUTO-VERIFICAR API AL CARGAR
+  // ============================================
+  window.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 ApiRomwiner Vault cargado');
+    
+    // ✅ Activar verificación automática (descomentada)
+    setTimeout(() => {
+      if (typeof checkAPI === 'function') {
+        checkAPI();
+      }
+    }, 500);
+  });
+</script>         
 </body>
 </html>
