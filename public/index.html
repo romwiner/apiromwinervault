@@ -5536,76 +5536,467 @@ async function toggleFavorite() {
   log('✅ Módulo de autenticación y media player cargado correctamente', 'success');
 
 })();
-</script>
-  // ============================================
-  // 🔐 SANITIZAR EMAIL (MEJORADO - SEGURO)
-  // ============================================
-  function sanitizeEmail(email) {
-    if (!email || typeof email !== 'string') return '';
-    return String(email)
-      .trim()
-      .toLowerCase()
-      // Eliminar TODOS los caracteres peligrosos
-      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F]/g, '')
-      // Solo permitir caracteres válidos de email
-      .replace(/[^a-z0-9@._+\-]/g, '')
-      .substring(0, 255);
+// ============================================
+// 🔐 SANITIZAR EMAIL (MEJORADO - SEGURO)
+// ============================================
+function sanitizeEmail(email) {
+  if (!email || typeof email !== 'string') return '';
+  return String(email)
+    .trim()
+    .toLowerCase()
+    // Eliminar TODOS los caracteres peligrosos
+    .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F]/g, '')
+    // Solo permitir caracteres válidos de email
+    .replace(/[^a-z0-9@._+\-]/g, '')
+    .substring(0, 255);
+}
+
+// ============================================
+// 🔑 VALIDAR CONTRASEÑA (MEJORADO)
+// ============================================
+function validatePasswordStrength(pass) {
+  var errores = [];
+  if (!pass || typeof pass !== 'string') return ['contraseña vacía'];
+  if (pass.length < 8) errores.push('mínimo 8 caracteres');
+  if (pass.length > 128) errores.push('máximo 128 caracteres'); // Anti-DoS
+  if (!/[A-Z]/.test(pass)) errores.push('1 mayúscula');
+  if (!/[a-z]/.test(pass)) errores.push('1 minúscula');
+  if (!/[0-9]/.test(pass)) errores.push('1 número');
+  if (!/[^a-zA-Z0-9]/.test(pass)) errores.push('1 símbolo');
+
+  // Detectar contraseñas comunes
+  var comunes = ['password', '12345678', 'qwerty', 'admin123', 'letmein', 'welcome', 'abc123'];
+  if (comunes.indexOf(pass.toLowerCase()) !== -1) {
+    errores.push('contraseña muy común');
   }
+  return errores;
+}
 
-  // ============================================
-  // 🔑 VALIDAR CONTRASEÑA (MEJORADO)
-  // ============================================
-  function validatePasswordStrength(pass) {
-    var errores = [];
-    if (!pass || typeof pass !== 'string') return ['contraseña vacía'];
-    if (pass.length < 8) errores.push('mínimo 8 caracteres');
-    if (pass.length > 128) errores.push('máximo 128 caracteres'); // Anti-DoS
-    if (!/[A-Z]/.test(pass)) errores.push('1 mayúscula');
-    if (!/[a-z]/.test(pass)) errores.push('1 minúscula');
-    if (!/[0-9]/.test(pass)) errores.push('1 número');
-    if (!/[^a-zA-Z0-9]/.test(pass)) errores.push('1 símbolo');
-
-    // Detectar contraseñas comunes
-    var comunes = ['password', '12345678', 'qwerty', 'admin123', 'letmein', 'welcome', 'abc123'];
-    if (comunes.indexOf(pass.toLowerCase()) !== -1) {
-      errores.push('contraseña muy común');
-    }
-    return errores;
+// ============================================
+// 🔒 LIMPIEZA SEGURA DE MEMORIA (NUEVO)
+// ============================================
+function secureClear(element) {
+  if (!element) return;
+  
+  // Limpiar valor
+  if (element.value !== undefined) {
+    element.value = '';
   }
-
-  // ============================================
-  // 🔐 FUNCIÓN LOGIN (COMPLETA Y SEGURA)
-  // ============================================
-  async function login(event) {
-    if (event) event.preventDefault();
-
-    // Obtener elementos
-    var emailInput = document.getElementById('email');
-    var passInput = document.getElementById('pass');
-    var rawEmail = (emailInput && emailInput.value) ? emailInput.value.trim() : '';
-    var pass = (passInput && passInput.value) ? passInput.value : '';
-
-    // Sanitizar email
-    var email = sanitizeEmail(rawEmail);
-
-    // Validar campos vacíos
-    if (!email || !pass) {
-      log('⚠️ Campos incompletos', 'warning');
-      showNotification('⚠️ Completa todos los campos', 'warning');
-      return;
+  
+  // Sobrescribir con datos aleatorios antes de limpiar
+  if (element.type === 'password') {
+    var length = element.maxLength || 128;
+    var randomData = '';
+    for (var i = 0; i < length; i++) {
+      randomData += String.fromCharCode(Math.floor(Math.random() * 94) + 33);
     }
+    element.value = randomData;
+    element.value = '';
+  }
+  
+  // Eliminar atributos sensibles
+  element.removeAttribute('value');
+  element.setAttribute('autocomplete', 'off');
+}
 
-    // Validar formato email
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      log('⚠️ Email inválido', 'warning');
-      showNotification('⚠️ Ingresa un email válido', 'warning');
-      if (emailInput) {
-        emailInput.classList.add('error');
-        emailInput.setAttribute('aria-invalid', 'true');
+// ============================================
+// 🛡️ PROTECCIÓN CONTRA FUERZA BRUTA (NUEVO)
+// ============================================
+var loginAttempts = {
+  count: 0,
+  lastAttempt: 0,
+  maxAttempts: 5,
+  lockoutTime: 300000, // 5 minutos
+  
+  check: function() {
+    var now = Date.now();
+    
+    // Resetear si pasó el tiempo de bloqueo
+    if (now - this.lastAttempt > this.lockoutTime) {
+      this.count = 0;
+    }
+    
+    // Verificar si está bloqueado
+    if (this.count >= this.maxAttempts) {
+      var remainingTime = Math.ceil((this.lockoutTime - (now - this.lastAttempt)) / 1000);
+      return {
+        allowed: false,
+        message: 'Demasiados intentos. Espera ' + remainingTime + ' segundos'
+      };
+    }
+    
+    return { allowed: true };
+  },
+  
+  recordAttempt: function() {
+    this.count++;
+    this.lastAttempt = Date.now();
+  },
+  
+  reset: function() {
+    this.count = 0;
+    this.lastAttempt = 0;
+  }
+};
+
+// ============================================
+// 🌐 VERIFICAR CONEXIÓN (NUEVO)
+// ============================================
+function checkConnection() {
+  if (!navigator.onLine) {
+    return {
+      online: false,
+      message: 'No hay conexión a internet'
+    };
+  }
+  return { online: true };
+}
+
+// ============================================
+// 🔐 GENERAR TOKEN CSRF (NUEVO)
+// ============================================
+function generateCSRFToken() {
+  var array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, function(byte) {
+    return byte.toString(16).padStart(2, '0');
+  }).join('');
+}
+
+// ============================================
+// 💾 GESTIONAR TOKENS JWT (NUEVO)
+// ============================================
+var tokenManager = {
+  storageKey: 'auth_token',
+  refreshKey: 'refresh_token',
+  
+  save: function(token, refreshToken) {
+    try {
+      sessionStorage.setItem(this.storageKey, token);
+      if (refreshToken) {
+        localStorage.setItem(this.refreshKey, refreshToken);
       }
-      return;
+      return true;
+    } catch (e) {
+      log('❌ Error al guardar tokens: ' + e.message, 'error');
+      return false;
+    }
+  },
+  
+  get: function() {
+    try {
+      return sessionStorage.getItem(this.storageKey);
+    } catch (e) {
+      return null;
+    }
+  },
+  
+  getRefresh: function() {
+    try {
+      return localStorage.getItem(this.refreshKey);
+    } catch (e) {
+      return null;
+    }
+  },
+  
+  clear: function() {
+    try {
+      sessionStorage.removeItem(this.storageKey);
+      localStorage.removeItem(this.refreshKey);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+  
+  isValid: function(token) {
+    if (!token) return false;
+    
+    try {
+      var parts = token.split('.');
+      if (parts.length !== 3) return false;
+      
+      var payload = JSON.parse(atob(parts[1]));
+      var now = Math.floor(Date.now() / 1000);
+      
+      return payload.exp > now;
+    } catch (e) {
+      return false;
+    }
+  }
+};
+
+// ============================================
+// 🔄 REFRESH TOKEN (NUEVO)
+// ============================================
+async function refreshAuthToken() {
+  var refreshToken = tokenManager.getRefresh();
+  
+  if (!refreshToken) {
+    log('⚠️ No hay refresh token', 'warning');
+    return false;
+  }
+  
+  try {
+    var response = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': generateCSRFToken()
+      },
+      body: JSON.stringify({ refreshToken: refreshToken })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al renovar token');
+    }
+    
+    var data = await response.json();
+    
+    if (data.token) {
+      tokenManager.save(data.token, data.refreshToken);
+      log('✅ Token renovado exitosamente', 'success');
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    log('❌ Error al renovar token: ' + error.message, 'error');
+    return false;
+  }
+}
+
+// ============================================
+// ✅ VERIFICAR SESIÓN (NUEVO)
+// ============================================
+function checkSession() {
+  var token = tokenManager.get();
+  
+  if (!token) {
+    return { loggedIn: false, message: 'No hay sesión activa' };
+  }
+  
+  if (!tokenManager.isValid(token)) {
+    log('⚠️ Token expirado', 'warning');
+    return { loggedIn: false, expired: true, message: 'Sesión expirada' };
+  }
+  
+  return { loggedIn: true, message: 'Sesión activa' };
+}
+
+// ============================================
+// 🔐 FUNCIÓN LOGIN (COMPLETA Y SEGURA)
+// ============================================
+async function login(event) {
+  if (event) event.preventDefault();
+
+  // Obtener elementos
+  var emailInput = document.getElementById('email');
+  var passInput = document.getElementById('pass');
+  var rawEmail = (emailInput && emailInput.value) ? emailInput.value.trim() : '';
+  var pass = (passInput && passInput.value) ? passInput.value : '';
+
+  // Sanitizar email
+  var email = sanitizeEmail(rawEmail);
+
+  // Validar campos vacíos
+  if (!email || !pass) {
+    log('⚠️ Campos incompletos', 'warning');
+    showNotification('⚠️ Completa todos los campos', 'warning');
+    return;
+  }
+
+  // Validar formato email
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    log('⚠️ Email inválido', 'warning');
+    showNotification('⚠️ Ingresa un email válido', 'warning');
+    if (emailInput) {
+      emailInput.classList.add('error');
+      emailInput.setAttribute('aria-invalid', 'true');
+    }
+    return;
+  }
+
+  // ✅ NUEVO: Verificar conexión
+  var connection = checkConnection();
+  if (!connection.online) {
+    log('❌ Sin conexión a internet', 'error');
+    showNotification('❌ ' + connection.message, 'error');
+    return;
+  }
+
+  // ✅ NUEVO: Verificar protección contra fuerza bruta
+  var bruteForceCheck = loginAttempts.check();
+  if (!bruteForceCheck.allowed) {
+    log('⚠️ Cuenta bloqueada temporalmente', 'warning');
+    showNotification('⚠️ ' + bruteForceCheck.message, 'warning');
+    return;
+  }
+
+  // ✅ NUEVO: Validar fortaleza de contraseña
+  var passErrors = validatePasswordStrength(pass);
+  if (passErrors.length > 0) {
+    log('⚠️ Contraseña débil: ' + passErrors.join(', '), 'warning');
+    showNotification('⚠️ Contraseña no cumple requisitos de seguridad', 'warning');
+    return;
+  }
+
+  // ✅ NUEVO: Generar token CSRF
+  var csrfToken = generateCSRFToken();
+
+  try {
+    log('🔐 Intentando login...', 'info');
+    showNotification('🔐 Iniciando sesión...', 'info', 2000);
+
+    // ✅ Enviar credenciales al servidor
+    var response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({
+        email: email,
+        password: pass,
+        timestamp: Date.now()
+      }),
+      credentials: 'same-origin'
+    });
+
+    // ✅ NUEVO: Limpiar contraseña inmediatamente
+    if (passInput) secureClear(passInput);
+
+    // Registrar intento
+    loginAttempts.recordAttempt();
+
+    // Verificar respuesta
+    if (!response.ok) {
+      var errorData = await response.json().catch(function() { return {}; });
+      throw new Error(errorData.message || 'Error de autenticación');
     }
 
+    var data = await response.json();
+
+    // ✅ Verificar que hay token
+    if (!data.token) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    // ✅ Guardar tokens
+    var saved = tokenManager.save(data.token, data.refreshToken);
+    if (!saved) {
+      throw new Error('Error al guardar sesión');
+    }
+
+    // ✅ Resetear contador de intentos
+    loginAttempts.reset();
+
+    // ✅ Limpiar email también
+    if (emailInput) secureClear(emailInput);
+
+    log('✅ Login exitoso', 'success');
+    showNotification('✅ Sesión iniciada correctamente', 'success');
+
+    // ✅ Redirigir o actualizar UI
+    setTimeout(function() {
+      window.location.href = data.redirect || '/dashboard';
+    }, 1000);
+
+  } catch (error) {
+    log('❌ Error en login: ' + error.message, 'error');
+    showNotification('❌ ' + error.message, 'error', 5000);
+
+    // ✅ Limpiar campos en caso de error
+    if (passInput) secureClear(passInput);
+
+    // ✅ Remover clases de error
+    if (emailInput) {
+      emailInput.classList.remove('error');
+      emailInput.removeAttribute('aria-invalid');
+    }
+  }
+}
+
+// ============================================
+// 🚪 FUNCIÓN LOGOUT (NUEVO)
+// ============================================
+async function logout() {
+  try {
+    var token = tokenManager.get();
+    
+    if (token) {
+      // Notificar al servidor
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'X-CSRF-Token': generateCSRFToken()
+        }
+      }).catch(function() {
+        // Ignorar errores de red en logout
+      });
+    }
+    
+    // Limpiar tokens locales
+    tokenManager.clear();
+    
+    log('🚪 Sesión cerrada', 'info');
+    showNotification('👋 Sesión cerrada correctamente', 'success');
+    
+    // Redirigir al login
+    setTimeout(function() {
+      window.location.href = '/login';
+    }, 1000);
+    
+  } catch (error) {
+    log('❌ Error al cerrar sesión: ' + error.message, 'error');
+    showNotification('❌ Error al cerrar sesión', 'error');
+  }
+}
+
+// ============================================
+// 🔄 AUTO-REFRESH DE SESIÓN (NUEVO)
+// ============================================
+function setupAutoRefresh() {
+  // Verificar sesión cada 5 minutos
+  setInterval(async function() {
+    var session = checkSession();
+    
+    if (session.expired) {
+      log('🔄 Intentando renovar sesión...', 'info');
+      var refreshed = await refreshAuthToken();
+      
+      if (!refreshed) {
+        log('❌ No se pudo renovar sesión', 'error');
+        showNotification('⚠️ Sesión expirada. Inicia sesión nuevamente', 'warning');
+        setTimeout(function() {
+          window.location.href = '/login';
+        }, 3000);
+      }
+    }
+  }, 300000); // 5 minutos
+}
+
+// ============================================
+// 🎯 INICIALIZACIÓN (NUEVO)
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+  // Configurar auto-refresh si hay sesión activa
+  var session = checkSession();
+  if (session.loggedIn) {
+    setupAutoRefresh();
+    log('✅ Sesión activa detectada', 'success');
+  }
+  
+  // Agregar event listener al formulario de login
+  var loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', login);
+  }
+  
+  log('✅ Módulo de autenticación inicializado', 'success');
+});
     // ✅ VALIDAR FORTALEZA DE CONTRASEÑA (antes no se hacía)
     var erroresPass = validatePasswordStrength(pass);
     if (erroresPass.length > 0) {
