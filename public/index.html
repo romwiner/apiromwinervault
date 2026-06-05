@@ -3,195 +3,1065 @@
 <head>
   <link rel="manifest" href="/manifest.json">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#00e676">
-  <link rel="manifest" href="/manifest.json">
   <meta name="description" content="ApiRomwiner Vault - Tu identidad digital universal. Monétiza contenido, gana con referidos y controla tu información sin intermediarios.">
   <title>ApiRomwiner Vault | Monetiza tu Identidad Digital</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#0b0c10;color:#e8eaed;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;line-height:1.5;padding-bottom:20px}
-    .glass{background:rgba(18,22,30,0.85);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px;margin:12px auto;max-width:480px;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
-    .green{border-left:4px solid #00e676}
-    .enterprise{border-left:4px solid #7e57c2}
-    .business{border-left:4px solid #29b6f6}
-    h1{font-size:1.6rem;margin-bottom:8px}
-    h2{font-size:1.3rem;margin-bottom:12px;color:#00e676}
-    h3{font-size:1.1rem;margin:12px 0 8px;color:#8ab4f8}
-    p{color:#b0b8c4;margin-bottom:12px}
-    input,select,textarea{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #2a2f3a;background:#151922;color:#fff;font-size:1rem;transition:border-color 0.2s}
-    input.error{border-color:#ff5252!important;box-shadow:0 0 0 2px rgba(255,82,82,0.3)}
-    button{width:100%;padding:13px;margin:6px 0;border-radius:10px;border:none;background:#00e676;color:#0b0c10;font-weight:700;font-size:1rem;cursor:pointer;transition:0.15s}
-    button:hover{transform:translateY(-1px);opacity:0.95}
-    button:disabled{opacity:0.6;cursor:not-allowed;transform:none}
-    .btn-sec{background:transparent;border:1px solid #00e676;color:#00e676}
-    .btn-danger{background:#ff5252;color:#fff}
-    .btn-enterprise{background:#7e57c2;color:#fff}
-    .qr-box{text-align:center;margin:16px 0}
-    .qr-img{max-width:160px;border-radius:12px;border:2px solid #00e676;margin:8px auto;display:block;background:#000}
-    .hidden{display:none!important}
-    /* 🔐 Secciones exclusivas: login O vault (no ambos) */
-    #authSection{display:none}
-    #vaultSection{display:none}
-    #landingView{display:block}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
-    .card{background:rgba(0,0,0,0.35);padding:12px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.05)}
-    .val{font-size:1.4rem;font-weight:700;color:#fff;margin:6px 0 2px}
-    .label{font-size:0.8rem;color:#8b95a5}
-    .feature-icon{font-size:2rem;margin-bottom:6px}
-    .promo-badge{background:rgba(0,230,118,0.15);color:#00e676;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;display:inline-block;margin-bottom:8px}
-    .tier-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;margin:4px 0}
-    .tier-personal{background:rgba(144,202,249,0.2);color:#90caf9}
-    .tier-business{background:rgba(41,182,246,0.2);color:#29b6f6}
-    .tier-enterprise{background:rgba(126,87,194,0.2);color:#ce93d8}
-    .cta-section{text-align:center;padding:20px 0}
-    footer{text-align:center;padding:20px 12px;color:#5a6577;font-size:0.8rem;border-top:1px solid #1a202a;margin-top:20px}
-    .log{background:#0a0a0a;padding:8px;border-radius:6px;font-family:monospace;font-size:0.7rem;max-height:80px;overflow-y:auto;text-align:left;color:#6a7585;margin-top:10px;white-space:pre-wrap}
-    .progress-bar{height:4px;background:rgba(0,230,118,0.3);border-radius:2px;margin:8px 0;overflow:hidden}
-    .progress-fill{height:100%;background:#00e676;width:0%;transition:width 0.3s}
-    .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#666}
-    .status-dot.online{background:#00e676}
-    .status-dot.offline{background:#ff5252}
-    .enterprise-only{display:none}
-    .enterprise .enterprise-only{display:block}
-    .loading{opacity:0.7;pointer-events:none}
-    .fade-in{animation:fadeIn 0.3s ease-in}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-    .vault-item{background:rgba(30,35,45,0.8);padding:12px;border-radius:10px;margin:8px 0;border:1px solid rgba(255,255,255,0.05)}
-    .vault-item-header{display:flex;justify-content:space-between;align-items:center}
-    .vault-item-title{font-weight:600;color:#fff}
-    .vault-item-meta{font-size:0.8rem;color:#8b95a5;margin-top:4px}
-    .encryption-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(0,230,118,0.15);color:#00e676;border-radius:12px;font-size:0.7rem;margin-left:8px}
-    .audit-log{font-size:0.75rem;color:#8b95a5;max-height:120px;overflow-y:auto}
-    .audit-entry{padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
-    .webhook-item{background:rgba(30,35,45,0.8);padding:10px;border-radius:8px;margin:6px 0;font-size:0.85rem}
-    .quota-bar{height:6px;background:rgba(255,255,255,0.1);border-radius:3px;margin:8px 0;overflow:hidden}
-    .quota-fill{height:100%;background:linear-gradient(90deg,#00e676,#29b6f6);transition:width 0.3s}
-    .quota-warning{color:#ffb74d;font-size:0.8rem}
-    .quota-critical{color:#ff5252;font-size:0.8rem}
-    .legal-links{margin-top:8px;font-size:0.75rem}
-    .legal-links a{color:#8b95a5;margin:0 6px;text-decoration:none}
-    .legal-links a:hover{color:#00e676}
-    .zk-toggle{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:0.8rem;color:#8b95a5}
-    .zk-toggle input{width:auto;margin:0}
-    .zk-warning{color:#00e676;font-size:0.75rem;margin-left:8px;display:none}
-    .zk-toggle input:checked~.zk-warning{display:block}
-    .market-search{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;background:rgba(30,35,45,0.6);padding:12px;border-radius:12px;border:1px solid rgba(0,230,118,0.3)}
-    .market-search input,.market-search select{flex:1;min-width:140px;margin:0;background:rgba(18,22,30,0.9);border:1px solid rgba(0,230,118,0.4);color:#fff;border-radius:8px;padding:10px 14px;transition:all 0.2s}
-    .market-search input:focus,.market-search select:focus{outline:none;border-color:#00e676;box-shadow:0 0 0 3px rgba(0,230,118,0.2)}
-    .market-search button{width:auto;padding:10px 20px;background:linear-gradient(135deg,#00e676,#00c853);color:#0b0c10;border:none;border-radius:8px;font-weight:700;cursor:pointer;transition:all 0.2s}
-    .market-search button:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,230,118,0.4)}
-    .market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
-    .market-item{background:linear-gradient(145deg,rgba(30,35,45,0.95),rgba(18,22,30,0.95));border:1px solid rgba(0,230,118,0.25);border-radius:16px;padding:16px;cursor:pointer;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden}
-    .market-item::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#00e676,#29b6f6,#ab47bc);opacity:0;transition:opacity 0.3s}
-    .market-item:hover{transform:translateY(-6px);border-color:#00e676;box-shadow:0 12px 40px rgba(0,230,118,0.25),0 0 0 1px rgba(0,230,118,0.1)}
-    .market-item:hover::before{opacity:1}
-    .market-item-badge{position:absolute;top:12px;right:12px;background:rgba(0,230,118,0.15);color:#00e676;padding:4px 10px;border-radius:20px;font-size:0.7rem;font-weight:600;border:1px solid rgba(0,230,118,0.3)}
-    .market-item-title{font-weight:700;color:#fff;margin-bottom:6px;font-size:1rem;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-    .market-item-vendor{display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#8b95a5;margin-bottom:8px}
-    .market-item-vendor::before{content:'👤'}
-    .market-item-price{color:#00e676;font-weight:800;font-size:1.3rem;margin:8px 0;text-shadow:0 0 10px rgba(0,230,118,0.3)}
-    .market-item-rating{display:flex;align-items:center;gap:4px;font-size:0.75rem;color:#b0b8c4;margin-bottom:10px}
-    .market-item-rating::before{content:'⭐';color:#ffd54f}
-    .market-preview{width:100%;height:140px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid rgba(0,230,118,0.2);transition:transform 0.2s}
-    .market-item:hover .market-preview{transform:scale(1.02)}
-    .market-preview img{width:100%;height:100%;object-fit:cover}
-    .market-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
-    .market-tag{display:inline-flex;align-items:center;background:rgba(0,230,118,0.12);color:#00e676;padding:4px 10px;border-radius:12px;font-size:0.7rem;border:1px solid rgba(0,230,118,0.25);transition:all 0.2s}
-    .market-tag:hover{background:rgba(0,230,118,0.25);transform:scale(1.05)}
-    .market-item-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
-    .market-item-actions button{flex:1;min-width:80px;padding:8px 12px;font-size:0.75rem;background:transparent;border:1px solid;border-radius:10px;font-weight:600;transition:all 0.2s;cursor:pointer}
-    .market-item-actions button:hover{transform:translateY(-2px)}
-    .btn-buy{border-color:#00e676;color:#00e676;background:rgba(0,230,118,0.1)}
-    .btn-buy:hover{background:#00e676;color:#0b0c10;box-shadow:0 4px 15px rgba(0,230,118,0.4)}
-    .btn-fav{border-color:#ab47bc;color:#ce93d8;background:rgba(171,71,188,0.1)}
-    .btn-fav:hover{background:#ab47bc;color:#fff}
-    .btn-details{border-color:#29b6f6;color:#81d4fa;background:rgba(41,182,246,0.1)}
-    .btn-details:hover{background:#29b6f6;color:#0b0c10}
-    .market-empty,.market-loading{text-align:center;color:#8b95a5;padding:40px 20px;background:rgba(30,35,45,0.4);border-radius:16px;border:1px dashed rgba(0,230,118,0.3)}
-    .market-empty::before{content:'🔍';display:block;font-size:2.5rem;margin-bottom:12px}
-    .market-loading::before{content:'⏳';display:block;font-size:2.5rem;margin-bottom:12px;animation:pulse 1.5s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-    .market-recommendations{margin-bottom:24px;padding:16px;background:linear-gradient(135deg,rgba(0,230,118,0.08),rgba(41,182,246,0.08));border-radius:16px;border:1px solid rgba(0,230,118,0.2)}
-    .market-recommendations h3{margin-bottom:12px;color:#00e676;display:flex;align-items:center;gap:8px;font-size:1.1rem}
-    .market-recommendations h3::before{content:'🎯'}
-    .market-modal{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:200;padding:20px;backdrop-filter:blur(8px);animation:fadeIn 0.3s ease-out}
-    .market-modal-content{max-width:480px;max-height:90vh;overflow-y:auto;background:linear-gradient(145deg,rgba(30,35,45,0.98),rgba(18,22,30,0.98));border:1px solid rgba(0,230,118,0.3);border-radius:20px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6),0 0 0 1px rgba(0,230,118,0.1)}
-    .market-modal-title{font-size:1.4rem;color:#fff;margin-bottom:10px;font-weight:700;line-height:1.3}
-    .market-modal-desc{font-size:0.9rem;color:#b0b8c4;margin-bottom:16px;line-height:1.5}
-    .market-modal-price{color:#00e676;font-weight:800;font-size:1.5rem;margin:12px 0;text-shadow:0 0 15px rgba(0,230,118,0.4)}
-    .market-modal-meta{font-size:0.8rem;color:#8b95a5;margin:6px 0;display:flex;gap:12px;flex-wrap:wrap}
-    .market-modal-meta span{display:flex;align-items:center;gap:4px}
-    .market-modal-tags{margin:14px 0;display:flex;flex-wrap:wrap;gap:8px}
-    .market-modal-tags .market-tag{padding:6px 14px;font-size:0.75rem}
-    .market-modal-seller{background:rgba(0,0,0,0.35);padding:14px;border-radius:14px;margin:18px 0;border-left:3px solid #00e676}
-    .market-modal-seller h4{margin-bottom:6px;color:#fff;font-size:1rem}
-    .market-modal-seller p{font-size:0.8rem;color:#8b95a5;margin:2px 0}
-    .market-modal-seller .verified{color:#00e676;font-weight:600}
-    .market-modal-seller .verified::before{content:'✓ '}
-    .market-modal-license{background:rgba(41,182,246,0.15);color:#81d4fa;padding:10px 14px;border-radius:10px;font-size:0.8rem;border:1px solid rgba(41,182,246,0.3);margin:12px 0}
-    .market-modal-actions{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
-    .market-modal-actions button{flex:1;min-width:100px;padding:12px 16px;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.2s}
-    .market-modal-actions .btn-buy{background:linear-gradient(135deg,#00e676,#00c853);color:#0b0c10;border:none;box-shadow:0 4px 20px rgba(0,230,118,0.4)}
-    .market-modal-actions .btn-buy:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,230,118,0.6)}
-    .market-modal-actions .btn-fav{border-color:#ab47bc;color:#ce93d8;background:rgba(171,71,188,0.15)}
-    .market-modal-actions .btn-sec{border-color:#5a6577;color:#8b95a5;background:transparent}
-    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-    .market-item:nth-child(odd){animation:float 6s ease-in-out infinite}
-    .market-item:nth-child(even){animation:float 6s ease-in-out infinite 0.5s}
-    @media (max-width:600px){.market-grid{grid-template-columns:1fr}.market-search{flex-direction:column}.market-modal-actions{flex-direction:column}.market-modal-actions button{width:100%}}
-    .notification{position:fixed;top:20px;right:20px;background:rgba(18,22,30,0.95);border:1px solid rgba(0,230,118,0.3);border-radius:12px;padding:12px 16px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;gap:10px;animation:slideIn 0.3s ease-out;max-width:320px}
-    .notification.success{border-left:4px solid #00e676}
-    .notification.error{border-left:4px solid #ff5252}
-    .notification.info{border-left:4px solid #29b6f6}
-    @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-    .notification-close{background:none;border:none;color:#8b95a5;font-size:1.2rem;cursor:pointer;margin-left:auto}
-    .chat-preview{background:rgba(30,35,45,0.6);border-radius:12px;padding:12px;margin:8px 0;border:1px solid rgba(41,182,246,0.2)}
-    .chat-preview-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-    .chat-preview-messages{max-height:100px;overflow-y:auto;font-size:0.8rem;color:#b0b8c4}
-    .chat-preview-input{display:flex;gap:8px;margin-top:8px}
-    .chat-preview-input input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(18,22,30,0.8);color:#fff}
-    /* 🎬 Reproductor Multimedia */
-    .media-modal{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;justify-content:center;align-items:center;z-index:200;padding:20px}
-    .media-container{width:100%;max-width:800px;background:#000;border-radius:12px;overflow:hidden;position:relative;box-shadow:0 0 30px rgba(0,230,118,0.2)}
-    .media-container video, .media-container audio{width:100%;display:block;max-height:80vh}
-    .media-controls{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#111;color:#fff}
-    .media-title{font-size:1rem;font-weight:bold;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .close-media{background:none;border:none;color:#ff5252;font-size:1.5rem;cursor:pointer;padding:5px 15px}
-    .play-btn{width:auto;padding:4px 8px;font-size:0.75rem;background:transparent;border:1px solid #00e676;color:#00e676;cursor:pointer}
-    /* 🆔 Identidad Digital */
-    #sigCanvas{touch-action:none}
-    .contact-row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(0,0,0,0.3);border-radius:6px;margin:4px 0;font-size:0.8rem}
-    .contact-remove{background:none;border:none;color:#ff5252;cursor:pointer;font-size:1.1rem;padding:0 4px}
-    .signature-saved{border-color:#00e676!important}
-    /* 📊 Analytics Dashboard */
-    #revenueChart, #categoryChart { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; }
-    .top-product-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .affiliate-timeline-item { padding: 4px 0; border-left: 2px solid #00e676; padding-left: 12px; margin: 4px 0; font-size: 0.75rem; }
-    /* 📤 Upload Modal */
-    #uploadModal .glass { max-width: 340px; }
-    #uploadModal h2 { margin-bottom: 16px; }
-    #uploadModal label { display: block; margin: 10px 0 5px; font-weight: bold; }
-    #uploadModal input[type="file"] { background: #1a1f2a; padding: 10px; border-radius: 8px; }
-    #uploadModal #priceSection { margin: 10px 0; }
-    #uploadModal #uploadStatus { font-size: 0.75rem; color: #00e676; margin-top: 8px; min-height: 1.2em; }
-    #uploadModal .progress-bar { margin: 12px 0; }
-    /* Responsive adjustments */
-    @media (max-width: 480px) {
-      .glass { margin: 8px; padding: 14px; }
-      .grid { grid-template-columns: 1fr; }
-      h1 { font-size: 1.4rem; }
-      h2 { font-size: 1.2rem; }
-      button { padding: 11px; font-size: 0.95rem; }
-    }
-       /* ✅ ESTILOS ADICIONALES PARA FUNCIONALIDAD BÁSICA */
-    #successView { text-align: center; }
-    #successView pre { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; }
-    #vaultContent { min-height: 100px; }
-  </style>
+ <style>
+/* ============================================ */
+/* 🎨 RESET Y CONFIGURACIÓN BASE                */
+/* ============================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ✅ NUEVO: Tema oscuro nativo del navegador */
+html { 
+  color-scheme: dark;
+  scroll-behavior: smooth; /* ✅ Scroll suave */
+  -webkit-text-size-adjust: 100%; /* ✅ Evita zoom de texto en móviles */
+}
+
+body {
+  background: #0b0c10;
+  color: #e8eaed;
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  line-height: 1.5;
+  padding-bottom: 20px;
+  -webkit-tap-highlight-color: transparent; /* ✅ Sin highlight azul en móviles */
+  overflow-x: hidden; /* ✅ Evita scroll horizontal accidental */
+}
+
+/* ✅ NUEVO: Imágenes responsive por defecto */
+img, svg, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ✅ NUEVO: Links heredan color del tema */
+a { 
+  color: #00e676; 
+  text-decoration: none; 
+  transition: color 0.2s;
+}
+a:hover { color: #00c853; }
+
+/* ✅ NUEVO: Selección de texto coherente con el tema */
+::selection {
+  background: rgba(0, 230, 118, 0.3);
+  color: #fff;
+}
+
+/* ============================================ */
+/* 🪟 GLASS MORPHISM                            */
+/* ============================================ */
+.glass {
+  background: rgba(18, 22, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 18px;
+  margin: 12px auto;
+  max-width: 480px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px); /* ✅ Mejora glass effect */
+  -webkit-backdrop-filter: blur(10px); /* ✅ Safari */
+}
+
+.green { border-left: 4px solid #00e676; }
+.enterprise { border-left: 4px solid #7e57c2; }
+.business { border-left: 4px solid #29b6f6; }
+
+/* ============================================ */
+/* 📝 TIPOGRAFÍA                                */
+/* ============================================ */
+h1 { font-size: 1.6rem; margin-bottom: 8px; }
+h2 { font-size: 1.3rem; margin-bottom: 12px; color: #00e676; }
+h3 { font-size: 1.1rem; margin: 12px 0 8px; color: #8ab4f8; }
+p { color: #b0b8c4; margin-bottom: 12px; }
+
+/* ============================================ */
+/* 📝 INPUTS, SELECTS Y TEXTAREAS               */
+/* ============================================ */
+input, select, textarea {
+  width: 100%;
+  padding: 12px;
+  margin: 6px 0;
+  border-radius: 10px;
+  border: 1px solid #2a2f3a;
+  background: #151922;
+  color: #fff;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit; /* ✅ Hereda fuente */
+}
+
+/* ✅ NUEVO: Focus visible mejorado (accesibilidad) */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #00e676;
+  box-shadow: 0 0 0 3px rgba(0, 230, 118, 0.2);
+}
+
+/* ✅ NUEVO: Focus visible para teclado (accesibilidad crítica) */
+input:focus-visible, select:focus-visible, textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid #00e676;
+  outline-offset: 2px;
+}
+
+/* ✅ NUEVO: Placeholder estilizado */
+::placeholder {
+  color: #6a7585;
+  opacity: 0.7;
+}
+
+/* ✅ NUEVO: Inputs deshabilitados */
+input:disabled, select:disabled, textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #0f1419;
+}
+
+/* ✅ NUEVO: Input file personalizado */
+input[type="file"]::file-selector-button {
+  background: #00e676;
+  color: #0b0c10;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-right: 12px;
+  transition: background 0.2s;
+}
+input[type="file"]::file-selector-button:hover {
+  background: #00c853;
+}
+
+/* ✅ NUEVO: Checkboxes y radios con color del tema */
+input[type="checkbox"], input[type="radio"] {
+  accent-color: #00e676;
+  width: auto;
+  cursor: pointer;
+}
+
+input.error {
+  border-color: #ff5252 !important;
+  box-shadow: 0 0 0 2px rgba(255, 82, 82, 0.3);
+}
+
+/* ============================================ */
+/* 🔘 BOTONES                                   */
+/* ============================================ */
+button {
+  width: 100%;
+  padding: 13px;
+  margin: 6px 0;
+  border-radius: 10px;
+  border: none;
+  background: #00e676;
+  color: #0b0c10;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s;
+  font-family: inherit; /* ✅ Hereda fuente */
+  user-select: none; /* ✅ Evita selección accidental de texto */
+  -webkit-user-select: none;
+  touch-action: manipulation; /* ✅ Mejora respuesta táctil */
+}
+
+button:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+  box-shadow: 0 4px 12px rgba(0, 230, 118, 0.3);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-sec {
+  background: transparent;
+  border: 1px solid #00e676;
+  color: #00e676;
+}
+.btn-sec:hover {
+  background: rgba(0, 230, 118, 0.1);
+}
+
+.btn-danger {
+  background: #ff5252;
+  color: #fff;
+}
+.btn-danger:hover {
+  background: #ff1744;
+  box-shadow: 0 4px 12px rgba(255, 82, 82, 0.3);
+}
+
+.btn-enterprise {
+  background: #7e57c2;
+  color: #fff;
+}
+.btn-enterprise:hover {
+  background: #6a3fb5;
+  box-shadow: 0 4px 12px rgba(126, 87, 194, 0.3);
+}
+
+/* ============================================ */
+/* 🆔 QR Y ELEMENTOS ESPECIALES                 */
+/* ============================================ */
+.qr-box { text-align: center; margin: 16px 0; }
+.qr-img {
+  max-width: 160px;
+  border-radius: 12px;
+  border: 2px solid #00e676;
+  margin: 8px auto;
+  display: block;
+  background: #000;
+}
+
+.hidden { display: none !important; }
+
+/* 🔐 Secciones exclusivas: login O vault (no ambos) */
+/* ✅ MEJORADO: Estado inicial sin forzar display */
+#authSection, #vaultSection { display: none; }
+#landingView { display: block; }
+
+/* ============================================ */
+/* 📊 GRID Y CARDS                              */
+/* ============================================ */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.card {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 12px;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 230, 118, 0.2);
+}
+
+.val { font-size: 1.4rem; font-weight: 700; color: #fff; margin: 6px 0 2px; }
+.label { font-size: 0.8rem; color: #8b95a5; }
+.feature-icon { font-size: 2rem; margin-bottom: 6px; }
+
+.promo-badge {
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+/* ============================================ */
+/* 🏷️ TIER BADGES                               */
+/* ============================================ */
+.tier-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 4px 0;
+}
+.tier-personal { background: rgba(144, 202, 249, 0.2); color: #90caf9; }
+.tier-business { background: rgba(41, 182, 246, 0.2); color: #29b6f6; }
+.tier-enterprise { background: rgba(126, 87, 194, 0.2); color: #ce93d8; }
+
+.cta-section { text-align: center; padding: 20px 0; }
+
+/* ============================================ */
+/* 🦶 FOOTER                                    */
+/* ============================================ */
+footer {
+  text-align: center;
+  padding: 20px 12px;
+  color: #5a6577;
+  font-size: 0.8rem;
+  border-top: 1px solid #1a202a;
+  margin-top: 20px;
+}
+
+/* ============================================ */
+/* 📝 LOG Y PROGRESO                            */
+/* ============================================ */
+.log {
+  background: #0a0a0a;
+  padding: 8px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace; /* ✅ Fuente monoespaciada más compatible */
+  font-size: 0.7rem;
+  max-height: 80px;
+  overflow-y: auto;
+  text-align: left;
+  color: #6a7585;
+  margin-top: 10px;
+  white-space: pre-wrap;
+  word-break: break-word; /* ✅ Evita desbordamiento */
+}
+
+.progress-bar {
+  height: 4px;
+  background: rgba(0, 230, 118, 0.3);
+  border-radius: 2px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: #00e676;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+/* ============================================ */
+/* 🔵 STATUS DOTS                               */
+/* ============================================ */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: #666;
+}
+.status-dot.online { background: #00e676; box-shadow: 0 0 6px rgba(0, 230, 118, 0.6); }
+.status-dot.offline { background: #ff5252; box-shadow: 0 0 6px rgba(255, 82, 82, 0.6); }
+
+/* ============================================ */
+/* 🏢 ENTERPRISE FEATURES                       */
+/* ============================================ */
+.enterprise-only { display: none; }
+.enterprise .enterprise-only { display: block; }
+
+.loading { opacity: 0.7; pointer-events: none; }
+
+/* ============================================ */
+/* ✨ ANIMACIONES                                 */
+/* ============================================ */
+.fade-in { animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ✅ NUEVO: Respeta preferencia de movimiento reducido (accesibilidad) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================ */
+/* 🗄️ VAULT ITEMS                               */
+/* ============================================ */
+.vault-item {
+  background: rgba(30, 35, 45, 0.8);
+  padding: 12px;
+  border-radius: 10px;
+  margin: 8px 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: border-color 0.2s, transform 0.2s;
+}
+.vault-item:hover {
+  border-color: rgba(0, 230, 118, 0.3);
+  transform: translateY(-1px);
+}
+
+.vault-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.vault-item-title { font-weight: 600; color: #fff; }
+.vault-item-meta { font-size: 0.8rem; color: #8b95a5; margin-top: 4px; }
+
+.encryption-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  margin-left: 8px;
+}
+
+/* ============================================ */
+/* 📋 AUDIT Y WEBHOOKS                          */
+/* ============================================ */
+.audit-log {
+  font-size: 0.75rem;
+  color: #8b95a5;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.audit-entry {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.webhook-item {
+  background: rgba(30, 35, 45, 0.8);
+  padding: 10px;
+  border-radius: 8px;
+  margin: 6px 0;
+  font-size: 0.85rem;
+}
+
+/* ============================================ */
+/* 📊 QUOTA BARS                                */
+/* ============================================ */
+.quota-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+.quota-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00e676, #29b6f6);
+  transition: width 0.3s;
+}
+.quota-warning { color: #ffb74d; font-size: 0.8rem; }
+.quota-critical { color: #ff5252; font-size: 0.8rem; }
+
+/* ============================================ */
+/* ⚖️ LEGAL LINKS                               */
+/* ============================================ */
+.legal-links { margin-top: 8px; font-size: 0.75rem; }
+.legal-links a {
+  color: #8b95a5;
+  margin: 0 6px;
+  text-decoration: none;
+}
+.legal-links a:hover { color: #00e676; }
+
+/* ============================================ */
+/* 🔐 ZERO-KNOWLEDGE TOGGLE                     */
+/* ============================================ */
+.zk-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: #8b95a5;
+}
+.zk-toggle input { width: auto; margin: 0; }
+.zk-warning {
+  color: #00e676;
+  font-size: 0.75rem;
+  margin-left: 8px;
+  display: none;
+}
+.zk-toggle input:checked ~ .zk-warning { display: block; }
+
+/* ============================================ */
+/* 🛍️ MARKETPLACE                                */
+/* ============================================ */
+.market-search {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  background: rgba(30, 35, 45, 0.6);
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 230, 118, 0.3);
+}
+.market-search input, .market-search select {
+  flex: 1;
+  min-width: 140px;
+  margin: 0;
+  background: rgba(18, 22, 30, 0.9);
+  border: 1px solid rgba(0, 230, 118, 0.4);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  transition: all 0.2s;
+}
+.market-search input:focus, .market-search select:focus {
+  outline: none;
+  border-color: #00e676;
+  box-shadow: 0 0 0 3px rgba(0, 230, 118, 0.2);
+}
+.market-search button {
+  width: auto;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #00e676, #00c853);
+  color: #0b0c10;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.market-search button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 230, 118, 0.4);
+}
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.market-item {
+  background: linear-gradient(145deg, rgba(30, 35, 45, 0.95), rgba(18, 22, 30, 0.95));
+  border: 1px solid rgba(0, 230, 118, 0.25);
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+.market-item::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #00e676, #29b6f6, #ab47bc);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.market-item:hover {
+  transform: translateY(-6px);
+  border-color: #00e676;
+  box-shadow: 0 12px 40px rgba(0, 230, 118, 0.25), 0 0 0 1px rgba(0, 230, 118, 0.1);
+}
+.market-item:hover::before { opacity: 1; }
+
+/* ✅ MEJORADO: Animación flotante DESACTIVADA para usuarios con preferencia de movimiento reducido */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  .market-item:nth-child(odd) { animation: float 6s ease-in-out infinite; }
+  .market-item:nth-child(even) { animation: float 6s ease-in-out infinite 0.5s; }
+}
+
+.market-item-badge {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid rgba(0, 230, 118, 0.3);
+}
+.market-item-title {
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+  font-size: 1rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.market-item-vendor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #8b95a5;
+  margin-bottom: 8px;
+}
+.market-item-vendor::before { content: '👤'; }
+.market-item-price {
+  color: #00e676;
+  font-weight: 800;
+  font-size: 1.3rem;
+  margin: 8px 0;
+  text-shadow: 0 0 10px rgba(0, 230, 118, 0.3);
+}
+.market-item-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #b0b8c4;
+  margin-bottom: 10px;
+}
+.market-item-rating::before { content: '⭐'; color: #ffd54f; }
+
+.market-preview {
+  width: 100%;
+  height: 140px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  transition: transform 0.2s;
+}
+.market-item:hover .market-preview { transform: scale(1.02); }
+.market-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+.market-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.market-tag {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 230, 118, 0.12);
+  color: #00e676;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  border: 1px solid rgba(0, 230, 118, 0.25);
+  transition: all 0.2s;
+}
+.market-tag:hover {
+  background: rgba(0, 230, 118, 0.25);
+  transform: scale(1.05);
+}
+
+.market-item-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.market-item-actions button {
+  flex: 1;
+  min-width: 80px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 1px solid;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.market-item-actions button:hover { transform: translateY(-2px); }
+
+.btn-buy { border-color: #00e676; color: #00e676; background: rgba(0, 230, 118, 0.1); }
+.btn-buy:hover { background: #00e676; color: #0b0c10; box-shadow: 0 4px 15px rgba(0, 230, 118, 0.4); }
+.btn-fav { border-color: #ab47bc; color: #ce93d8; background: rgba(171, 71, 188, 0.1); }
+.btn-fav:hover { background: #ab47bc; color: #fff; }
+.btn-details { border-color: #29b6f6; color: #81d4fa; background: rgba(41, 182, 246, 0.1); }
+.btn-details:hover { background: #29b6f6; color: #0b0c10; }
+
+.market-empty, .market-loading {
+  text-align: center;
+  color: #8b95a5;
+  padding: 40px 20px;
+  background: rgba(30, 35, 45, 0.4);
+  border-radius: 16px;
+  border: 1px dashed rgba(0, 230, 118, 0.3);
+}
+.market-empty::before { content: '🔍'; display: block; font-size: 2.5rem; margin-bottom: 12px; }
+.market-loading::before { content: '⏳'; display: block; font-size: 2.5rem; margin-bottom: 12px; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.market-recommendations {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(0, 230, 118, 0.08), rgba(41, 182, 246, 0.08));
+  border-radius: 16px;
+  border: 1px solid rgba(0, 230, 118, 0.2);
+}
+.market-recommendations h3 {
+  margin-bottom: 12px;
+  color: #00e676;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+}
+.market-recommendations h3::before { content: '🎯'; }
+
+/* ============================================ */
+/* 🪟 MARKETPLACE MODAL                         */
+/* ============================================ */
+.market-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  padding: 20px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease-out;
+}
+.market-modal-content {
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: linear-gradient(145deg, rgba(30, 35, 45, 0.98), rgba(18, 22, 30, 0.98));
+  border: 1px solid rgba(0, 230, 118, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 230, 118, 0.1);
+}
+.market-modal-title { font-size: 1.4rem; color: #fff; margin-bottom: 10px; font-weight: 700; line-height: 1.3; }
+.market-modal-desc { font-size: 0.9rem; color: #b0b8c4; margin-bottom: 16px; line-height: 1.5; }
+.market-modal-price {
+  color: #00e676;
+  font-weight: 800;
+  font-size: 1.5rem;
+  margin: 12px 0;
+  text-shadow: 0 0 15px rgba(0, 230, 118, 0.4);
+}
+.market-modal-meta { font-size: 0.8rem; color: #8b95a5; margin: 6px 0; display: flex; gap: 12px; flex-wrap: wrap; }
+.market-modal-meta span { display: flex; align-items: center; gap: 4px; }
+.market-modal-tags { margin: 14px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.market-modal-tags .market-tag { padding: 6px 14px; font-size: 0.75rem; }
+
+.market-modal-seller {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 14px;
+  border-radius: 14px;
+  margin: 18px 0;
+  border-left: 3px solid #00e676;
+}
+.market-modal-seller h4 { margin-bottom: 6px; color: #fff; font-size: 1rem; }
+.market-modal-seller p { font-size: 0.8rem; color: #8b95a5; margin: 2px 0; }
+.market-modal-seller .verified { color: #00e676; font-weight: 600; }
+.market-modal-seller .verified::before { content: '✓ '; }
+
+.market-modal-license {
+  background: rgba(41, 182, 246, 0.15);
+  color: #81d4fa;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  border: 1px solid rgba(41, 182, 246, 0.3);
+  margin: 12px 0;
+}
+.market-modal-actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.market-modal-actions button {
+  flex: 1;
+  min-width: 100px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.market-modal-actions .btn-buy {
+  background: linear-gradient(135deg, #00e676, #00c853);
+  color: #0b0c10;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 230, 118, 0.4);
+}
+.market-modal-actions .btn-buy:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0, 230, 118, 0.6); }
+.market-modal-actions .btn-fav { border-color: #ab47bc; color: #ce93d8; background: rgba(171, 71, 188, 0.15); }
+.market-modal-actions .btn-sec { border-color: #5a6577; color: #8b95a5; background: transparent; }
+
+/* ============================================ */
+/* 🔔 NOTIFICACIONES                            */
+/* ============================================ */
+.notification {
+  position: fixed;
+  top: 20px; right: 20px;
+  background: rgba(18, 22, 30, 0.95);
+  border: 1px solid rgba(0, 230, 118, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease-out;
+  max-width: 320px;
+  word-break: break-word; /* ✅ Evita desbordamiento */
+}
+.notification.success { border-left: 4px solid #00e676; }
+.notification.error { border-left: 4px solid #ff5252; }
+.notification.info { border-left: 4px solid #29b6f6; }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: #8b95a5;
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin-left: auto;
+  padding: 0 4px;
+}
+
+/* ============================================ */
+/* 💬 CHAT PREVIEW                              */
+/* ============================================ */
+.chat-preview {
+  background: rgba(30, 35, 45, 0.6);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid rgba(41, 182, 246, 0.2);
+}
+.chat-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.chat-preview-messages {
+  max-height: 100px;
+  overflow-y: auto;
+  font-size: 0.8rem;
+  color: #b0b8c4;
+}
+.chat-preview-input { display: flex; gap: 8px; margin-top: 8px; }
+.chat-preview-input input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 22, 30, 0.8);
+  color: #fff;
+}
+
+/* ============================================ */
+/* 🎬 REPRODUCTOR MULTIMEDIA                    */
+/* ============================================ */
+.media-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  padding: 20px;
+}
+.media-container {
+  width: 100%;
+  max-width: 800px;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 30px rgba(0, 230, 118, 0.2);
+}
+.media-container video, .media-container audio {
+  width: 100%;
+  display: block;
+  max-height: 80vh;
+}
+.media-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #111;
+  color: #fff;
+}
+.media-title {
+  font-size: 1rem;
+  font-weight: bold;
+  max-width: 70%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.close-media {
+  background: none;
+  border: none;
+  color: #ff5252;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px 15px;
+}
+.play-btn {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 1px solid #00e676;
+  color: #00e676;
+  cursor: pointer;
+}
+
+/* ============================================ */
+/* 🆔 IDENTIDAD DIGITAL                         */
+/* ============================================ */
+#sigCanvas { touch-action: none; }
+
+.contact-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  margin: 4px 0;
+  font-size: 0.8rem;
+}
+.contact-remove {
+  background: none;
+  border: none;
+  color: #ff5252;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0 4px;
+}
+.signature-saved { border-color: #00e676 !important; }
+
+/* ============================================ */
+/* 📊 ANALYTICS DASHBOARD                       */
+/* ============================================ */
+#revenueChart, #categoryChart {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 8px;
+}
+.top-product-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.affiliate-timeline-item {
+  padding: 4px 0;
+  border-left: 2px solid #00e676;
+  padding-left: 12px;
+  margin: 4px 0;
+  font-size: 0.75rem;
+}
+
+/* ============================================ */
+/* 📤 UPLOAD MODAL                              */
+/* ============================================ */
+#uploadModal .glass { max-width: 340px; }
+#uploadModal h2 { margin-bottom: 16px; }
+#uploadModal label { display: block; margin: 10px 0 5px; font-weight: bold; }
+#uploadModal input[type="file"] { background: #1a1f2a; padding: 10px; border-radius: 8px; }
+#uploadModal #priceSection { margin: 10px 0; }
+#uploadModal #uploadStatus { font-size: 0.75rem; color: #00e676; margin-top: 8px; min-height: 1.2em; }
+#uploadModal .progress-bar { margin: 12px 0; }
+
+/* ============================================ */
+/* ✅ ESTILOS ADICIONALES BÁSICOS               */
+/* ============================================ */
+#successView { text-align: center; }
+#successView pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.8rem;
+}
+#vaultContent { min-height: 100px; }
+
+/* ============================================ */
+/* 📜 SCROLLBAR PERSONALIZADO (MEJORA VISUAL)   */
+/* ============================================ */
+/* ✅ NUEVO: Scrollbar coherente con el tema */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0c10;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2f3a;
+  border-radius: 5px;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4050;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2f3a #0b0c10;
+}
+
+/* ============================================ */
+/* 📱 RESPONSIVE UNIFICADO                      */
+/* ============================================ */
+/* ✅ MEJORADO: Unificados los dos breakpoints */
+@media (max-width: 600px) {
+  .market-grid { grid-template-columns: 1fr; }
+  .market-search { flex-direction: column; }
+  .market-modal-actions { flex-direction: column; }
+  .market-modal-actions button { width: 100%; }
+  .grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .glass { margin: 8px; padding: 14px; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.2rem; }
+  button { padding: 11px; font-size: 0.95rem; }
+  .notification { 
+    left: 10px; 
+    right: 10px; 
+    max-width: none; 
+  }
+}
+
+/* ============================================ */
+/* 🖨️ ESTILOS DE IMPRESIÓN                      */
+/* ============================================ */
+/* ✅ NUEVO: Oculta elementos innecesarios al imprimir */
+@media print {
+  .notification, .market-search, button, .btn-sec, .btn-danger {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .glass {
+    background: #fff;
+    border: 1px solid #ddd;
+    color: #000;
+    box-shadow: none;
+  }
+}
+</style>
  </head>
 <body>
   <!-- 🎉 VISTA DE ÉXITO: Confirma que el frontend está cargando -->
@@ -9222,144 +10092,633 @@ function closeMediaPlayer() {
 
 })();
 </script>
+<script>
+// ============================================
+// 🛡️ MÓDULO EXPORT/IMPORT/SYNC - SEGURO
+// ============================================
+(function() {
+  'use strict';
 
-// === EXPORT/IMPORT/SYNC - FUNCIONES MEJORADAS ===
+  // ============================================
+  // 🧹 SANITIZAR TEXTO (VERSIÓN LOCAL)
+  // ============================================
+  function sanitizeLocal(str, maxLen) {
+    if (!str) return '';
+    maxLen = maxLen || 100;
+    return String(str)
+      .trim()
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F\x7F]/g, '')
+      .substring(0, maxLen);
+  }
 
-// ✅ Exportar bóveda con validaciones
-async function exportVault() {
-  if (!token) {
-    log('⚠️ Inicia sesión primero', 'warning');
-    showNotification('⚠️ Inicia sesión para exportar', 'warning');
-    return;
-  }
-  
-  const modal = document.getElementById('exportModal');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-  }
-  
-  const status = document.getElementById('exportStatus');
-  if (status) status.textContent = '';
-}
-
-function closeExportModal() {
-  const modal = document.getElementById('exportModal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-  }
-  const status = document.getElementById('exportStatus');
-  if (status) status.textContent = '';
-}
-
-// ✅ DoExportVault con sanitización y cleanup garantizado
-async function doExportVault() {
-  const btn = document.getElementById('exportBtn');
-  const status = document.getElementById('exportStatus');
-  
-  if (!btn || !status) {
-    log('⚠️ Elementos de exportación no encontrados', 'warning');
-    return;
-  }
-  
-  try {
-    btn.disabled = true;
-    btn.textContent = '⏳ Generando...';
-    btn.setAttribute('aria-busy', 'true');
-    status.textContent = '🔄 Generando exportación...';
-    status.setAttribute('aria-live', 'polite');
+  // ============================================
+  // 📝 LOG LOCAL
+  // ============================================
+  function logLocal(mensaje, nivel) {
+    nivel = nivel || 'info';
+    var iconos = { info: 'ℹ️', warning: '⚠️', error: '❌', success: '✅' };
+    var icono = iconos[nivel] || 'ℹ️';
+    var msg = sanitizeLocal(mensaje, 300);
     
-    const res = await req('/api/vault/export', 'POST', {});
-    
-    if (res?.data) {
-      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+    if (typeof window.log === 'function') {
+      window.log(mensaje, nivel);
+    } else {
+      console.log(icono + ' [' + new Date().toLocaleTimeString() + '] ' + msg);
+    }
+  }
+
+  // ============================================
+  // 🔔 NOTIFICACIÓN LOCAL
+  // ============================================
+  function notifyLocal(mensaje, tipo, duracion) {
+    if (typeof window.showNotification === 'function') {
+      window.showNotification(mensaje, tipo, duracion);
+    }
+  }
+
+  // ============================================
+  // 🔐 VERIFICAR TOKEN
+  // ============================================
+  function hasValidToken() {
+    if (typeof window.getToken === 'function') {
+      return !!window.getToken();
+    }
+    return false;
+  }
+
+  // ============================================
+  // 📤 EXPORTAR BÓVEDA - ABRIR MODAL
+  // ============================================
+  function exportVault() {
+    try {
+      if (!hasValidToken()) {
+        logLocal('⚠️ Inicia sesión primero', 'warning');
+        notifyLocal('⚠️ Inicia sesión para exportar', 'warning', 3000);
+        return;
+      }
+
+      var modal = document.getElementById('exportModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+
+      var status = document.getElementById('exportStatus');
+      if (status) {
+        status.textContent = '';
+        status.style.color = '';
+      }
+
+      logLocal('📤 Modal de exportación abierto', 'info');
+
+    } catch (error) {
+      logLocal('❌ Error en exportVault: ' + sanitizeLocal(error.message || 'desconocido', 100), 'error');
+    }
+  }
+
+  // ============================================
+  // 🔒 CERRAR MODAL DE EXPORTACIÓN
+  // ============================================
+  function closeExportModal() {
+    try {
+      var modal = document.getElementById('exportModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+
+      var status = document.getElementById('exportStatus');
+      if (status) {
+        status.textContent = '';
+        status.style.color = '';
+      }
+
+      logLocal('🔒 Modal de exportación cerrado', 'info');
+
+    } catch (error) {
+      logLocal('❌ Error en closeExportModal: ' + sanitizeLocal(error.message || 'desconocido', 100), 'error');
+    }
+  }
+
+  // ============================================
+  // 📦 EJECUTAR EXPORTACIÓN (COMPLETO Y SEGURO)
+  // ============================================
+  async function doExportVault() {
+    try {
+      // ✅ Verificar token
+      if (!hasValidToken()) {
+        notifyLocal('⚠️ Inicia sesión para exportar', 'warning', 3000);
+        return;
+      }
+
+      var btn = document.getElementById('exportBtn');
+      var status = document.getElementById('exportStatus');
+
+      if (!btn || !status) {
+        logLocal('⚠️ Elementos de exportación no encontrados', 'warning');
+        return;
+      }
+
+      // ✅ UI: estado de carga
+      btn.disabled = true;
+      btn.textContent = '⏳ Generando...';
+      btn.setAttribute('aria-busy', 'true');
+      status.textContent = '🔄 Generando exportación...';
+      status.style.color = '#40c4ff';
+      status.setAttribute('aria-live', 'polite');
+
+      // ✅ Llamar al backend
+      var res = await req('/api/vault/export', 'POST', {});
+
+      // ✅ Validar respuesta
+      if (!res || !res.data) {
+        throw new Error('Respuesta inválida del servidor');
+      }
+
+      // ✅ Limitar tamaño para evitar congelamiento (máx 50MB)
+      var jsonStr = JSON.stringify(res.data, null, 2);
+      if (jsonStr.length > 50 * 1024 * 1024) {
+        throw new Error('Exportación demasiado grande (>50MB). Contacta soporte');
+      }
+
+      // ✅ Validar estructura mínima
+      if (typeof res.data !== 'object') {
+        throw new Error('Estructura de datos inválida');
+      }
+
+      // ✅ Crear blob y descargar
+      var blob = new Blob([jsonStr], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
       a.href = url;
-      
-      // ✅ Sanitizar nombre de archivo
-      const date = new Date().toISOString().slice(0, 10);
-      a.download = `romwiner-vault-export-${date}.json`;
-      
+
+      // ✅ Nombre de archivo seguro
+      var date = new Date().toISOString().slice(0, 10);
+      var time = new Date().toTimeString().slice(0, 5).replace(':', '');
+      a.download = 'romwiner-vault-' + date + '-' + time + '.json';
+
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url); // ✅ Cleanup garantizado
-      
-      // ✅ Sanitizar mensaje antes de mostrar
-      const itemCount = Number(res.data.metadata?.totalItems || 0);
-      status.textContent = '✅ Exportación descargada. Guarda este archivo en un lugar seguro.';
+
+      // ✅ Cleanup con delay (evita cancelar descarga)
+      setTimeout(function() {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (e) {}
+      }, 5000);
+
+      // ✅ Contar items
+      var itemCount = 0;
+      if (res.data.metadata && typeof res.data.metadata.totalItems === 'number') {
+        itemCount = res.data.metadata.totalItems;
+      } else if (Array.isArray(res.data.items)) {
+        itemCount = res.data.items.length;
+      }
+
+      // ✅ Actualizar UI
+      status.textContent = '✅ Exportación descargada (' + itemCount + ' items). Guarda este archivo en un lugar seguro.';
       status.style.color = '#00e676';
-      
-      log(`📦 Bóveda exportada: ${itemCount} items`, 'success');
-      
-      if (localStorage.getItem('zeroKnowledge') === 'true') {
-        showNotification('🔐 Recuerda cifrar este archivo con tu clave maestra', 'warning', 8000);
+
+      logLocal('📦 Bóveda exportada: ' + itemCount + ' items', 'success');
+
+      // ✅ Advertencia ZK
+      var zkEnabled = false;
+      try {
+        zkEnabled = sessionStorage.getItem('zeroKnowledge') === 'true';
+      } catch (e) {}
+
+      if (zkEnabled) {
+        notifyLocal('🔐 Archivo exportado. Recuerda: está cifrado con tu clave maestra', 'warning', 8000);
       } else {
-        showNotification('✅ Exportación descargada', 'success');
+        notifyLocal('✅ Exportación descargada (' + itemCount + ' items)', 'success', 4000);
+      }
+
+      // ✅ Cerrar modal después de 2 segundos
+      setTimeout(function() {
+        closeExportModal();
+      }, 2000);
+
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error exportando bóveda';
+
+      if (errMsg.includes('401') || errMsg.includes('expirada')) {
+        msg = '❌ Sesión expirada';
+        if (typeof window.handleSessionExpired === 'function') {
+          window.handleSessionExpired();
+        }
+      } else if (errMsg.includes('403')) {
+        msg = '❌ No tienes permisos para exportar';
+      } else if (errMsg.includes('grande')) {
+        msg = '⚠️ ' + errMsg;
+      } else if (errMsg.includes('timeout')) {
+        msg = '⏱️ Tiempo agotado. Intenta de nuevo';
+      }
+
+      var status = document.getElementById('exportStatus');
+      if (status) {
+        status.textContent = msg;
+        status.style.color = '#ff5252';
+      }
+
+      logLocal('❌ Export: ' + sanitizeLocal(errMsg, 100), 'error');
+      notifyLocal(msg, 'error', 4000);
+
+    } finally {
+      // ✅ Restaurar UI siempre
+      var btn = document.getElementById('exportBtn');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '✅ Generar Exportación';
+        btn.removeAttribute('aria-busy');
       }
     }
-  } catch (e) {
-    const safeMsg = 'Error exportando bóveda';
-    status.textContent = `❌ ${safeMsg}`;
-    status.style.color = '#ff5252';
-    log('❌ Export: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(`❌ ${safeMsg}`, 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '✅ Generar Exportación';
-      btn.removeAttribute('aria-busy');
+  }
+
+  // ============================================
+  // 📥 IMPORTAR BÓVEDA - ABRIR MODAL
+  // ============================================
+  function importVault() {
+    try {
+      if (!hasValidToken()) {
+        logLocal('⚠️ Inicia sesión primero', 'warning');
+        notifyLocal('⚠️ Inicia sesión para importar', 'warning', 3000);
+        return;
+      }
+
+      var modal = document.getElementById('importModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+
+      var status = document.getElementById('importStatus');
+      if (status) {
+        status.textContent = '';
+        status.style.color = '';
+      }
+
+      var fileInput = document.getElementById('importFile');
+      if (fileInput) fileInput.value = '';
+
+      var forceCheck = document.getElementById('forceImport');
+      if (forceCheck) forceCheck.checked = false;
+
+      logLocal('📥 Modal de importación abierto', 'info');
+
+    } catch (error) {
+      logLocal('❌ Error en importVault: ' + sanitizeLocal(error.message || 'desconocido', 100), 'error');
     }
   }
-}
 
-// ✅ Importar bóveda con validaciones fuertes
-function importVault() {
-  if (!token) {
-    log('⚠️ Inicia sesión primero', 'warning');
-    showNotification('⚠️ Inicia sesión para importar', 'warning');
-    return;
-  }
-  
-  const modal = document.getElementById('importModal');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-  }
-  
-  const status = document.getElementById('importStatus');
-  if (status) status.textContent = '';
-  
-  const fileInput = document.getElementById('importFile');
-  if (fileInput) fileInput.value = '';
-}
+  // ============================================
+  // 🔒 CERRAR MODAL DE IMPORTACIÓN
+  // ============================================
+  function closeImportModal() {
+    try {
+      var modal = document.getElementById('importModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+      }
 
-function closeImportModal() {
-  const modal = document.getElementById('importModal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-  }
-  const status = document.getElementById('importStatus');
-  if (status) status.textContent = '';
-}
+      var status = document.getElementById('importStatus');
+      if (status) {
+        status.textContent = '';
+        status.style.color = '';
+      }
 
-// ✅ DoImportVault con validación de archivo y sanitización
-async function doImportVault() {
-  const fileInput = document.getElementById('importFile');
-  const forceCheck = document.getElementById('forceImport');
-  const btn = document.getElementById('importBtn');
-  const status = document.getElementById('importStatus');
-  
-  const file = fileInput?.files?.[0];
-  const force = forceCheck?.checked || false;
-  
-  if (!file || !btn || !status) {
-    log('⚠️ Elementos del modal no encontrados', 'warning');
-    return;
+      // ✅ LIMPIAR file input (crítico)
+      var fileInput = document.getElementById('importFile');
+      if (fileInput) fileInput.value = '';
+
+      logLocal('🔒 Modal de importación cerrado', 'info');
+
+    } catch (error) {
+      logLocal('❌ Error en closeImportModal: ' + sanitizeLocal(error.message || 'desconocido', 100), 'error');
+    }
   }
+
+  // ============================================
+  // 🔍 VALIDAR ARCHIVO JSON DE IMPORTACIÓN
+  // ============================================
+  function validateImportFile(file) {
+    if (!file) {
+      return { valid: false, error: 'No se seleccionó archivo' };
+    }
+
+    // ✅ Validar tamaño (máx 50MB)
+    var maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return { 
+        valid: false, 
+        error: 'Archivo demasiado grande (' + (file.size / (1024 * 1024)).toFixed(1) + 'MB). Máximo 50MB' 
+      };
+    }
+
+    // ✅ Validar tamaño mínimo
+    if (file.size < 10) {
+      return { valid: false, error: 'Archivo vacío o inválido' };
+    }
+
+    // ✅ Validar extensión
+    var fileName = (file.name || '').toLowerCase();
+    if (!fileName.endsWith('.json')) {
+      return { valid: false, error: 'Solo se permiten archivos .json' };
+    }
+
+    // ✅ Validar tipo MIME
+    var validTypes = [
+      'application/json',
+      'text/json',
+      'text/plain', // Algunos navegadores usan este
+      '' // Algunos navegadores no envían type
+    ];
+    if (file.type && validTypes.indexOf(file.type) === -1) {
+      return { valid: false, error: 'Tipo de archivo no válido: ' + file.type };
+    }
+
+    return { valid: true };
+  }
+
+  // ============================================
+  // 📥 EJECUTAR IMPORTACIÓN (COMPLETO Y SEGURO)
+  // ============================================
+  async function doImportVault() {
+    try {
+      // ✅ Verificar token
+      if (!hasValidToken()) {
+        notifyLocal('⚠️ Inicia sesión para importar', 'warning', 3000);
+        return;
+      }
+
+      var fileInput = document.getElementById('importFile');
+      var forceCheck = document.getElementById('forceImport');
+      var btn = document.getElementById('importBtn');
+      var status = document.getElementById('importStatus');
+
+      if (!fileInput || !btn || !status) {
+        logLocal('⚠️ Elementos del modal no encontrados', 'warning');
+        return;
+      }
+
+      var file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      var force = forceCheck ? !!forceCheck.checked : false;
+
+      // ✅ Validar archivo
+      var validation = validateImportFile(file);
+      if (!validation.valid) {
+        status.textContent = '❌ ' + validation.error;
+        status.style.color = '#ff5252';
+        notifyLocal('❌ ' + validation.error, 'error', 4000);
+        return;
+      }
+
+      // ✅ CONFIRMACIÓN OBLIGATORIA (operación destructiva)
+      var confirmMsg = '⚠️ ADVERTENCIA: Importar bóveda\n\n';
+      if (force) {
+        confirmMsg += '🔴 MODO FORZADO ACTIVADO:\n';
+        confirmMsg += '• Se REEMPLAZARÁN todos tus archivos actuales\n';
+        confirmMsg += '• Los datos existentes se PERDERÁN\n';
+        confirmMsg += '• Esta acción NO se puede deshacer\n\n';
+      } else {
+        confirmMsg += '• Se fusionarán los archivos importados con los existentes\n';
+        confirmMsg += '• En caso de conflicto, se mantendrán los archivos actuales\n';
+        confirmMsg += '• Usa "Forzar importación" para reemplazar todo\n\n';
+      }
+      confirmMsg += '¿Deseas continuar?';
+
+      var confirmacion = confirm(confirmMsg);
+      if (!confirmacion) {
+        logLocal('ℹ️ Importación cancelada por usuario', 'info');
+        return;
+      }
+
+      // ✅ Segunda confirmación si es forzado
+      if (force) {
+        var confirm2 = confirm(
+          '⚠️ ÚLTIMA ADVERTENCIA\n\n' +
+          'Estás a punto de REEMPLAZAR TODA tu bóveda.\n\n' +
+          '¿Estás COMPLETAMENTE seguro?'
+        );
+        if (!confirm2) {
+          logLocal('ℹ️ Importación forzada cancelada', 'info');
+          return;
+        }
+      }
+
+      // ✅ Leer archivo como texto
+      status.textContent = '🔄 Leyendo archivo...';
+      status.style.color = '#40c4ff';
+      btn.disabled = true;
+      btn.textContent = '⏳ Procesando...';
+      btn.setAttribute('aria-busy', 'true');
+
+      var fileContent = await new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        
+        reader.onload = function(e) {
+          resolve(e.target.result);
+        };
+        
+        reader.onerror = function() {
+          reject(new Error('Error leyendo archivo'));
+        };
+        
+        reader.onabort = function() {
+          reject(new Error('Lectura cancelada'));
+        };
+        
+        reader.readAsText(file);
+      });
+
+      // ✅ Validar que sea JSON válido
+      var parsedData;
+      try {
+        parsedData = JSON.parse(fileContent);
+      } catch (parseError) {
+        throw new Error('El archivo no es JSON válido: ' + parseError.message);
+      }
+
+      // ✅ Validar estructura mínima del JSON
+      if (!parsedData || typeof parsedData !== 'object') {
+        throw new Error('Estructura de archivo inválida');
+      }
+
+      // ✅ Verificar que tenga items o data
+      if (!parsedData.items && !parsedData.data && !Array.isArray(parsedData)) {
+        throw new Error('El archivo no contiene datos de bóveda válidos');
+      }
+
+      // ✅ Validar tamaño del JSON parseado (máx 50MB)
+      var jsonSize = fileContent.length;
+      if (jsonSize > 50 * 1024 * 1024) {
+        throw new Error('Contenido demasiado grande');
+      }
+
+      // ✅ Preparar FormData para enviar
+      var formData = new FormData();
+      formData.append('archivo', file, file.name);
+      formData.append('force', force.toString());
+      formData.append('timestamp', new Date().toISOString());
+
+      // ✅ Enviar al backend
+      status.textContent = '🔄 Subiendo e importando...';
+
+      var res = await req('/api/vault/import', 'POST', {
+        data: parsedData,
+        force: force,
+        fileName: sanitizeLocal(file.name, 100),
+        fileSize: file.size
+      });
+
+      // ✅ Procesar respuesta
+      var imported = 0;
+      var skipped = 0;
+      var errors = 0;
+
+      if (res && typeof res === 'object') {
+        imported = Number(res.imported || 0);
+        skipped = Number(res.skipped || 0);
+        errors = Number(res.errors || 0);
+      }
+
+      // ✅ Actualizar UI
+      var summary = '✅ Importación completada: ' + imported + ' items importados';
+      if (skipped > 0) summary += ', ' + skipped + ' omitidos';
+      if (errors > 0) summary += ', ' + errors + ' errores';
+
+      status.textContent = summary;
+      status.style.color = errors > 0 ? '#ffb74d' : '#00e676';
+
+      logLocal('📥 Bóveda importada: ' + imported + ' items, ' + skipped + ' omitidos, ' + errors + ' errores', 'success');
+
+      notifyLocal('✅ Importación completada (' + imported + ' items)', 'success', 4000);
+
+      // ✅ Limpiar y cerrar
+      setTimeout(function() {
+        closeImportModal();
+        
+        // ✅ Refresh para actualizar UI
+        if (typeof window.refresh === 'function') {
+          window.refresh();
+        }
+        if (typeof window.showVault === 'function') {
+          window.showVault();
+        }
+      }, 2000);
+
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      var msg = '❌ Error importando bóveda';
+
+      if (errMsg.includes('401') || errMsg.includes('expirada')) {
+        msg = '❌ Sesión expirada';
+        if (typeof window.handleSessionExpired === 'function') {
+          window.handleSessionExpired();
+        }
+      } else if (errMsg.includes('400') || errMsg.includes('JSON')) {
+        msg = '❌ Archivo inválido o corrupto';
+      } else if (errMsg.includes('403')) {
+        msg = '❌ No tienes permisos para importar';
+      } else if (errMsg.includes('409')) {
+        msg = '⚠️ Conflicto. Usa "Forzar importación" para reemplazar';
+      } else if (errMsg.includes('413') || errMsg.includes('grande')) {
+        msg = '⚠️ Archivo demasiado grande';
+      } else if (errMsg.includes('timeout')) {
+        msg = '⏱️ Tiempo agotado. Intenta de nuevo';
+      } else if (errMsg.includes('Error leyendo')) {
+        msg = '❌ No se pudo leer el archivo';
+      }
+
+      var status = document.getElementById('importStatus');
+      if (status) {
+        status.textContent = msg;
+        status.style.color = '#ff5252';
+      }
+
+      logLocal('❌ Import: ' + sanitizeLocal(errMsg, 100), 'error');
+      notifyLocal(msg, 'error', 4000);
+
+    } finally {
+      // ✅ Restaurar UI siempre
+      var btn = document.getElementById('importBtn');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '📥 Importar Bóveda';
+        btn.removeAttribute('aria-busy');
+      }
+    }
+  }
+
+  // ============================================
+  // 🔄 SINCRONIZAR CAMBIOS PENDIENTES
+  // ============================================
+  async function syncPendingChanges() {
+    try {
+      // ✅ Verificar conexión
+      if (!navigator.onLine) {
+        logLocal('⚠️ Sin conexión, no se puede sincronizar', 'warning');
+        return;
+      }
+
+      // ✅ Verificar token
+      if (!hasValidToken()) {
+        logLocal('⚠️ Sin sesión, no se puede sincronizar', 'warning');
+        return;
+      }
+
+      logLocal('🔄 Sincronizando cambios pendientes...', 'info');
+
+      // ✅ Llamar al backend
+      var res = await req('/api/sync', 'POST', {
+        timestamp: new Date().toISOString()
+      });
+
+      var synced = 0;
+      if (res && typeof res.synced === 'number') {
+        synced = res.synced;
+      }
+
+      if (synced > 0) {
+        logLocal('✅ ' + synced + ' cambios sincronizados', 'success');
+        notifyLocal('✅ ' + synced + ' cambios sincronizados', 'success', 3000);
+        
+        // ✅ Refresh UI
+        if (typeof window.refresh === 'function') {
+          window.refresh();
+        }
+      } else {
+        logLocal('✓ Sin cambios pendientes', 'info');
+      }
+
+    } catch (e) {
+      var errMsg = (e && e.message) ? e.message : '';
+      
+      if (errMsg.includes('401') || errMsg.includes('expirada')) {
+        if (typeof window.handleSessionExpired === 'function') {
+          window.handleSessionExpired();
+        }
+      } else {
+        logLocal('⚠️ Error sincronizando: ' + sanitizeLocal(errMsg, 100), 'warning');
+      }
+    }
+  }
+
+  // ============================================
+  // 🌐 EXPONER FUNCIONES
+  // ============================================
+  window.exportVault = exportVault;
+  window.closeExportModal = closeExportModal;
+  window.doExportVault = doExportVault;
+  window.importVault = importVault;
+  window.closeImportModal = closeImportModal;
+  window.doImportVault = doImportVault;
+  window.syncPendingChanges = syncPendingChanges;
+
+})();
+</script>
   
   // ✅ Validar extensión de archivo
   if (!file.name.toLowerCase().endsWith('.json')) {
@@ -16265,94 +17624,186 @@ async function descargarArchivo(id) {
     }
   }
 }
-
 // ==========================================
 // 🗑️ FUNCIÓN: ELIMINAR ARCHIVO (CORREGIDA)
 // ==========================================
 async function eliminarArchivo(id) {
-  // ✅ Sanitizar ID
-  const safeId = sanitizeId(id);
-  if (!safeId) {
-    if (typeof showNotification === 'function') {
-      showNotification('❌ ID de archivo inválido', 'error');
-    } else {
-      alert('❌ ID de archivo inválido');
-    }
+  // ✅ PASO 1: Validar que el ID exista y sea válido
+  if (id === null || id === undefined || id === '') {
+    mostrarMensajeSeguro('❌ ID de archivo no proporcionado', 'error');
     return;
   }
 
-  if (!confirm('¿Estás seguro de eliminar este archivo? Esta acción no se puede deshacer.')) return;
+  // ✅ PASO 2: Convertir a string y sanitizar
+  // Acepta solo letras, números, guiones y guiones bajos
+  const safeId = String(id).replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 100);
   
-  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-  if (!token) {
-    if (typeof showNotification === 'function') {
-      showNotification('⚠️ Debes iniciar sesión', 'warning');
-    } else {
-      alert('⚠️ Debes iniciar sesión');
-    }
+  if (!safeId) {
+    mostrarMensajeSeguro('❌ ID de archivo inválido', 'error');
     return;
   }
+
+  // ✅ PASO 3: Confirmación del usuario
+  if (!confirm('¿Estás seguro de eliminar este archivo? Esta acción no se puede deshacer.')) {
+    return;
+  }
+  
+  // ✅ PASO 4: Obtener token de forma segura
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (!token || typeof token !== 'string' || token.trim() === '') {
+    mostrarMensajeSeguro('⚠️ Debes iniciar sesión', 'warning');
+    return;
+  }
+
+  // ✅ PASO 5: Configurar timeout (15 segundos máximo)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
-    // ✅ RUTA RELATIVA (sin enlaces externos) + encodeURIComponent
+    // ✅ PASO 6: Petición DELETE (sin Content-Type porque no hay body)
     const resp = await fetch(`/vault/${encodeURIComponent(safeId)}`, {
       method: 'DELETE',
       headers: { 
-        'Authorization': 'Bearer ' + token,
-        'Content-Type': 'application/json'
-      }
+        'Authorization': 'Bearer ' + token
+      },
+      signal: controller.signal
     });
 
-    // ✅ Manejo de sesión expirada
+    // Limpiar timeout
+    clearTimeout(timeoutId);
+
+    // ✅ PASO 7: Manejo de sesión expirada (401)
     if (resp.status === 401) {
-      handleSessionExpired();
+      // Limpiar token inválido
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
+      
+      // Llamar a handleSessionExpired solo si existe
+      if (typeof handleSessionExpired === 'function') {
+        handleSessionExpired();
+      } else {
+        mostrarMensajeSeguro('⚠️ Sesión expirada. Inicia sesión de nuevo.', 'warning');
+      }
       return;
     }
 
+    // ✅ PASO 8: Éxito
     if (resp.ok) {
-      if (typeof showNotification === 'function') {
-        showNotification('✅ Archivo eliminado correctamente', 'success');
-      } else {
-        alert('✅ Archivo eliminado correctamente');
-      }
-      if (typeof cargarVault === 'function') cargarVault();
-    } else {
-      let errorMsg = 'Error desconocido';
-      try {
-        const error = await resp.json();
-        // ✅ Sanitizar mensaje del servidor
-        errorMsg = String(error.error || errorMsg).replace(/[<>]/g, '').substring(0, 100);
-      } catch (e) {
-        // Ignorar error de parseo
-      }
+      mostrarMensajeSeguro('✅ Archivo eliminado correctamente', 'success');
       
-      if (typeof showNotification === 'function') {
-        showNotification('❌ Error al eliminar: ' + errorMsg, 'error');
-      } else {
-        alert('❌ Error al eliminar: ' + errorMsg);
+      // Recargar vault solo si la función existe
+      if (typeof cargarVault === 'function') {
+        try {
+          await cargarVault();
+        } catch (err) {
+          console.warn('No se pudo recargar el vault:', err);
+        }
       }
+      return;
     }
+
+    // ✅ PASO 9: Error del servidor - extraer mensaje de forma segura
+    const errorMsg = await extraerMensajeError(resp);
+    mostrarMensajeSeguro('❌ Error al eliminar: ' + errorMsg, 'error');
+
   } catch (e) {
-    console.error(e);
-    const msg = e.message || 'Error de conexión';
-    if (typeof showNotification === 'function') {
-      showNotification('❌ ' + msg, 'error');
+    // Limpiar timeout en caso de error
+    clearTimeout(timeoutId);
+    
+    // ✅ Diferenciar entre timeout y otros errores
+    let msg;
+    if (e.name === 'AbortError') {
+      msg = '⏱️ La petición tardó demasiado. Intenta de nuevo.';
+    } else if (e.message && e.message.includes('Failed to fetch')) {
+      msg = '📡 Sin conexión a internet';
     } else {
-      alert('❌ ' + msg);
+      msg = e.message || 'Error de conexión';
     }
+    
+    console.error('Error en eliminarArchivo:', e);
+    mostrarMensajeSeguro('❌ ' + msg, 'error');
   }
 }
 
+// ==========================================
+// 🔒 HELPER: Mostrar mensaje de forma segura
+// ==========================================
+function mostrarMensajeSeguro(mensaje, tipo) {
+  // Sanitizar mensaje para evitar inyección
+  const safeMsg = String(mensaje)
+    .replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[c]))
+    .substring(0, 200);
+  
+  if (typeof showNotification === 'function') {
+    showNotification(safeMsg, tipo);
+  } else {
+    // Fallback seguro: usar textContent, no innerHTML
+    alert(safeMsg.replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'"));
+  }
+}
+
+// ==========================================
+// 🔒 HELPER: Extraer mensaje de error de forma segura
+// ==========================================
+async function extraerMensajeError(resp) {
+  try {
+    const data = await resp.json();
+    
+    // Validar que sea objeto
+    if (!data || typeof data !== 'object') {
+      return 'Error desconocido del servidor';
+    }
+    
+    // Buscar mensaje en varios campos comunes
+    const rawMsg = data.error || data.message || data.msg || 'Error desconocido';
+    
+    // Sanitizar: quitar TODOS los caracteres peligrosos
+    return String(rawMsg)
+      .replace(/[<>"'`]/g, '')           // Eliminar etiquetas HTML y backticks
+      .replace(/[\r\n\t]+/g, ' ')        // Reemplazar saltos de línea
+      .replace(/\s+/g, ' ')              // Normalizar espacios
+      .trim()
+      .substring(0, 100);                // Limitar longitud
+      
+  } catch (e) {
+    // Si no es JSON válido, usar status text
+    return `Error ${resp.status}: ${resp.statusText || 'desconocido'}`.substring(0, 100);
+  }
+}
 
 // ==========================================
 // 🚀 INICIAR CUANDO CARGUE LA PÁGINA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Aplicación iniciada');
-  if (typeof cargarVault === 'function') cargarVault();
-  if (typeof loadFinancialData === 'function') loadFinancialData();
+  
+  // ✅ Ejecutar funciones solo si existen, con manejo de errores
+  if (typeof cargarVault === 'function') {
+    try {
+      cargarVault();
+    } catch (e) {
+      console.error('Error al cargar vault:', e);
+    }
+  }
+  
+  if (typeof loadFinancialData === 'function') {
+    try {
+      loadFinancialData();
+    } catch (e) {
+      console.error('Error al cargar datos financieros:', e);
+    }
+  }
 });
-</script>
 
 <!-- 🆕 BLOQUE DE FUNCIONES MEJORADAS (SIN ENLACES EXTERNOS) -->
 <script>
