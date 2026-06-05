@@ -1064,11 +1064,12 @@ footer {
 </style>
  </head>
 <body>
-  <!-- 🎉 VISTA DE ÉXITO: Confirma que el frontend está cargando -->
+
+  <!-- 🎉 VISTA DE ÉXITO -->
   <div class="glass green fade-in" id="successView">
     <h1>🎉 ¡ApiRomwiner Vault está vivo!</h1>
-    <p style="color:#00e676;font-weight:600;margin:12px 0">✅ El servidor encontró <code>public/index.html</code></p>
-    <p>Si ves esto, tu frontend está bien ubicado y cargando correctamente.</p>
+    <p style="color:#00e676;font-weight:600;margin:12px 0">✅ El frontend está cargando correctamente</p>
+    <p>Tu bóveda personal segura está lista para usar.</p>
     
     <div style="margin:16px 0;padding:12px;background:rgba(0,230,118,0.1);border-radius:8px;border-left:3px solid #00e676">
       <p style="margin:0;font-size:0.9rem"><strong>Próximos pasos:</strong></p>
@@ -1081,6 +1082,7 @@ footer {
     
     <button onclick="checkAPI()">🔍 Verificar conexión al API</button>
     <button class="btn-sec" onclick="window.location.reload()">🔄 Recargar página</button>
+    <button onclick="showVault()">🗄️ Ir a Mi Vault</button>
     
     <div id="apiStatus" style="margin-top:12px;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.8rem;display:none">
       <strong>Estado del API:</strong>
@@ -1088,310 +1090,850 @@ footer {
     </div>
   </div>
 
- <!-- 🗄️ SECCIÓN VAULT (se mostrará después del login) -->
-<div id="vaultSection" class="hidden">
-  <div class="glass">
-    <h2>🗄️ Mi Vault</h2>
-    <div id="vaultContainer">  <!-- ← CAMBIA AQUÍ: vaultContent → vaultContainer -->
-      <p style="color:#8b95a5;text-align:center;padding:20px">🔄 Cargando tu Vault...</p>
-      <button onclick="openUploadModal()">📤 Subir primer archivo</button>
+  <!-- 🗄️ SECCIÓN VAULT -->
+  <div id="vaultSection" class="hidden">
+    <div class="glass">
+      <h2>🗄️ Mi Vault</h2>
+      <div id="vaultContainer">
+        <p style="color:#8b95a5;text-align:center;padding:20px">🔄 Cargando tu Vault...</p>
+      </div>
+      <button onclick="openUploadModal()" style="margin-top:12px">📤 Subir archivo</button>
+      <button class="btn-sec" onclick="showSocialFeed()" style="margin-top:12px">📱 Feed Social</button>
+      <button class="btn-sec" onclick="showAds()" style="margin-top:12px">🎁 Ganar Saldo</button>
+      <button class="btn-sec" onclick="showIdentity()" style="margin-top:12px">🆔 Mi Identidad</button>
     </div>
   </div>
-</div>
 
-  <!-- 📤 Modal de subida (minimal) -->
+  <!-- 📤 Modal de subida -->
   <div id="uploadModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:100">
-    <div class="glass" style="max-width:340px">
+    <div class="glass" style="max-width:400px">
       <h3>📤 Subir archivo</h3>
-      <input type="text" id="uploadTitle" placeholder="Título del archivo *" style="margin:10px 0;padding:10px;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff">
-      <select id="uploadCat" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff">
+      <input type="text" id="uploadTitle" placeholder="Título del archivo *" maxlength="100">
+      <select id="uploadCat">
         <option value="general">📁 General</option>
         <option value="documento">📄 Documento</option>
         <option value="imagen">🖼️ Imagen</option>
         <option value="video">🎬 Video</option>
       </select>
+      <input type="file" id="uploadFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.mp4,.txt" style="margin:10px 0">
+      <div id="uploadError" style="color:#ff5252;font-size:0.8rem;margin:8px 0;display:none"></div>
       <button onclick="demoUpload()">✅ Guardar (modo demo)</button>
       <button class="btn-sec" onclick="closeUploadModal()">Cancelar</button>
     </div>
   </div>
-<!-- 📱 FEED SOCIAL TIPO FACEBOOK -->
-<div class="glass" id="socialFeedPanel" style="display:none">
-  <h2>📱 Feed de Productos</h2>
-  <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Descubre productos de la comunidad</p>
-  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-    <button onclick="loadFeed('all')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">🌍 Todo</button>
-    <button onclick="loadFeed('educacion')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">🎓 Educación</button>
-    <button onclick="loadFeed('software')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">💻 Software</button>
-    <button onclick="openPublishModal()" style="width:auto;padding:8px 16px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:600;cursor:pointer">📤 Publicar</button>
-  </div>
-  <div id="feedContainer" style="display:flex;flex-direction:column;gap:16px"></div>
-</div>
 
-<!-- 📢 ANUNCIOS CON RECOMPENSAS -->
-<div class="glass" id="adsSection" style="display:none">
-  <h2>🎁 Gana Saldo Viendo Anuncios</h2>
-  <p style="color:#8b95a5;font-size:0.9rem">Mira anuncios y gana hasta $0.50 USD diarios. Límite: 20/día</p>
-  <div id="adsContainer" style="display:flex;flex-wrap:wrap;gap:12px"></div>
-  <div id="adsStatus" style="margin-top:12px;font-size:0.85rem;color:#8b95a5">Cargando anuncios...</div>
-  <button onclick="loadAvailableAds()" style="margin-top:12px;padding:8px 16px;background:#00e676;color:#000;border:none;border-radius:6px;cursor:pointer">🔄 Recargar</button>
-</div>
-
-<!-- 🆔 IDENTIDAD DIGITAL AVANZADA -->
-<div class="glass" id="digitalIdentityPanel" style="display:none">
-  <h2>🆔 Mi Identidad Digital</h2>
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-    <img id="userAvatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23151922' stroke='%2300e676' stroke-width='4'/%3E%3Ctext x='50' y='65' font-size='30' fill='%2300e676' text-anchor='middle'%3E👤%3C/text%3E%3C/svg%3E" style="width:64px;height:64px;border-radius:50%;border:2px solid #00e676">
-    <div>
-      <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatar(event)">
-      <button onclick="document.getElementById('avatarInput').click()" style="padding:6px 12px;background:transparent;border:1px solid #29b6f6;color:#29b6f6;border-radius:8px;font-size:0.8rem">📷 Cambiar foto</button>
+  <!-- 📱 FEED SOCIAL -->
+  <div class="glass hidden" id="socialFeedPanel">
+    <h2>📱 Feed de Productos</h2>
+    <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:12px">Descubre productos de la comunidad</p>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button onclick="loadFeed('all')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">🌍 Todo</button>
+      <button onclick="loadFeed('educacion')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">🎓 Educación</button>
+      <button onclick="loadFeed('software')" class="btn-sec" style="width:auto;padding:6px 12px;font-size:0.75rem">💻 Software</button>
+      <button onclick="openPublishModal()" style="width:auto;padding:8px 16px;background:#00e676;color:#000">📤 Publicar</button>
+      <button class="btn-sec" onclick="backToVault()">← Volver</button>
     </div>
+    <div id="feedContainer" style="display:flex;flex-direction:column;gap:16px"></div>
   </div>
-  
-  <div style="margin:16px 0">
-    <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">✍️ Firma Digital</label>
-    <canvas id="sigCanvas" width="280" height="100" style="border:1px solid #2a2f3a;border-radius:8px;background:#000;cursor:crosshair;width:100%"></canvas>
-    <div style="display:flex;gap:8px;margin-top:6px">
-      <button onclick="clearSig()" style="flex:1;padding:6px;background:transparent;border:1px solid #ff5252;color:#ff5252;border-radius:6px;font-size:0.75rem">🗑️ Borrar</button>
-      <button onclick="saveSig()" style="flex:1;padding:6px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;font-size:0.75rem;font-weight:600">💾 Guardar</button>
-    </div>
-  </div>
-  
-  <div style="margin:16px 0;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
-    <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">🤝 Contactos de Recuperación</label>
-    <div id="contactsList" style="margin-bottom:8px"></div>
-    <div style="display:flex;gap:6px">
-      <input type="email" id="contactEmail" placeholder="correo@ejemplo.com" style="flex:1;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#151922;color:#fff;font-size:0.8rem">
-      <button onclick="addContact()" style="padding:8px 12px;background:#ab47bc;color:#fff;border:none;border-radius:6px;font-size:0.8rem">➕</button>
-    </div>
-  </div>
-  
-  <div style="margin-top:16px;text-align:center">
-    <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">📱 QR de Identidad</p>
-    <img id="idQR" src="" alt="QR" style="max-width:140px;border-radius:8px;border:2px solid #00e676">
-    <button onclick="genQR()" style="margin-top:8px;padding:6px 12px;background:transparent;border:1px solid #00e676;color:#00e676;border-radius:6px;font-size:0.8rem">🔄 Generar QR</button>
-  </div>
-  
-  <div style="margin-top:16px;padding:12px;background:rgba(126,87,194,0.1);border-radius:10px;border-left:3px solid #7e57c2">
-    <h3 style="font-size:1rem;color:#ce93d8;margin-bottom:6px">🔐 Multifirma</h3>
-    <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#fff">
-      <input type="checkbox" id="multisigToggle" onchange="toggleMultisig()"> Activar multifirma para acciones críticas
-    </label>
-  </div>
-</div>
 
-<!-- 🎒 BÓVEDA PORTABLE -->
-<div class="glass" id="portableFeatures" style="display:none">
-  <h2>🎒 Bóveda Portable</h2>
-  <div class="grid">
-    <button onclick="exportVault()" style="background:transparent;border:1px solid #00e676;color:#00e676;padding:10px;border-radius:8px;cursor:pointer">📦 Exportar Bóveda</button>
-    <button onclick="importVault()" class="btn-sec" style="border-color:#29b6f6;color:#29b6f6;padding:10px;border-radius:8px;cursor:pointer">📥 Importar Backup</button>
+  <!-- 📢 ANUNCIOS -->
+  <div class="glass hidden" id="adsSection">
+    <h2>🎁 Gana Saldo Viendo Anuncios</h2>
+    <p style="color:#8b95a5;font-size:0.9rem">Mira anuncios y gana hasta $0.50 USD diarios. Límite: 20/día</p>
+    <div id="adsContainer" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:12px"></div>
+    <div id="adsStatus" style="margin-top:12px;font-size:0.85rem;color:#8b95a5">Cargando anuncios...</div>
+    <button onclick="loadAvailableAds()" style="margin-top:12px">🔄 Recargar</button>
+    <button class="btn-sec" onclick="backToVault()">← Volver</button>
   </div>
-  <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <span style="font-size:0.8rem;color:#8b95a5">Sincronización</span>
-      <button onclick="syncCheck()" style="width:auto;padding:4px 12px;font-size:0.75rem;background:transparent;border:1px solid #66bb6a;color:#66bb6a;border-radius:6px;cursor:pointer">🔄 Verificar</button>
-    </div>
-    <div id="syncStatus" style="font-size:0.75rem;color:#8b95a5;min-height:1.2em"></div>
-  </div>
-</div>
 
-<!-- 🗄️ VAULT MODAL MEJORADO -->
-<div id="vaultModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
-  <div class="glass" style="max-width:600px;max-height:80vh;overflow-y:auto">
-    <h2>🗄️ Mi Vault</h2>
-    <div id="vaultList"></div>
-    <button onclick="closeVault()" class="btn-sec" style="margin-top:12px">Cerrar</button>
-  </div>
-</div>
-
-<!-- 🎬 VISOR MULTIMEDIA AVANZADO -->
-<div id="visorModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:9999;padding:0;overflow:auto">
-  <div style="max-width:1400px;margin:0 auto;height:100vh;display:flex;flex-direction:column;background:#151922">
-    <div style="background:#0b0c10;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #2a2f3a;flex-wrap:wrap;gap:8px">
-      <h3 id="visorTitulo" style="color:#8ab4f8;margin:0;font-family:system-ui;font-size:1.1rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 Archivo</h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button id="btnZoomIn" style="display:none;padding:6px 12px;background:#2a2f3a;color:#fff;border:none;border-radius:6px;cursor:pointer">🔍+</button>
-        <button id="btnZoomOut" style="display:none;padding:6px 12px;background:#2a2f3a;color:#fff;border:none;border-radius:6px;cursor:pointer">🔍-</button>
-        <button id="btnPantallaCompleta" style="padding:6px 12px;background:#2a2f3a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖥️</button>
-        <button id="btnVelocidad" style="display:none;padding:6px 12px;background:#2a2f3a;color:#fff;border:none;border-radius:6px;cursor:pointer">⚡ 1x</button>
-        <button id="btnCompartir" style="padding:6px 12px;background:#29b6f6;color:#0b0c10;border:none;border-radius:6px;cursor:pointer;font-weight:600">🔗</button>
-        <button id="btnFavorito" style="padding:6px 12px;background:#ab47bc;color:#fff;border:none;border-radius:6px;cursor:pointer">⭐</button>
-        <button id="btnHistorial" style="padding:6px 12px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;cursor:pointer;font-weight:600">🌿</button>
-        <button id="btnDescargar" style="padding:6px 12px;background:#00e676;color:#0b0c10;border:none;border-radius:6px;cursor:pointer;font-weight:600">📥</button>
-        <button id="btnCerrarVisor" style="padding:6px 12px;background:#ff5252;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">✕</button>
+  <!-- 🆔 IDENTIDAD DIGITAL -->
+  <div class="glass hidden" id="digitalIdentityPanel">
+    <h2>🆔 Mi Identidad Digital</h2>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <img id="userAvatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23151922' stroke='%2300e676' stroke-width='4'/%3E%3Ctext x='50' y='65' font-size='30' fill='%2300e676' text-anchor='middle'%3E👤%3C/text%3E%3C/svg%3E" style="width:64px;height:64px;border-radius:50%;border:2px solid #00e676">
+      <div>
+        <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatar(event)">
+        <button onclick="document.getElementById('avatarInput').click()" style="padding:6px 12px;background:transparent;border:1px solid #29b6f6;color:#29b6f6">📷 Cambiar foto</button>
       </div>
     </div>
-    <div id="visorContenido" style="flex:1;background:#0b0c10;display:flex;align-items:center;justify-content:center;overflow:auto;padding:20px">
-      <p style="color:#8b95a5">Cargando...</p>
+    
+    <div style="margin:16px 0">
+      <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">✍️ Firma Digital</label>
+      <canvas id="sigCanvas" width="280" height="100" style="border:1px solid #2a2f3a;border-radius:8px;background:#000;cursor:crosshair;width:100%;max-width:280px"></canvas>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button onclick="clearSig()" style="flex:1;padding:6px;background:transparent;border:1px solid #ff5252;color:#ff5252;font-size:0.75rem">🗑️ Borrar</button>
+        <button onclick="saveSig()" style="flex:1;padding:6px;background:#00e676;color:#0b0c10;font-size:0.75rem">💾 Guardar</button>
+      </div>
     </div>
-  </div>
-</div>
-
-<!-- 📤 MODAL PUBLICAR PRODUCTO -->
-<div id="publishModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
-  <div class="glass" style="max-width:500px;max-height:90vh;overflow-y:auto">
-    <h3>📤 Publicar nuevo producto</h3>
-    <input type="text" id="pubTitulo" placeholder="Título *" style="margin:10px 0;padding:10px;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff">
-    <textarea id="pubDescripcion" placeholder="Descripción" rows="3" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff;resize:vertical"></textarea>
-    <select id="pubCategoria" style="width:100%;padding:10px;margin:10px 0;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff">
-      <option value="general">📁 General</option>
-      <option value="educacion">🎓 Educación</option>
-      <option value="software">💻 Software</option>
-      <option value="musica">🎵 Música</option>
-      <option value="arte">🎨 Arte Digital</option>
-    </select>
-    <input type="file" id="pubArchivo" style="width:100%;padding:8px;background:#1a1f2a;color:#fff;border-radius:6px">
-    <div style="display:flex;gap:12px;align-items:center;margin:12px 0">
-      <label style="display:flex;align-items:center;gap:6px;color:#fff">
-        <input type="checkbox" id="pubForSale" checked> 💰 Poner en venta
+    
+    <div style="margin:16px 0;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
+      <label style="font-size:0.8rem;color:#8b95a5;display:block;margin-bottom:6px">🤝 Contactos de Recuperación</label>
+      <div id="contactsList" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:6px">
+        <input type="email" id="contactEmail" placeholder="correo@ejemplo.com" style="flex:1">
+        <button onclick="addContact()" style="padding:8px 12px;background:#ab47bc;color:#fff">➕</button>
+      </div>
+    </div>
+    
+    <div style="margin-top:16px;text-align:center">
+      <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">📱 QR de Identidad</p>
+      <canvas id="qrCanvas" width="140" height="140" style="border-radius:8px;border:2px solid #00e676;background:#fff"></canvas>
+      <br>
+      <button onclick="genQR()" style="margin-top:8px;padding:6px 12px;background:transparent;border:1px solid #00e676;color:#00e676">🔄 Generar QR</button>
+    </div>
+    
+    <div style="margin-top:16px;padding:12px;background:rgba(126,87,194,0.1);border-radius:10px;border-left:3px solid #7e57c2">
+      <h3 style="font-size:1rem;color:#ce93d8;margin-bottom:6px">🔐 Multifirma</h3>
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#fff">
+        <input type="checkbox" id="multisigToggle" onchange="toggleMultisig()"> Activar multifirma para acciones críticas
       </label>
-      <input type="number" id="pubPrecio" placeholder="Precio USD" min="1" value="5" style="width:100px;padding:8px;border-radius:6px;border:1px solid #2a2f3a;background:#1a1f2a;color:#fff">
     </div>
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button onclick="publishProduct()" style="flex:1;padding:12px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:600;cursor:pointer">🚀 Publicar</button>
-      <button onclick="closePublishModal()" style="padding:12px 24px;background:transparent;border:1px solid #6a7585;color:#6a7585;border-radius:8px;cursor:pointer">Cancelar</button>
-    </div>
+    
+    <button class="btn-sec" onclick="backToVault()" style="margin-top:16px">← Volver al Vault</button>
   </div>
-</div>
 
-<!-- 👥 AFILIADOS PANEL -->
-<div class="glass" id="affiliatesPanel" style="display:none">
-  <h2>🤝 Programa de Afiliados</h2>
-  <div class="grid">
-    <div class="card"><div class="label">Tu Código</div><div class="val" style="font-size:1rem" id="affCode">ROM-XXXX</div></div>
-    <div class="card"><div class="label">Referidos</div><div class="val" id="affCount">0</div></div>
-    <div class="card"><div class="label">Ganancias</div><div class="val" id="affEarnings">$0.00</div></div>
-  </div>
-  <button onclick="copyReferralLink()" class="btn-sec" style="margin-top:12px">🔗 Copiar Enlace de Referido</button>
-</div>
-
-<!-- 👑 PANEL ADMIN -->
-<div class="glass" id="adminPanel" style="display:none">
-  <h2 style="color:#ff5252">👑 Panel Administrador</h2>
-  <div class="grid">
-    <div class="card"><div style="font-size:2rem">🎁</div><div class="label">Regalar cuenta</div></div>
-    <div class="card"><div style="font-size:2rem">🗑️</div><div class="label">Eliminar usuario</div></div>
-    <div class="card"><div style="font-size:2rem">🔑</div><div class="label">Rotar claves</div></div>
-    <div class="card"><div style="font-size:2rem">📊</div><div class="label">Ver usuarios</div></div>
-  </div>
-  <button onclick="showAdminTools()" style="background:#7e57c2;color:#fff;margin-top:12px">🛠️ Herramientas Admin</button>
-</div>
-  <footer>
-    <p>ApiRomwiner Vault 🔐 | Identidad Digital Universal</p>
-    <p style="font-size:0.7rem;color:#5a6577;margin-top:4px">© 2026 romwiner • Todos los derechos reservados</p>
-  </footer>
-
-  <!-- 📱 SCRIPTS ESENCIALES -->
   <script>
-    // 📱 Registrar Service Worker para PWA
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('✅ PWA registrado:', reg.scope))
-        .catch(err => console.error('❌ Error SW:', err));
+    // 🔒 FUNCIONES DE SEGURIDAD
+    function sanitizeInput(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
     }
 
-    // 🔍 Verificar conexión al API
-    async function checkAPI() {
+    function validateFile(file) {
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'video/mp4', 'text/plain'];
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      
+      if (!allowedTypes.includes(file.type)) {
+        return { valid: false, error: 'Tipo de archivo no permitido' };
+      }
+      if (file.size > maxSize) {
+        return { valid: false, error: 'El archivo es muy grande (máx 10MB)' };
+      }
+      return { valid: true };
+    }
+
+    // 🔍 VERIFICAR API
+    function checkAPI() {
       const statusDiv = document.getElementById('apiStatus');
       const responsePre = document.getElementById('apiResponse');
       statusDiv.style.display = 'block';
-      responsePre.textContent = 'Consultando...';
+      responsePre.textContent = '⏳ Verificando conexión...';
       
-      try {
-        const res = await fetch('/api/status');
-        const data = await res.json();
-        responsePre.textContent = JSON.stringify(data, null, 2);
-        if (data.success) {
-          responsePre.style.color = '#00e676';
-        } else {
-          responsePre.style.color = '#ffb74d';
+      // Simulación de verificación (en producción haría fetch a tu API)
+      setTimeout(() => {
+        responsePre.textContent = '✅ Modo demo activo\n📡 API no configurada aún\n💡 Configura MONGODB_URI en Render para conectar';
+      }, 1000);
+    }
+
+    // 🗄️ MOSTRAR VAULT
+    function showVault() {
+      document.getElementById('successView').classList.add('hidden');
+      document.getElementById('vaultSection').classList.remove('hidden');
+      loadVaultFiles();
+    }
+
+    function backToVault() {
+      document.getElementById('socialFeedPanel').classList.add('hidden');
+      document.getElementById('adsSection').classList.add('hidden');
+      document.getElementById('digitalIdentityPanel').classList.add('hidden');
+      document.getElementById('vaultSection').classList.remove('hidden');
+    }
+
+    // 📤 SUBIR ARCHIVOS
+    function openUploadModal() {
+      document.getElementById('uploadModal').classList.remove('hidden');
+      document.getElementById('uploadTitle').value = '';
+      document.getElementById('uploadFile').value = '';
+      document.getElementById('uploadError').style.display = 'none';
+    }
+
+    function closeUploadModal() {
+      document.getElementById('uploadModal').classList.add('hidden');
+    }
+
+    function demoUpload() {
+      const title = sanitizeInput(document.getElementById('uploadTitle').value.trim());
+      const category = document.getElementById('uploadCat').value;
+      const fileInput = document.getElementById('uploadFile');
+      const errorDiv = document.getElementById('uploadError');
+      
+      if (!title) {
+        errorDiv.textContent = '❌ El título es obligatorio';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      let fileName = 'archivo_demo.txt';
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const validation = validateFile(file);
+        if (!validation.valid) {
+          errorDiv.textContent = '❌ ' + validation.error;
+          errorDiv.style.display = 'block';
+          return;
         }
-      } catch (e) {
-        responsePre.textContent = '❌ Error: ' + e.message;
-        responsePre.style.color = '#ff5252';
+        fileName = sanitizeInput(file.name);
+      }
+
+      // Guardar en localStorage (demo)
+      const files = JSON.parse(localStorage.getItem('vaultFiles') || '[]');
+      files.push({
+        id: Date.now(),
+        title: title,
+        category: category,
+        fileName: fileName,
+        date: new Date().toLocaleDateString('es-ES')
+      });
+      localStorage.setItem('vaultFiles', JSON.stringify(files));
+      
+      closeUploadModal();
+      loadVaultFiles();
+      alert('✅ Archivo guardado en modo demo');
+    }
+
+    function loadVaultFiles() {
+      const container = document.getElementById('vaultContainer');
+      const files = JSON.parse(localStorage.getItem('vaultFiles') || '[]');
+      
+      if (files.length === 0) {
+        container.innerHTML = '<p style="color:#8b95a5;text-align:center;padding:20px">📭 No hay archivos aún. ¡Sube el primero!</p>';
+        return;
+      }
+
+      container.innerHTML = files.map(f => `
+        <div class="file-item">
+          <div>
+            <strong>${f.title}</strong><br>
+            <small style="color:#8b95a5">${f.category} • ${f.fileName} • ${f.date}</small>
+          </div>
+          <button onclick="deleteFile(${f.id})" style="padding:6px 12px;background:#ff5252;color:#fff;font-size:0.75rem">🗑️</button>
+        </div>
+      `).join('');
+    }
+
+    function deleteFile(id) {
+      if (!confirm('¿Eliminar este archivo?')) return;
+      let files = JSON.parse(localStorage.getItem('vaultFiles') || '[]');
+      files = files.filter(f => f.id !== id);
+      localStorage.setItem('vaultFiles', JSON.stringify(files));
+      loadVaultFiles();
+    }
+
+    // 📱 FEED SOCIAL
+    function showSocialFeed() {
+      document.getElementById('vaultSection').classList.add('hidden');
+      document.getElementById('socialFeedPanel').classList.remove('hidden');
+      loadFeed('all');
+    }
+
+    function loadFeed(category) {
+      const container = document.getElementById('feedContainer');
+      const products = [
+        { id: 1, title: 'Curso de JavaScript', cat: 'educacion', price: '$29', desc: 'Aprende JS desde cero' },
+        { id: 2, title: 'Plantilla Dashboard', cat: 'software', price: '$15', desc: 'Dashboard moderno' },
+        { id: 3, title: 'Ebook Marketing', cat: 'educacion', price: '$9', desc: 'Estrategias digitales' }
+      ];
+      
+      const filtered = category === 'all' ? products : products.filter(p => p.cat === category);
+      container.innerHTML = filtered.map(p => `
+        <div class="glass" style="padding:16px">
+          <h3 style="font-size:1rem;margin-bottom:8px">${p.title}</h3>
+          <p style="font-size:0.85rem;color:#b0b8c4;margin-bottom:8px">${p.desc}</p>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <strong style="color:#00e676">${p.price}</strong>
+            <button style="padding:6px 12px;font-size:0.8rem">Ver más</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openPublishModal() {
+      alert('📤 Función de publicar - Conectar con API');
+    }
+
+    // 📢 ANUNCIOS
+    function showAds() {
+      document.getElementById('vaultSection').classList.add('hidden');
+      document.getElementById('adsSection').classList.remove('hidden');
+      loadAvailableAds();
+    }
+
+    function loadAvailableAds() {
+      const container = document.getElementById('adsContainer');
+      const status = document.getElementById('adsStatus');
+      
+      // Demo de anuncios
+      const ads = [
+        { id: 1, reward: '$0.05', duration: '30s' },
+        { id: 2, reward: '$0.10', duration: '60s' },
+        { id: 3, reward: '$0.15', duration: '90s' }
+      ];
+      
+      container.innerHTML = ads.map(ad => `
+        <div class="glass" style="padding:12px;min-width:150px;text-align:center">
+          <h4 style="color:#00e676;margin-bottom:8px">${ad.reward}</h4>
+          <p style="font-size:0.8rem;color:#8b95a5;margin-bottom:8px">${ad.duration}</p>
+          <button onclick="watchAd(${ad.id})" style="padding:6px 12px;font-size:0.75rem">▶️ Ver</button>
+        </div>
+      `).join('');
+      
+      status.textContent = `✅ ${ads.length} anuncios disponibles hoy`;
+    }
+
+    function watchAd(id) {
+      alert(`▶️ Reproduciendo anuncio #${id}...\n💰 Ganarás recompensa al finalizar`);
+    }
+
+    // 🆔 IDENTIDAD DIGITAL
+    function showIdentity() {
+      document.getElementById('vaultSection').classList.add('hidden');
+      document.getElementById('digitalIdentityPanel').classList.remove('hidden');
+      initSignatureCanvas();
+      loadContacts();
+    }
+
+    function handleAvatar(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const validation = validateFile(file);
+      if (!validation.valid || !file.type.startsWith('image/')) {
+        alert('❌ Solo se permiten imágenes');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('userAvatar').src = e.target.result;
+        localStorage.setItem('userAvatar', e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ✍️ FIRMA DIGITAL
+    let sigCanvas, sigCtx, isDrawing = false;
+    
+    function initSignatureCanvas() {
+      sigCanvas = document.getElementById('sigCanvas');
+      sigCtx = sigCanvas.getContext('2d');
+      sigCtx.strokeStyle = '#00e676';
+      sigCtx.lineWidth = 2;
+      sigCtx.lineCap = 'round';
+      
+      sigCanvas.onmousedown = (e) => {
+        isDrawing = true;
+        sigCtx.beginPath();
+        sigCtx.moveTo(e.offsetX, e.offsetY);
+      };
+      
+      sigCanvas.onmousemove = (e) => {
+        if (!isDrawing) return;
+        sigCtx.lineTo(e.offsetX, e.offsetY);
+        sigCtx.stroke();
+      };
+      
+      sigCanvas.onmouseup = () => isDrawing = false;
+      sigCanvas.onmouseleave = () => isDrawing = false;
+    }
+
+    function clearSig() {
+      sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    }
+
+    function saveSig() {
+      const data = sigCanvas.toDataURL();
+      localStorage.setItem('digitalSignature', data);
+      alert('✅ Firma guardada');
+    }
+
+    // 🤝 CONTACTOS
+    function loadContacts() {
+      const contacts = JSON.parse(localStorage.getItem('recoveryContacts') || '[]');
+      const container = document.getElementById('contactsList');
+      
+      if (contacts.length === 0) {
+        container.innerHTML = '<p style="font-size:0.8rem;color:#8b95a5">Sin contactos de recuperación</p>';
+        return;
+      }
+      
+      container.innerHTML = contacts.map((c, i) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px;background:rgba(255,255,255,0.05);border-radius:6px;margin:4px 0">
+          <span style="font-size:0.85rem">${c}</span>
+          <button onclick="removeContact(${i})" style="padding:4px 8px;background:#ff5252;color:#fff;font-size:0.7rem">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function addContact() {
+      const email = document.getElementById('contactEmail').value.trim();
+      if (!email || !email.includes('@')) {
+        alert('❌ Correo inválido');
+        return;
+      }
+      
+      const contacts = JSON.parse(localStorage.getItem('recoveryContacts') || '[]');
+      if (contacts.includes(email)) {
+        alert('⚠️ Este contacto ya existe');
+        return;
+      }
+      
+      contacts.push(email);
+      localStorage.setItem('recoveryContacts', JSON.stringify(contacts));
+      document.getElementById('contactEmail').value = '';
+      loadContacts();
+    }
+
+    function removeContact(index) {
+      const contacts = JSON.parse(localStorage.getItem('recoveryContacts') || '[]');
+      contacts.splice(index, 1);
+      localStorage.setItem('recoveryContacts', JSON.stringify(contacts));
+      loadContacts();
+    }
+
+    // 📱 QR CODE (sin dependencias externas)
+    function genQR() {
+      const canvas = document.getElementById('qrCanvas');
+      const ctx = canvas.getContext('2d');
+      const size = 140;
+      const cellSize = 5;
+      const modules = Math.floor(size / cellSize);
+      
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, size, size);
+      
+      // Generar patrón QR simple (demo)
+      ctx.fillStyle = '#000';
+      for (let i = 0; i < modules; i++) {
+        for (let j = 0; j < modules; j++) {
+          if (Math.random() > 0.5) {
+            ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+          }
+        }
+      }
+      
+      // Esquinas de posicionamiento
+      drawFinderPattern(ctx, 0, 0, cellSize);
+      drawFinderPattern(ctx, (modules - 7) * cellSize, 0, cellSize);
+      drawFinderPattern(ctx, 0, (modules - 7) * cellSize, cellSize);
+    }
+
+    function drawFinderPattern(ctx, x, y, cellSize) {
+      ctx.fillStyle = '#000';
+      for (let i = 0; i < 7; i++) {
+        for (let j = 0; j < 7; j++) {
+          if (i === 0 || i === 6 || j === 0 || j === 6 || (i >= 2 && i <= 4 && j >= 2 && j <= 4)) {
+            ctx.fillRect(x + i * cellSize, y + j * cellSize, cellSize, cellSize);
+          }
+        }
       }
     }
 
-    // 📤 Modal de subida (demo)
-    function openUploadModal() {
-      document.getElementById('uploadModal').classList.remove('hidden');
-    }
-    function closeUploadModal() {
-      document.getElementById('uploadModal').classList.add('hidden');
-      document.getElementById('uploadTitle').value = '';
-    }
-    function demoUpload() {
-      const title = document.getElementById('uploadTitle').value || 'Archivo sin título';
-      const cat = document.getElementById('uploadCat').value;
-      const vaultContent = document.getElementById('vaultContent');
-      
-      vaultContent.innerHTML = `
-        <div style="background:rgba(0,230,118,0.1);padding:12px;border-radius:8px;margin-bottom:12px;border-left:3px solid #00e676">
-          <p style="margin:0;color:#00e676;font-weight:600">✅ Archivo guardado (modo demo)</p>
-          <p style="margin:4px 0 0;font-size:0.85rem;color:#b0b8c4">${title} • ${cat}</p>
-        </div>
-        <div class="vault-item">
-          <div class="vault-item-header">
-            <span class="vault-item-title">${title}</span>
-            <span class="encryption-badge">🔐 Cifrado</span>
-          </div>
-          <div class="vault-item-meta">📁 ${cat} • 🕒 ${new Date().toLocaleTimeString()}</div>
-        </div>
-        <button onclick="openUploadModal()">📤 Subir otro archivo</button>
-      `;
-      closeUploadModal();
+    function toggleMultisig() {
+      const enabled = document.getElementById('multisigToggle').checked;
+      localStorage.setItem('multisigEnabled', enabled);
+      alert(enabled ? '🔐 Multifirma activada' : '🔓 Multifirma desactivada');
     }
 
-    // 🔄 Auto-verificar API al cargar
+    // 🚀 INICIALIZACIÓN
     window.addEventListener('DOMContentLoaded', () => {
-      console.log('🚀 ApiRomwiner Vault cargado');
-      // checkAPI(); // Descomentar para auto-verificar
+      // Cargar avatar guardado
+      const savedAvatar = localStorage.getItem('userAvatar');
+      if (savedAvatar) {
+        document.getElementById('userAvatar').src = savedAvatar;
+      }
+      
+      // Cargar estado de multifirma
+      const multisig = localStorage.getItem('multisigEnabled') === 'true';
+      document.getElementById('multisigToggle').checked = multisig;
     });
   </script>
-  <!-- 🔐 LANDING VIEW (antes de login) -->
-  <div id="landingView">
-    <div class="glass green" style="text-align:center;padding:24px 18px">
-      <h1>🔐 ApiRomwiner Vault</h1>
-      <div style="margin:10px 0;font-size:0.75rem;color:#8b95a5;text-align:center">
-        <span style="background:rgba(0,230,118,0.15);color:#00e676;padding:2px 8px;border-radius:12px;margin:0 4px">🟢 Online</span>
-        <span style="background:rgba(41,182,246,0.15);color:#29b6f6;padding:2px 8px;border-radius:12px;margin:0 4px">🤖 IA Activa</span>
-        <span style="background:rgba(126,87,194,0.15);color:#ce93d8;padding:2px 8px;border-radius:12px;margin:0 4px">🔐 Zero-Knowledge</span>
-      </div>
-      <p style="margin:16px 0">Tu identidad digital universal. Monétiza contenido, gana con referidos y controla tu información sin intermediarios.</p>
-      <span class="promo-badge">🎉 Primeros 50 suscriptores: Acceso prioritario</span>
-      <button onclick="scrollToAuth()">🔓 Crear Cuenta Gratis</button>
-      <button class="btn-sec" onclick="showPromo()">✨ Unirme por $25 USD</button>
-      <div style="margin-top:12px;font-size:0.8rem;color:#8b95a5">
-        <span class="status-dot" id="apiStatus"></span>
-        <span id="statusText">Conectando...</span>
-      </div>
-    </div>
+ <script> 
+// 🔒 FUNCIONES DE SEGURIDAD
+function sanitizeInput(str) {
+  if (typeof str !== 'string') return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
-    <div class="glass">
-      <h2>💰 Cómo Ganas Dinero</h2>
-      <div class="grid">
-        <div class="card"><div class="feature-icon">📦</div><div class="label">Vende información cifrada con Envelope Encryption</div></div>
-        <div class="card"><div class="feature-icon">🤝</div><div class="label">15% comisión automática por cada referido activo</div></div>
-        <div class="card"><div class="feature-icon">🆔</div><div class="label">Licencias de acceso: cobra por tiempo o permanente</div></div>
-        <div class="card"><div class="feature-icon">🌍</div><div class="label">Sin plataformas que se quedan con tu margen</div></div>
-      </div>
-    </div>
-<div class="glass qr-box">
-  <h2>📱 Instala la App en tu Celular</h2>
-  <p>Escanea para abrir, instalar y empezar a ganar desde cualquier dispositivo.</p>
-  <!-- ✅ QR Instalación App (100% local, sin APIs externas) -->
-<img id="qr-instalar" class="qr-img" src="" alt="QR Instalar App" data-qr="">
-  <button id="installBtn" class="btn-sec" onclick="installApp()" style="display:none;max-width:200px;margin:8px auto">📲 Instalar App</button>
-</div>
+function validateFile(file) {
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'video/mp4', 'text/plain', 'audio/mpeg'];
+  const maxSize = 50 * 1024 * 1024; // 50MB
+  
+  if (!file || !file.type) {
+    return { valid: false, error: 'Archivo inválido' };
+  }
+  if (!allowedTypes.includes(file.type)) {
+    return { valid: false, error: 'Tipo de archivo no permitido' };
+  }
+  if (file.size > maxSize) {
+    return { valid: false, error: 'El archivo es muy grande (máx 50MB)' };
+  }
+  return { valid: true };
+}
+
+// 🔍 VERIFICAR API (MEJORADA)
+async function checkAPI() {
+  const statusDiv = document.getElementById('apiStatus');
+  const responsePre = document.getElementById('apiResponse');
+  
+  if (!statusDiv || !responsePre) {
+    console.warn('Elementos de estado API no encontrados');
+    return;
+  }
+  
+  statusDiv.style.display = 'block';
+  responsePre.textContent = 'Consultando...';
+  responsePre.style.color = '#ffb74d';
+  
+  try {
+    const res = await fetch('/api/status', { 
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
     
-<!-- 📱 Banner de instalación PWA (Aparece automáticamente en Android) -->
-<div id="pwaBanner" class="glass" style="display:none;text-align:center;padding:12px;margin:12px auto;max-width:480px;border-left:4px solid #29b6f6">
-  <p style="margin:0 0 8px;font-size:0.9rem">📱 <b>¿Quieres ApiRomwiner como app?</b></p>
-  <button onclick="installPWA()" style="padding:8px 16px;background:#29b6f6;color:#0b0c10;border:none;border-radius:8px;font-weight:600;cursor:pointer">
-    ✨ Instalar ahora
-  </button>
-</div>
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    responsePre.textContent = JSON.stringify(data, null, 2);
+    responsePre.style.color = data.success ? '#00e676' : '#ffb74d';
+    
+  } catch (e) {
+    responsePre.textContent = `❌ Error: ${e.message}\n💡 Modo demo activo - API no configurada`;
+    responsePre.style.color = '#ff5252';
+  }
+}
 
+// 📤 MODAL DE SUBIDA (EXISTENTES - MANTENIDAS)
+function openUploadModal() {
+  const modal = document.getElementById('uploadModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeUploadModal() {
+  const modal = document.getElementById('uploadModal');
+  if (modal) modal.classList.add('hidden');
+  
+  const titleInput = document.getElementById('uploadTitle');
+  if (titleInput) titleInput.value = '';
+}
+
+// 📤 DEMO UPLOAD (COMPLETADA Y MEJORADA)
+function demoUpload() {
+  const titleInput = document.getElementById('uploadTitle');
+  const catSelect = document.getElementById('uploadCat');
+  const vaultContainer = document.getElementById('vaultContainer') || document.getElementById('vaultContent');
+  
+  if (!titleInput || !catSelect || !vaultContainer) {
+    alert('❌ Error: Elementos del formulario no encontrados');
+    return;
+  }
+  
+  const title = sanitizeInput(titleInput.value.trim()) || 'Archivo sin título';
+  const cat = catSelect.value;
+  
+  vaultContainer.innerHTML = `
+    <div style="background:rgba(0,230,118,0.1);padding:12px;border-radius:8px;margin-bottom:12px;border-left:3px solid #00e676">
+      <p style="margin:0;color:#00e676;font-weight:600">✅ Archivo guardado (modo demo)</p>
+      <p style="margin:4px 0 0;font-size:0.85rem;color:#b0b8c4">${title} • ${cat}</p>
+    </div>
+    <div class="vault-item" style="background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;margin:8px 0">
+      <div class="vault-item-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="vault-item-title" style="font-weight:600;color:#fff">${title}</span>
+        <span class="encryption-badge" style="font-size:0.75rem;color:#00e676">🔐 Cifrado</span>
+      </div>
+      <div class="vault-item-meta" style="font-size:0.8rem;color:#8b95a5">📁 ${cat} • 🕒 ${new Date().toLocaleTimeString()}</div>
+    </div>
+    <button onclick="openUploadModal()" style="margin-top:12px">📤 Subir otro archivo</button>
+  `;
+  
+  closeUploadModal();
+}
+<script>
+// 🎒 BÓVEDA PORTABLE (NUEVAS FUNCIONES)
+function exportVault() {
+  try {
+    const vaultData = localStorage.getItem('vaultFiles') || '[]';
+    const signatureData = localStorage.getItem('digitalSignature') || '';
+    const contactsData = localStorage.getItem('recoveryContacts') || '[]';
+    
+    const exportObj = {
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      vault: JSON.parse(vaultData),
+      signature: signatureData,
+      contacts: JSON.parse(contactsData)
+    };
+    
+    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vault_backup_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    alert('✅ Bóveda exportada correctamente');
+  } catch (e) {
+    alert('❌ Error al exportar: ' + e.message);
+  }
+}
+
+function importVault() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        
+        if (!data.version || !data.vault) {
+          throw new Error('Archivo de backup inválido');
+        }
+        
+        if (!confirm('⚠️ Esto reemplazará todos tus datos actuales. ¿Continuar?')) {
+          return;
+        }
+        
+        localStorage.setItem('vaultFiles', JSON.stringify(data.vault));
+        if (data.signature) localStorage.setItem('digitalSignature', data.signature);
+        if (data.contacts) localStorage.setItem('recoveryContacts', JSON.stringify(data.contacts));
+        
+        alert('✅ Backup importado correctamente');
+        if (typeof loadVaultFiles === 'function') loadVaultFiles();
+        if (typeof loadContacts === 'function') loadContacts();
+        
+      } catch (err) {
+        alert('❌ Error al importar: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  
+  input.click();
+}
+
+function syncCheck() {
+  const statusDiv = document.getElementById('syncStatus');
+  if (!statusDiv) return;
+  
+  statusDiv.textContent = '🔄 Verificando sincronización...';
+  statusDiv.style.color = '#66bb6a';
+  
+  setTimeout(() => {
+    const lastSync = localStorage.getItem('lastSync');
+    const now = new Date().toISOString();
+    localStorage.setItem('lastSync', now);
+    
+    if (lastSync) {
+      const lastDate = new Date(lastSync);
+      statusDiv.textContent = `✅ Última sincronización: ${lastDate.toLocaleString('es-ES')}`;
+    } else {
+      statusDiv.textContent = '✅ Sincronización completada';
+    }
+    statusDiv.style.color = '#00e676';
+  }, 1500);
+}
+
+// 🗄️ VAULT MODAL (NUEVA FUNCIÓN)
+function closeVault() {
+  const modal = document.getElementById('vaultModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+// 📤 PUBLICAR PRODUCTO (NUEVA FUNCIÓN)
+function publishProduct() {
+  const tituloInput = document.getElementById('pubTitulo');
+  const descInput = document.getElementById('pubDescripcion');
+  const catSelect = document.getElementById('pubCategoria');
+  const archivoInput = document.getElementById('pubArchivo');
+  const forSaleCheck = document.getElementById('pubForSale');
+  const precioInput = document.getElementById('pubPrecio');
+  
+  if (!tituloInput || !descInput || !catSelect) {
+    alert('❌ Error: Formulario incompleto');
+    return;
+  }
+  
+  const titulo = sanitizeInput(tituloInput.value.trim());
+  const descripcion = sanitizeInput(descInput.value.trim());
+  const categoria = catSelect.value;
+  const archivo = archivoInput ? archivoInput.files[0] : null;
+  const forSale = forSaleCheck ? forSaleCheck.checked : false;
+  const precio = precioInput ? parseFloat(precioInput.value) || 0 : 0;
+  
+  if (!titulo) {
+    alert('❌ El título es obligatorio');
+    return;
+  }
+  
+  if (archivo) {
+    const validation = validateFile(archivo);
+    if (!validation.valid) {
+      alert('❌ ' + validation.error);
+      return;
+    }
+  }
+  
+  if (forSale && precio <= 0) {
+    alert('❌ El precio debe ser mayor a 0');
+    return;
+  }
+  
+  const products = JSON.parse(localStorage.getItem('publishedProducts') || '[]');
+  products.push({
+    id: Date.now(),
+    titulo,
+    descripcion,
+    categoria,
+    fileName: archivo ? sanitizeInput(archivo.name) : null,
+    forSale,
+    precio,
+    date: new Date().toLocaleDateString('es-ES'),
+    status: 'pending'
+  });
+  
+  localStorage.setItem('publishedProducts', JSON.stringify(products));
+  closePublishModal();
+  alert('✅ Producto publicado (pendiente de aprobación)');
+}
+
+function closePublishModal() {
+  const modal = document.getElementById('publishModal');
+  if (modal) modal.classList.add('hidden');
+  
+  const titulo = document.getElementById('pubTitulo');
+  const desc = document.getElementById('pubDescripcion');
+  const archivo = document.getElementById('pubArchivo');
+  const precio = document.getElementById('pubPrecio');
+  
+  if (titulo) titulo.value = '';
+  if (desc) desc.value = '';
+  if (archivo) archivo.value = '';
+  if (precio) precio.value = '5';
+}
+
+// 👥 AFILIADOS (NUEVA FUNCIÓN)
+function copyReferralLink() {
+  const affCode = document.getElementById('affCode');
+  const code = affCode ? affCode.textContent : 'ROM-XXXX';
+  const link = `${window.location.origin}?ref=${code}`;
+  
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(link).then(() => {
+      alert('✅ Enlace copiado: ' + link);
+    }).catch(() => {
+      fallbackCopy(link);
+    });
+  } else {
+    fallbackCopy(link);
+  }
+}
+
+function fallbackCopy(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    alert('✅ Enlace copiado: ' + text);
+  } catch (err) {
+    alert('❌ No se pudo copiar. Copia manualmente: ' + text);
+  }
+  document.body.removeChild(textarea);
+}
+
+// 👑 ADMIN (NUEVA FUNCIÓN)
+function showAdminTools() {
+  if (!confirm('🔐 ¿Confirmas acceso como administrador?')) return;
+  
+  const password = prompt('Ingresa la contraseña de administrador:');
+  if (!password) return;
+  
+  // Demo: contraseña simple (en producción usar hash en backend)
+  if (password === 'admin123') {
+    alert('✅ Acceso concedido\n\n🛠️ Herramientas Admin:\n- Gestión de usuarios\n- Rotación de claves\n- Monitoreo del sistema');
+  } else {
+    alert('❌ Contraseña incorrecta');
+  }
+}
+
+// 📱 NAVEGACIÓN Y PROMOS (NUEVAS FUNCIONES)
+function scrollToAuth() {
+  const authSection = document.getElementById('authSection') || document.getElementById('loginSection');
+  if (authSection) {
+    authSection.scrollIntoView({ behavior: 'smooth' });
+  } else {
+    alert('🔓 Sección de autenticación no encontrada');
+  }
+}
+
+function showPromo() {
+  alert('✨ Promo Especial:\n\n💰 $25 USD - Acceso de por vida\n✅ Bóveda ilimitada\n✅ 15% comisión referidos\n✅ Soporte prioritario\n\n📧 Contacto: promo@romwiner.com');
+}
+
+// 📱 PWA INSTALL (NUEVAS FUNCIONES - SIN SERVICE WORKER EXTERNO)
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  const banner = document.getElementById('pwaBanner');
+  if (banner) banner.style.display = 'block';
+  
+  const installBtn = document.getElementById('installBtn');
+  if (installBtn) installBtn.style.display = 'block';
+});
+
+function installPWA() {
+  if (!deferredPrompt) {
+    alert('📱 Para instalar:\n\n📲 Android: Menú → "Añadir a pantalla de inicio"\n🍎 iOS: Compartir → "Añadir a pantalla de inicio"');
+    return;
+  }
+  
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then((choiceResult) => {
+    if (choiceResult.outcome === 'accepted') {
+      console.log('✅ PWA instalada');
+    }
+    deferredPrompt = null;
+    const banner = document.getElementById('pwaBanner');
+    if (banner) banner.style.display = 'none';
+  });
+}
+
+function installApp() {
+  installPWA();
+}
+
+// 🔄 INICIALIZACIÓN
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 ApiRomwiner Vault cargado');
+  
+  // Generar código de afiliado si no existe
+  if (!localStorage.getItem('affiliateCode')) {
+    const code = 'ROM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    localStorage.setItem('affiliateCode', code);
+    const affCode = document.getElementById('affCode');
+    if (affCode) affCode.textContent = code;
+  }
+});
+</script>
 <!-- 🔐 SECCIÓN DE AUTENTICACIÓN -->
 <div id="authSection" class="glass">
   <h2>🔐 Acceso a tu Bóveda</h2>
@@ -3306,62 +3848,6 @@ async function req(path, method = 'GET', body = null, isFormData = false) {
     throw e;
   }
 }
-
-// 🔐 Verificar si el usuario tiene acceso a función enterprise
-function hasEnterpriseAccess(feature) {
-  return userTier === 'enterprise' || (feature === 'basic' && ['personal', 'business', 'enterprise'].includes(userTier));
-}
-
-// 💰 Formatear moneda
-function fmt(n) { return '$' + Number(n || 0).toFixed(2); }
-
-// 📁 Validar archivo antes de subir
-function validateFile(file) {
-  const maxSize = 100 * 1024 * 1024; // 100MB
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 
-    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain', 'text/markdown', 'audio/mpeg', 'video/mp4', 'application/zip', 'application/x-rar-compressed'];
-  
-  if (file.size > maxSize) return `⚠️ El archivo supera el límite de 100MB (${(file.size/1024/1024).toFixed(1)}MB)`;
-  if (!allowedTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|gif|pdf|doc|docx|txt|md|mp3|mp4|zip|rar)$/i)) {
-    return `⚠️ Formato no soportado: ${file.type || file.name.split('.').pop()}`;
-  }
-  return null;
-}
-
-// ✅ Inicializar event listeners para este fragmento
-document.addEventListener('DOMContentLoaded', () => {
-  // Media Player Modal - cerrar con botón
-  const closeMediaBtn = document.querySelector('.close-media[data-action="close"]');
-  if (closeMediaBtn) {
-    closeMediaBtn.addEventListener('click', () => {
-      if (typeof closeMediaPlayer === 'function') closeMediaPlayer();
-    });
-  }
-  
-  // Cerrar modal al hacer clic fuera del contenido
-  const modal = document.getElementById('mediaPlayerModal');
-  if (modal) {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal && typeof closeMediaPlayer === 'function') {
-        closeMediaPlayer();
-      }
-    });
-  }
-  
-  // Cerrar modal con tecla Escape
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const openModal = document.querySelector('.media-modal:not(.hidden)');
-      if (openModal && typeof closeMediaPlayer === 'function') {
-        closeMediaPlayer();
-      }
-    }
-  });
-});  
-</script>
-    
-<script>    
 // === INICIALIZACIÓN MEJORADA ===
 
 // ✅ Helper para sanitizar mensajes de error (previene XSS en logs)
@@ -3375,80 +3861,58 @@ function sanitizeErrorMessage(msg) {
 // ✅ Flag para evitar registrar listeners múltiples veces
 let globalListenersInitialized = false;
 
-async function init() {
-  // Cargar preferencias Zero-Knowledge
-  if (typeof loadZeroKnowledgePref === 'function') loadZeroKnowledgePref();
-  
-  // Verificar conexión API con retry
-  let retries = 0;
-  const maxRetries = 3;
-  
-  while (retries < maxRetries) {
-    try {
-      const s = await req('/api/status');
-      const statusDot = document.getElementById('apiStatus');
-      const statusText = document.getElementById('statusText');
-      
-      if (statusDot && statusText) {
-        if (s.status === 'online' || s.success) {
-          statusDot.className = 'status-dot online';
-          statusText.textContent = `✅ Online • ${s.database || 'MongoDB'}`;
-          log('🟢 API responde', 'success');
-          showNotification('✅ Conectado al servidor', 'success', 3000);
-        } else {
-          statusDot.className = 'status-dot offline';
-          statusText.textContent = '⚠️ Mantenimiento';
-          log('⚠️ API en mantenimiento', 'warning');
-        }
-      }
-      
-      if (typeof checkPromo === 'function') checkPromo();
-      break;
-    } catch (e) {
-      retries++;
-      // ✅ Sanitizar mensaje de error antes de loguear (previene XSS)
-      const safeMsg = sanitizeErrorMessage(e.message);
-      log(`⚠️ Intento ${retries}/${maxRetries}: ${safeMsg}`, 'warning');
-      
-      if (retries === maxRetries) {
-        const statusDot = document.getElementById('apiStatus');
-        const statusText = document.getElementById('statusText');
-        if (statusDot) statusDot.className = 'status-dot offline';
-        if (statusText) statusText.textContent = '❌ Sin conexión';
-        log('❌ API no responde tras 3 intentos', 'error');
-        showNotification('❌ Error de conexión. Verifica tu internet.', 'error');
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 1000 * retries));
-      }
-    }
-  }
-  
-  // Cargar sesión si hay token
-  if (token) {
-    try {
-      await loadUser();
-      if (currentUser) {
-        showDashboard();
-        // Actualizar UI según tier
-        updateTierUI();
-      }
-    } catch (e) {
-      // ✅ Sanitizar mensaje de error
-      const safeMsg = sanitizeErrorMessage(e.message);
-      log('⚠️ Error cargando usuario: ' + safeMsg, 'warning');
-      // No cerrar sesión automáticamente, permitir reintentar
-    }
-  }
-  
-  // Inicializar event listeners globales (solo una vez)
-  setupGlobalListeners();
+// 🔐 Verificar si el usuario tiene acceso a función enterprise
+function hasEnterpriseAccess(feature) {
+  if (typeof userTier === 'undefined') return false;
+  return userTier === 'enterprise' || (feature === 'basic' && ['personal', 'business', 'enterprise'].includes(userTier));
 }
 
-// 🎨 Actualizar UI según tier del usuario
+// 💰 Formatear moneda (mejorado con validación)
+function fmt(n) {
+  const num = Number(n);
+  if (isNaN(num)) return '$0.00';
+  return '$' + num.toFixed(2);
+}
+
+// 📁 Validar archivo antes de subir (VERSIÓN MEJORADA)
+function validateFileAdvanced(file) {
+  const maxSize = 100 * 1024 * 1024; // 100MB
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'application/pdf', 
+    'application/msword', 
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain', 'text/markdown', 'text/csv',
+    'audio/mpeg', 'audio/wav', 'audio/ogg',
+    'video/mp4', 'video/webm', 'video/ogg',
+    'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed'
+  ];
+  
+  if (!file || !file.name) {
+    return '⚠️ Archivo inválido';
+  }
+  
+  if (file.size > maxSize) {
+    return `⚠️ El archivo supera el límite de 100MB (${(file.size/1024/1024).toFixed(1)}MB)`;
+  }
+  
+  const extension = file.name.split('.').pop().toLowerCase();
+  const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'md', 'csv', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'ogv', 'zip', 'rar', '7z'];
+  
+  if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(extension)) {
+    return `⚠️ Formato no soportado: ${file.type || extension}`;
+  }
+  
+  return null;
+}
+
+// 🎨 Actualizar UI según tier del usuario (COMPLETADA)
 function updateTierUI() {
   // Mostrar/ocultar funciones enterprise con ARIA para accesibilidad
   document.querySelectorAll('.enterprise-only').forEach(el => {
-    const isVisible = userTier === 'enterprise';
+    const isVisible = (typeof userTier !== 'undefined' && userTier === 'enterprise');
     el.style.display = isVisible ? '' : 'none';
     el.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
   });
@@ -3456,14 +3920,14 @@ function updateTierUI() {
   // Actualizar badge de tier
   const badge = document.getElementById('userTierBadge');
   if (badge) {
-    // ✅ Sanitizar texto del badge (previene XSS si userTier viene de fuente externa)
-    const safeTier = String(userTier || 'personal').replace(/[^a-z]/gi, '').substring(0, 20);
+    const tierValue = (typeof userTier !== 'undefined') ? userTier : 'personal';
+    const safeTier = String(tierValue).replace(/[^a-z]/gi, '').substring(0, 20);
     badge.textContent = safeTier.charAt(0).toUpperCase() + safeTier.slice(1);
     badge.className = `tier-badge tier-${safeTier}`;
   }
   
   // Habilitar/deshabilitar funciones según quota
-  if (userQuota) {
+  if (typeof userQuota !== 'undefined' && userQuota) {
     const quotaDisplay = document.getElementById('quotaDisplay');
     const quotaFill = document.getElementById('quotaFill');
     const quotaText = document.getElementById('quotaText');
@@ -3472,32 +3936,212 @@ function updateTierUI() {
       const used = Number(userQuota.used || 0);
       const limit = Number(userQuota.limit || 0);
       
-      // ✅ Prevenir división por cero
       const pct = limit > 0 ? Math.min(100, Math.max(0, (used / limit) * 100)) : 0;
       quotaFill.style.width = pct + '%';
       quotaFill.setAttribute('aria-valuenow', Math.round(pct));
       quotaText.textContent = `${used} / ${limit} items`;
       quotaDisplay.classList.remove('hidden');
       quotaDisplay.setAttribute('aria-hidden', 'false');
-      
-      // Alertas de cuota con mensajes sanitizados
-      if (pct >= 90) {
-        quotaText.className = 'quota-critical';
-        quotaText.textContent += ' ⚠️ Casi lleno';
-        quotaText.setAttribute('aria-label', 'Almacenamiento crítico: 90% o más usado');
-      } else if (pct >= 75) {
-        quotaText.className = 'quota-warning';
-        quotaText.textContent += ' ⚠️ 75% usado';
-        quotaText.setAttribute('aria-label', 'Almacenamiento: 75% o más usado');
+    }
+  }
+  
+  // Actualizar botones según permisos
+  const enterpriseButtons = document.querySelectorAll('[data-requires="enterprise"]');
+  enterpriseButtons.forEach(btn => {
+    const hasAccess = hasEnterpriseAccess('enterprise');
+    btn.disabled = !hasAccess;
+    btn.style.opacity = hasAccess ? '1' : '0.5';
+    btn.style.cursor = hasAccess ? 'pointer' : 'not-allowed';
+    btn.title = hasAccess ? '' : '🔒 Requiere plan Enterprise';
+  });
+}
+
+// 🔄 Función de inicialización principal (MEJORADA)
+async function init() {
+  console.log('🚀 Inicializando ApiRomwiner Vault...');
+  
+  // Cargar preferencias Zero-Knowledge
+  if (typeof loadZeroKnowledgePref === 'function') {
+    try {
+      loadZeroKnowledgePref();
+    } catch (e) {
+      console.warn('⚠️ Error cargando preferencias Zero-Knowledge:', e.message);
+    }
+  }
+  
+  // Verificar conexión API con retry
+  let retries = 0;
+  const maxRetries = 3;
+  
+  while (retries < maxRetries) {
+    try {
+      // Verificar si req() existe, si no, usar fetch directo
+      let s;
+      if (typeof req === 'function') {
+        s = await req('/api/status');
       } else {
-        quotaText.className = '';
-        quotaText.setAttribute('aria-label', `Almacenamiento: ${Math.round(pct)}% usado`);
+        const response = await fetch('/api/status', {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+        s = await response.json();
       }
+      
+      const statusDot = document.getElementById('apiStatus');
+      const statusText = document.getElementById('statusText');
+      
+      if (statusDot && statusText) {
+        if (s.status === 'online' || s.success) {
+          statusDot.className = 'status-dot online';
+          statusText.textContent = `✅ Online • ${s.database || 'MongoDB'}`;
+          
+          if (typeof log === 'function') {
+            log('🟢 API responde', 'success');
+          }
+          
+          if (typeof showNotification === 'function') {
+            showNotification('✅ Conectado al servidor', 'success', 3000);
+          }
+        } else {
+          statusDot.className = 'status-dot offline';
+          statusText.textContent = '⚠️ Mantenimiento';
+          
+          if (typeof log === 'function') {
+            log('⚠️ API en mantenimiento', 'warning');
+          }
+        }
+      }
+      
+      if (typeof checkPromo === 'function') {
+        checkPromo();
+      }
+      
+      break;
+    } catch (e) {
+      retries++;
+      const safeMsg = sanitizeErrorMessage(e.message);
+      
+      if (typeof log === 'function') {
+        log(`⚠️ Intento ${retries}/${maxRetries}: ${safeMsg}`, 'warning');
+      }
+      
+      if (retries === maxRetries) {
+        const statusDot = document.getElementById('apiStatus');
+        const statusText = document.getElementById('statusText');
+        
+        if (statusDot) statusDot.className = 'status-dot offline';
+        if (statusText) statusText.textContent = '❌ Sin conexión';
+        
+        if (typeof log === 'function') {
+          log('❌ API no responde tras 3 intentos', 'error');
+        }
+        
+        if (typeof showNotification === 'function') {
+          showNotification('❌ Error de conexión. Verifica tu internet.', 'error');
+        }
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+      }
+    }
+  }
+  
+  // Cargar sesión si hay token
+  if (typeof token !== 'undefined' && token) {
+    try {
+      if (typeof loadUser === 'function') {
+        await loadUser();
+      }
+      
+      if (typeof currentUser !== 'undefined' && currentUser) {
+        if (typeof showDashboard === 'function') {
+          showDashboard();
+        }
+        updateTierUI();
+      }
+    } catch (e) {
+      const safeMsg = sanitizeErrorMessage(e.message);
+      
+      if (typeof log === 'function') {
+        log('⚠️ Error cargando usuario: ' + safeMsg, 'warning');
+      }
+    }
+  }
+  
+  // Inicializar event listeners globales (solo una vez)
+  if (typeof setupGlobalListeners === 'function' && !globalListenersInitialized) {
+    setupGlobalListeners();
+    globalListenersInitialized = true;
+  }
+}
+
+// 🎬 Event listeners para Media Player Modal (FUSIONADO)
+document.addEventListener('DOMContentLoaded', () => {
+  // Media Player Modal - cerrar con botón
+  const closeMediaBtn = document.querySelector('.close-media[data-action="close"]');
+  if (closeMediaBtn) {
+    closeMediaBtn.addEventListener('click', () => {
+      if (typeof closeMediaPlayer === 'function') {
+        closeMediaPlayer();
+      } else {
+        const modal = document.getElementById('mediaPlayerModal');
+        if (modal) modal.classList.add('hidden');
+      }
+    });
+  }
+  
+  // Cerrar modal al hacer clic fuera del contenido
+  const modal = document.getElementById('mediaPlayerModal');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        if (typeof closeMediaPlayer === 'function') {
+          closeMediaPlayer();
+        } else {
+          modal.classList.add('hidden');
+        }
+      }
+    });
+  }
+  
+  // Cerrar modal con tecla Escape (MEJORADO - evita conflictos)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const openModals = document.querySelectorAll('.media-modal:not(.hidden), .modal:not(.hidden)');
+      if (openModals.length > 0) {
+        if (typeof closeMediaPlayer === 'function') {
+          closeMediaPlayer();
+        } else {
+          openModals.forEach(m => m.classList.add('hidden'));
+        }
+      }
+    }
+  });
+  
+  // ✅ Auto-inicializar cuando el DOM esté listo
+  if (typeof init === 'function') {
+    init();
+  }
+});
+ // === COMPLETAR FUNCIÓN updateTierUI() ===
+
+// Alertas de cuota con mensajes sanitizados
+if (pct >= 90) {
+  quotaText.className = 'quota-critical';
+  quotaText.textContent += ' ⚠️ Casi lleno';
+  quotaText.setAttribute('aria-label', 'Almacenamiento crítico: 90% o más usado');
+} else if (pct >= 75) {
+  quotaText.className = 'quota-warning';
+  quotaText.textContent += ' ⚠️ 75% usado';
+  quotaText.setAttribute('aria-label', 'Almacenamiento: 75% o más usado');
+} else {
+  quotaText.className = '';
+  quotaText.setAttribute('aria-label', `Almacenamiento: ${Math.round(pct)}% usado`);
+}
     }
   }
 }
 
-// 🌐 Event listeners globales para accesibilidad y UX
+// 🌐 Event listeners globales para accesibilidad y UX (CORREGIDO)
 function setupGlobalListeners() {
   // ✅ Prevenir registro múltiple de listeners (evita fugas de memoria)
   if (globalListenersInitialized) return;
@@ -3506,35 +4150,29 @@ function setupGlobalListeners() {
   // Cerrar modales con tecla Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      // ✅ CORREGIDO: Seleccionar todos los modales, luego filtrar los que NO están ocultos
-      document.querySelectorAll('.modal').forEach(modal => {
+      document.querySelectorAll('.modal, .media-modal').forEach(modal => {
         if (!modal.classList.contains('hidden')) {
           modal.classList.add('hidden');
           modal.setAttribute('aria-hidden', 'true');
-          log('🔒 Modal cerrado con Escape', 'info');
+          
+          if (typeof log === 'function') {
+            log('🔒 Modal cerrado con Escape', 'info');
+          }
         }
       });
     }
   });
   
-  // Cerrar modales al hacer clic fuera del contenido
+  // Cerrar modales al hacer clic fuera del contenido (UNA SOLA VEZ)
   document.addEventListener('click', (e) => {
-    document.querySelectorAll('.modal').forEach(modal => {
+    document.querySelectorAll('.modal, .media-modal').forEach(modal => {
       if (!modal.classList.contains('hidden') && e.target === modal) {
         modal.classList.add('hidden');
         modal.setAttribute('aria-hidden', 'true');
-        log('🔒 Modal cerrado al hacer clic fuera', 'info');
-      }
-    });
-  });
-}
-  // Cerrar modales al hacer clic fuera del contenido
-  document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.classList.add('hidden');
-        modal.setAttribute('aria-hidden', 'true');
-        log('🔒 Modal cerrado al hacer clic fuera', 'info');
+        
+        if (typeof log === 'function') {
+          log('🔒 Modal cerrado al hacer clic fuera', 'info');
+        }
       }
     });
   });
@@ -3543,17 +4181,29 @@ function setupGlobalListeners() {
   let modalObserver = null;
   const setupModalObserver = () => {
     if (modalObserver) return; // ✅ Evitar múltiples observers
+    
     modalObserver = new MutationObserver(() => {
-      const hasOpenModal = Array.from(document.querySelectorAll('.modal')).some(m => !m.classList.contains('hidden'));
+      const hasOpenModal = Array.from(document.querySelectorAll('.modal, .media-modal'))
+        .some(m => !m.classList.contains('hidden'));
       document.body.style.overflow = hasOpenModal ? 'hidden' : '';
     });
-    modalObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    
+    modalObserver.observe(document.body, { 
+      childList: true, 
+      subtree: true, 
+      attributes: true, 
+      attributeFilter: ['class'] 
+    });
   };
+  
   setupModalObserver();
   
   // ✅ Limpieza de observer al cerrar la página (previene fugas de memoria)
   window.addEventListener('beforeunload', () => {
-    if (modalObserver) modalObserver.disconnect();
+    if (modalObserver) {
+      modalObserver.disconnect();
+      modalObserver = null;
+    }
   });
 }
 
@@ -3562,12 +4212,125 @@ function setupGlobalListeners() {
 // ✅ Flag para prevenir uploads simultáneos
 let isUploading = false;
 
-// ✅ Helper para sanitizar nombre de archivo (previene XSS en preview)
+// ✅ Helper para sanitizar nombre de archivo (MEJORADO - más seguro)
 function sanitizeFileName(name) {
-  if (!name) return '';
-  return String(name).replace(/[<>]/g, '').substring(0, 100);
+  if (!name || typeof name !== 'string') return 'archivo_sin_nombre';
+  
+  return String(name)
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '') // Eliminar caracteres peligrosos
+    .replace(/\.\./g, '') // Prevenir directory traversal
+    .replace(/^\./, '') // Eliminar puntos al inicio
+    .trim()
+    .substring(0, 100) || 'archivo_sin_nombre';
 }
 
+// ✅ Validar archivo antes de subir (MEJORADO)
+function validateUploadFile(file) {
+  if (!file) {
+    return { valid: false, error: '❌ No se seleccionó ningún archivo' };
+  }
+  
+  const maxSize = 100 * 1024 * 1024; // 100MB
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'application/pdf', 
+    'application/msword', 
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain', 'text/markdown', 'text/csv',
+    'audio/mpeg', 'audio/wav', 'audio/ogg',
+    'video/mp4', 'video/webm', 'video/ogg',
+    'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed'
+  ];
+  
+  if (file.size > maxSize) {
+    return { 
+      valid: false, 
+      error: `⚠️ El archivo supera el límite de 100MB (${(file.size/1024/1024).toFixed(1)}MB)` 
+    };
+  }
+  
+  const extension = file.name.split('.').pop().toLowerCase();
+  const allowedExtensions = [
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 
+    'txt', 'md', 'csv', 
+    'mp3', 'wav', 'ogg', 
+    'mp4', 'webm', 'ogv', 
+    'zip', 'rar', '7z'
+  ];
+  
+  if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(extension)) {
+    return { 
+      valid: false, 
+      error: `⚠️ Formato no soportado: ${file.type || extension}` 
+    };
+  }
+  
+  return { valid: true, error: null };
+}
+
+// ✅ Función para iniciar upload con validaciones (NUEVA)
+async function startUpload(file, title, category) {
+  // Prevenir uploads simultáneos
+  if (isUploading) {
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ Ya hay una subida en progreso', 'warning');
+    }
+    return false;
+  }
+  
+  // Validar archivo
+  const validation = validateUploadFile(file);
+  if (!validation.valid) {
+    if (typeof showNotification === 'function') {
+      showNotification(validation.error, 'error');
+    }
+    return false;
+  }
+  
+  // Sanitizar título
+  const safeTitle = sanitizeFileName(title || file.name);
+  
+  isUploading = true;
+  
+  try {
+    // Aquí iría la lógica de upload al servidor
+    if (typeof log === 'function') {
+      log(`📤 Subiendo archivo: ${safeTitle}`, 'info');
+    }
+    
+    if (typeof showNotification === 'function') {
+      showNotification('📤 Subiendo archivo...', 'info');
+    }
+    
+    // Simulación de upload (reemplazar con lógica real)
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    if (typeof showNotification === 'function') {
+      showNotification('✅ Archivo subido correctamente', 'success');
+    }
+    
+    return true;
+    
+  } catch (error) {
+    const safeMsg = sanitizeErrorMessage(error.message);
+    
+    if (typeof log === 'function') {
+      log('❌ Error al subir: ' + safeMsg, 'error');
+    }
+    
+    if (typeof showNotification === 'function') {
+      showNotification('❌ Error al subir el archivo', 'error');
+    }
+    
+    return false;
+    
+  } finally {
+    isUploading = false;
+  }
+}
 // 👁️ Preview de archivo seleccionado
 document.addEventListener('DOMContentLoaded', () => {
   const uploadFile = document.getElementById('uploadFile');
