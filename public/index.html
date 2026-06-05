@@ -5875,206 +5875,412 @@ function closeMediaPlayer() {
 
 })();
 </script>
-  
-  // Refresh de datos con manejo seguro
-  if (typeof refresh === 'function') {
-    refresh().catch(e => {
-      log('⚠️ Error en refresh: ' + sanitizeForDisplay(e.message, 100), 'warning');
+<script>
+// ============================================
+// 🛡️ MÓDULO REFRESH Y LOGOUT - SEGURO
+// ============================================
+(function() {
+  'use strict';
+
+  // ============================================
+  // 🧹 SANITIZAR TEXTO PARA MOSTRAR (MEJORADO)
+  // ============================================
+  function sanitizeText(str, maxLen) {
+    if (!str) return '';
+    maxLen = maxLen || 100;
+    return String(str)
+      .trim()
+      .substring(0, maxLen)
+      // ✅ Eliminar TODOS los caracteres peligrosos
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F\x7F]/g, '')
+      // ✅ Eliminar protocolos peligrosos
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '');
+  }
+
+  // ============================================
+  // ✉️ SANITIZAR EMAIL (MEJORADO)
+  // ============================================
+  function sanitizeEmail(email) {
+    if (!email || typeof email !== 'string') return null;
+    
+    const clean = String(email)
+      .trim()
+      .toLowerCase()
+      // ✅ Eliminar caracteres peligrosos
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F]/g, '')
+      // ✅ Solo permitir caracteres válidos de email
+      .replace(/[^a-z0-9@._+\-]/g, '')
+      .substring(0, 255);
+    
+    // Validar formato
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+      return null;
+    }
+    
+    return clean;
+  }
+
+  // ============================================
+  // 💰 FORMATEAR NÚMEROS (FUNCIÓN FALTANTE)
+  // ============================================
+  function fmt(numero) {
+    if (numero === null || numero === undefined) return '0';
+    
+    const num = Number(numero);
+    if (isNaN(num)) return '0';
+    
+    // ✅ Formatear con separadores de miles y 2 decimales
+    return num.toLocaleString('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     });
   }
-  
-  // Scroll seguro al top
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  
-  // Mostrar sección de perfil si existe la función
-  if (typeof showProfileSection === 'function') showProfileSection();
-  
-  log('📊 Dashboard mostrado', 'info');
-}
 
-// 🚪 Logout seguro: limpieza completa de sesión
-function logout() {
-  // Limpiar tokens y datos sensibles en memoria
-  token = '';
-  currentUser = null;
-  userTier = 'personal';
-  isAdmin = false;
-  
-  // Remover items de localStorage (solo los de sesión)
-  localStorage.removeItem('token');
-  localStorage.removeItem('userTier');
-  localStorage.removeItem('isAdmin');
-  // NOTA: No removemos userEmail/refCode para UX, pero se validan en backend
-  
-  // Actualizar UI con ARIA
-  const dashboard = document.getElementById('dashboardView');
-  const landing = document.getElementById('landingView');
-  
-  if (dashboard) {
-    dashboard.classList.add('hidden');
-    dashboard.setAttribute('aria-hidden', 'true');
+  // ============================================
+  // 📜 SCROLL A AUTH CON ACCESIBILIDAD
+  // ============================================
+  function scrollToAuth() {
+    const authSection = document.getElementById('authSection');
+    if (!authSection) {
+      log('⚠️ Sección de auth no encontrada', 'warning');
+      return;
+    }
+    
+    try {
+      authSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      // Fallback para navegadores antiguos
+      try {
+        authSection.scrollIntoView(true);
+      } catch (err) {
+        log('⚠️ No se pudo hacer scroll', 'warning');
+      }
+    }
+    
+    // ✅ Feedback de accesibilidad
+    authSection.setAttribute('tabindex', '-1');
+    
+    if (typeof authSection.focus === 'function') {
+      try {
+        authSection.focus({ preventScroll: true });
+      } catch (e) {
+        try {
+          authSection.focus();
+        } catch (err) {}
+      }
+    }
+    
+    log('📜 Scroll a sección de auth', 'info');
   }
-  if (landing) {
-    landing.classList.remove('hidden');
-    landing.setAttribute('aria-hidden', 'false');
-  }
-  
-  // Resetear avatar a placeholder seguro
-  const avatarEl = document.getElementById('userAvatar');
-  if (avatarEl) {
-    avatarEl.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="40" fill="%23151922" stroke="%2300e676" stroke-width="4"/%3E%3Ctext x="50" y="65" font-size="30" fill="%2300e676" text-anchor="middle"%3E👤%3C/text%3E%3C/svg%3E';
-    avatarEl.setAttribute('aria-label', 'Avatar predeterminado');
-  }
-  
-  log('🚪 Sesión cerrada', 'info');
-  
-  // Scroll suave al top
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  
-  // Notificación de cierre
-  showNotification('🚪 Sesión cerrada', 'info');
-  
-  // 🔐 Opcional: invalidar token en backend si la API lo soporta (sin bloquear UI)
-  // req('/logout', 'POST').catch(() => {});
-}
 
-// 🛡️ Función auxiliar: sanitizar texto para prevenir XSS (reutilizable)
-function sanitizeText(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .substring(0, maxLen)
-    .replace(/[<>]/g, '') // Remover tags HTML
-    .replace(/javascript:/gi, '') // Prevenir protocolos peligrosos
-    .trim();
-}
+  // ============================================
+  // 🔄 REFRESH DE MÉTRICAS (COMPLETO Y SEGURO)
+  // ============================================
+  async function refresh(event) {
+    if (event) event.preventDefault();
+    
+    // ✅ Verificar token usando getToken() (NO variable global)
+    let token = null;
+    if (typeof window.getToken === 'function') {
+      token = window.getToken();
+    }
+    
+    if (!token) {
+      log('⚠️ Sin token, no se puede refrescar', 'warning');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Inicia sesión para actualizar', 'warning');
+      }
+      return;
+    }
 
-// 🛡️ Función auxiliar: validar y sanitizar email
-function sanitizeEmail(email) {
-  if (!email) return '';
-  const clean = email.trim().toLowerCase();
-  // Validar formato básico
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return null;
-  return clean.substring(0, 255);
-}
+    // ✅ Referencia segura al botón con fallback
+    const btn = (event && event.currentTarget) || 
+                document.querySelector('button[onclick*="refresh"]') ||
+                document.querySelector('#refreshBtn');
 
-// 🔐 Scroll a auth con fallback y accesibilidad
-function scrollToAuth() {
-  const authSection = document.getElementById('authSection');
-  if (!authSection) {
-    log('⚠️ Sección de auth no encontrada', 'warning');
-    return;
-  }
-  
-  try {
-    authSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } catch (e) {
-    // Fallback para navegadores antiguos
-    authSection.scrollIntoView(true);
-  }
-  
-  // ✅ Feedback de accesibilidad
-  authSection.setAttribute('tabindex', '-1');
-  authSection.focus?.({ preventScroll: true });
-  
-  log('📜 Scroll a sección de auth', 'info');
-}
+    // ✅ Proteger contra doble clic
+    if (btn && btn.disabled) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⏳ Espera, actualizando...', 'info', 1500);
+      }
+      return;
+    }
 
-// === DASHBOARD: REFRESH MEJORADO CON SEGURIDAD ===
-async function refresh(event) {
-  // ✅ Prevenir comportamiento por defecto si es submit
-  if (event) event.preventDefault();
-  
-  // ✅ Verificar token antes de continuar
-  if (!token) {
-    log('⚠️ Sin token, no se puede refrescar', 'warning');
-    showNotification('⚠️ Inicia sesión para actualizar', 'warning');
-    return;
+    const textoOriginal = (btn && btn.textContent) ? btn.textContent : '🔄 Actualizar Métricas';
+
+    try {
+      // UI: estado de carga con accesibilidad
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '🔄 Actualizando...';
+        btn.setAttribute('aria-busy', 'true');
+      }
+      
+      // ✅ Fetch paralelo con AbortController para timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(function() {
+        controller.abort();
+      }, 15000); // 15s timeout
+      
+      // ✅ Llamar a las 3 APIs en paralelo
+      const promesas = [
+        req('/api/wallet', 'GET').catch(function(e) { 
+          log('⚠️ Error en /api/wallet: ' + (e.message || 'desconocido'), 'warning');
+          return { wallet: { balance: 0 } }; 
+        }),
+        req('/api/dashboard', 'GET').catch(function(e) {
+          log('⚠️ Error en /api/dashboard: ' + (e.message || 'desconocido'), 'warning');
+          return { dashboard: { active: 0, sales: 0, quota: null } };
+        }),
+        req('/api/affiliates/dashboard', 'GET').catch(function(e) {
+          log('⚠️ Error en /api/affiliates: ' + (e.message || 'desconocido'), 'warning');
+          return { dashboard: { availableBalance: 0 } };
+        })
+      ];
+
+      const resultados = await Promise.all(promesas);
+      clearTimeout(timeoutId);
+
+      const w = resultados[0] || {};
+      const d = resultados[1] || {};
+      const a = resultados[2] || {};
+      
+      // ✅ Actualizar UI con validación y sanitización
+      const saldoEl = document.getElementById('saldo');
+      if (saldoEl) {
+        const balance = Number((w.wallet && w.wallet.balance) || 0);
+        const saldoFormateado = fmt(balance);
+        saldoEl.textContent = saldoFormateado;
+        saldoEl.setAttribute('aria-label', 'Saldo disponible: ' + saldoFormateado);
+      }
+      
+      const activosEl = document.getElementById('activos');
+      if (activosEl) {
+        const count = Number((d.dashboard && d.dashboard.active) || 0);
+        activosEl.textContent = count;
+        activosEl.setAttribute('aria-label', count + ' activos en venta');
+      }
+      
+      const ventasEl = document.getElementById('ventas');
+      if (ventasEl) {
+        const count = Number((d.dashboard && d.dashboard.sales) || 0);
+        ventasEl.textContent = count;
+        ventasEl.setAttribute('aria-label', count + ' ventas completadas');
+      }
+      
+      const afiliadosEl = document.getElementById('afiliados');
+      if (afiliadosEl) {
+        const balance = Number((a.dashboard && a.dashboard.availableBalance) || 0);
+        const balanceFormateado = fmt(balance);
+        afiliadosEl.textContent = balanceFormateado;
+        afiliadosEl.setAttribute('aria-label', 'Ganancias de afiliados: ' + balanceFormateado);
+      }
+      
+      // ✅ Actualizar quota si existe
+      if (d.dashboard && d.dashboard.quota) {
+        if (typeof window.updateQuotaDisplay === 'function') {
+          window.updateQuotaDisplay(d.dashboard.quota);
+        }
+      }
+      
+      log('🟢 Métricas actualizadas', 'success');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('✅ Métricas actualizadas', 'success', 2000);
+      }
+      
+    } catch (e) {
+      // ✅ Manejo específico de errores
+      const errMsg = (e && e.message) ? e.message : '';
+      
+      if (e && e.name === 'AbortError') {
+        log('⚠️ Timeout actualizando métricas', 'warning');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ La conexión es lenta. Intenta de nuevo.', 'warning', 4000);
+        }
+      } else if (errMsg.includes('401') || errMsg.includes('expirada')) {
+        log('⚠️ Sesión expirada', 'warning');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ Sesión expirada. Inicia sesión de nuevo.', 'warning', 4000);
+        }
+        // ✅ Limpiar sesión si está expirada
+        if (typeof window.handleSessionExpired === 'function') {
+          window.handleSessionExpired();
+        }
+      } else if (errMsg.includes('403')) {
+        log('⚠️ Acceso denegado', 'warning');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ No tienes permiso para esta acción.', 'warning', 4000);
+        }
+      } else {
+        log('⚠️ Error sincronizando: ' + sanitizeText(errMsg, 100), 'warning');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('⚠️ No se pudo actualizar. Verifica tu conexión.', 'warning', 4000);
+        }
+      }
+    } finally {
+      // ✅ Restaurar UI siempre
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+        btn.removeAttribute('aria-busy');
+      }
+    }
   }
-  
-  // ✅ Referencia segura al botón con fallback
-  const btn = event?.currentTarget || document.querySelector('button[onclick="refresh()"]');
-  
-  try {
-    // UI: estado de carga con accesibilidad
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '🔄 Actualizando...';
-      btn.setAttribute('aria-busy', 'true');
-    }
-    
-    // ✅ Fetch paralelo con AbortController para evitar bloqueos infinitos
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-    
-    const [w, d, a] = await Promise.all([
-      req('/api/wallet', 'GET', null, false, { signal: controller.signal }),
-      req('/api/dashboard', 'GET', null, false, { signal: controller.signal }),
-      req('/api/affiliates/dashboard', 'GET', null, false, { signal: controller.signal })
-    ]);
-    
-    clearTimeout(timeoutId);
-    
-    // ✅ Actualizar UI con null checks y sanitización
-    const saldoEl = document.getElementById('saldo');
-    if (saldoEl) {
-      const balance = Number(w.wallet?.balance || 0);
-      saldoEl.textContent = fmt(balance);
-      saldoEl.setAttribute('aria-label', `Saldo disponible: ${fmt(balance)}`);
-    }
-    
-    const activosEl = document.getElementById('activos');
-    if (activosEl) {
-      const count = Number(d.dashboard?.active || 0);
-      activosEl.textContent = count;
-      activosEl.setAttribute('aria-label', `${count} activos en venta`);
-    }
-    
-    const ventasEl = document.getElementById('ventas');
-    if (ventasEl) {
-      const count = Number(d.dashboard?.sales || 0);
-      ventasEl.textContent = count;
-      ventasEl.setAttribute('aria-label', `${count} ventas completadas`);
-    }
-    
-    const afiliadosEl = document.getElementById('afiliados');
-    if (afiliadosEl) {
-      const balance = Number(a.dashboard?.availableBalance || 0);
-      afiliadosEl.textContent = fmt(balance);
-      afiliadosEl.setAttribute('aria-label', `Ganancias de afiliados: ${fmt(balance)}`);
-    }
-    
-    // ✅ Actualizar quota si existe
-    if (d.dashboard?.quota) {
-      userQuota = d.dashboard.quota;
-      if (typeof updateQuotaDisplay === 'function') updateQuotaDisplay();
-    }
-    
-    log('🟢 Métricas actualizadas', 'success');
-    
-  } catch (e) {
-    // ✅ Manejo específico de errores para mejor UX
-    if (e.name === 'AbortError') {
-      log('⚠️ Timeout actualizando métricas', 'warning');
-      showNotification('⚠️ La conexión es lenta. Intenta de nuevo.', 'warning');
-    } else if (e.message.includes('401')) {
-      log('⚠️ Sesión expirada', 'warning');
-      showNotification('⚠️ Sesión expirada. Inicia sesión de nuevo.', 'warning');
-    } else if (e.message.includes('403')) {
-      log('⚠️ Acceso denegado', 'warning');
-      showNotification('⚠️ No tienes permiso para esta acción.', 'warning');
-    } else {
-      log('⚠️ Error sincronizando: ' + sanitizeForDisplay(e.message, 100), 'warning');
-      showNotification('⚠️ No se pudo actualizar. Verifica tu conexión.', 'warning');
-    }
-  } finally {
-    // ✅ Restaurar UI siempre, incluyendo atributos ARIA
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '🔄 Actualizar Métricas';
-      btn.removeAttribute('aria-busy');
+
+  // ============================================
+  // 🚪 LOGOUT SEGURO (COMPLETO)
+  // ============================================
+  async function logout() {
+    try {
+      // ✅ Llamar al backend para invalidar token (sin bloquear UI)
+      const token = (typeof window.getToken === 'function') ? window.getToken() : null;
+      
+      if (token) {
+        try {
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token
+            }
+          });
+        } catch (e) {
+          log('⚠️ Error cerrando sesión en backend: ' + (e.message || 'desconocido'), 'warning');
+        }
+      }
+
+      // ✅ Limpiar TODA la sesión del cliente
+      try {
+        sessionStorage.clear();
+        localStorage.removeItem('token');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userTier');
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('isAdminVisual');
+        localStorage.removeItem('refCode');
+        localStorage.removeItem('romwiner_avatar');
+      } catch (e) {}
+
+      // ✅ Actualizar UI con ARIA
+      const dashboard = document.getElementById('dashboardView');
+      const landing = document.getElementById('landingView');
+      
+      if (dashboard) {
+        dashboard.classList.add('hidden');
+        dashboard.setAttribute('aria-hidden', 'true');
+      }
+      
+      if (landing) {
+        landing.classList.remove('hidden');
+        landing.setAttribute('aria-hidden', 'false');
+      }
+      
+      // ✅ Resetear avatar a placeholder seguro
+      const avatarEl = document.getElementById('userAvatar');
+      if (avatarEl) {
+        if (typeof window.removeAvatar === 'function') {
+          window.removeAvatar();
+        } else {
+          // Fallback: placeholder inline
+          avatarEl.src = 'data:image/svg+xml;base64,' + btoa(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+            '<circle cx="50" cy="50" r="40" fill="#151922" stroke="#00e676" stroke-width="4"/>' +
+            '<text x="50" y="65" font-size="30" fill="#00e676" text-anchor="middle">👤</text>' +
+            '</svg>'
+          );
+          avatarEl.setAttribute('aria-label', 'Avatar predeterminado');
+        }
+      }
+
+      // ✅ Resetear elementos de UI
+      const emailEl = document.getElementById('uEmail');
+      if (emailEl) {
+        emailEl.textContent = 'Usuario';
+      }
+
+      const tierBadge = document.getElementById('userTierBadge');
+      if (tierBadge) {
+        tierBadge.textContent = 'Personal';
+        tierBadge.className = 'tier-badge tier-personal';
+      }
+
+      const adminPanel = document.getElementById('adminPanel');
+      if (adminPanel) {
+        adminPanel.style.display = 'none';
+        adminPanel.setAttribute('aria-hidden', 'true');
+      }
+
+      const enterpriseFeatures = document.getElementById('enterpriseFeatures');
+      if (enterpriseFeatures) {
+        enterpriseFeatures.classList.add('hidden');
+        enterpriseFeatures.setAttribute('aria-hidden', 'true');
+      }
+
+      // ✅ Resetear métricas del dashboard
+      const saldoEl = document.getElementById('saldo');
+      if (saldoEl) saldoEl.textContent = '0.00';
+      
+      const activosEl = document.getElementById('activos');
+      if (activosEl) activosEl.textContent = '0';
+      
+      const ventasEl = document.getElementById('ventas');
+      if (ventasEl) ventasEl.textContent = '0';
+      
+      const afiliadosEl = document.getElementById('afiliados');
+      if (afiliadosEl) afiliadosEl.textContent = '0.00';
+
+      log('🚪 Sesión cerrada correctamente', 'info');
+      
+      // ✅ Scroll suave al top
+      try {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (e) {
+        window.scrollTo(0, 0);
+      }
+      
+      // ✅ Notificación de cierre
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('👋 Sesión cerrada correctamente', 'info', 2500);
+      }
+
+      // ✅ Redirigir al inicio después de 1 segundo
+      setTimeout(function() {
+        if (window.location.pathname !== '/') {
+          window.location.href = '/';
+        } else {
+          window.location.reload();
+        }
+      }, 1000);
+
+    } catch (error) {
+      log('❌ Error en logout: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+      
+      // Incluso si hay error, intentar limpiar sesión local
+      try {
+        sessionStorage.clear();
+      } catch (e) {}
+      
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('⚠️ Error al cerrar sesión', 'error', 3000);
+      }
     }
   }
-}
+
+  // ============================================
+  // 🌐 EXPONER FUNCIONES
+  // ============================================
+  window.sanitizeText = sanitizeText;
+  window.sanitizeEmail = sanitizeEmail;
+  window.fmt = fmt;
+  window.scrollToAuth = scrollToAuth;
+  window.refresh = refresh;
+  window.logout = logout;
+
+})();
+</script>
 
 // === QUOTA: DISPLAY MEJORADO CON ACCESIBILIDAD ===
 function updateQuotaDisplay() {
