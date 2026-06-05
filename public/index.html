@@ -5650,125 +5650,231 @@ function closeMediaPlayer() {
 
 })();
 </script>
-  `.trim();
-  
-  // Asignar como data URL (sin petición HTTP externa)
-  el.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
-  el.alt = 'Código QR de referido - Escanea para instalar';
-  el.style.borderColor = '#00e676';
-  el.setAttribute('aria-label', 'Código QR de referido'); // ✅ Accesibilidad
-  
-  log('🔐 QR generado localmente', 'info');
-}
+<script>
+// ============================================
+// 🛡️ MÓDULO DASHBOARD Y AVATAR - SEGURO
+// ============================================
+(function() {
+  'use strict';
 
-// 🔢 Generar patrón QR determinista (simulado, local) - versión segura
-function generateLocalQRPattern(seed, size) {
-  // ✅ Sanitizar seed antes de usar en hash (previene inyección)
-  const cleanSeed = String(seed || '').replace(/[^a-zA-Z0-9]/g, '').substring(0, 100);
-  
-  // Hash simple para generar patrón consistente
-  let hash = 0;
-  for (let i = 0; i < cleanSeed.length; i++) {
-    hash = ((hash << 5) - hash) + cleanSeed.charCodeAt(i);
-    hash = hash & hash; // Convertir a 32bit
+  // ============================================
+  // 🧹 SANITIZAR TEXTO PARA MOSTRAR (MEJORADO)
+  // ============================================
+  function sanitizeForDisplay(str, maxLen) {
+    if (!str) return '';
+    maxLen = maxLen || 100;
+    return String(str)
+      // ✅ Eliminar TODOS los caracteres peligrosos
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F\x7F]/g, '')
+      // ✅ Eliminar protocolos peligrosos
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '')
+      .substring(0, maxLen);
   }
-  
-  const rects = [];
-  const cellSize = 4;
-  const gridStart = 45;
-  const gridEnd = size - 45;
-  
-  // Generar patrón pseudo-aleatorio pero determinista
-  for (let y = gridStart; y < gridEnd; y += cellSize) {
-    for (let x = gridStart; x < gridEnd; x += cellSize) {
-      // Usar hash + coordenadas para decidir si dibujar
-      const val = Math.abs(Math.sin(hash + x * 1000 + y) * 10000) % 100;
-      if (val > 65) { // ~35% de densidad
-        // ✅ Coordenadas son numéricas, seguro para string concatenation
-        rects.push(`<rect x="${x}" y="${y}" width="${cellSize-1}" height="${cellSize-1}" rx="0.5"/>`);
+
+  // ============================================
+  // 🎨 SANITIZAR CLASSNAME (ANTI-INYECCIÓN CSS)
+  // ============================================
+  function sanitizeClassName(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/[^a-z0-9\-_]/gi, '')
+      .substring(0, 30)
+      .toLowerCase();
+  }
+
+  // ============================================
+  // 🖼️ VALIDAR AVATAR DE FORMA ESTRICTA
+  // ============================================
+  function isValidAvatar(url) {
+    if (!url || typeof url !== 'string') return false;
+
+    // ✅ BLOQUEAR data:image/svg+xml (riesgo XSS alto)
+    if (/data:image\/svg/i.test(url)) {
+      return false;
+    }
+
+    // ✅ Solo permitir data URLs de imágenes raster seguras
+    const dataUrlPattern = /^data:image\/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+\/=]+$/;
+    if (url.startsWith('data:')) {
+      if (!dataUrlPattern.test(url)) {
+        return false;
+      }
+      // ✅ Limitar tamaño a 2MB (previene DoS)
+      if (url.length > 2 * 1024 * 1024) {
+        return false;
+      }
+      return true;
+    }
+
+    // ✅ Solo permitir URLs del mismo origen
+    if (url.startsWith(window.location.origin + '/')) {
+      // Validar que sea una ruta de imagen
+      return /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(url);
+    }
+
+    return false;
+  }
+
+  // ============================================
+  // 🖼️ AVATAR PLACEHOLDER SEGURO (SVG inline)
+  // ============================================
+  function getAvatarPlaceholder() {
+    return 'data:image/svg+xml;base64,' + btoa(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+      '<circle cx="50" cy="50" r="40" fill="#151922" stroke="#00e676" stroke-width="4"/>' +
+      '<text x="50" y="65" font-size="30" fill="#00e676" text-anchor="middle">👤</text>' +
+      '</svg>'
+    );
+  }
+
+  // ============================================
+  // 📊 MOSTRAR DASHBOARD (COMPLETO Y SEGURO)
+  // ============================================
+  function showDashboard() {
+    try {
+      // ============================================
+      // 🔐 CARGAR AVATAR CON VALIDACIÓN ESTRICTA
+      // ============================================
+      let savedAvatar = null;
+      try {
+        savedAvatar = sessionStorage.getItem('romwiner_avatar') || 
+                      localStorage.getItem('romwiner_avatar');
+      } catch (e) {}
+
+      const avatarEl = document.getElementById('userAvatar');
+
+      if (avatarEl) {
+        if (savedAvatar && isValidAvatar(savedAvatar)) {
+          // ✅ Avatar válido: usarlo
+          avatarEl.src = savedAvatar;
+          avatarEl.setAttribute('aria-label', 'Avatar de usuario');
+          avatarEl.setAttribute('loading', 'lazy');
+        } else {
+          // ✅ Avatar inválido o ausente: usar placeholder
+          avatarEl.src = getAvatarPlaceholder();
+          avatarEl.setAttribute('aria-label', 'Avatar predeterminado');
+
+          if (savedAvatar) {
+            log('⚠️ Avatar bloqueado por seguridad', 'warning');
+          }
+        }
+      }
+
+      // ============================================
+      // 🔄 TRANSICIÓN DE VISTAS CON ARIA
+      // ============================================
+      const landing = document.getElementById('landingView');
+      const dashboard = document.getElementById('dashboardView');
+
+      if (landing) {
+        landing.classList.add('hidden');
+        landing.setAttribute('aria-hidden', 'true');
+      }
+
+      if (dashboard) {
+        dashboard.classList.remove('hidden');
+        dashboard.setAttribute('aria-hidden', 'false');
+        dashboard.setAttribute('tabindex', '-1');
+
+        // ✅ Enfocar dashboard para accesibilidad
+        if (typeof dashboard.focus === 'function') {
+          try {
+            dashboard.focus({ preventScroll: true });
+          } catch (e) {
+            dashboard.focus();
+          }
+        }
+      }
+
+      // ============================================
+      // 🚀 CARGAR PERFIL DE USUARIO
+      // ============================================
+      if (typeof window.loadUser === 'function') {
+        // Cargar perfil de forma asíncrona
+        window.loadUser().catch(function(error) {
+          log('⚠️ Error cargando perfil: ' + (error && error.message ? error.message : 'desconocido'), 'warning');
+        });
+      }
+
+      log('✅ Dashboard mostrado', 'success');
+
+    } catch (error) {
+      // ✅ Manejo seguro de errores
+      log('❌ Error en showDashboard: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('Error al cargar el dashboard', 'error', 4000);
       }
     }
   }
-  
-  return rects.join('');
-}
 
-// 📊 Mostrar dashboard con validaciones de seguridad mejoradas
-function showDashboard() {
-  // 🔐 Cargar avatar: validación estricta (prevenir XSS)
-  const savedAvatar = localStorage.getItem('romwiner_avatar');
-  const avatarEl = document.getElementById('userAvatar');
-  
-  if (savedAvatar && avatarEl) {
-    // ✅ Validación estricta: solo data:image o same-origin
-    const isDataUrl = /^data:image\/(png|jpeg|jpg|gif|webp);/.test(savedAvatar);
-    const isSameOrigin = savedAvatar.startsWith(window.location.origin + '/');
-    
-    if (isDataUrl || isSameOrigin) {
-      avatarEl.src = savedAvatar;
-      avatarEl.setAttribute('aria-label', 'Avatar de usuario');
-      avatarEl.setAttribute('loading', 'lazy'); // ✅ Mejora rendimiento
-    } else {
-      // Si es URL externa no permitida, usar placeholder seguro
-      avatarEl.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="40" fill="%23151922" stroke="%2300e676" stroke-width="4"/%3E%3Ctext x="50" y="65" font-size="30" fill="%2300e676" text-anchor="middle"%3E👤%3C/text%3E%3C/svg%3E';
-      avatarEl.setAttribute('aria-label', 'Avatar predeterminado');
-      log('⚠️ Avatar externo bloqueado por seguridad', 'warning');
+  // ============================================
+  // 💾 GUARDAR AVATAR DE FORMA SEGURA
+  // ============================================
+  function saveAvatar(dataUrl) {
+    if (!isValidAvatar(dataUrl)) {
+      log('⚠️ Avatar rechazado: no pasa validación de seguridad', 'warning');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('❌ Imagen no válida', 'error', 3000);
+      }
+      return false;
+    }
+
+    try {
+      // ✅ Guardar en sessionStorage (más seguro)
+      sessionStorage.setItem('romwiner_avatar', dataUrl);
+
+      // ✅ Actualizar UI inmediatamente
+      const avatarEl = document.getElementById('userAvatar');
+      if (avatarEl) {
+        avatarEl.src = dataUrl;
+      }
+
+      log('✅ Avatar guardado', 'success');
+      return true;
+
+    } catch (error) {
+      log('❌ Error guardando avatar: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+      return false;
     }
   }
-// ✅ Helper reutilizable para sanitizar texto antes de insertar en DOM/logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[<>]/g, '') // Remover tags HTML
-    .replace(/javascript:/gi, '') // Prevenir protocolos peligrosos
-    .replace(/"/g, '&quot;') // Escapar comillas para atributos HTML
-    .substring(0, maxLen);
-}
 
-// ✅ Helper para sanitizar valores usados en className (previene inyección CSS)
-function sanitizeClassName(str) {
-  if (!str) return '';
-  return String(str).replace(/[^a-z0-9\-_]/gi, '').substring(0, 30).toLowerCase();
-}
+  // ============================================
+  // 🗑️ ELIMINAR AVATAR
+  // ============================================
+  function removeAvatar() {
+    try {
+      sessionStorage.removeItem('romwiner_avatar');
+      localStorage.removeItem('romwiner_avatar');
 
-// Transición de vistas con validaciones y ARIA
-function showDashboard() {
-  // 🔐 Cargar avatar: validación estricta (prevenir XSS)
-  const savedAvatar = localStorage.getItem('romwiner_avatar');
-  const avatarEl = document.getElementById('userAvatar');
-  
-  if (savedAvatar && avatarEl) {
-    // ✅ Validación estricta: solo data:image o same-origin
-    const isDataUrl = /^data:image\/(png|jpeg|jpg|gif|webp);/.test(savedAvatar);
-    const isSameOrigin = savedAvatar.startsWith(window.location.origin + '/');
-    
-    if (isDataUrl || isSameOrigin) {
-      avatarEl.src = savedAvatar;
-      avatarEl.setAttribute('aria-label', 'Avatar de usuario');
-      avatarEl.setAttribute('loading', 'lazy'); // ✅ Mejora rendimiento
-    } else {
-      // Si es URL externa no permitida, usar placeholder seguro
-      avatarEl.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="40" fill="%23151922" stroke="%2300e676" stroke-width="4"/%3E%3Ctext x="50" y="65" font-size="30" fill="%2300e676" text-anchor="middle"%3E👤%3C/text%3E%3C/svg%3E';
-      avatarEl.setAttribute('aria-label', 'Avatar predeterminado');
-      log('⚠️ Avatar externo bloqueado por seguridad', 'warning');
+      // ✅ Restaurar placeholder
+      const avatarEl = document.getElementById('userAvatar');
+      if (avatarEl) {
+        avatarEl.src = getAvatarPlaceholder();
+      }
+
+      log('✅ Avatar eliminado', 'success');
+      return true;
+
+    } catch (error) {
+      log('❌ Error eliminando avatar: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+      return false;
     }
   }
-  
-  // Transición de vistas con ARIA
-  const landing = document.getElementById('landingView');
-  const dashboard = document.getElementById('dashboardView');
-  
-  if (landing) {
-    landing.classList.add('hidden');
-    landing.setAttribute('aria-hidden', 'true');
-  }
-  if (dashboard) {
-    dashboard.classList.remove('hidden');
-    dashboard.setAttribute('aria-hidden', 'false');
-    // ✅ Enfocar dashboard para accesibilidad
-    dashboard.setAttribute('tabindex', '-1');
-    dashboard.focus?.({ preventScroll: true });
-  }
+
+  // ============================================
+  // 🌐 EXPONER FUNCIONES
+  // ============================================
+  window.sanitizeForDisplay = sanitizeForDisplay;
+  window.sanitizeClassName = sanitizeClassName;
+  window.isValidAvatar = isValidAvatar;
+  window.showDashboard = showDashboard;
+  window.saveAvatar = saveAvatar;
+  window.removeAvatar = removeAvatar;
+
+})();
+</script>
   
   // Refresh de datos con manejo seguro
   if (typeof refresh === 'function') {
