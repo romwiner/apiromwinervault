@@ -3588,87 +3588,302 @@ function closeMediaPlayer() {
   log('🎬 Reproductor cerrado', 'info');
 }
 
-// === INICIALIZACIÓN FINAL ===
-document.addEventListener('DOMContentLoaded', () => {
-  // Iniciar app
-  if (typeof init === 'function') {
-    init();
-  } else {
-    // Fallback seguro: mostrar notificación sin exponer detalles
-    log('⚠️ Función init() no definida, usando fallback', 'warning');
-    showNotification('🔄 Cargando interfaz...', 'info', 2000);
+<script>
+// ============================================
+// 🛡️ MÓDULO COMPLETO - AUTO-CONTENIDO
+// No depende de librerías externas
+// ============================================
+(function() {
+  'use strict';
+
+  // 🔒 Evitar que se cargue dos veces
+  if (window.__AuthModuloCargado) return;
+  window.__AuthModuloCargado = true;
+
+  // ============================================
+  // 📝 FUNCIÓN log() - REGISTRO SEGURO
+  // ============================================
+  window.log = function(mensaje, nivel) {
+    nivel = nivel || 'info';
+    const iconos = { info: 'ℹ️', warning: '⚠️', error: '❌', success: '✅' };
+    const icono = iconos[nivel] || 'ℹ️';
+    // Sanitizar para evitar XSS en consola
+    const msg = String(mensaje).replace(/</g, '&lt;').substring(0, 300);
+    console.log(icono + ' [' + new Date().toLocaleTimeString() + '] ' + msg);
+  };
+
+  // ============================================
+  // 🔔 FUNCIÓN showNotification() - NOTIFICACIONES
+  // ============================================
+  window.showNotification = function(mensaje, tipo, duracion) {
+    if (!mensaje) return;
+    tipo = tipo || 'info';
+    duracion = duracion || 3000;
+
+    const colores = {
+      success: '#00e676',
+      error: '#ff5252',
+      warning: '#ffb74d',
+      info: '#40c4ff'
+    };
+    const color = colores[tipo] || colores.info;
+
+    // Crear con createElement (NO innerHTML → anti-XSS)
+    var notif = document.createElement('div');
+    notif.setAttribute('role', 'alert');
+    notif.style.cssText = 'position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.92);color:' + color + ';padding:14px 20px;border-radius:8px;border-left:4px solid ' + color + ';z-index:99999;font-family:system-ui,sans-serif;font-size:0.95rem;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,0.4);opacity:0;transform:translateX(400px);transition:all 0.3s ease;';
+    
+    // textContent es SEGURO (no ejecuta HTML)
+    notif.textContent = String(mensaje).substring(0, 200);
+    document.body.appendChild(notif);
+
+    // Animación entrada
+    setTimeout(function() {
+      notif.style.opacity = '1';
+      notif.style.transform = 'translateX(0)';
+    }, 10);
+
+    // Auto-eliminar
+    setTimeout(function() {
+      notif.style.opacity = '0';
+      notif.style.transform = 'translateX(400px)';
+      setTimeout(function() { if (notif.parentNode) notif.remove(); }, 300);
+    }, duracion);
+  };
+
+  // ============================================
+  // 🔐 SANITIZAR EMAIL (MEJORADO - SEGURO)
+  // ============================================
+  function sanitizeEmail(email) {
+    if (!email || typeof email !== 'string') return '';
+    return String(email)
+      .trim()
+      .toLowerCase()
+      // Eliminar TODOS los caracteres peligrosos
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F]/g, '')
+      // Solo permitir caracteres válidos de email
+      .replace(/[^a-z0-9@._+\-]/g, '')
+      .substring(0, 255);
   }
-});
-</script>
-// === AUTH ===
 
-// ✅ Helper para sanitizar email antes de usar en logs/almacenamiento (previene XSS)
-function sanitizeEmail(email) {
-  if (!email) return '';
-  return String(email)
-    .trim()
-    .toLowerCase()
-    .replace(/[<>]/g, '')
-    .substring(0, 255);
-}
+  // ============================================
+  // 🔑 VALIDAR CONTRASEÑA (MEJORADO)
+  // ============================================
+  function validatePasswordStrength(pass) {
+    var errores = [];
+    if (!pass || typeof pass !== 'string') return ['contraseña vacía'];
+    if (pass.length < 8) errores.push('mínimo 8 caracteres');
+    if (pass.length > 128) errores.push('máximo 128 caracteres'); // Anti-DoS
+    if (!/[A-Z]/.test(pass)) errores.push('1 mayúscula');
+    if (!/[a-z]/.test(pass)) errores.push('1 minúscula');
+    if (!/[0-9]/.test(pass)) errores.push('1 número');
+    if (!/[^a-zA-Z0-9]/.test(pass)) errores.push('1 símbolo');
 
-// ✅ Helper para validar fortaleza de contraseña (reutilizable)
-function validatePasswordStrength(pass) {
-  const errors = [];
-  if (pass.length < 8) errors.push('mínimo 8 caracteres');
-  if (!/[A-Z]/.test(pass)) errors.push('1 mayúscula');
-  if (!/[0-9]/.test(pass)) errors.push('1 número');
-  if (!/[^a-zA-Z0-9]/.test(pass)) errors.push('1 símbolo (!@#$%^&*)');
-  return errors;
-}
-
-// 🔐 Login mejorado: validaciones, seguridad y UX
-async function login(event) {
-  // Prevenir comportamiento por defecto si es submit de formulario
-  if (event) event.preventDefault();
-  
-  const emailInput = document.getElementById('email');
-  const passInput = document.getElementById('pass');
-  const rawEmail = emailInput?.value?.trim();
-  const pass = passInput?.value;
-  
-  // ✅ Sanitizar email antes de usar
-  const email = sanitizeEmail(rawEmail);
-  
-  // Validaciones básicas
-  if (!email || !pass) {
-    log('⚠️ Ingresa correo y contraseña', 'warning');
-    showNotification('⚠️ Completa todos los campos', 'warning');
-    return;
-  }
-  
-  // Validar formato de email
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    log('⚠️ Formato de email inválido', 'warning');
-    showNotification('⚠️ Ingresa un email válido', 'warning');
-    if (emailInput) {
-      emailInput.classList.add('error');
-      emailInput.setAttribute('aria-invalid', 'true'); // ✅ Accesibilidad
+    // Detectar contraseñas comunes
+    var comunes = ['password', '12345678', 'qwerty', 'admin123', 'letmein', 'welcome', 'abc123'];
+    if (comunes.indexOf(pass.toLowerCase()) !== -1) {
+      errores.push('contraseña muy común');
     }
-    return;
+    return errores;
   }
-  
-  // ✅ Referencia segura al botón con fallback robusto
-  const btn = event?.currentTarget || 
+
+  // ============================================
+  // 🔐 FUNCIÓN LOGIN (COMPLETA Y SEGURA)
+  // ============================================
+  async function login(event) {
+    if (event) event.preventDefault();
+
+    // Obtener elementos
+    var emailInput = document.getElementById('email');
+    var passInput = document.getElementById('pass');
+    var rawEmail = (emailInput && emailInput.value) ? emailInput.value.trim() : '';
+    var pass = (passInput && passInput.value) ? passInput.value : '';
+
+    // Sanitizar email
+    var email = sanitizeEmail(rawEmail);
+
+    // Validar campos vacíos
+    if (!email || !pass) {
+      log('⚠️ Campos incompletos', 'warning');
+      showNotification('⚠️ Completa todos los campos', 'warning');
+      return;
+    }
+
+    // Validar formato email
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      log('⚠️ Email inválido', 'warning');
+      showNotification('⚠️ Ingresa un email válido', 'warning');
+      if (emailInput) {
+        emailInput.classList.add('error');
+        emailInput.setAttribute('aria-invalid', 'true');
+      }
+      return;
+    }
+
+    // ✅ VALIDAR FORTALEZA DE CONTRASEÑA (antes no se hacía)
+    var erroresPass = validatePasswordStrength(pass);
+    if (erroresPass.length > 0) {
+      log('⚠️ Contraseña débil: ' + erroresPass.join(', '), 'warning');
+      showNotification('⚠️ Contraseña insegura', 'warning');
+      if (passInput) passInput.classList.add('error');
+      return;
+    }
+
+    // Botón con fallback robusto
+    var btn = (event && event.currentTarget) || 
               document.querySelector('#authSection button[type="submit"]') ||
-              document.querySelector('#authSection button[onclick*="login"]');
-  
-  try {
-    // UI: estado de carga con accesibilidad
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '🔐 Conectando...';
-      btn.setAttribute('aria-busy', 'true');
+              document.querySelector('button[onclick*="login"]');
+
+    // Proteger contra doble clic
+    if (btn && btn.disabled) {
+      showNotification('⏳ Espera, procesando...', 'info', 1500);
+      return;
     }
-    if (emailInput) {
-      emailInput.classList.remove('error');
-      emailInput.removeAttribute('aria-invalid');
+
+    var textoOriginal = (btn && btn.textContent) ? btn.textContent : 'Iniciar sesión';
+
+    try {
+      // UI: estado de carga
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '🔐 Conectando...';
+        btn.setAttribute('aria-busy', 'true');
+      }
+      if (emailInput) {
+        emailInput.classList.remove('error');
+        emailInput.removeAttribute('aria-invalid');
+      }
+      if (passInput) {
+        passInput.classList.remove('error');
+        passInput.removeAttribute('aria-invalid');
+      }
+
+      // Enviar al backend
+      var res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ email: email, pass: pass })
+      });
+
+      // Manejo de sesión expirada
+      if (res.status === 401) {
+        if (typeof window.handleSessionExpired === 'function') {
+          window.handleSessionExpired();
+        }
+        throw new Error('Sesión expirada');
+      }
+
+      var data = {};
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = {};
+      }
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Credenciales incorrectas');
+      }
+
+      // Login exitoso
+      log('✅ Login exitoso', 'success');
+      showNotification('✅ Bienvenido', 'success', 2500);
+
+      // Redirigir
+      if (typeof window.onLoginSuccess === 'function') {
+        window.onLoginSuccess(data);
+      } else {
+        setTimeout(function() {
+          window.location.href = '/dashboard';
+        }, 800);
+      }
+
+    } catch (error) {
+      // Mensaje genérico (NO revelar si el email existe)
+      log('❌ Error login: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+      showNotification('❌ Email o contraseña incorrectos', 'error', 4000);
+
+      // Marcar inputs como error
+      if (emailInput) emailInput.classList.add('error');
+      if (passInput) passInput.classList.add('error');
+
+      // ✅ LIMPIAR contraseña tras fallo (seguridad)
+      if (passInput) passInput.value = '';
+
+      // Delay anti-fuerza bruta
+      await new Promise(function(r) { setTimeout(r, 1500); });
+
+    } finally {
+      // Siempre restaurar el botón
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+        btn.removeAttribute('aria-busy');
+      }
     }
+  }
+
+  // ============================================
+  // 🚪 FUNCIÓN LOGOUT
+  // ============================================
+  async function logout() {
+    try {
+      await fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+    } catch (e) {
+      log('⚠️ Error cerrando sesión', 'warning');
+    } finally {
+      try { sessionStorage.clear(); } catch (e) {}
+      showNotification('👋 Sesión cerrada', 'info', 2000);
+      setTimeout(function() { window.location.href = '/'; }, 800);
+    }
+  }
+
+  // ============================================
+  // 🚀 FUNCIÓN init() - INICIALIZACIÓN
+  // ============================================
+  function init() {
+    try {
+      log('🚀 Inicializando aplicación...', 'info');
+      
+      // Verificar API si existe
+      if (typeof window.checkAPI === 'function') {
+        setTimeout(function() { window.checkAPI(); }, 500);
+      }
+      
+      log('✅ Interfaz lista', 'success');
+    } catch (error) {
+      log('❌ Error en init: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+      showNotification('Error al cargar la aplicación', 'error', 4000);
+    }
+  }
+
+  // ============================================
+  // 📱 INICIALIZACIÓN AL CARGAR
+  // ============================================
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      init();
+    } catch (error) {
+      log('⚠️ Fallback de carga', 'warning');
+      showNotification('🔄 Cargando interfaz...', 'info', 2000);
+    }
+  });
+
+  // Exponer funciones globalmente
+  window.sanitizeEmail = sanitizeEmail;
+  window.validatePasswordStrength = validatePasswordStrength;
+  window.login = login;
+  window.logout = logout;
+  window.init = init;
+
+})();
+</script>
     
     // 🔐 Envío seguro: password nunca se loguea ni se expone
     const r = await req('/login', 'POST', { email, password: pass });
