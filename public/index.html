@@ -5286,205 +5286,370 @@ function closeMediaPlayer() {
 })();
 </script>
     
-// 👤 Cargar perfil de usuario con validaciones de seguridad y sanitización
-async function loadUser() {
-  try {
-    const p = await req('/api/profile');
-    currentUser = p.user || p.profile;
-    
-    // Tier con fallback seguro y sanitización
-    const rawTier = currentUser?.tier || localStorage.getItem('userTier') || 'personal';
-    userTier = sanitizeForDisplay(rawTier, 20).replace(/[^a-z]/gi, '').toLowerCase() || 'personal';
-    localStorage.setItem('userTier', userTier);
-    
-    // Admin: siempre verificar en backend, localStorage es solo UX
-    isAdmin = p.user?.isAdmin === true;
-    if (isAdmin) {
-      localStorage.setItem('isAdmin', 'true');
-    } else {
-      localStorage.removeItem('isAdmin');
+<script>
+// ============================================
+// 🛡️ MÓDULO DE PERFIL Y QR - SEGURO Y COMPLETO
+// ============================================
+(function() {
+  'use strict';
+
+  // ============================================
+  // 🧹 SANITIZAR TEXTO PARA MOSTRAR (MEJORADO)
+  // ============================================
+  function sanitizeForDisplay(str, maxLen) {
+    if (!str) return '';
+    maxLen = maxLen || 100;
+    return String(str)
+      // ✅ Eliminar TODOS los caracteres peligrosos
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F\x7F]/g, '')
+      // ✅ Eliminar protocolos peligrosos
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '')
+      .substring(0, maxLen);
+  }
+
+  // ============================================
+  // 🎨 SANITIZAR CLASSNAME (ANTI-INYECCIÓN CSS)
+  // ============================================
+  function sanitizeClassName(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/[^a-z0-9\-_]/gi, '')
+      .substring(0, 30)
+      .toLowerCase();
+  }
+
+  // ============================================
+  // 🔢 HASH SIMPLE PARA QR (determinista)
+  // ============================================
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convertir a 32bit integer
     }
-    
-    // ✅ Sanitizar nombre para mostrar (previene XSS)
-    const rawName = p.profile?.displayName || p.user?.email?.split('@')?.[0] || 'Usuario';
-    const safeName = sanitizeForDisplay(rawName, 50);
-    
-    // Actualizar UI con null checks y sanitización
-    const emailEl = document.getElementById('uEmail');
-    if (emailEl) {
-      emailEl.textContent = safeName;
-      emailEl.setAttribute('aria-label', `Usuario: ${safeName}`);
+    return Math.abs(hash);
+  }
+
+  // ============================================
+  // 🖼️ GENERAR QR LOCAL (SVG - patrón determinista)
+  // ============================================
+  function generarQRLocal(elementId, data, size) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    // ✅ Sanitizar datos
+    const safeData = sanitizeForDisplay(data, 200);
+    size = parseInt(size) || 160;
+    if (size < 80) size = 80;
+    if (size > 400) size = 400;
+
+    // ✅ Generar patrón determinista basado en hash del contenido
+    const hash = hashString(safeData);
+    const gridSize = 21; // Versión 1 de QR tiene 21x21 módulos
+    const moduleSize = Math.floor(size / gridSize);
+    const padding = Math.floor((size - (gridSize * moduleSize)) / 2);
+
+    // ✅ Construir matriz de módulos (patrón pseudo-aleatorio determinista)
+    let modules = [];
+    let seed = hash;
+    for (let row = 0; row < gridSize; row++) {
+      modules[row] = [];
+      for (let col = 0; col < gridSize; col++) {
+        // ✅ Generador pseudo-aleatorio determinista (LCG)
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        modules[row][col] = (seed % 2) === 1;
+      }
     }
-    
-    // ✅ Actualizar badge de tier con sanitización
-    const tierBadge = document.getElementById('userTierBadge');
-    if (tierBadge) {
-      tierBadge.textContent = userTier.charAt(0).toUpperCase() + userTier.slice(1);
-      tierBadge.className = `tier-badge tier-${userTier}`;
-      tierBadge.setAttribute('aria-label', `Nivel de cuenta: ${userTier}`);
+
+    // ✅ Dibujar marcadores de posición (esquinas) - patrón QR estándar
+    function drawFinderPattern(startRow, startCol) {
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          const isOuter = (r === 0 || r === 6 || c === 0 || c === 6);
+          const isInner = (r >= 2 && r <= 4 && c >= 2 && c <= 4);
+          modules[startRow + r][startCol + c] = isOuter || isInner;
+        }
+      }
     }
-    
-    // ✅ Mostrar/ocultar funciones enterprise con ARIA
-    const enterpriseFeatures = document.getElementById('enterpriseFeatures');
-    if (enterpriseFeatures) {
-      const isVisible = userTier === 'enterprise';
-      enterpriseFeatures.classList.toggle('hidden', !isVisible);
-      enterpriseFeatures.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
+
+    drawFinderPattern(0, 0); // Esquina superior izquierda
+    drawFinderPattern(0, gridSize - 7); // Esquina superior derecha
+    drawFinderPattern(gridSize - 7, 0); // Esquina inferior izquierda
+
+    // ✅ Separadores de los finders (blanco)
+    for (let i = 0; i < 8; i++) {
+      // Superior izquierdo
+      if (i < gridSize) {
+        modules[7][i] = false;
+        modules[i][7] = false;
+      }
+      // Superior derecho
+      if (gridSize - 8 + i < gridSize) {
+        modules[7][gridSize - 8 + i] = false;
+      }
+      if (i < gridSize) {
+        modules[i][gridSize - 8] = false;
+      }
+      // Inferior izquierdo
+      if (gridSize - 8 + i < gridSize) {
+        modules[gridSize - 8][i] = false;
+      }
+      if (i < 8) {
+        modules[gridSize - 8 + i][7] = false;
+      }
     }
-    
-    // ✅ Panel Admin: solo si isAdmin real (verificado por backend)
-    const adminPanel = document.getElementById('adminPanel');
-    if (adminPanel) {
-      adminPanel.style.display = isAdmin ? 'block' : 'none';
-      adminPanel.setAttribute('aria-hidden', isAdmin ? 'false' : 'true');
+
+    // ✅ Construir SVG
+    let svgContent = '';
+    svgContent += `<rect fill="#0b0c10" width="${size}" height="${size}"/>`;
+
+    // Dibujar módulos
+    for (let row = 0; row < gridSize; row++) {
+      for (let col = 0; col < gridSize; col++) {
+        if (modules[row][col]) {
+          const x = padding + (col * moduleSize);
+          const y = padding + (row * moduleSize);
+          svgContent += `<rect x="${x}" y="${y}" width="${moduleSize}" height="${moduleSize}" fill="#00e676"/>`;
+        }
+      }
     }
-    
-    // ✅ QR de referido: generar localmente (0% externos)
-    const refQr = document.getElementById('refQr');
-    if (refQr && typeof generateLocalQR === 'function') {
-      const refCode = currentUser?.refCode || localStorage.getItem('refCode') || 'ROM000';
-      const refLink = `${window.location.origin}?ref=${refCode}`;
-      refQr.src = generateLocalQR(refLink, 160); // ✅ SVG embebido, sin HTTP externo
-      refQr.alt = 'Código QR de referido';
-      refQr.dataset.qr = refLink;
-    }
-    
-    // ✅ Cuota de usuario con validación
-    if (p.quota) {
-      userQuota = p.quota;
-      if (typeof updateQuotaDisplay === 'function') updateQuotaDisplay();
-    }
-    
-  } catch (e) {
-    // ✅ Manejo seguro de errores: no exponer detalles internos
-    log('⚠️ Error cargando perfil: ' + sanitizeForDisplay(e.message, 100), 'warning');
-    
-    // Fallback: mostrar email básico si falla carga de perfil
-    const email = localStorage.getItem('userEmail');
-    const emailEl = document.getElementById('uEmail');
-    if (emailEl && email) {
-      const safeEmail = sanitizeForDisplay(email.split('@')[0], 30);
-      emailEl.textContent = safeEmail;
+
+    // ✅ Texto central (sanitizado)
+    const safeSuffix = sanitizeForDisplay(safeData.slice(-6), 6).replace(/[^a-zA-Z0-9]/g, '');
+    const centerX = size / 2;
+    const centerY = size / 2;
+
+    // Fondo para el texto
+    svgContent += `<rect x="${centerX - 35}" y="${centerY - 10}" width="70" height="20" fill="#0b0c10" rx="2"/>`;
+    svgContent += `<text x="${centerX}" y="${centerY + 4}" text-anchor="middle" fill="#00e676" font-size="9" font-family="system-ui,sans-serif" font-weight="600">Ref: ${safeSuffix}</text>`;
+
+    // ✅ Construir SVG completo
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="Código QR de referido">${svgContent}</svg>`;
+
+    // ✅ Insertar de forma segura (usando DOMParser para evitar innerHTML directo)
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(svg, 'image/svg+xml');
+      const svgElement = doc.documentElement;
+
+      // Verificar que no haya errores de parseo
+      const parseError = doc.querySelector('parsererror');
+      if (parseError) {
+        throw new Error('Error al parsear SVG');
+      }
+
+      // Limpiar contenido anterior
+      while (el.firstChild) {
+        el.removeChild(el.firstChild);
+      }
+
+      // Importar y agregar el SVG
+      const importedNode = document.importNode(svgElement, true);
+      el.appendChild(importedNode);
+
+      // Guardar referencia al link
+      el.dataset.qr = safeData;
+      el.alt = 'Código QR de referido';
+    } catch (error) {
+      // Fallback: usar innerHTML con SVG ya sanitizado
+      el.innerHTML = svg;
+      el.dataset.qr = safeData;
     }
   }
-} 
-// ✅ Helper reutilizable para sanitizar texto antes de insertar en DOM/logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[<>]/g, '') // Remover tags HTML
-    .replace(/javascript:/gi, '') // Prevenir protocolos peligrosos
-    .replace(/"/g, '&quot;') // Escapar comillas para atributos HTML
-    .substring(0, maxLen);
-}
 
-// ✅ Helper para sanitizar valores usados en className (previene inyección CSS)
-function sanitizeClassName(str) {
-  if (!str) return '';
-  return String(str).replace(/[^a-z0-9\-_]/gi, '').substring(0, 30).toLowerCase();
-}
+  // ============================================
+  // 👤 CARGAR PERFIL DE USUARIO (COMPLETO Y SEGURO)
+  // ============================================
+  async function loadUser() {
+    // ✅ Variables locales (no globales)
+    let currentUser = null;
+    let userTier = 'personal';
+    let isAdmin = false;
+    let userQuota = null;
 
-    // Nombre para mostrar: sanitizado para prevenir XSS (usando helper reutilizable)
-    const rawName = p.profile?.displayName;
-    const safeName = rawName && rawName !== 'Demo' 
-      ? sanitizeForDisplay(rawName, 50) 
-      : sanitizeForDisplay(localStorage.getItem('userEmail')?.split('@')?.[0], 20) || 'Usuario';
-    
-    const emailEl = document.getElementById('uEmail');
-    if (emailEl) {
-      emailEl.textContent = safeName;
-      emailEl.setAttribute('aria-label', `Usuario: ${safeName}`); // ✅ Accesibilidad
+    try {
+      // ✅ Verificar que exista token antes de llamar al API
+      if (typeof window.getToken === 'function') {
+        const token = window.getToken();
+        if (!token) {
+          log('⚠️ No hay token, redirigiendo al login', 'warning');
+          if (typeof window.handleSessionExpired === 'function') {
+            window.handleSessionExpired();
+          }
+          return;
+        }
+      }
+
+      // ✅ Llamar al API de perfil
+      const p = await req('/api/profile');
+
+      // ✅ Validar respuesta
+      if (!p || typeof p !== 'object') {
+        throw new Error('Respuesta de perfil inválida');
+      }
+
+      currentUser = p.user || p.profile || {};
+
+      // ============================================
+      // 🛡️ TIER: SOLO REFERENCIA VISUAL
+      // ============================================
+      const rawTier = currentUser.tier || 'personal';
+      userTier = sanitizeClassName(rawTier) || 'personal';
+
+      // ✅ Guardar en sessionStorage (NO localStorage)
+      try {
+        sessionStorage.setItem('userTier', userTier);
+      } catch (e) {}
+
+      // ============================================
+      // 👑 ADMIN: SOLO REFERENCIA VISUAL
+      // ============================================
+      isAdmin = !!(currentUser && currentUser.isAdmin === true);
+
+      // ✅ Guardar en sessionStorage (NO localStorage)
+      try {
+        if (isAdmin) {
+          sessionStorage.setItem('isAdminVisual', 'true');
+        } else {
+          sessionStorage.removeItem('isAdminVisual');
+        }
+      } catch (e) {}
+
+      // ============================================
+      // 📝 NOMBRE PARA MOSTRAR
+      // ============================================
+      const rawName = (currentUser.displayName && currentUser.displayName !== 'Demo')
+        ? currentUser.displayName
+        : (currentUser.email ? currentUser.email.split('@')[0] : null)
+        || (function() {
+            try { return sessionStorage.getItem('userEmail')?.split('@')?.[0]; } catch(e) { return null; }
+          })()
+        || 'Usuario';
+
+      const safeName = sanitizeForDisplay(rawName, 50);
+
+      // ============================================
+      // 🎨 ACTUALIZAR UI
+      // ============================================
+
+      // Email/nombre de usuario
+      const emailEl = document.getElementById('uEmail');
+      if (emailEl) {
+        emailEl.textContent = safeName;
+        emailEl.setAttribute('aria-label', 'Usuario: ' + safeName);
+      }
+
+      // Badge de tier
+      const tierBadge = document.getElementById('userTierBadge');
+      if (tierBadge) {
+        const safeTier = sanitizeClassName(userTier);
+        tierBadge.textContent = safeTier.charAt(0).toUpperCase() + safeTier.slice(1);
+        tierBadge.className = 'tier-badge tier-' + safeTier;
+        tierBadge.setAttribute('aria-label', 'Nivel de cuenta: ' + safeTier);
+      }
+
+      // Panel Enterprise
+      const dashboard = document.getElementById('dashboardView');
+      const enterpriseFeatures = document.getElementById('enterpriseFeatures');
+      if (dashboard && enterpriseFeatures) {
+        const isEnterprise = userTier === 'enterprise';
+        dashboard.classList.toggle('enterprise', isEnterprise);
+        enterpriseFeatures.classList.toggle('hidden', !isEnterprise);
+        enterpriseFeatures.setAttribute('aria-hidden', isEnterprise ? 'false' : 'true');
+      }
+
+      // Panel Admin
+      const adminPanel = document.getElementById('adminPanel');
+      if (adminPanel) {
+        adminPanel.style.display = isAdmin ? 'block' : 'none';
+        adminPanel.setAttribute('aria-hidden', isAdmin ? 'false' : 'true');
+        if (isAdmin && dashboard) {
+          dashboard.classList.add('enterprise');
+        }
+      }
+
+      // ============================================
+      // 🖼️ QR DE REFERIDO (100% LOCAL)
+      // ============================================
+      const refCode = currentUser.refCode || (function() {
+        try { return sessionStorage.getItem('refCode'); } catch(e) { return null; }
+      })() || 'ROM000';
+
+      const safeRefCode = sanitizeForDisplay(refCode, 20).replace(/[^a-zA-Z0-9]/g, '');
+      const origin = window.location.origin || '';
+      const refLink = origin + '?ref=' + safeRefCode;
+
+      // Generar QR localmente
+      if (typeof generarQRLocal === 'function') {
+        generarQRLocal('refQr', refLink, 160);
+      }
+
+      // Guardar refCode en sessionStorage
+      try {
+        if (safeRefCode) {
+          sessionStorage.setItem('refCode', safeRefCode);
+        }
+      } catch (e) {}
+
+      // ============================================
+      // 📊 CUOTA DE USUARIO
+      // ============================================
+      if (p.quota && typeof p.quota === 'object') {
+        userQuota = p.quota;
+        if (typeof window.updateQuotaUI === 'function') {
+          window.updateQuotaUI(userQuota);
+        }
+      }
+
+      log('✅ Perfil cargado: ' + safeName + ' (' + userTier + ')', 'success');
+
+    } catch (e) {
+      // ✅ Manejo seguro de errores
+      const errMsg = (e && e.message) ? e.message : 'desconocido';
+      log('⚠️ Error cargando perfil: ' + sanitizeForDisplay(errMsg, 100), 'warning');
+
+      // Fallback: mostrar email básico si falla
+      let email = null;
+      try {
+        email = sessionStorage.getItem('userEmail');
+      } catch (err) {}
+
+      const emailEl = document.getElementById('uEmail');
+      if (emailEl && email) {
+        const safeEmail = sanitizeForDisplay(email.split('@')[0], 20) || 'Usuario';
+        emailEl.textContent = safeEmail;
+      }
+
+      // Si es error 401, limpiar sesión
+      if (errMsg.includes('401') || errMsg.includes('expirada')) {
+        if (typeof window.handleSessionExpired === 'function') {
+          window.handleSessionExpired();
+        }
+      }
     }
-    
-    // Badge de tier con sanitización de className (previene inyección CSS)
-    const tierBadge = document.getElementById('userTierBadge');
-    if (tierBadge) {
-      const safeTier = sanitizeClassName(userTier || 'personal');
-      tierBadge.textContent = safeTier.charAt(0).toUpperCase() + safeTier.slice(1);
-      tierBadge.className = `tier-badge tier-${safeTier}`; // ✅ className seguro
-      tierBadge.setAttribute('aria-label', `Nivel de cuenta: ${safeTier}`);
-    }
-    
-    // Panel Enterprise: mostrar solo si corresponde con ARIA
-    const dashboard = document.getElementById('dashboardView');
-    const enterpriseFeatures = document.getElementById('enterpriseFeatures');
-    if (dashboard && enterpriseFeatures) {
-      const isEnterprise = userTier === 'enterprise';
-      dashboard.classList.toggle('enterprise', isEnterprise);
-      enterpriseFeatures.classList.toggle('hidden', !isEnterprise);
-      enterpriseFeatures.setAttribute('aria-hidden', isEnterprise ? 'false' : 'true'); // ✅ Accesibilidad
-    }
-    
-    // Panel Admin: solo si isAdmin real (verificado por backend) con ARIA
-    const adminPanel = document.getElementById('adminPanel');
-    if (adminPanel) {
-      adminPanel.style.display = isAdmin ? 'block' : 'none';
-      adminPanel.setAttribute('aria-hidden', isAdmin ? 'false' : 'true'); // ✅ Accesibilidad
-      if (isAdmin && dashboard) dashboard.classList.add('enterprise');
-    }
-    
-    // 🔐 QR de referido: GENERACIÓN 100% LOCAL (sin APIs externas) - versión segura
-    const refCode = currentUser?.refCode || localStorage.getItem('refCode') || 'ROM000';
-    // ✅ Sanitizar refCode antes de usar en URL y SVG
-    const safeRefCode = sanitizeForDisplay(refCode, 20).replace(/[^a-zA-Z0-9]/g, '');
-    const refLink = `${window.location.origin || ''}?ref=${safeRefCode}`;
-    
-    // Usar función local para generar QR (ver implementación abajo)
-    if (typeof generarQRLocal === 'function') {
-      generarQRLocal('refQr', refLink, 160);
-    }
-    
-    // Guardar refCode para persistencia (solo si es seguro)
-    if (safeRefCode) localStorage.setItem('refCode', safeRefCode);
-    
-    // Cuota de usuario
-    if (p.quota) userQuota = p.quota;
-    
-    // Actualizar UI según quota
-    if (typeof updateQuotaUI === 'function') updateQuotaUI();
-    
-  } catch (e) {
-    // ✅ Sanitizar mensaje de error antes de loguear (previene XSS)
-    log('⚠️ Perfil: ' + sanitizeForDisplay(e.message, 100), 'warning');
-    
-    // Fallback: mostrar email básico si falla carga de perfil
-    const email = localStorage.getItem('userEmail');
-    const emailEl = document.getElementById('uEmail');
-    if (emailEl && email) {
-      const safeEmail = sanitizeForDisplay(email.split('@')?.[0], 20) || 'Usuario';
-      emailEl.textContent = safeEmail;
-    }
+
+    // ✅ Retornar datos para uso externo si es necesario
+    return {
+      currentUser: currentUser,
+      userTier: userTier,
+      isAdmin: isAdmin,
+      userQuota: userQuota
+    };
   }
-}
 
-// 🖼️ Generar QR LOCALMENTE (SVG embebido, 0% conexiones externas) - versión segura
-function generarQRLocal(elementId, data, size = 160) {
-  const el = document.getElementById(elementId);
-  if (!el) return;
-  
-  // ✅ Sanitizar datos antes de usar en SVG (previene XSS en atributos)
-  const safeData = sanitizeForDisplay(data, 200);
-  const encoded = encodeURIComponent(safeData);
-  
-  // ✅ Sanitizar últimos 6 caracteres para mostrar en SVG
-  const safeSuffix = sanitizeForDisplay(safeData.slice(-6), 6).replace(/[^a-zA-Z0-9]/g, '');
-  
-  // 🔐 SVG minimalista que simula QR (para demo segura)
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="Código QR de referido">
-      <rect fill="#0b0c10" width="${size}" height="${size}"/>
-      <!-- Patrones de alineación (esquinas) -->
-      <rect x="12" y="12" width="28" height="28" fill="none" stroke="#00e676" stroke-width="3" rx="2"/>
-      <rect x="${size-40}" y="12" width="28" height="28" fill="none" stroke="#00e676" stroke-width="3" rx="2"/>
-      <rect x="12" y="${size-40}" width="28" height="28" fill="none" stroke="#00e676" stroke-width="3" rx="2"/>
-      <!-- "Datos" simulados (patrón determinista basado en hash simple) -->
-      <g fill="#00e676" opacity="0.85">
-        ${generateLocalQRPattern(encoded, size)}
-      </g>
-      <!-- Texto central sanitizado -->
-      <text x="${size/2}" y="${size/2 + 4}" text-anchor="middle" fill="#00e676" font-size="9" font-family="system-ui,sans-serif" font-weight="600">ApiRomwiner</text>
-      <text x="${size/2}" y="${size/2 + 14}" text-anchor="middle" fill="#8b95a5" font-size="7" font-family="system-ui,sans-serif">Ref: ${safeSuffix}</text>
-    </svg>
+  // ============================================
+  // 🌐 EXPONER FUNCIONES
+  // ============================================
+  window.sanitizeForDisplay = sanitizeForDisplay;
+  window.sanitizeClassName = sanitizeClassName;
+  window.generarQRLocal = generarQRLocal;
+  window.loadUser = loadUser;
+
+})();
+</script>
   `.trim();
   
   // Asignar como data URL (sin petición HTTP externa)
