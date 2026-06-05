@@ -4331,7 +4331,7 @@ async function startUpload(file, title, category) {
     isUploading = false;
   }
 }
-// 👁️ Preview de archivo seleccionado
+// 👁️ Preview de archivo seleccionado (MEJORADO)
 document.addEventListener('DOMContentLoaded', () => {
   const uploadFile = document.getElementById('uploadFile');
   const filePreview = document.getElementById('filePreview');
@@ -4345,18 +4345,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      const error = validateFile(file);
+      // ✅ Usar validateFile (retorna string de error o null)
+      const error = (typeof validateFile === 'function') ? validateFile(file) : null;
       if (error) {
         filePreview.style.display = 'block';
         filePreview.style.color = '#ff5252';
-        filePreview.textContent = error; // ✅ validateFile retorna strings seguros
+        // ✅ Sanitizar mensaje antes de mostrar
+        const safeError = (typeof sanitizeUserMessage === 'function') 
+          ? sanitizeUserMessage(error, 'Archivo inválido') 
+          : String(error).replace(/[<>]/g, '').substring(0, 200);
+        filePreview.textContent = safeError;
         uploadFile.value = '';
         return;
       }
       
       // ✅ Sanitizar nombre de archivo antes de mostrar (previene XSS)
-      const safeName = sanitizeFileName(file.name);
-      const size = file.size < 1024*1024 ? `${(file.size/1024).toFixed(1)} KB` : `${(file.size/1024/1024).toFixed(1)} MB`;
+      const safeName = (typeof sanitizeFileName === 'function') 
+        ? sanitizeFileName(file.name) 
+        : String(file.name).replace(/[<>]/g, '').substring(0, 100);
+      const size = file.size < 1024*1024 
+        ? `${(file.size/1024).toFixed(1)} KB` 
+        : `${(file.size/1024/1024).toFixed(1)} MB`;
+      
       filePreview.style.display = 'block';
       filePreview.style.color = '#00e676';
       filePreview.textContent = `✅ ${safeName} • ${size}`;
@@ -4384,17 +4394,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const val = parseFloat(document.getElementById('uploadPrice')?.value) || 0;
     const preview = document.getElementById('pricePreview');
     if (preview) {
-      preview.textContent = `💵 Se mostrará como: ${fmt(val)} USD`;
+      // ✅ Validar que fmt exista antes de usarlo
+      const formatted = (typeof fmt === 'function') ? fmt(val) : `$${val.toFixed(2)}`;
+      preview.textContent = `💵 Se mostrará como: ${formatted} USD`;
       preview.setAttribute('aria-live', 'polite');
     }
   }
 });
 
-// 📤 Subir archivo con progreso real y seguridad mejorada
+// 📤 Subir archivo con progreso real y seguridad mejorada (MEJORADO)
 async function doUpload() {
   // ✅ Prevenir múltiples uploads simultáneos
-  if (isUploading) {
-    showNotification('⚠️ Ya hay una subida en progreso', 'warning');
+  if (typeof isUploading !== 'undefined' && isUploading) {
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ Ya hay una subida en progreso', 'warning');
+    }
     return;
   }
   
@@ -4416,7 +4430,9 @@ async function doUpload() {
   
   // Validaciones con feedback accesible
   if (!title || title.length < 3) {
-    showNotification('⚠️ El título debe tener al menos 3 caracteres', 'error');
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ El título debe tener al menos 3 caracteres', 'error');
+    }
     if (titleInput) {
       titleInput.classList.add('error');
       titleInput.setAttribute('aria-invalid', 'true');
@@ -4430,7 +4446,9 @@ async function doUpload() {
   }
   
   if (!file) {
-    showNotification('⚠️ Selecciona un archivo para subir', 'error');
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ Selecciona un archivo para subir', 'error');
+    }
     if (fileInput) {
       fileInput.classList.add('error');
       fileInput.focus();
@@ -4439,14 +4457,19 @@ async function doUpload() {
     return;
   }
   
-  const fileError = validateFile(file);
+  // ✅ Validar archivo con fallback
+  const fileError = (typeof validateFile === 'function') ? validateFile(file) : null;
   if (fileError) {
-    showNotification(fileError, 'error');
+    if (typeof showNotification === 'function') {
+      showNotification(fileError, 'error');
+    }
     return;
   }
   
   if (forSale && (isNaN(price) || price < 1 || price > 9999)) {
-    showNotification('⚠️ El precio debe estar entre $1.00 y $9,999.00 USD', 'error');
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ El precio debe estar entre $1.00 y $9,999.00 USD', 'error');
+    }
     if (priceInput) {
       priceInput.classList.add('error');
       priceInput.focus();
@@ -4455,13 +4478,20 @@ async function doUpload() {
     return;
   }
   
+  // ✅ Sanitizar título ANTES de enviar (previene XSS en servidor)
+  const safeTitle = (typeof sanitizeFileName === 'function') 
+    ? sanitizeFileName(title) 
+    : String(title).replace(/[<>]/g, '').substring(0, 100);
+  
   // ✅ Marcar como subiendo
-  isUploading = true;
+  if (typeof isUploading !== 'undefined') isUploading = true;
   
   // UI: estado de carga con accesibilidad
-  btn.disabled = true;
-  btn.textContent = '⏳ Cifrando y subiendo...';
-  btn.setAttribute('aria-busy', 'true');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Cifrando y subiendo...';
+    btn.setAttribute('aria-busy', 'true');
+  }
   if (status) {
     status.textContent = '🔐 Cifrando archivo...';
     status.setAttribute('aria-live', 'polite');
@@ -4493,7 +4523,7 @@ async function doUpload() {
     // En producción: FormData + fetch con onUploadProgress
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('titulo', title);
+    formData.append('titulo', safeTitle); // ✅ Usar título sanitizado
     formData.append('categoria', cat);
     formData.append('forSale', forSale.toString());
     if (forSale) formData.append('price', price.toFixed(2));
@@ -4513,7 +4543,7 @@ async function doUpload() {
     const response = {
       success: true,
       message: '✅ Archivo subido y cifrado exitosamente',
-      item: { id: 'demo_' + Date.now(), titulo: title, categoria: cat }
+      item: { id: 'demo_' + Date.now(), titulo: safeTitle, categoria: cat }
     };
     
     if (status) {
@@ -4521,7 +4551,9 @@ async function doUpload() {
       status.style.color = '#00e676';
     }
     
-    showNotification(response.message, 'success');
+    if (typeof showNotification === 'function') {
+      showNotification(response.message, 'success');
+    }
     
     // Limpiar formulario y cerrar
     if (titleInput) titleInput.value = '';
@@ -4531,7 +4563,7 @@ async function doUpload() {
     if (priceSection) priceSection.style.display = 'none';
     
     setTimeout(() => {
-      closeUpload();
+      if (typeof closeUpload === 'function') closeUpload();
       if (typeof refresh === 'function') refresh();
     }, 1500);
     
@@ -4542,12 +4574,20 @@ async function doUpload() {
       status.textContent = `❌ ${safeError}`;
       status.style.color = '#ff5252';
     }
-    showNotification(`❌ ${safeError}`, 'error');
-    console.error('Upload error:', { name: e.name, message: e.message });
+    if (typeof showNotification === 'function') {
+      showNotification(`❌ ${safeError}`, 'error');
+    }
+    // ✅ Log seguro sin exponer detalles sensibles
+    console.error('Upload error:', { 
+      name: e.name, 
+      message: (typeof sanitizeErrorMessage === 'function') 
+        ? sanitizeErrorMessage(e.message) 
+        : 'Error desconocido' 
+    });
     
   } finally {
     // ✅ Cleanup garantizado
-    isUploading = false;
+    if (typeof isUploading !== 'undefined') isUploading = false;
     if (btn) {
       btn.disabled = false;
       btn.textContent = '✅ Subir y Cifrar';
@@ -4562,16 +4602,20 @@ async function doUpload() {
     }, 1000);
   }
 }
-// ✅ Helper para sanitizar mensajes de error (previene XSS y exposición de detalles internos)
+
+// ✅ Helper para sanitizar mensajes de usuario (previene XSS y exposición de detalles internos)
 function sanitizeUserMessage(msg, defaultMsg = 'Ocurrió un error') {
-  if (!msg) return defaultMsg;
-  // Remover caracteres peligrosos y limitar longitud
+  if (!msg || typeof msg !== 'string') return defaultMsg;
+  // ✅ Remover caracteres peligrosos, protocolos maliciosos y limitar longitud
   return String(msg)
     .replace(/[<>]/g, '')
     .replace(/javascript:/gi, '')
-    .substring(0, 200);
+    .replace(/data:/gi, '')
+    .replace(/vbscript:/gi, '')
+    .replace(/on\w+=/gi, '') // Eliminar event handlers inline
+    .trim()
+    .substring(0, 200) || defaultMsg;
 }
-
 // 🔒 Cerrar modal de upload - versión mejorada
 function closeUpload() {
   const modal = document.getElementById('uploadModal');
@@ -4615,7 +4659,9 @@ function closeUpload() {
   }
   if (priceSection) priceSection.style.display = 'none';
   
-  log('🔒 Modal de upload cerrado', 'info');
+  if (typeof log === 'function') {
+    log('🔒 Modal de upload cerrado', 'info');
+  }
 }
 
 // === EXPORT/IMPORT: FUNCIONES MEJORADAS ===
@@ -4642,10 +4688,15 @@ async function doExportVault() {
     // Demo: generar JSON de exportación
     await new Promise(resolve => setTimeout(resolve, 800));
     
+    // ✅ Verificar si currentUser existe antes de usarlo
+    const userId = (typeof currentUser !== 'undefined' && currentUser?.uid) 
+      ? currentUser.uid 
+      : 'demo_user';
+    
     const exportData = {
       version: '1.0',
       exportedAt: new Date().toISOString(),
-      userId: currentUser?.uid || 'demo_user',
+      userId: userId,
       zeroKnowledge: zk,
       items: [] // En producción: fetch('/api/vault/export')
     };
@@ -4664,10 +4715,14 @@ async function doExportVault() {
       status.textContent = '✅ Exportación descargada';
     }
     
-    showNotification('✅ Exportación iniciada. Guarda el archivo en un lugar seguro.', 'success');
-    if (zk) showNotification('🔐 Recuerda cifrar este archivo con tu clave maestra', 'warning', 7000);
+    if (typeof showNotification === 'function') {
+      showNotification('✅ Exportación iniciada. Guarda el archivo en un lugar seguro.', 'success');
+      if (zk) showNotification('🔐 Recuerda cifrar este archivo con tu clave maestra', 'warning', 7000);
+    }
     
-    log('📦 Exportación completada', 'success');
+    if (typeof log === 'function') {
+      log('📦 Exportación completada', 'success');
+    }
     
   } catch (e) {
     console.error('❌ Export error:', e);
@@ -4677,8 +4732,12 @@ async function doExportVault() {
       status.textContent = `❌ ${safeMsg}`;
       status.style.color = '#ff5252';
     }
-    showNotification(`❌ ${safeMsg}`, 'error');
-    log('❌ Export fallido: ' + sanitizeUserMessage(e.message), 'error');
+    if (typeof showNotification === 'function') {
+      showNotification(`❌ ${safeMsg}`, 'error');
+    }
+    if (typeof log === 'function' && typeof sanitizeUserMessage === 'function') {
+      log('❌ Export fallido: ' + sanitizeUserMessage(e.message), 'error');
+    }
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -4699,7 +4758,9 @@ function closeExportModal() {
     status.textContent = '';
     status.removeAttribute('aria-live');
   }
-  log('🔒 Modal de exportación cerrado', 'info');
+  if (typeof log === 'function') {
+    log('🔒 Modal de exportación cerrado', 'info');
+  }
 }
 
 // 📥 Importar backup con validación robusta - versión segura
@@ -4714,19 +4775,25 @@ async function doImportVault() {
   
   // ✅ Validaciones tempranas
   if (!file) {
-    showNotification('⚠️ Selecciona un archivo .json de exportación', 'error');
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ Selecciona un archivo .json de exportación', 'error');
+    }
     return;
   }
   
   if (!file.name.endsWith('.json')) {
-    showNotification('⚠️ El archivo debe tener extensión .json', 'error');
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ El archivo debe tener extensión .json', 'error');
+    }
     return;
   }
   
   // ✅ Validar tamaño de archivo (máx. 10MB para importación)
   const maxSize = 10 * 1024 * 1024;
   if (file.size > maxSize) {
-    showNotification(`⚠️ Archivo muy grande. Máximo permitido: 10MB`, 'error');
+    if (typeof showNotification === 'function') {
+      showNotification(`⚠️ Archivo muy grande. Máximo permitido: 10MB`, 'error');
+    }
     return;
   }
   
@@ -4759,21 +4826,40 @@ async function doImportVault() {
     }
     
     // ✅ Validar usuario con sanitización del mensaje
-    if (data.userId && data.userId !== currentUser?.uid && !force) {
+    const currentUserId = (typeof currentUser !== 'undefined' && currentUser?.uid) 
+      ? currentUser.uid 
+      : null;
+    
+    if (data.userId && currentUserId && data.userId !== currentUserId && !force) {
       // ✅ Sanitizar userId antes de incluirlo en mensaje de error
-      const safeUserId = sanitizeUserMessage(data.userId, 'usuario desconocido');
+      const safeUserId = (typeof sanitizeUserMessage === 'function') 
+        ? sanitizeUserMessage(data.userId, 'usuario desconocido') 
+        : String(data.userId).replace(/[<>]/g, '').substring(0, 50);
       throw new Error(`Este backup pertenece a otro usuario (${safeUserId}). Usa "Forzar importación" para importar como nueva bóveda.`);
     }
     
-    // ✅ Simular importación exitosa (demo)
+    // ✅ Marcar como importando
+    if (btn) {
+      btn.textContent = '⏳ Importando...';
+    }
+    if (status) {
+      status.textContent = '📥 Importando items...';
+    }
+    
+    // Demo: simular importación
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     if (status) {
       status.textContent = `✅ ${data.items.length} items importados exitosamente`;
     }
     
-    showNotification(`✅ Backup importado: ${data.items.length} items`, 'success');
-    log(`📥 Importación completada: ${data.items.length} items`, 'success');
+    if (typeof showNotification === 'function') {
+      showNotification(`✅ Backup importado: ${data.items.length} items`, 'success');
+    }
+    
+    if (typeof log === 'function') {
+      log(`📥 Importación completada: ${data.items.length} items`, 'success');
+    }
     
     // ✅ Resetear y cerrar
     setTimeout(() => {
@@ -4784,16 +4870,25 @@ async function doImportVault() {
   } catch (e) {
     console.error('❌ Import error:', e);
     // ✅ Mensaje seguro: no exponer detalles internos
-    const safeMsg = e.message.includes('JSON') ? '❌ Archivo JSON inválido' : 
-                   e.message.includes('usuario') ? e.message : // Este mensaje es seguro porque sanitizamos userId
-                   '❌ Error al importar. Verifica el archivo.';
+    let safeMsg;
+    if (e.message.includes('JSON')) {
+      safeMsg = '❌ Archivo JSON inválido';
+    } else if (e.message.includes('usuario')) {
+      safeMsg = e.message; // Este mensaje es seguro porque sanitizamos userId
+    } else {
+      safeMsg = '❌ Error al importar. Verifica el archivo.';
+    }
     
     if (status) {
       status.textContent = safeMsg;
       status.style.color = '#ff5252';
     }
-    showNotification(safeMsg.replace('❌ ', ''), 'error');
-    log('❌ Import fallido: ' + sanitizeUserMessage(e.message), 'error');
+    if (typeof showNotification === 'function') {
+      showNotification(safeMsg.replace('❌ ', ''), 'error');
+    }
+    if (typeof log === 'function' && typeof sanitizeUserMessage === 'function') {
+      log('❌ Import fallido: ' + sanitizeUserMessage(e.message), 'error');
+    }
     
   } finally {
     if (btn) {
@@ -4820,54 +4915,10 @@ function closeImportModal() {
   }
   const fileInput = document.getElementById('importFile');
   if (fileInput) fileInput.value = '';
-  log('🔒 Modal de importación cerrado', 'info');
-}
-     if (btn) {
-      btn.disabled = true;
-      btn.textContent = '⏳ Importando...';
-      btn.setAttribute('aria-busy', 'true'); // ✅ Accesibilidad
-    }
-    if (status) {
-      status.textContent = '📥 Importando items...';
-      status.setAttribute('aria-live', 'polite');
-    }
-    
-    // Demo: simular importación
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (status) {
-      status.textContent = `✅ ${data.items.length} items importados exitosamente`;
-    }
-    
-    showNotification(`✅ Backup importado: ${data.items.length} items`, 'success');
-    log(`📥 Importación completada: ${data.items.length} items`, 'success');
-    
-    setTimeout(() => {
-      closeImportModal();
-      if (typeof refresh === 'function') refresh();
-    }, 1500);
-    
-  } catch (e) {
-    console.error('❌ Import error:', e);
-    // ✅ Mensaje seguro: no exponer detalles internos
-    const safeMsg = e.message.includes('JSON') ? '❌ Archivo JSON inválido' : 
-                   e.message.includes('usuario') ? e.message : 
-                   '❌ Error al importar. Verifica el archivo.';
-    if (status) {
-      status.textContent = safeMsg;
-      status.style.color = '#ff5252';
-    }
-    showNotification(safeMsg.replace('❌ ', ''), 'error');
-    log('❌ Import fallido: ' + sanitizeUserMessage(e.message), 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '✅ Importar';
-      btn.removeAttribute('aria-busy');
-    }
+  if (typeof log === 'function') {
+    log('🔒 Modal de importación cerrado', 'info');
   }
 }
-
 function closeImportModal() {
   const modal = document.getElementById('importModal');
   if (modal) {
