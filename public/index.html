@@ -5008,243 +5008,284 @@ function closeMediaPlayer() {
 })();
 </script>
 
+<script>
 // ============================================
-// 🌐 EXPONER FUNCIONES
+// 🛡️ MÓDULO DE REGISTRO - SEGURO Y COMPLETO
 // ============================================
-window.manejarRespuestaLogin = manejarRespuestaLogin;
-window.req = req;
-window.logout = logout;
-window.esAdminVisual = esAdminVisual;
-window.getToken = getToken;
+(function() {
+  'use strict';
 
-// ✨ Registro mejorado: validaciones fuertes y feedback claro
-async function register(event) {
-  if (event) event.preventDefault();
-  
-  const emailInput = document.getElementById('email');
-  const passInput = document.getElementById('pass');
-  const termsCheck = document.getElementById('acceptTerms');
-  
-  const rawEmail = emailInput?.value?.trim();
-  const pass = passInput?.value;
-  const acceptTerms = termsCheck?.checked;
-  
-  // ✅ Sanitizar email antes de validar
-  const email = sanitizeEmail(rawEmail);
-  
-  // Validaciones básicas
-  if (!email || !pass) {
-    log('⚠️ Ingresa correo y contraseña', 'warning');
-    showNotification('⚠️ Completa todos los campos', 'warning');
-    return;
+  // ============================================
+  // 🧹 SANITIZAR TEXTO PARA MOSTRAR (MEJORADO)
+  // ============================================
+  function sanitizeForDisplay(str, maxLen) {
+    if (!str) return '';
+    maxLen = maxLen || 100;
+    return String(str)
+      // ✅ Eliminar TODOS los caracteres peligrosos
+      .replace(/[<>"'`&;(){}[\]\\/\x00-\x1F]/g, '')
+      // ✅ Eliminar protocolos peligrosos
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '')
+      .substring(0, maxLen);
   }
-  
-  // Validar formato de email
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    log('⚠️ Formato de email inválido', 'warning');
-    showNotification('⚠️ Ingresa un email válido', 'warning');
-    if (emailInput) {
-      emailInput.classList.add('error');
-      emailInput.setAttribute('aria-invalid', 'true');
+
+  // ============================================
+  // ✉️ VALIDAR EMAIL (CON DOMINIOS DESECHABLES)
+  // ============================================
+  function isValidEmail(email) {
+    if (!email || typeof email !== 'string') return false;
+    
+    const limpio = String(email).trim().toLowerCase();
+    
+    // Validar formato básico
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(limpio)) return false;
+    
+    // ✅ Lista de dominios desechables comunes (bloqueados)
+    const dominiosBloqueados = [
+      'tempmail.com', 'throwaway.email', 'guerrillamail.com', 
+      'mailinator.com', 'yopmail.com', '10minutemail.com',
+      'temp-mail.org', 'fakeinbox.com', 'sharklasers.com',
+      'guerrillamailblock.com', 'grr.la', 'dispostable.com'
+    ];
+    
+    const dominio = limpio.split('@')[1];
+    if (dominiosBloqueados.indexOf(dominio) !== -1) {
+      return false;
     }
-    return;
+    
+    return true;
   }
-  
-  // ✅ Validar aceptación de términos con feedback accesible
-  if (!acceptTerms) {
-    log('⚠️ Debes aceptar Términos y Privacidad', 'warning');
-    showNotification('⚠️ Acepta los Términos para continuar', 'warning');
-    if (termsCheck) {
-      termsCheck.classList.add('error');
-      termsCheck.setAttribute('aria-invalid', 'true');
-      setTimeout(() => {
-        termsCheck.classList.remove('error');
-        termsCheck.removeAttribute('aria-invalid');
-      }, 2000);
+
+  // ============================================
+  // 🔑 VALIDAR CONTRASEÑA (MEJORADO)
+  // ============================================
+  function validarPassword(pass) {
+    const errores = [];
+    if (!pass || typeof pass !== 'string') return ['contraseña vacía'];
+    
+    if (pass.length < 8) errores.push('mínimo 8 caracteres');
+    if (pass.length > 72) errores.push('máximo 72 caracteres'); // ✅ bcrypt solo soporta 72 bytes
+    if (!/[A-Z]/.test(pass)) errores.push('1 mayúscula');
+    if (!/[a-z]/.test(pass)) errores.push('1 minúscula');
+    if (!/[0-9]/.test(pass)) errores.push('1 número');
+    if (!/[^a-zA-Z0-9]/.test(pass)) errores.push('1 símbolo');
+    
+    // ✅ Detectar contraseñas comunes
+    const comunes = ['password', '12345678', 'qwerty', 'admin123', 'letmein', 'welcome', 'abc123'];
+    if (comunes.indexOf(pass.toLowerCase()) !== -1) {
+      errores.push('contraseña muy común');
     }
-    return;
+    
+    return errores;
   }
-  
-  // ✅ Validación fuerte de contraseña con feedback específico
-  const passErrors = validatePasswordStrength(pass);
-  if (passErrors.length > 0) {
-    const msg = '⚠️ Contraseña débil. Requiere: ' + passErrors.join(', ');
-    log(msg, 'warning');
-    showNotification(msg, 'warning');
-    if (passInput) {
-      passInput.classList.add('error');
-      passInput.setAttribute('aria-invalid', 'true');
-      passInput.focus();
-      setTimeout(() => {
+
+  // ============================================
+  // ✨ FUNCIÓN REGISTER (COMPLETA Y SEGURA)
+  // ============================================
+  async function register(event) {
+    if (event) event.preventDefault();
+
+    // ✅ Obtener elementos de forma segura
+    const emailInput = document.getElementById('email');
+    const passInput = document.getElementById('pass');
+    const passConfirmInput = document.getElementById('passConfirm'); // ✅ NUEVO: confirmar contraseña
+    const termsCheck = document.getElementById('acceptTerms');
+
+    const rawEmail = (emailInput && emailInput.value) ? emailInput.value.trim() : '';
+    const pass = (passInput && passInput.value) ? passInput.value : '';
+    const passConfirm = (passConfirmInput && passConfirmInput.value) ? passConfirmInput.value : '';
+    const acceptTerms = termsCheck ? termsCheck.checked : false;
+
+    // ✅ Sanitizar email (usando función existente)
+    const email = (typeof window.sanitizeEmail === 'function') 
+      ? window.sanitizeEmail(rawEmail) 
+      : rawEmail.toLowerCase().replace(/[^a-z0-9@._+\-]/g, '').substring(0, 255);
+
+    // ============================================
+    // 🧪 VALIDACIONES
+    // ============================================
+
+    // 1. Campos vacíos
+    if (!email || !pass) {
+      log('⚠️ Campos incompletos', 'warning');
+      showNotification('⚠️ Completa todos los campos', 'warning');
+      return;
+    }
+
+    // 2. Validar formato email (con dominios desechables)
+    if (!isValidEmail(email)) {
+      log('⚠️ Email inválido o dominio no permitido', 'warning');
+      showNotification('⚠️ Ingresa un email válido (no temporal)', 'warning');
+      if (emailInput) {
+        emailInput.classList.add('error');
+        emailInput.setAttribute('aria-invalid', 'true');
+      }
+      return;
+    }
+
+    // 3. ✅ NUEVO: Confirmación de contraseña
+    if (passConfirmInput && pass !== passConfirm) {
+      log('⚠️ Las contraseñas no coinciden', 'warning');
+      showNotification('⚠️ Las contraseñas no coinciden', 'warning');
+      if (passConfirmInput) {
+        passConfirmInput.classList.add('error');
+        passConfirmInput.setAttribute('aria-invalid', 'true');
+        passConfirmInput.focus();
+      }
+      return;
+    }
+
+    // 4. Aceptar términos
+    if (!acceptTerms) {
+      log('⚠️ Debes aceptar Términos y Privacidad', 'warning');
+      showNotification('⚠️ Acepta los Términos para continuar', 'warning');
+      if (termsCheck) {
+        termsCheck.classList.add('error');
+        termsCheck.setAttribute('aria-invalid', 'true');
+        setTimeout(function() {
+          termsCheck.classList.remove('error');
+          termsCheck.removeAttribute('aria-invalid');
+        }, 2000);
+      }
+      return;
+    }
+
+    // 5. Validación fuerte de contraseña
+    const passErrors = validarPassword(pass);
+    if (passErrors.length > 0) {
+      const msg = '⚠️ Contraseña débil. Requiere: ' + passErrors.join(', ');
+      log(msg, 'warning');
+      showNotification(msg, 'warning', 5000);
+      if (passInput) {
+        passInput.classList.add('error');
+        passInput.setAttribute('aria-invalid', 'true');
+        passInput.focus();
+        setTimeout(function() {
+          passInput.classList.remove('error');
+          passInput.removeAttribute('aria-invalid');
+        }, 3000);
+      }
+      return;
+    }
+
+    // ✅ Referencia segura al botón
+    const btn = (event && event.currentTarget) || 
+                document.querySelector('#authSection button[type="submit"]') ||
+                document.querySelector('#authSection button[onclick*="register"]') ||
+                document.querySelector('button.register-btn');
+
+    // ✅ Proteger contra doble clic
+    if (btn && btn.disabled) {
+      showNotification('⏳ Espera, procesando...', 'info', 1500);
+      return;
+    }
+
+    const textoOriginal = (btn && btn.textContent) ? btn.textContent : '✨ Registrar Cuenta Nueva';
+
+    try {
+      // UI: estado de carga
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '✨ Creando cuenta...';
+        btn.setAttribute('aria-busy', 'true');
+      }
+      if (emailInput) {
+        emailInput.classList.remove('error');
+        emailInput.removeAttribute('aria-invalid');
+      }
+      if (passInput) {
         passInput.classList.remove('error');
         passInput.removeAttribute('aria-invalid');
-      }, 3000);
-    }
-    return;
-  }
-  
-  // ✅ Referencia segura al botón
-  const btn = event?.currentTarget || 
-              document.querySelector('#authSection button[onclick*="register"]');
-  
-  try {
-    // UI: estado de carga
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '✨ Creando...';
-      btn.setAttribute('aria-busy', 'true');
-    }
-    if (emailInput) emailInput.classList.remove('error');
-    if (passInput) passInput.classList.remove('error');
-    
-    // ✅ Registro: password nunca se loguea, email ya sanitizado
-    await req('/register', 'POST', { email, password: pass });
-    
-    log('✅ Cuenta creada. Inicia sesión para comenzar.', 'success');
-    
-    // Limpiar campo de contraseña por seguridad
-    if (passInput) passInput.value = '';
-    
-    showNotification('✅ Cuenta creada. Inicia sesión.', 'success');
-    
-  } catch (e) {
-    // ✅ Mensajes de error específicos sin exponer detalles internos
-    const msg = e.message.includes('409') ? '❌ Email ya registrado' : 
-                e.message.includes('400') ? '❌ Datos inválidos' : 
-                '❌ Error de registro';
-    
-    log(msg, 'error');
-    showNotification(msg, 'error');
-    
-  } finally {
-    // Restaurar UI siempre
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '✨ Registrar Cuenta Nueva';
-      btn.removeAttribute('aria-busy');
-    }
-  }
-}
- // ✅ Helper para sanitizar texto antes de insertar en DOM o logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[<>]/g, '') // Remover tags HTML
-    .replace(/javascript:/gi, '') // Prevenir protocolos peligrosos
-    .substring(0, maxLen);
-}
+      }
+      if (passConfirmInput) {
+        passConfirmInput.classList.remove('error');
+        passConfirmInput.removeAttribute('aria-invalid');
+      }
 
-// ✅ Helper reutilizable para validar fortaleza de contraseña
-function validatePasswordStrength(pass) {
-  const errors = [];
-  if (!pass || pass.length < 8) errors.push('mínimo 8 caracteres');
-  if (!/[A-Z]/.test(pass)) errors.push('1 mayúscula');
-  if (!/[0-9]/.test(pass)) errors.push('1 número');
-  if (!/[^a-zA-Z0-9]/.test(pass)) errors.push('1 símbolo (!@#$%^&*)');
-  return errors;
-}
+      // ✅ Enviar al backend (password NUNCA se loguea)
+      const res = await req('/api/auth/register', 'POST', { 
+        email: email, 
+        password: pass 
+      });
 
-// ✅ Validar formato de email con sanitización previa
-function isValidEmail(email) {
-  if (!email) return false;
-  // Sanitizar primero para prevenir inyección en regex
-  const clean = String(email).trim().toLowerCase();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
-}
+      // ✅ Registro exitoso
+      log('✅ Cuenta creada para: ' + sanitizeForDisplay(email, 50), 'success');
 
-// ... dentro de register() ...
+      // ✅ LIMPIAR campos por seguridad
+      if (passInput) passInput.value = '';
+      if (passConfirmInput) passConfirmInput.value = '';
 
-  // ✅ Validar formato de email con sanitización
-  if (!isValidEmail(email)) {
-    log('⚠️ Formato de email inválido', 'warning');
-    showNotification('⚠️ Ingresa un email válido', 'warning');
-    if (emailInput) {
-      emailInput.classList.add('error');
-      emailInput.setAttribute('aria-invalid', 'true'); // ✅ Accesibilidad
-    }
-    return;
-  }
-  
-  // ✅ Validar aceptación de términos con feedback accesible
-  if (!acceptTerms) {
-    log('⚠️ Debes aceptar Términos y Privacidad', 'warning');
-    showNotification('⚠️ Acepta los Términos para continuar', 'warning');
-    if (termsCheck) {
-      termsCheck.classList.add('error');
-      termsCheck.setAttribute('aria-invalid', 'true');
-      // ✅ Enfocar para accesibilidad
-      setTimeout(() => {
-        termsCheck?.focus?.();
-        termsCheck?.classList?.remove('error');
-        termsCheck?.removeAttribute?.('aria-invalid');
+      showNotification('✅ Cuenta creada. Inicia sesión.', 'success', 3000);
+
+      // ✅ Redirigir al login después de 2 segundos
+      setTimeout(function() {
+        if (typeof window.mostrarLogin === 'function') {
+          window.mostrarLogin();
+        } else {
+          // Fallback: buscar sección de login
+          const authSection = document.getElementById('authSection');
+          if (authSection) {
+            authSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
       }, 2000);
-    }
-    return;
-  }
-  
-  // 🔐 Validación fuerte de contraseña con feedback específico (reutilizando helper)
-  const passErrors = validatePasswordStrength(pass);
-  
-  if (passErrors.length > 0) {
-    const msg = '⚠️ Contraseña débil. Requiere: ' + passErrors.join(', ');
-    log(msg, 'warning');
-    showNotification(msg, 'warning');
-    if (passInput) {
-      passInput.classList.add('error');
-      passInput.setAttribute('aria-invalid', 'true');
-      passInput.focus();
-      setTimeout(() => {
-        passInput.classList.remove('error');
-        passInput.removeAttribute('aria-invalid');
-      }, 3000);
-    }
-    return;
-  }
-  
-  // ✅ Referencia segura al botón con fallback robusto
-  const btn = event?.currentTarget || 
-              document.querySelector('#authSection button[type="submit"]') ||
-              document.querySelector('#authSection button[onclick*="register"]');
-  
-  try {
-    // UI: estado de carga con accesibilidad
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '✨ Creando...';
-      btn.setAttribute('aria-busy', 'true'); // ✅ Feedback para lectores de pantalla
-    }
-    if (emailInput) emailInput.classList.remove('error');
-    if (passInput) passInput.classList.remove('error');
-    
-    // ✅ Registro: email ya sanitizado, password nunca se loguea
-    await req('/register', 'POST', { email, password: pass });
-    
-    log('✅ Cuenta creada. Inicia sesión para comenzar.', 'success');
-    
-    // Limpiar campo de contraseña por seguridad
-    if (passInput) passInput.value = '';
-    
-    showNotification('✅ Cuenta creada. Inicia sesión.', 'success');
-    
-  } catch (e) {
-    // ✅ Mensajes de error específicos sin exponer detalles internos
-    const msg = e.message.includes('409') ? '❌ Email ya registrado' : 
-                e.message.includes('400') ? '❌ Datos inválidos' : 
-                '❌ Error de registro';
-    
-    log(msg, 'error');
-    showNotification(msg, 'error');
-    
-  } finally {
-    // ✅ Restaurar UI siempre, incluyendo atributos ARIA
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '✨ Registrar Cuenta Nueva';
-      btn.removeAttribute('aria-busy'); // ✅ Limpieza crítica
-    }
-  }
-}
 
+    } catch (error) {
+      // ✅ Mensajes de error específicos SIN exponer detalles internos
+      let msg = '❌ Error al crear la cuenta';
+      const errMsg = (error && error.message) ? error.message : '';
+      
+      if (errMsg.includes('409') || errMsg.toLowerCase().includes('exist')) {
+        msg = '❌ Este email ya está registrado';
+      } else if (errMsg.includes('400') || errMsg.toLowerCase().includes('inválid')) {
+        msg = '❌ Datos inválidos. Revisa el formato';
+      } else if (errMsg.includes('429')) {
+        msg = '⏳ Demasiados intentos. Espera un momento';
+      } else if (errMsg.includes('timeout')) {
+        msg = '⏱️ Tiempo agotado. Intenta de nuevo';
+      }
+
+      log(msg + ' - ' + sanitizeForDisplay(errMsg, 100), 'error');
+      showNotification(msg, 'error', 4000);
+
+      // ✅ Marcar email como error si ya existe
+      if (errMsg.includes('409') || errMsg.toLowerCase().includes('exist')) {
+        if (emailInput) {
+          emailInput.classList.add('error');
+          emailInput.setAttribute('aria-invalid', 'true');
+        }
+      }
+
+      // ✅ LIMPIAR contraseña tras fallo (seguridad)
+      if (passInput) passInput.value = '';
+      if (passConfirmInput) passConfirmInput.value = '';
+
+      // ✅ Delay anti-fuerza bruta (2 segundos)
+      await new Promise(function(r) { setTimeout(r, 2000); });
+
+    } finally {
+      // ✅ Siempre restaurar el botón
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+        btn.removeAttribute('aria-busy');
+      }
+    }
+  }
+
+  // ============================================
+  // 🌐 EXPONER FUNCIONES
+  // ============================================
+  window.sanitizeForDisplay = sanitizeForDisplay;
+  window.isValidEmail = isValidEmail;
+  window.validarPassword = validarPassword;
+  window.register = register;
+
+})();
+</script>
+    
 // 👤 Cargar perfil de usuario con validaciones de seguridad y sanitización
 async function loadUser() {
   try {
