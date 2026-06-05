@@ -21194,6 +21194,697 @@ document.addEventListener('keydown', (e) => {
       }
     }, 500);
   });
-</script>         
+  // === 🤝 SISTEMA DE COMUNIDADES ===
+
+// ✅ Helper: obtener usuario actual (con fallback)
+function getCurrentUser() {
+  if (typeof currentUser !== 'undefined' && currentUser) {
+    return currentUser;
+  }
+  // Fallback: usuario demo
+  return {
+    uid: localStorage.getItem('demoUserId') || 'demo_' + Date.now(),
+    name: localStorage.getItem('demoUserName') || 'Usuario Demo',
+    tier: localStorage.getItem('userTier') || 'personal'
+  };
+}
+
+// ✅ Helper: sanitizar texto de comunidad
+function sanitizeCommunityText(text, maxLen = 200) {
+  if (!text || typeof text !== 'string') return '';
+  return String(text)
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .trim()
+    .substring(0, maxLen);
+}
+
+// 🤝 MOSTRAR PANEL DE COMUNIDADES
+function showCommunities() {
+  const panels = ['vaultSection', 'socialFeedPanel', 'adsSection', 'digitalIdentityPanel', 'successView'];
+  panels.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+  
+  const commPanel = document.getElementById('communitiesPanel');
+  if (commPanel) {
+    commPanel.classList.remove('hidden');
+    showPublicCommunities();
+  }
+}
+
+// ➕ MOSTRAR MODAL CREAR COMUNIDAD
+function showCreateCommunity() {
+  const modal = document.getElementById('createCommunityModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeCreateCommunity() {
+  const modal = document.getElementById('createCommunityModal');
+  if (modal) modal.classList.add('hidden');
+  
+  // Limpiar formulario
+  ['commName', 'commDescription', 'commContribution', 'commMaxMembers'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const priv = document.getElementById('commPrivate');
+  if (priv) priv.checked = false;
+}
+
+// 🚀 CREAR COMUNIDAD
+function createCommunity() {
+  const user = getCurrentUser();
+  
+  const nameInput = document.getElementById('commName');
+  const descInput = document.getElementById('commDescription');
+  const contribInput = document.getElementById('commContribution');
+  const maxInput = document.getElementById('commMaxMembers');
+  const goalSelect = document.getElementById('commGoal');
+  const privateCheck = document.getElementById('commPrivate');
+  
+  const name = sanitizeCommunityText(nameInput?.value || '', 50);
+  const description = sanitizeCommunityText(descInput?.value || '', 300);
+  const contribution = parseFloat(contribInput?.value) || 0;
+  const maxMembers = parseInt(maxInput?.value) || 10;
+  const goal = goalSelect?.value || 'premium';
+  const isPrivate = privateCheck?.checked || false;
+  
+  // Validaciones
+  if (!name || name.length < 3) {
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ El nombre debe tener al menos 3 caracteres', 'error');
+    } else {
+      alert('⚠️ El nombre debe tener al menos 3 caracteres');
+    }
+    return;
+  }
+  
+  if (contribution < 1 || contribution > 1000) {
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ La aportación debe estar entre $1 y $1000 USD', 'error');
+    } else {
+      alert('⚠️ La aportación debe estar entre $1 y $1000 USD');
+    }
+    return;
+  }
+  
+  if (maxMembers < 3 || maxMembers > 50) {
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ Debe tener entre 3 y 50 miembros', 'error');
+    } else {
+      alert('⚠️ Debe tener entre 3 y 50 miembros');
+    }
+    return;
+  }
+  
+  // Crear comunidad
+  const communities = JSON.parse(localStorage.getItem('communities') || '[]');
+  
+  const newCommunity = {
+    id: 'comm_' + Date.now(),
+    name,
+    description,
+    contribution,
+    maxMembers,
+    goal,
+    isPrivate,
+    creatorId: user.uid,
+    creatorName: user.name,
+    members: [{
+      userId: user.uid,
+      userName: user.name,
+      joinedAt: new Date().toISOString(),
+      role: 'admin',
+      totalContributed: 0
+    }],
+    totalPool: 0,
+    createdAt: new Date().toISOString(),
+    status: 'active'
+  };
+  
+  communities.push(newCommunity);
+  localStorage.setItem('communities', JSON.stringify(communities));
+  
+  // Registrar al creador como miembro
+  const userCommunities = JSON.parse(localStorage.getItem('userCommunities_' + user.uid) || '[]');
+  userCommunities.push(newCommunity.id);
+  localStorage.setItem('userCommunities_' + user.uid, JSON.stringify(userCommunities));
+  
+  closeCreateCommunity();
+  
+  if (typeof showNotification === 'function') {
+    showNotification(`✅ Comunidad "${name}" creada exitosamente`, 'success');
+  } else {
+    alert(`✅ Comunidad "${name}" creada exitosamente`);
+  }
+  
+  if (typeof log === 'function') {
+    log(`🤝 Comunidad creada: ${name}`, 'success');
+  }
+  
+  showMyCommunities();
+}
+
+// 🌍 MOSTRAR COMUNIDADES PÚBLICAS
+function showPublicCommunities() {
+  const container = document.getElementById('communitiesContainer');
+  if (!container) return;
+  
+  const communities = JSON.parse(localStorage.getItem('communities') || '[]');
+  const publicComms = communities.filter(c => !c.isPrivate);
+  
+  if (publicComms.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:40px;color:#8b95a5">
+        <p style="font-size:2rem;margin-bottom:12px">🌍</p>
+        <p>Aún no hay comunidades públicas</p>
+        <p style="font-size:0.85rem;margin-top:8px">¡Sé el primero en crear una!</p>
+        <button onclick="showCreateCommunity()" style="margin-top:16px">➕ Crear Comunidad</button>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = publicComms.map(comm => {
+    const progress = Math.round((comm.members.length / comm.maxMembers) * 100);
+    const goalEmoji = {
+      'premium': '👑',
+      'savings': '💰',
+      'investment': '📈',
+      'support': '🤝'
+    }[comm.goal] || '🎯';
+    
+    return `
+      <div class="glass" style="padding:16px;border-left:3px solid #00e676">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+          <div style="flex:1">
+            <h3 style="font-size:1.1rem;margin:0 0 4px 0">${sanitizeCommunityText(comm.name, 50)}</h3>
+            <p style="font-size:0.8rem;color:#8b95a5;margin:0">${goalEmoji} ${comm.goal} • 💵 $${comm.contribution}/mes</p>
+          </div>
+          <span style="font-size:0.75rem;padding:4px 8px;background:rgba(0,230,118,0.1);color:#00e676;border-radius:12px">
+            ${comm.members.length}/${comm.maxMembers}
+          </span>
+        </div>
+        
+        <p style="font-size:0.85rem;color:#b0b8c4;margin:8px 0">${sanitizeCommunityText(comm.description, 150)}</p>
+        
+        <div style="margin:12px 0">
+          <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#8b95a5;margin-bottom:4px">
+            <span>Progreso</span>
+            <span>${progress}%</span>
+          </div>
+          <div style="background:#1a1f2a;border-radius:6px;height:6px;overflow:hidden">
+            <div style="background:#00e676;height:100%;width:${progress}%;transition:width 0.3s"></div>
+          </div>
+        </div>
+        
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button onclick="joinCommunity('${comm.id}')" style="flex:1;padding:8px;background:#00e676;color:#000;font-size:0.85rem">
+            🤝 Unirme
+          </button>
+          <button onclick="viewCommunity('${comm.id}')" class="btn-sec" style="padding:8px 12px;font-size:0.85rem">
+            👁️ Ver
+          </button>
+        </div>
+        
+        <p style="font-size:0.7rem;color:#5a6577;margin:8px 0 0 0">
+          Creada por ${sanitizeCommunityText(comm.creatorName, 30)} • ${new Date(comm.createdAt).toLocaleDateString('es-ES')}
+        </p>
+      </div>
+    `;
+  }).join('');
+}
+
+// 📋 MOSTRAR MIS COMUNIDADES
+function showMyCommunities() {
+  const container = document.getElementById('communitiesContainer');
+  if (!container) return;
+  
+  const user = getCurrentUser();
+  const myCommIds = JSON.parse(localStorage.getItem('userCommunities_' + user.uid) || '[]');
+  const allCommunities = JSON.parse(localStorage.getItem('communities') || '[]');
+  const myCommunities = allCommunities.filter(c => myCommIds.includes(c.id));
+  
+  if (myCommunities.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:40px;color:#8b95a5">
+        <p style="font-size:2rem;margin-bottom:12px">📋</p>
+        <p>No estás en ninguna comunidad aún</p>
+        <p style="font-size:0.85rem;margin-top:8px">¡Explora comunidades públicas o crea la tuya!</p>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap">
+          <button onclick="showPublicCommunities()">🌍 Explorar</button>
+          <button onclick="showCreateCommunity()" class="btn-sec">➕ Crear</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = myCommunities.map(comm => {
+    const myMember = comm.members.find(m => m.userId === user.uid);
+    const myRole = myMember?.role || 'member';
+    const roleBadge = {
+      'admin': '<span style="background:#ff5252;color:#fff;padding:2px 6px;border-radius:8px;font-size:0.7rem">👑 Admin</span>',
+      'moderator': '<span style="background:#29b6f6;color:#fff;padding:2px 6px;border-radius:8px;font-size:0.7rem">⭐ Mod</span>',
+      'member': '<span style="background:#66bb6a;color:#fff;padding:2px 6px;border-radius:8px;font-size:0.7rem">👤 Miembro</span>'
+    }[myRole] || '';
+    
+    return `
+      <div class="glass" style="padding:16px;border-left:3px solid #29b6f6">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+          <div style="flex:1">
+            <h3 style="font-size:1.1rem;margin:0 0 4px 0">${sanitizeCommunityText(comm.name, 50)} ${roleBadge}</h3>
+            <p style="font-size:0.8rem;color:#8b95a5;margin:0">
+              💰 Pool total: $${comm.totalPool.toFixed(2)} • 👥 ${comm.members.length} miembros
+            </p>
+          </div>
+        </div>
+        
+        <div style="background:rgba(41,182,246,0.05);padding:12px;border-radius:8px;margin:12px 0">
+          <p style="font-size:0.85rem;margin:0 0 8px 0;color:#29b6f6">💵 Tu aportación mensual: $${comm.contribution}</p>
+          <p style="font-size:0.85rem;margin:0;color:#8b95a5">
+            Total aportado: $${(myMember?.totalContributed || 0).toFixed(2)}
+          </p>
+        </div>
+        
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="contributeToCommunity('${comm.id}')" style="flex:1;padding:8px;background:#00e676;color:#000;font-size:0.85rem">
+            💵 Aportar
+          </button>
+          <button onclick="viewCommunity('${comm.id}')" class="btn-sec" style="padding:8px 12px;font-size:0.85rem">
+            👁️ Ver
+          </button>
+          ${myRole === 'admin' ? `
+            <button onclick="manageCommunity('${comm.id}')" class="btn-sec" style="padding:8px 12px;font-size:0.85rem;border-color:#ff5252;color:#ff5252">
+              ⚙️ Gestionar
+            </button>
+          ` : ''}
+          <button onclick="leaveCommunity('${comm.id}')" class="btn-sec" style="padding:8px 12px;font-size:0.85rem;border-color:#ff5252;color:#ff5252">
+            🚪 Salir
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 🤝 UNIRSE A COMUNIDAD
+function joinCommunity(commId) {
+  const user = getCurrentUser();
+  const communities = JSON.parse(localStorage.getItem('communities') || '[]');
+  const comm = communities.find(c => c.id === commId);
+  
+  if (!comm) {
+    alert('❌ Comunidad no encontrada');
+    return;
+  }
+  
+  // Verificar si ya es miembro
+  if (comm.members.some(m => m.userId === user.uid)) {
+    alert('⚠️ Ya eres miembro de esta comunidad');
+    return;
+  }
+  
+  // Verificar si hay espacio
+  if (comm.members.length >= comm.maxMembers) {
+    alert('⚠️ Esta comunidad está llena');
+    return;
+  }
+  
+  // Agregar miembro
+  comm.members.push({
+    userId: user.uid,
+    userName: user.name,
+    joinedAt: new Date().toISOString(),
+    role: 'member',
+    totalContributed: 0
+  });
+  
+  // Guardar
+  const idx = communities.findIndex(c => c.id === commId);
+  communities[idx] = comm;
+  localStorage.setItem('communities', JSON.stringify(communities));
+  
+  const userCommunities = JSON.parse(localStorage.getItem('userCommunities_' + user.uid) || '[]');
+  userCommunities.push(commId);
+  localStorage.setItem('userCommunities_' + user.uid, JSON.stringify(userCommunities));
+  
+  if (typeof showNotification === 'function') {
+    showNotification(`✅ Te uniste a "${comm.name}"`, 'success');
+  } else {
+    alert(`✅ Te uniste a "${comm.name}"`);
+  }
+  
+  showMyCommunities();
+}
+
+// 🚪 SALIR DE COMUNIDAD
+function leaveCommunity(commId) {
+  if (!confirm('¿Seguro que quieres salir de esta comunidad?')) return;
+  
+  const user = getCurrentUser();
+  const communities = JSON.parse(localStorage.getItem('communities') || '[]');
+  const comm = communities.find(c => c.id === commId);
+  
+  if (!comm) return;
+  
+  // No dejar salir al único admin
+  const admins = comm.members.filter(m => m.role === 'admin');
+  const myMember = comm.members.find(m => m.userId === user.uid);
+  
+  if (myMember?.role === 'admin' && admins.length === 1) {
+    alert('⚠️ No puedes salir porque eres el único administrador. Transfiere el rol primero.');
+    return;
+  }
+  
+  // Remover miembro
+  comm.members = comm.members.filter(m => m.userId !== user.uid);
+  
+  const idx = communities.findIndex(c => c.id === commId);
+  communities[idx] = comm;
+  localStorage.setItem('communities', JSON.stringify(communities));
+  
+  const userCommunities = JSON.parse(localStorage.getItem('userCommunities_' + user.uid) || '[]');
+  const newComms = userCommunities.filter(id => id !== commId);
+  localStorage.setItem('userCommunities_' + user.uid, JSON.stringify(newComms));
+  
+  if (typeof showNotification === 'function') {
+    showNotification(`👋 Saliste de "${comm.name}"`, 'info');
+  } else {
+    alert(`👋 Saliste de "${comm.name}"`);
+  }
+  
+  showMyCommunities();
+}
+
+// 💵 APORTAR A COMUNIDAD
+function contributeToCommunity(commId) {
+  const user = getCurrentUser();
+  const communities = JSON.parse(localStorage.getItem('communities') || '[]');
+  const comm = communities.find(c => c.id === commId);
+  
+  if (!comm) {
+    alert('❌ Comunidad no encontrada');
+    return;
+  }
+  
+  const amount = prompt(`💵 ¿Cuánto quieres aportar a "${comm.name}"?\n\nSugerido: $${comm.contribution} USD`);
+  if (!amount) return;
+  
+  const numAmount = parseFloat(amount);
+  if (isNaN(numAmount) || numAmount < 1) {
+    alert('❌ Monto inválido');
+    return;
+  }
+  
+  // Actualizar pool y miembro
+  comm.totalPool += numAmount;
+  const memberIdx = comm.members.findIndex(m => m.userId === user.uid);
+  if (memberIdx >= 0) {
+    comm.members[memberIdx].totalContributed += numAmount;
+  }
+  
+  const idx = communities.findIndex(c => c.id === commId);
+  communities[idx] = comm;
+  localStorage.setItem('communities', JSON.stringify(communities));
+  
+  // Registrar para progreso premium
+  const contributionHistory = JSON.parse(localStorage.getItem('contributionHistory_' + user.uid) || '[]');
+  contributionHistory.push({
+    communityId: commId,
+    communityName: comm.name,
+    amount: numAmount,
+    date: new Date().toISOString()
+  });
+  localStorage.setItem('contributionHistory_' + user.uid, JSON.stringify(contributionHistory));
+  
+  if (typeof showNotification === 'function') {
+    showNotification(`✅ Aportaste $${numAmount.toFixed(2)} a "${comm.name}"`, 'success');
+  } else {
+    alert(`✅ Aportaste $${numAmount.toFixed(2)} a "${comm.name}"`);
+  }
+  
+  showMyCommunities();
+}
+
+// 👁️ VER DETALLES DE COMUNIDAD
+function viewCommunity(commId) {
+  const communities = JSON.parse(localStorage.getItem('communities') || '[]');
+  const comm = communities.find(c => c.id === commId);
+  
+  if (!comm) {
+    alert('❌ Comunidad no encontrada');
+    return;
+  }
+  
+  const membersList = comm.members.map(m => `
+    <div style="display:flex;justify-content:space-between;padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;margin:4px 0">
+      <span>${sanitizeCommunityText(m.userName, 30)} ${m.role === 'admin' ? '👑' : ''}</span>
+      <span style="color:#00e676">$${m.totalContributed.toFixed(2)}</span>
+    </div>
+  `).join('');
+  
+  const details = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+      <div class="glass" style="max-width:600px;max-height:90vh;overflow-y:auto">
+        <h3>${sanitizeCommunityText(comm.name, 50)}</h3>
+        <p style="color:#8b95a5;font-size:0.9rem">${sanitizeCommunityText(comm.description, 300)}</p>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0">
+          <div style="background:rgba(0,230,118,0.05);padding:12px;border-radius:8px">
+            <p style="font-size:0.75rem;color:#8b95a5;margin:0">Pool Total</p>
+            <p style="font-size:1.3rem;color:#00e676;margin:4px 0 0 0">$${comm.totalPool.toFixed(2)}</p>
+          </div>
+          <div style="background:rgba(41,182,246,0.05);padding:12px;border-radius:8px">
+            <p style="font-size:0.75rem;color:#8b95a5;margin:0">Miembros</p>
+            <p style="font-size:1.3rem;color:#29b6f6;margin:4px 0 0 0">${comm.members.length}/${comm.maxMembers}</p>
+          </div>
+        </div>
+        
+        <h4 style="margin:16px 0 8px 0">👥 Miembros</h4>
+        ${membersList}
+        
+        <button onclick="this.closest('div[style*=fixed]').remove()" class="btn-sec" style="width:100%;margin-top:16px">Cerrar</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', details);
+}
+
+// 👑 MOSTRAR PROGRESO PREMIUM
+function showPremiumProgress() {
+  const modal = document.getElementById('premiumProgressModal');
+  const content = document.getElementById('premiumProgressContent');
+  
+  if (!modal || !content) return;
+  
+  const user = getCurrentUser();
+  const contributions = JSON.parse(localStorage.getItem('contributionHistory_' + user.uid) || '[]');
+  const totalContributed = contributions.reduce((sum, c) => sum + c.amount, 0);
+  const myCommIds = JSON.parse(localStorage.getItem('userCommunities_' + user.uid) || '[]');
+  
+  // Cálculo de progreso a premium (ejemplo: $500 total + 3 comunidades)
+  const moneyProgress = Math.min(100, (totalContributed / 500) * 100);
+  const commProgress = Math.min(100, (myCommIds.length / 3) * 100);
+  const overallProgress = Math.round((moneyProgress + commProgress) / 2);
+  
+  const currentTier = user.tier || 'personal';
+  const nextTier = currentTier === 'personal' ? 'business' : 
+                   currentTier === 'business' ? 'enterprise' : 'premium';
+  
+  content.innerHTML = `
+    <div style="text-align:center;margin:16px 0">
+      <p style="font-size:2rem;margin:0">👑</p>
+      <p style="font-size:1.2rem;color:#ab47bc;margin:8px 0">Nivel actual: ${currentTier}</p>
+      <p style="font-size:0.85rem;color:#8b95a5">Siguiente nivel: ${nextTier}</p>
+    </div>
+    
+    <div style="background:rgba(171,71,188,0.1);padding:16px;border-radius:12px;margin:16px 0">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:0.85rem">Progreso general</span>
+        <span style="color:#ab47bc;font-weight:600">${overallProgress}%</span>
+      </div>
+      <div style="background:#1a1f2a;border-radius:8px;height:10px;overflow:hidden">
+        <div style="background:linear-gradient(90deg,#ab47bc,#ce93d8);height:100%;width:${overallProgress}%;transition:width 0.5s"></div>
+      </div>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0">
+      <div style="background:rgba(0,230,118,0.05);padding:12px;border-radius:8px">
+        <p style="font-size:0.75rem;color:#8b95a5;margin:0">💰 Total aportado</p>
+        <p style="font-size:1.3rem;color:#00e676;margin:4px 0 0 0">$${totalContributed.toFixed(2)}</p>
+        <p style="font-size:0.7rem;color:#5a6577;margin:4px 0 0 0">Meta: $500</p>
+      </div>
+      <div style="background:rgba(41,182,246,0.05);padding:12px;border-radius:8px">
+        <p style="font-size:0.75rem;color:#8b95a5;margin:0">🤝 Comunidades</p>
+        <p style="font-size:1.3rem;color:#29b6f6;margin:4px 0 0 0">${myCommIds.length}</p>
+        <p style="font-size:0.7rem;color:#5a6577;margin:4px 0 0 0">Meta: 3</p>
+      </div>
+    </div>
+    
+    <div style="background:rgba(255,183,77,0.1);padding:12px;border-radius:8px;margin:16px 0;border-left:3px solid #ffb74d">
+      <h4 style="font-size:0.9rem;color:#ffb74d;margin:0 0 8px 0">🎯 Requisitos para ${nextTier}:</h4>
+      <ul style="font-size:0.8rem;color:#b0b8c4;margin:0;padding-left:20px">
+        <li>Aportar $500 en total (${Math.round(moneyProgress)}%)</li>
+        <li>Estar en 3 comunidades (${Math.round(commProgress)}%)</li>
+        <li>Mantener actividad por 30 días</li>
+      </ul>
+    </div>
+    
+    ${overallProgress >= 100 ? `
+      <button onclick="claimPremiumUpgrade()" style="width:100%;padding:12px;background:linear-gradient(90deg,#ab47bc,#ce93d8);color:#fff;font-weight:600;margin-top:12px">
+        👑 Reclamar Upgrade a ${nextTier}
+      </button>
+    ` : ''}
+  `;
+  
+  modal.classList.remove('hidden');
+}
+
+function closePremiumProgress() {
+  const modal = document.getElementById('premiumProgressModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+// 👑 RECLAMAR UPGRADE PREMIUM
+function claimPremiumUpgrade() {
+  if (!confirm('🎉 ¡Felicidades! Has completado todos los requisitos.\n\n¿Quieres subir al siguiente nivel ahora?')) {
+    return;
+  }
+  
+  const user = getCurrentUser();
+  const currentTier = user.tier || 'personal';
+  const nextTier = currentTier === 'personal' ? 'business' : 
+                   currentTier === 'business' ? 'enterprise' : 'premium';
+  
+  localStorage.setItem('userTier', nextTier);
+  
+  if (typeof currentUser !== 'undefined' && currentUser) {
+    currentUser.tier = nextTier;
+  }
+  
+  if (typeof showNotification === 'function') {
+    showNotification(`🎉 ¡Felicidades! Subiste a ${nextTier}`, 'success');
+  } else {
+    alert(`🎉 ¡Felicidades! Subiste a ${nextTier}`);
+  }
+  
+  if (typeof updateTierUI === 'function') {
+    updateTierUI();
+  }
+  
+  closePremiumProgress();
+}
+
+// ⚙️ GESTIONAR COMUNIDAD (ADMIN)
+function manageCommunity(commId) {
+  const communities = JSON.parse(localStorage.getItem('communities') || '[]');
+  const comm = communities.find(c => c.id === commId);
+  
+  if (!comm) {
+    alert('❌ Comunidad no encontrada');
+    return;
+  }
+  
+  const action = prompt(`⚙️ Gestionar "${comm.name}"\n\nEscribe una opción:\n1. Cambiar nombre\n2. Cambiar aportación\n3. Expulsar miembro\n4. Cancelar`);
+  
+  if (!action || action === '4') return;
+  
+  if (action === '1') {
+    const newName = prompt('Nuevo nombre:', comm.name);
+    if (newName && newName.length >= 3) {
+      comm.name = sanitizeCommunityText(newName, 50);
+    }
+  } else if (action === '2') {
+    const newContrib = prompt('Nueva aportación mensual ($):', comm.contribution);
+    const num = parseFloat(newContrib);
+    if (!isNaN(num) && num >= 1 && num <= 1000) {
+      comm.contribution = num;
+    }
+  } else if (action === '3') {
+    const memberList = comm.members.map((m, i) => `${i + 1}. ${m.userName}`).join('\n');
+    const memberIdx = prompt(`¿Cuál miembro expulsar?\n\n${memberList}\n\nNúmero:`);
+    const idx = parseInt(memberIdx) - 1;
+    if (!isNaN(idx) && idx >= 0 && idx < comm.members.length) {
+      if (comm.members[idx].role !== 'admin') {
+        comm.members.splice(idx, 1);
+      } else {
+        alert('⚠️ No puedes expulsar a un administrador');
+        return;
+      }
+    }
+  }
+  
+  const idx = communities.findIndex(c => c.id === commId);
+  communities[idx] = comm;
+  localStorage.setItem('communities', JSON.stringify(communities));
+  
+  alert('✅ Cambios guardados');
+  showMyCommunities();
+}
+</script>  
+ <!-- 🤝 PANEL DE COMUNIDADES -->
+<div class="glass hidden" id="communitiesPanel">
+  <h2>🤝 Comunidades de Apoyo</h2>
+  <p style="font-size:0.85rem;color:#8b95a5;margin-bottom:16px">Únete a grupos, apóyate con otros usuarios y sube a Premium más rápido</p>
+  
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button onclick="showCreateCommunity()" style="padding:8px 16px;background:#00e676;color:#000">➕ Crear Comunidad</button>
+    <button onclick="showMyCommunities()" class="btn-sec">📋 Mis Comunidades</button>
+    <button onclick="showPublicCommunities()" class="btn-sec">🌍 Explorar</button>
+    <button onclick="showPremiumProgress()" class="btn-sec" style="border-color:#ab47bc;color:#ab47bc">👑 Progreso Premium</button>
+    <button class="btn-sec" onclick="backToVault()">← Volver</button>
+  </div>
+  
+  <div id="communitiesContainer" style="display:flex;flex-direction:column;gap:12px">
+    <p style="color:#8b95a5;text-align:center;padding:20px">🔄 Cargando comunidades...</p>
+  </div>
+</div>
+
+<!-- ➕ MODAL CREAR COMUNIDAD -->
+<div id="createCommunityModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+  <div class="glass" style="max-width:500px;max-height:90vh;overflow-y:auto">
+    <h3>➕ Crear Nueva Comunidad</h3>
+    
+    <input type="text" id="commName" placeholder="Nombre de la comunidad *" maxlength="50" style="margin:10px 0">
+    <textarea id="commDescription" placeholder="Descripción y objetivo de la comunidad" rows="3" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2a2f3a;background:#151922;color:#fff;resize:vertical"></textarea>
+    
+    <label style="font-size:0.8rem;color:#8b95a5;display:block;margin:12px 0 6px">💰 Aportación mensual por miembro (USD)</label>
+    <input type="number" id="commContribution" placeholder="Ej: 10" min="1" max="1000" value="10" style="width:100%">
+    
+    <label style="font-size:0.8rem;color:#8b95a5;display:block;margin:12px 0 6px">👥 Máximo de miembros</label>
+    <input type="number" id="commMaxMembers" placeholder="Ej: 10" min="3" max="50" value="10" style="width:100%">
+    
+    <label style="font-size:0.8rem;color:#8b95a5;display:block;margin:12px 0 6px">🎯 Objetivo</label>
+    <select id="commGoal" style="width:100%;padding:10px;margin:6px 0">
+      <option value="premium">👑 Subir a Premium</option>
+      <option value="savings">💰 Ahorro colectivo</option>
+      <option value="investment">📈 Inversión grupal</option>
+      <option value="support">🤝 Apoyo mutuo</option>
+    </select>
+    
+    <label style="display:flex;align-items:center;gap:6px;color:#fff;margin:12px 0">
+      <input type="checkbox" id="commPrivate"> 🔒 Comunidad privada (solo por invitación)
+    </label>
+    
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button onclick="createCommunity()" style="flex:1;padding:12px;background:#00e676;color:#000">🚀 Crear</button>
+      <button onclick="closeCreateCommunity()" style="padding:12px 24px;background:transparent;border:1px solid #6a7585;color:#6a7585">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- 👑 MODAL PROGRESO PREMIUM -->
+<div id="premiumProgressModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;justify-content:center;align-items:center;z-index:100;padding:16px">
+  <div class="glass" style="max-width:500px">
+    <h3 style="color:#ab47bc">👑 Tu Progreso hacia Premium</h3>
+    <div id="premiumProgressContent" style="margin:16px 0"></div>
+    <button onclick="closePremiumProgress()" class="btn-sec" style="width:100%">Cerrar</button>
+  </div>
+</div>       
 </body>
 </html>
