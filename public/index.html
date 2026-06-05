@@ -4919,7 +4919,7 @@ function closeImportModal() {
     log('🔒 Modal de importación cerrado', 'info');
   }
 }
-function closeImportModal() {
+  function closeImportModal() {
   const modal = document.getElementById('importModal');
   if (modal) {
     modal.classList.add('hidden');
@@ -4932,50 +4932,85 @@ function closeImportModal() {
   }
   const fileInput = document.getElementById('importFile');
   if (fileInput) fileInput.value = '';
-  log('🔒 Modal de importación cerrado', 'info');
+  if (typeof log === 'function') {
+    log('🔒 Modal de importación cerrado', 'info');
+  }
 }
 
 // === MARKETPLACE: FUNCIONES MEJORADAS ===
 
 // ✅ Helper para validar URL de thumbnail (solo permite relativas o data URLs seguras)
 function isValidThumbnailUrl(url) {
-  if (!url) return false;
+  if (!url || typeof url !== 'string') return false;
   // ✅ Permitir solo: rutas relativas, data:image, o same-origin
-  return url.startsWith('/') || 
-         url.startsWith('data:image/') || 
-         url.startsWith(window.location.origin);
+  const trimmedUrl = url.trim();
+  return trimmedUrl.startsWith('/') || 
+         trimmedUrl.startsWith('data:image/') || 
+         trimmedUrl.startsWith(window.location.origin) ||
+         trimmedUrl.startsWith('blob:'); // ✅ Agregar soporte para blob URLs
 }
 
 // ✅ Helper para sanitizar texto antes de insertar en DOM (previene XSS)
 function sanitizeForDisplay(str, maxLen = 300) {
-  if (!str) return '';
+  if (!str || typeof str !== 'string') return '';
   return String(str)
     .replace(/[<>]/g, '') // Remover tags HTML
     .replace(/javascript:/gi, '') // Prevenir protocolos peligrosos
+    .replace(/data:/gi, '') // Prevenir data URLs maliciosas
+    .replace(/vbscript:/gi, '') // Prevenir VBScript
+    .replace(/on\w+=/gi, '') // Remover event handlers inline
+    .trim()
+    .substring(0, maxLen);
+}
+
+// ✅ Helper para sanitizar IDs y nombres antes de usar en logs/display (previene XSS)
+function sanitizeForLog(str, maxLen = 100) {
+  if (!str || typeof str !== 'string') return '';
+  return String(str)
+    .replace(/[<>]/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/vbscript:/gi, '')
+    .trim()
     .substring(0, maxLen);
 }
 
 // 👁️ Abrir modal de producto con datos - versión segura
 function openMarketItemModal(item) {
-  if (!item) {
-    log('⚠️ openMarketItemModal llamado sin item', 'warning');
+  if (!item || typeof item !== 'object') {
+    if (typeof log === 'function') {
+      log('⚠️ openMarketItemModal llamado sin item válido', 'warning');
+    }
     return;
   }
   
-  currentMarketItem = item;
+  // ✅ Inicializar variable global de forma segura
+  if (typeof currentMarketItem === 'undefined') {
+    window.currentMarketItem = null;
+  }
+  window.currentMarketItem = item;
   
   // ✅ Poblar datos con null checks y sanitización
   const titleEl = document.getElementById('modalItemTitle');
-  if (titleEl) titleEl.textContent = sanitizeForDisplay(item.titulo, 100) || 'Sin título';
+  if (titleEl) {
+    titleEl.textContent = sanitizeForDisplay(item.titulo, 100) || 'Sin título';
+  }
   
   const descEl = document.getElementById('modalItemDesc');
   if (descEl) {
     const desc = item.descripcion || 'Sin descripción';
-    descEl.textContent = sanitizeForDisplay(desc, 300) + (desc.length > 300 ? '...' : '');
+    const safeDesc = sanitizeForDisplay(desc, 300);
+    descEl.textContent = safeDesc + (desc.length > 300 ? '...' : '');
   }
   
   const priceEl = document.getElementById('modalItemPrice');
-  if (priceEl) priceEl.textContent = fmt(item.precio || 0) + ' USD';
+  if (priceEl) {
+    // ✅ Verificar si fmt existe antes de usarlo
+    const priceFormatted = (typeof fmt === 'function') 
+      ? fmt(item.precio || 0) 
+      : `$${Number(item.precio || 0).toFixed(2)}`;
+    priceEl.textContent = priceFormatted + ' USD';
+  }
   
   const metaEl = document.getElementById('modalItemMeta');
   if (metaEl) {
@@ -5005,7 +5040,7 @@ function openMarketItemModal(item) {
         const span = document.createElement('span');
         span.className = 'market-tag';
         span.textContent = sanitizeForDisplay(tag, 30); // ✅ Sanitizar cada tag
-        span.setAttribute('aria-label', `Etiqueta: ${tag}`);
+        span.setAttribute('aria-label', `Etiqueta: ${sanitizeForDisplay(tag, 30)}`);
         tagsEl.appendChild(span);
       });
     }
@@ -5023,8 +5058,16 @@ function openMarketItemModal(item) {
       img.alt = sanitizeForDisplay(item.titulo, 100) || 'Vista previa';
       img.style.cssText = 'width:100%;border-radius:8px';
       img.setAttribute('loading', 'lazy'); // ✅ Mejora rendimiento
+      img.onerror = function() {
+        // ✅ Fallback si la imagen falla al cargar
+        this.style.display = 'none';
+        const placeholder = document.createElement('span');
+        placeholder.style.color = '#8b95a5';
+        placeholder.textContent = '📦 Sin imagen de preview';
+        preview.appendChild(placeholder);
+      };
       preview.appendChild(img);
-      preview.setAttribute('aria-label', `Vista previa: ${item.titulo}`);
+      preview.setAttribute('aria-label', `Vista previa: ${sanitizeForDisplay(item.titulo, 100)}`);
     } else {
       const placeholder = document.createElement('span');
       placeholder.style.color = '#8b95a5';
@@ -5044,11 +5087,15 @@ function openMarketItemModal(item) {
   if (modal) {
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
-    // ✅ Enfocar modal para accesibilidad
-    modal.focus?.();
+    // ✅ Enfocar modal para accesibilidad (con verificación)
+    if (typeof modal.focus === 'function') {
+      modal.focus();
+    }
   }
   
-  log(`🛍️ Producto abierto: ${sanitizeForDisplay(item.titulo, 50)}`, 'info');
+  if (typeof log === 'function') {
+    log(`🛍️ Producto abierto: ${sanitizeForLog(item.titulo, 50)}`, 'info');
+  }
 }
 
 function closeMarketItemModal() {
@@ -5057,14 +5104,30 @@ function closeMarketItemModal() {
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
   }
-  currentMarketItem = null;
-  log('🔒 Modal de producto cerrado', 'info');
+  
+  // ✅ Limpiar variable global de forma segura
+  if (typeof currentMarketItem !== 'undefined') {
+    window.currentMarketItem = null;
+  }
+  
+  if (typeof log === 'function') {
+    log('🔒 Modal de producto cerrado', 'info');
+  }
 }
 
 // 💰 Comprar producto - versión segura
 async function buyMarketItem() {
-  if (!currentMarketItem) {
-    showNotification('⚠️ No hay producto seleccionado', 'warning');
+  // ✅ Verificar si currentMarketItem existe
+  const currentItem = (typeof currentMarketItem !== 'undefined') 
+    ? currentMarketItem 
+    : (typeof window !== 'undefined' ? window.currentMarketItem : null);
+  
+  if (!currentItem) {
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ No hay producto seleccionado', 'warning');
+    } else {
+      alert('⚠️ No hay producto seleccionado');
+    }
     return;
   }
   
@@ -5080,20 +5143,37 @@ async function buyMarketItem() {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // ✅ Mensaje seguro: sanitizar título antes de mostrar
-    const safeTitle = sanitizeForDisplay(currentMarketItem.titulo, 50);
-    showNotification(`✅ Compra exitosa: ${safeTitle}`, 'success');
-    log(`💰 Compra completada: ${currentMarketItem.id}`, 'success');
+    const safeTitle = sanitizeForDisplay(currentItem.titulo, 50);
+    
+    if (typeof showNotification === 'function') {
+      showNotification(`✅ Compra exitosa: ${safeTitle}`, 'success');
+    } else {
+      alert(`✅ Compra exitosa: ${safeTitle}`);
+    }
+    
+    if (typeof log === 'function') {
+      log(`💰 Compra completada: ${sanitizeForLog(currentItem.id, 30)}`, 'success');
+    }
     
     // Actualizar UI si hay funciones de refresh
-    if (typeof refresh === 'function') refresh();
+    if (typeof refresh === 'function') {
+      refresh();
+    }
     
     closeMarketItemModal();
     
   } catch (e) {
     console.error('❌ Buy error:', e);
     // ✅ Mensaje seguro: no exponer detalles internos
-    showNotification('❌ Error en compra. Intenta de nuevo.', 'error');
-    log('❌ Compra fallida: ' + sanitizeUserMessage(e.message), 'error');
+    if (typeof showNotification === 'function') {
+      showNotification('❌ Error en compra. Intenta de nuevo.', 'error');
+    } else {
+      alert('❌ Error en compra. Intenta de nuevo.');
+    }
+    
+    if (typeof log === 'function' && typeof sanitizeUserMessage === 'function') {
+      log('❌ Compra fallida: ' + sanitizeUserMessage(e.message), 'error');
+    }
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -5102,19 +5182,20 @@ async function buyMarketItem() {
     }
   }
 }
-// ✅ Helper para sanitizar IDs y nombres antes de usar en logs/display (previene XSS)
-function sanitizeForLog(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[<>]/g, '')
-    .replace(/javascript:/gi, '')
-    .substring(0, maxLen);
-}
 
 // ❤️ Toggle favorito - versión segura
 async function toggleFavorite() {
-  if (!currentMarketItem) {
-    showNotification('⚠️ No hay producto seleccionado', 'warning');
+  // ✅ Verificar si currentMarketItem existe
+  const currentItem = (typeof currentMarketItem !== 'undefined') 
+    ? currentMarketItem 
+    : (typeof window !== 'undefined' ? window.currentMarketItem : null);
+  
+  if (!currentItem) {
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ No hay producto seleccionado', 'warning');
+    } else {
+      alert('⚠️ No hay producto seleccionado');
+    }
     return;
   }
   
@@ -5123,18 +5204,37 @@ async function toggleFavorite() {
     const isFav = Math.random() > 0.5;
     
     // ✅ Sanitizar título antes de mostrar en notificación
-    const safeTitle = sanitizeForLog(currentMarketItem.titulo, 50);
-    showNotification(isFav ? `❤️ Agregado a favoritos: ${safeTitle}` : `🤍 Removido de favoritos: ${safeTitle}`, 'info');
+    const safeTitle = sanitizeForLog(currentItem.titulo, 50);
+    
+    if (typeof showNotification === 'function') {
+      showNotification(
+        isFav 
+          ? `❤️ Agregado a favoritos: ${safeTitle}` 
+          : `🤍 Removido de favoritos: ${safeTitle}`, 
+        'info'
+      );
+    } else {
+      alert(isFav 
+        ? `❤️ Agregado a favoritos: ${safeTitle}` 
+        : `🤍 Removido de favoritos: ${safeTitle}`);
+    }
     
     // ✅ Sanitizar ID antes de loguear
-    const safeId = sanitizeForLog(currentMarketItem.id, 30);
-    log(`❤️ Favorito ${isFav ? 'agregado' : 'removido'}: ${safeId}`, 'info');
+    const safeId = sanitizeForLog(currentItem.id, 30);
+    
+    if (typeof log === 'function') {
+      log(`❤️ Favorito ${isFav ? 'agregado' : 'removido'}: ${safeId}`, 'info');
+    }
   } catch (e) {
     console.error('❌ Favorite error:', e);
-    showNotification('⚠️ Error al actualizar favoritos', 'warning');
+    
+    if (typeof showNotification === 'function') {
+      showNotification('⚠️ Error al actualizar favoritos', 'warning');
+    } else {
+      alert('⚠️ Error al actualizar favoritos');
+    }
   }
 }
-
 // === MEDIA PLAYER: FUNCIONES MEJORADAS (100% LOCAL, 0% EXTERNOS) ===
 
 // ✅ Helper para generar placeholder de video/audio como data URL (sin conexiones externas)
