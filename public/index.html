@@ -5997,153 +5997,11 @@ document.addEventListener('DOMContentLoaded', function() {
   
   log('✅ Módulo de autenticación inicializado', 'success');
 });
-    // ✅ VALIDAR FORTALEZA DE CONTRASEÑA (antes no se hacía)
-    var erroresPass = validatePasswordStrength(pass);
-    if (erroresPass.length > 0) {
-      log('⚠️ Contraseña débil: ' + erroresPass.join(', '), 'warning');
-      showNotification('⚠️ Contraseña insegura', 'warning');
-      if (passInput) passInput.classList.add('error');
-      return;
-    }
-
-    // Botón con fallback robusto
-    var btn = (event && event.currentTarget) || 
-              document.querySelector('#authSection button[type="submit"]') ||
-              document.querySelector('button[onclick*="login"]');
-
-    // Proteger contra doble clic
-    if (btn && btn.disabled) {
-      showNotification('⏳ Espera, procesando...', 'info', 1500);
-      return;
-    }
-
-    var textoOriginal = (btn && btn.textContent) ? btn.textContent : 'Iniciar sesión';
-
-    try {
-      // UI: estado de carga
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = '🔐 Conectando...';
-        btn.setAttribute('aria-busy', 'true');
-      }
-      if (emailInput) {
-        emailInput.classList.remove('error');
-        emailInput.removeAttribute('aria-invalid');
-      }
-      if (passInput) {
-        passInput.classList.remove('error');
-        passInput.removeAttribute('aria-invalid');
-      }
-
-      // Enviar al backend
-      var res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ email: email, pass: pass })
-      });
-
-      // Manejo de sesión expirada
-      if (res.status === 401) {
-        if (typeof window.handleSessionExpired === 'function') {
-          window.handleSessionExpired();
-        }
-        throw new Error('Sesión expirada');
-      }
-
-      var data = {};
-      try {
-        data = await res.json();
-      } catch (e) {
-        data = {};
-      }
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Credenciales incorrectas');
-      }
-
-      // Login exitoso
-      log('✅ Login exitoso', 'success');
-      showNotification('✅ Bienvenido', 'success', 2500);
-
-      // Redirigir
-      if (typeof window.onLoginSuccess === 'function') {
-        window.onLoginSuccess(data);
-      } else {
-        setTimeout(function() {
-          window.location.href = '/dashboard';
-        }, 800);
-      }
-
-    } catch (error) {
-      // Mensaje genérico (NO revelar si el email existe)
-      log('❌ Error login: ' + (error && error.message ? error.message : 'desconocido'), 'error');
-      showNotification('❌ Email o contraseña incorrectos', 'error', 4000);
-
-      // Marcar inputs como error
-      if (emailInput) emailInput.classList.add('error');
-      if (passInput) passInput.classList.add('error');
-
-      // ✅ LIMPIAR contraseña tras fallo (seguridad)
-      if (passInput) passInput.value = '';
-
-      // Delay anti-fuerza bruta
-      await new Promise(function(r) { setTimeout(r, 1500); });
-
-    } finally {
-      // Siempre restaurar el botón
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = textoOriginal;
-        btn.removeAttribute('aria-busy');
-      }
-    }
-  }
-
-  // ============================================
-  // 🚪 FUNCIÓN LOGOUT
-  // ============================================
-  async function logout() {
-    try {
-      await fetch('/api/auth/logout', { 
-        method: 'POST',
-        credentials: 'same-origin'
-      });
-    } catch (e) {
-      log('⚠️ Error cerrando sesión', 'warning');
-    } finally {
-      try { sessionStorage.clear(); } catch (e) {}
-      showNotification('👋 Sesión cerrada', 'info', 2000);
-      setTimeout(function() { window.location.href = '/'; }, 800);
-    }
-  }
-
-  // ============================================
-  // 🚀 FUNCIÓN init() - INICIALIZACIÓN
-  // ============================================
-  function init() {
-    try {
-      log('🚀 Inicializando aplicación...', 'info');
-      
-      // Verificar API si existe
-      if (typeof window.checkAPI === 'function') {
-        setTimeout(function() { window.checkAPI(); }, 500);
-      }
-      
-      log('✅ Interfaz lista', 'success');
-    } catch (error) {
-      log('❌ Error en init: ' + (error && error.message ? error.message : 'desconocido'), 'error');
-      showNotification('Error al cargar la aplicación', 'error', 4000);
-    }
-  }
-
-<script>
+   <script>
 // ============================================
 // 🛡️ MÓDULO DE AUTENTICACIÓN COMPLETO
 // Auto-contenido - Sin dependencias externas
+// 100% LOCAL, MÁXIMA SEGURIDAD
 // ============================================
 (function() {
   'use strict';
@@ -6232,6 +6090,65 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ============================================
+  // 🛡️ PROTECCIÓN CONTRA FUERZA BRUTA (NUEVO)
+  // ============================================
+  var loginAttempts = {
+    count: 0,
+    lastAttempt: 0,
+    maxAttempts: 5,
+    lockoutTime: 300000, // 5 minutos
+    
+    check: function() {
+      var now = Date.now();
+      if (now - this.lastAttempt > this.lockoutTime) {
+        this.count = 0;
+      }
+      if (this.count >= this.maxAttempts) {
+        var remainingTime = Math.ceil((this.lockoutTime - (now - this.lastAttempt)) / 1000);
+        return {
+          allowed: false,
+          message: 'Demasiados intentos. Espera ' + remainingTime + ' segundos'
+        };
+      }
+      return { allowed: true };
+    },
+    
+    recordAttempt: function() {
+      this.count++;
+      this.lastAttempt = Date.now();
+    },
+    
+    reset: function() {
+      this.count = 0;
+      this.lastAttempt = 0;
+    }
+  };
+
+  // ============================================
+  // 🌐 VERIFICAR CONEXIÓN (NUEVO)
+  // ============================================
+  function checkConnection() {
+    if (!navigator.onLine) {
+      return {
+        online: false,
+        message: 'No hay conexión a internet'
+      };
+    }
+    return { online: true };
+  }
+
+  // ============================================
+  // 🔐 GENERAR TOKEN CSRF (NUEVO)
+  // ============================================
+  function generateCSRFToken() {
+    var array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array, function(byte) {
+      return byte.toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  // ============================================
   // 🔐 FUNCIÓN req() - PETICIÓN HTTP SEGURA
   // ============================================
   async function req(endpoint, metodo, datos) {
@@ -6241,7 +6158,9 @@ document.addEventListener('DOMContentLoaded', function() {
       method: metodo || 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'X-CSRF-Token': generateCSRFToken(),
+        'X-Requested-With': 'XMLHttpRequest'
       },
       credentials: 'same-origin'
     };
@@ -6263,9 +6182,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (res.status === 401) {
       try { sessionStorage.clear(); } catch (e) {}
-      if (typeof handleSessionExpired === 'function') {
-        handleSessionExpired();
-      }
+      handleSessionExpired();
       throw new Error('401: Sesión expirada');
     }
 
@@ -6309,7 +6226,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .replace(/[^a-z0-9@._+\-]/g, '')
         .substring(0, 255);
 
-      // Almacenamiento seguro con sessionStorage
       try {
         sessionStorage.setItem('token', r.token);
         sessionStorage.setItem('userEmail', emailLimpio);
@@ -6361,24 +6277,28 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ============================================
-  // 🔐 FUNCIÓN LOGIN (COMPLETA)
+  // 🔐 FUNCIÓN LOGIN (COMPLETA Y UNIFICADA)
   // ============================================
   async function login(event) {
     if (event) event.preventDefault();
 
-    const emailInput = document.getElementById('email');
-    const passInput = document.getElementById('pass');
-    const rawEmail = (emailInput && emailInput.value) ? emailInput.value.trim() : '';
-    const pass = (passInput && passInput.value) ? passInput.value : '';
+    // Obtener elementos
+    var emailInput = document.getElementById('email');
+    var passInput = document.getElementById('pass');
+    var rawEmail = (emailInput && emailInput.value) ? emailInput.value.trim() : '';
+    var pass = (passInput && passInput.value) ? passInput.value : '';
 
-    const email = sanitizeEmail(rawEmail);
+    // Sanitizar email
+    var email = sanitizeEmail(rawEmail);
 
+    // Validar campos vacíos
     if (!email || !pass) {
       log('⚠️ Campos incompletos', 'warning');
       showNotification('⚠️ Completa todos los campos', 'warning');
       return;
     }
 
+    // Validar formato email
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       log('⚠️ Email inválido', 'warning');
       showNotification('⚠️ Ingresa un email válido', 'warning');
@@ -6389,7 +6309,8 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    const erroresPass = validatePasswordStrength(pass);
+    // ✅ VALIDAR FORTALEZA DE CONTRASEÑA
+    var erroresPass = validatePasswordStrength(pass);
     if (erroresPass.length > 0) {
       log('⚠️ Contraseña débil: ' + erroresPass.join(', '), 'warning');
       showNotification('⚠️ Contraseña insegura', 'warning');
@@ -6397,18 +6318,37 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    const btn = (event && event.currentTarget) || 
-                document.querySelector('#authSection button[type="submit"]') ||
-                document.querySelector('button[onclick*="login"]');
+    // ✅ NUEVO: Verificar conexión
+    var connection = checkConnection();
+    if (!connection.online) {
+      log('❌ Sin conexión a internet', 'error');
+      showNotification('❌ ' + connection.message, 'error');
+      return;
+    }
 
+    // ✅ NUEVO: Verificar protección contra fuerza bruta
+    var bruteForceCheck = loginAttempts.check();
+    if (!bruteForceCheck.allowed) {
+      log('⚠️ Cuenta bloqueada temporalmente', 'warning');
+      showNotification('⚠️ ' + bruteForceCheck.message, 'warning');
+      return;
+    }
+
+    // Botón con fallback robusto
+    var btn = (event && event.currentTarget) || 
+              document.querySelector('#authSection button[type="submit"]') ||
+              document.querySelector('button[onclick*="login"]');
+
+    // Proteger contra doble clic
     if (btn && btn.disabled) {
       showNotification('⏳ Espera, procesando...', 'info', 1500);
       return;
     }
 
-    const textoOriginal = (btn && btn.textContent) ? btn.textContent : 'Iniciar sesión';
+    var textoOriginal = (btn && btn.textContent) ? btn.textContent : 'Iniciar sesión';
 
     try {
+      // UI: estado de carga
       if (btn) {
         btn.disabled = true;
         btn.textContent = '🔐 Conectando...';
@@ -6423,34 +6363,67 @@ document.addEventListener('DOMContentLoaded', function() {
         passInput.removeAttribute('aria-invalid');
       }
 
-      const r = await req('/api/auth/login', 'POST', { email: email, password: pass });
+      // Enviar al backend
+      var res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-Token': generateCSRFToken(),
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ email: email, pass: pass })
+      });
 
-      await manejarRespuestaLogin(r, email, emailInput, passInput, btn);
-
-    } catch (error) {
-      const msg = (error && error.message && error.message.includes('401')) 
-        ? '❌ Credenciales inválidas' 
-        : (error && error.message && error.message.includes('403'))
-        ? '❌ Acceso denegado'
-        : '❌ Error de conexión';
-      
-      log(msg, 'error');
-      showNotification(msg, 'error', 4000);
-
-      if (emailInput) {
-        emailInput.classList.add('error');
-        emailInput.setAttribute('aria-invalid', 'true');
-        setTimeout(function() {
-          emailInput.classList.remove('error');
-          emailInput.removeAttribute('aria-invalid');
-        }, 2000);
+      // ✅ Limpiar contraseña inmediatamente después de enviar
+      if (passInput) {
+        passInput.value = '';
       }
 
+      // Registrar intento
+      loginAttempts.recordAttempt();
+
+      // Manejo de sesión expirada
+      if (res.status === 401) {
+        handleSessionExpired();
+        throw new Error('Sesión expirada');
+      }
+
+      var data = {};
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = {};
+      }
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Credenciales incorrectas');
+      }
+
+      // ✅ Login exitoso - usar función unificada
+      await manejarRespuestaLogin(data, email, emailInput, passInput, btn);
+
+      // Resetear contador de intentos
+      loginAttempts.reset();
+
+    } catch (error) {
+      // Mensaje genérico (NO revelar si el email existe)
+      log('❌ Error login: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+      showNotification('❌ Email o contraseña incorrectos', 'error', 4000);
+
+      // Marcar inputs como error
+      if (emailInput) emailInput.classList.add('error');
+      if (passInput) passInput.classList.add('error');
+
+      // ✅ LIMPIAR contraseña tras fallo (seguridad)
       if (passInput) passInput.value = '';
 
+      // Delay anti-fuerza bruta
       await new Promise(function(r) { setTimeout(r, 1500); });
 
     } finally {
+      // Siempre restaurar el botón
       if (btn) {
         btn.disabled = false;
         btn.textContent = textoOriginal;
@@ -6462,38 +6435,139 @@ document.addEventListener('DOMContentLoaded', function() {
   // ============================================
   // 🚪 FUNCIÓN LOGOUT
   // ============================================
-  function logout() {
+  async function logout() {
     try {
-      fetch('/api/auth/logout', {
+      await fetch('/api/auth/logout', { 
         method: 'POST',
-        credentials: 'same-origin'
-      }).catch(function() {});
-    } catch (e) {}
-    
-    try {
-      sessionStorage.clear();
-      localStorage.removeItem('token');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('userTier');
-      localStorage.removeItem('isAdmin');
-    } catch (e) {}
-    
-    showNotification('👋 Sesión cerrada', 'info', 2000);
-    
-    setTimeout(function() {
-      window.location.href = '/';
-    }, 800);
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRF-Token': generateCSRFToken()
+        }
+      });
+    } catch (e) {
+      log('⚠️ Error cerrando sesión', 'warning');
+    } finally {
+      try { sessionStorage.clear(); } catch (e) {}
+      showNotification('👋 Sesión cerrada', 'info', 2000);
+      setTimeout(function() { window.location.href = '/'; }, 800);
+    }
   }
 
   // ============================================
-  // 🚀 FUNCIÓN init()
+  // ⏰ MANEJO DE SESIÓN EXPIRADA (NUEVO)
+  // ============================================
+  window.handleSessionExpired = function() {
+    log('⏰ Sesión expirada', 'warning');
+    showNotification('⏰ Tu sesión ha expirado. Inicia sesión nuevamente', 'warning', 4000);
+    try { sessionStorage.clear(); } catch (e) {}
+    setTimeout(function() { 
+      window.location.href = '/login'; 
+    }, 2000);
+  };
+
+  // ============================================
+  // 👤 CARGAR USUARIO (STUB - IMPLEMENTAR SEGÚN NECESITES)
+  // ============================================
+  window.loadUser = async function() {
+    try {
+      var token = sessionStorage.getItem('token');
+      if (!token) {
+        log('⚠️ No hay token para cargar usuario', 'warning');
+        return;
+      }
+
+      // Aquí va tu lógica para cargar datos del usuario
+      // Ejemplo:
+      // var userData = await req('/api/user/profile', 'GET');
+      // Actualizar UI con datos del usuario
+      
+      log('✅ Usuario cargado', 'success');
+    } catch (error) {
+      log('❌ Error al cargar usuario: ' + error.message, 'error');
+    }
+  };
+
+  // ============================================
+  // 📊 MOSTRAR DASHBOARD (STUB - IMPLEMENTAR SEGÚN NECESITES)
+  // ============================================
+  window.showDashboard = function() {
+    try {
+      // Ocultar sección de login
+      var authSection = document.getElementById('authSection');
+      if (authSection) {
+        authSection.style.display = 'none';
+      }
+
+      // Mostrar dashboard
+      var dashboard = document.getElementById('dashboard');
+      if (dashboard) {
+        dashboard.style.display = 'block';
+      }
+
+      log('✅ Dashboard mostrado', 'success');
+    } catch (error) {
+      log('❌ Error al mostrar dashboard: ' + error.message, 'error');
+    }
+  };
+
+  // ============================================
+  // ✅ CALLBACK DE LOGIN EXITOSO (NUEVO)
+  // ============================================
+  window.onLoginSuccess = function(data) {
+    log('✅ Login exitoso - Callback ejecutado', 'success');
+    showNotification('✅ Bienvenido', 'success', 2500);
+    
+    setTimeout(function() {
+      window.location.href = data.redirect || '/dashboard';
+    }, 800);
+  };
+
+  // ============================================
+  // 🌐 VERIFICAR API (STUB - IMPLEMENTAR SEGÚN NECESITES)
+  // ============================================
+  window.checkAPI = async function() {
+    try {
+      var response = await fetch('/api/health', {
+        method: 'GET',
+        credentials: 'same-origin'
+      });
+      
+      if (response.ok) {
+        log('✅ API disponible', 'success');
+      } else {
+        log('⚠️ API no disponible', 'warning');
+      }
+    } catch (error) {
+      log('❌ Error al verificar API: ' + error.message, 'error');
+    }
+  };
+
+  // ============================================
+  // 🚀 FUNCIÓN init() - INICIALIZACIÓN
   // ============================================
   function init() {
     try {
       log('🚀 Inicializando aplicación...', 'info');
       
-      if (typeof checkAPI === 'function') {
-        setTimeout(function() { checkAPI(); }, 500);
+      // Verificar API si existe
+      if (typeof window.checkAPI === 'function') {
+        setTimeout(function() { window.checkAPI(); }, 500);
+      }
+      
+      // Verificar sesión existente
+      var token = null;
+      try {
+        token = sessionStorage.getItem('token');
+      } catch (e) {}
+      
+      if (token) {
+        log('✅ Sesión existente detectada', 'success');
+        if (typeof window.loadUser === 'function') {
+          window.loadUser();
+        }
+        if (typeof window.showDashboard === 'function') {
+          window.showDashboard();
+        }
       }
       
       log('✅ Interfaz lista', 'success');
@@ -6502,7 +6576,363 @@ document.addEventListener('DOMContentLoaded', function() {
       showNotification('Error al cargar la aplicación', 'error', 4000);
     }
   }
-<script>
+
+  // ============================================
+  // 🎯 INICIALIZACIÓN AUTOMÁTICA
+  // ============================================
+  document.addEventListener('DOMContentLoaded', function() {
+    init();
+    
+    // Agregar event listener al formulario de login
+    var loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+      loginForm.addEventListener('submit', login);
+    }
+    
+    log('✅ Módulo de autenticación inicializado', 'success');
+  });
+
+  // Exponer funciones globales necesarias
+  window.login = login;
+  window.logout = logout;
+
+})();
+</script>
+<script>  
+// ============================================
+// 🔐 FUNCIÓN LOGIN (COMPLETA Y MEJORADA)
+// ============================================
+async function login(event) {
+  if (event) event.preventDefault();
+
+  const emailInput = document.getElementById('email');
+  const passInput = document.getElementById('pass');
+  const rawEmail = (emailInput && emailInput.value) ? emailInput.value.trim() : '';
+  const pass = (passInput && passInput.value) ? passInput.value : '';
+
+  const email = sanitizeEmail(rawEmail);
+
+  if (!email || !pass) {
+    log('⚠️ Campos incompletos', 'warning');
+    showNotification('⚠️ Completa todos los campos', 'warning');
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    log('⚠️ Email inválido', 'warning');
+    showNotification('⚠️ Ingresa un email válido', 'warning');
+    if (emailInput) {
+      emailInput.classList.add('error');
+      emailInput.setAttribute('aria-invalid', 'true');
+    }
+    return;
+  }
+
+  const erroresPass = validatePasswordStrength(pass);
+  if (erroresPass.length > 0) {
+    log('⚠️ Contraseña débil: ' + erroresPass.join(', '), 'warning');
+    showNotification('⚠️ Contraseña insegura', 'warning');
+    if (passInput) passInput.classList.add('error');
+    return;
+  }
+
+  // ✅ NUEVO: Verificar conexión antes de enviar
+  if (!navigator.onLine) {
+    log('❌ Sin conexión a internet', 'error');
+    showNotification('❌ No hay conexión a internet', 'error');
+    return;
+  }
+
+  // ✅ NUEVO: Protección contra fuerza bruta
+  if (window.loginAttempts && !window.loginAttempts.check().allowed) {
+    const check = window.loginAttempts.check();
+    log('⚠️ ' + check.message, 'warning');
+    showNotification('⚠️ ' + check.message, 'warning');
+    return;
+  }
+
+  const btn = (event && event.currentTarget) || 
+              document.querySelector('#authSection button[type="submit"]') ||
+              document.querySelector('button[onclick*="login"]');
+
+  if (btn && btn.disabled) {
+    showNotification('⏳ Espera, procesando...', 'info', 1500);
+    return;
+  }
+
+  const textoOriginal = (btn && btn.textContent) ? btn.textContent : 'Iniciar sesión';
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '🔐 Conectando...';
+      btn.setAttribute('aria-busy', 'true');
+    }
+    if (emailInput) {
+      emailInput.classList.remove('error');
+      emailInput.removeAttribute('aria-invalid');
+    }
+    if (passInput) {
+      passInput.classList.remove('error');
+      passInput.removeAttribute('aria-invalid');
+    }
+
+    // ✅ NUEVO: Generar token CSRF
+    const csrfToken = generateCSRFToken();
+
+    const r = await req('/api/auth/login', 'POST', { 
+      email: email, 
+      password: pass,
+      timestamp: Date.now()
+    }, {
+      'X-CSRF-Token': csrfToken
+    });
+
+    // ✅ NUEVO: Limpiar contraseña inmediatamente
+    if (passInput) passInput.value = '';
+
+    // ✅ NUEVO: Registrar intento exitoso
+    if (window.loginAttempts) window.loginAttempts.reset();
+
+    await manejarRespuestaLogin(r, email, emailInput, passInput, btn);
+
+  } catch (error) {
+    // ✅ NUEVO: Registrar intento fallido
+    if (window.loginAttempts) window.loginAttempts.recordAttempt();
+
+    const msg = (error && error.message && error.message.includes('401')) 
+      ? '❌ Credenciales inválidas' 
+      : (error && error.message && error.message.includes('403'))
+      ? '❌ Acceso denegado'
+      : (error && error.message && error.message.includes('offline'))
+      ? '❌ Sin conexión'
+      : '❌ Error de conexión';
+    
+    log(msg, 'error');
+    showNotification(msg, 'error', 4000);
+
+    if (emailInput) {
+      emailInput.classList.add('error');
+      emailInput.setAttribute('aria-invalid', 'true');
+      setTimeout(function() {
+        emailInput.classList.remove('error');
+        emailInput.removeAttribute('aria-invalid');
+      }, 2000);
+    }
+
+    // ✅ NUEVO: Limpieza segura de contraseña
+    if (passInput) {
+      passInput.value = '';
+    }
+
+    // ✅ NUEVO: Delay anti-fuerza bruta
+    await new Promise(function(r) { setTimeout(r, 1500); });
+
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+      btn.removeAttribute('aria-busy');
+    }
+  }
+}
+
+// ============================================
+// 🚪 FUNCIÓN LOGOUT (MEJORADA)
+// ============================================
+async function logout() {
+  try {
+    // ✅ NUEVO: Token CSRF para logout
+    const csrfToken = generateCSRFToken();
+    
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'X-CSRF-Token': csrfToken
+      }
+    }).catch(function() {});
+  } catch (e) {
+    log('⚠️ Error cerrando sesión', 'warning');
+  }
+  
+  // ✅ MEJORADO: Limpieza completa y segura
+  try {
+    sessionStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userTier');
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('isAdminVisual');
+  } catch (e) {}
+  
+  log('🚪 Sesión cerrada', 'info');
+  showNotification('👋 Sesión cerrada', 'info', 2000);
+  
+  setTimeout(function() {
+    window.location.href = '/';
+  }, 800);
+}
+
+// ============================================
+// 🔄 AUTO-REFRESH DE SESIÓN (NUEVO)
+// ============================================
+function setupAutoRefresh() {
+  // Verificar cada 4 minutos si el token está por expirar
+  setInterval(async function() {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const partes = token.split('.');
+      if (partes.length !== 3) return;
+
+      const payload = JSON.parse(atob(partes[1]));
+      const now = Math.floor(Date.now() / 1000);
+      const timeLeft = payload.exp - now;
+
+      // Si quedan menos de 5 minutos, renovar
+      if (timeLeft < 300 && timeLeft > 0) {
+        log('🔄 Renovando sesión...', 'info');
+        const refreshToken = localStorage.getItem('refreshToken');
+        
+        if (refreshToken) {
+          try {
+            const response = await req('/api/auth/refresh', 'POST', {
+              refreshToken: refreshToken
+            });
+            
+            if (response.token) {
+              sessionStorage.setItem('token', response.token);
+              if (response.refreshToken) {
+                localStorage.setItem('refreshToken', response.refreshToken);
+              }
+              log('✅ Sesión renovada', 'success');
+            }
+          } catch (error) {
+            log('❌ No se pudo renovar sesión', 'error');
+            handleSessionExpired();
+          }
+        }
+      }
+    } catch (e) {
+      // Token inválido, ignorar
+    }
+  }, 240000); // 4 minutos
+}
+
+// ============================================
+// ⏰ MANEJO DE SESIÓN EXPIRADA (NUEVO)
+// ============================================
+function handleSessionExpired() {
+  log('⏰ Sesión expirada', 'warning');
+  showNotification('⏰ Tu sesión ha expirado', 'warning', 3000);
+  
+  try {
+    sessionStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+  } catch (e) {}
+  
+  setTimeout(function() {
+    window.location.href = '/login';
+  }, 2000);
+}
+
+// ============================================
+// 🔐 GENERAR TOKEN CSRF (NUEVO)
+// ============================================
+function generateCSRFToken() {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, function(byte) {
+    return byte.toString(16).padStart(2, '0');
+  }).join('');
+}
+
+// ============================================
+// 🛡️ PROTECCIÓN CONTRA FUERZA BRUTA (NUEVO)
+// ============================================
+window.loginAttempts = {
+  count: 0,
+  lastAttempt: 0,
+  maxAttempts: 5,
+  lockoutTime: 300000, // 5 minutos
+  
+  check: function() {
+    const now = Date.now();
+    if (now - this.lastAttempt > this.lockoutTime) {
+      this.count = 0;
+    }
+    if (this.count >= this.maxAttempts) {
+      const remainingTime = Math.ceil((this.lockoutTime - (now - this.lastAttempt)) / 1000);
+      return {
+        allowed: false,
+        message: 'Demasiados intentos. Espera ' + remainingTime + 's'
+      };
+    }
+    return { allowed: true };
+  },
+  
+  recordAttempt: function() {
+    this.count++;
+    this.lastAttempt = Date.now();
+  },
+  
+  reset: function() {
+    this.count = 0;
+    this.lastAttempt = 0;
+  }
+};
+
+// ============================================
+// 🚀 FUNCIÓN init() (MEJORADA)
+// ============================================
+function init() {
+  try {
+    log('🚀 Inicializando aplicación...', 'info');
+    
+    // ✅ NUEVO: Verificar sesión activa
+    const token = sessionStorage.getItem('token');
+    if (token) {
+      log('✅ Sesión activa detectada', 'success');
+      
+      // ✅ NUEVO: Configurar auto-refresh
+      setupAutoRefresh();
+      
+      // ✅ NUEVO: Cargar usuario si hay sesión
+      if (typeof loadUser === 'function') {
+        loadUser();
+      }
+      
+      // ✅ NUEVO: Mostrar dashboard si hay sesión
+      if (typeof showDashboard === 'function') {
+        showDashboard();
+      }
+    }
+    
+    // ✅ NUEVO: Verificar API
+    if (typeof checkAPI === 'function') {
+      setTimeout(function() { checkAPI(); }, 500);
+    }
+    
+    // ✅ NUEVO: Listener para cambios de conexión
+    window.addEventListener('online', function() {
+      log('🌐 Conexión restaurada', 'success');
+      showNotification('🌐 Conexión restaurada', 'success', 2000);
+    });
+    
+    window.addEventListener('offline', function() {
+      log('📴 Sin conexión', 'warning');
+      showNotification('📴 Sin conexión a internet', 'warning', 3000);
+    });
+    
+    log('✅ Interfaz lista', 'success');
+  } catch (error) {
+    log('❌ Error en init: ' + (error && error.message ? error.message : 'desconocido'), 'error');
+    showNotification('Error al cargar la aplicación', 'error', 4000);
+  }
+}
 // ============================================
 // 🛡️ MÓDULO DE AUTENTICACIÓN - COMPLETO Y SEGURO
 // ============================================
