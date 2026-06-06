@@ -2863,6 +2863,494 @@ app.get('/api/stats', authenticate, async (req, res) => {
 });
 
 // ============================================
+// 🚀 AUTO-REGISTRO PREMIUM (CON AVATAR + FIRMA + HUELLA)
+// ============================================
+app.post('/api/register/premium', async(req, res) => {
+try {
+const { nombre, email, password, telefono, avatarBase64, firmaBase64 } = req.body;
+
+// ✅ Validaciones fuertes
+if (!nombre || nombre.trim().length < 3) {
+return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
+}
+if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+return res.status(400).json({ error: 'Email inválido' });
+}
+if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+return res.status(400).json({ error: 'Contraseña débil. Requiere: 8+ caracteres, 1 mayúscula, 1 número, 1 símbolo' });
+}
+
+if (!mongoReady) {
+return res.status(201).json({
+success: true,
+message: '✅ Registro Premium completado (modo demo)',
+demo: true,
+user: {
+uid: 'demo_' + Date.now(),
+email,
+nombre: nombre.trim(),
+tier: 'premium',
+avatar: avatarBase64 || 'generado',
+firma: firmaBase64 ? 'capturada' : 'pendiente'
+}
+});
+}
+
+// ✅ Verificar si el email ya existe
+const existe = await usersCollection.findOne({ email: email.toLowerCase() });
+if (existe) {
+return res.status(400).json({ error: 'Este email ya está registrado. Inicia sesión.' });
+}
+
+// ✅ Crear usuario
+const hashed = await bcrypt.hash(password, 10);
+const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
+const refCode = 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+const newUser = {
+uid,
+email: email.toLowerCase(),
+nombre: nombre.trim(),
+telefono: telefono || null,
+password: hashed,
+refCode,
+tier: 'premium', // ✅ Automáticamente Premium
+isPremium: true,
+premiumSince: new Date(),
+avatar: avatarBase64 || null, // ✅ Avatar del usuario
+firmaDigital: firmaBase64 || null, // ✅ Firma digital
+firmaHash: firmaBase64 ? crypto.createHash('sha256').update(firmaBase64).digest('hex') : null,
+webauthnRegistered: false, // Se activará cuando registre huella
+isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()),
+createdAt: new Date(),
+lastLogin: new Date(),
+affiliates: {
+level: 'plata', // ✅ Premium empieza en Plata
+totalReferrals: 0,
+pendingBalance: 0,
+availableBalance: 0,
+withdrawnBalance: 0
+},
+metadata: {
+registrationMethod: 'premium_auto',
+userAgent: req.headers['user-agent'] || 'unknown',
+ip: req.ip
+}
+};
+
+const result = await usersCollection.insertOne(newUser);
+
+// ✅ Crear perfil
+await profilesCollection.insertOne({
+userId: result.insertedId,
+uid: uid,
+displayName: nombre.trim(),
+avatarUrl: avatarBase64 || null,
+bio: 'Usuario Premium de ApiRomwiner Vault',
+isPublic: true,
+identityVerified: true, // ✅ Premium = Verificado
+sellerPremium: true,
+premiumSince: new Date(),
+createdAt: new Date()
+});
+
+// ✅ Crear wallet con bono de bienvenida
+await walletCollection.insertOne({
+userId: result.insertedId,
+balance: 5.00, // ✅ $5 USD de bienvenida
+currency: 'USD',
+history: [{
+type: 'welcome_bonus',
+amount: 5.00,
+message: '🎁 Bono de bienvenida Premium',
+date: new Date()
+}],
+createdAt: new Date()
+});
+
+// ✅ Crear registro de afiliados
+await affiliatesCollection.insertOne({
+userId: result.insertedId,
+refCode: refCode,
+level: 'plata',
+createdAt: new Date()
+});
+
+// ✅ Generar token JWT
+const token = jwt.sign({
+uid: uid,
+email: email.toLowerCase(),
+isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()),
+tier: 'premium'
+}, JWT_SECRET, { expiresIn: '7d' });
+
+// ✅ Auditoría
+await logAudit('premium_register', {
+uid,
+email: email.toLowerCase(),
+nombre: nombre.trim(),
+hasAvatar: !!avatarBase64,
+hasFirma: !!firmaBase64
+});
+
+logger.info(`🎉 Nuevo usuario Premium registrado: ${email}`);
+
+res.status(201).json({
+success: true,
+message: '✅ ¡Bienvenido a ApiRomwiner Premium!',
+token,
+user: {
+uid,
+email: email.toLowerCase(),
+nombre: nombre.trim(),
+tier: 'premium',
+avatar: avatarBase64 || null,
+firmaDigital: firmaBase64 ? true : false,
+refCode,
+welcomeBonus: 5.00
+},
+nextSteps: [
+'📱 Registra tu huella digital para máxima seguridad',
+'🔐 Activa la multifirma para acciones críticas',
+'📤 Sube tu primer archivo al Vault'
+]
+});
+
+} catch (e) {
+logger.error('❌ Premium register error: ' + e.message);
+res.status(500).json({ error: 'Error en registro Premium: ' + e.message });
+}
+});
+
+// 🔐 REGISTRO DE HUELLA DIGITAL (WEBAUTHN) PARA USUARIOS PREMIUM
+app.post('/api/identity/register-fingerprint', authenticate, async(req, res) => {
+try {
+const { credential } = req.body;
+
+if (!credential) {
+return res.status(400).json({ error: 'Credencial de huella requerida' });
+}
+
+if (!mongoReady) {
+return res.json({
+success: true,
+message: 'Huella registrada (modo demo)',
+demo: true
+});
+}
+
+const user = await usersCollection.findOne({ uid: req.user.uid });
+if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+// ✅ Guardar credencial WebAuthn
+await usersCollection.updateOne(
+{ uid: req.user.uid },
+{
+$set: {
+webauthnRegistered: true,
+webauthnCredential: {
+id: credential.id,
+type: credential.type,
+rawId: credential.rawId,
+response: credential.response,
+registeredAt: new Date()
+},
+webauthnRegisteredAt: new Date()
+}
+}
+);
+
+await logAudit('fingerprint_registered', {
+uid: req.user.uid,
+credentialId: credential.id
+});
+
+logger.info(`🔐 Huella digital registrada para: ${req.user.uid}`);
+
+res.json({
+success: true,
+message: '✅ Huella digital registrada exitosamente',
+registeredAt: new Date().toISOString()
+});
+
+} catch (e) {
+logger.error('❌ Fingerprint register error: ' + e.message);
+res.status(500).json({ error: 'Error registrando huella: ' + e.message });
+}
+});
+
+// ✅ VERIFICAR SI EL USUARIO TIENE HUELLA REGISTRADA
+app.get('/api/identity/fingerprint-status', authenticate, async(req, res) => {
+try {
+if (!mongoReady) {
+return res.json({
+success: true,
+registered: false,
+demo: true
+});
+}
+
+const user = await usersCollection.findOne(
+{ uid: req.user.uid },
+{ projection: { webauthnRegistered: 1, webauthnRegisteredAt: 1 } }
+);
+
+res.json({
+success: true,
+registered: user?.webauthnRegistered || false,
+registeredAt: user?.webauthnRegisteredAt || null
+});
+
+} catch (e) {
+res.status(500).json({ error: 'Error verificando estado: ' + e.message });
+}
+});
+
+// ============================================
+// 🚀 AUTO-REGISTRO PREMIUM (CON AVATAR + FIRMA + HUELLA)
+// ============================================
+app.post('/api/register/premium', async(req, res) => {
+try {
+const { nombre, email, password, telefono, avatarBase64, firmaBase64 } = req.body;
+
+// ✅ Validaciones fuertes
+if (!nombre || nombre.trim().length < 3) {
+return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
+}
+if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+return res.status(400).json({ error: 'Email inválido' });
+}
+if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+return res.status(400).json({ error: 'Contraseña débil. Requiere: 8+ caracteres, 1 mayúscula, 1 número, 1 símbolo' });
+}
+
+if (!mongoReady) {
+return res.status(201).json({
+success: true,
+message: '✅ Registro Premium completado (modo demo)',
+demo: true,
+user: {
+uid: 'demo_' + Date.now(),
+email,
+nombre: nombre.trim(),
+tier: 'premium',
+avatar: avatarBase64 || 'generado',
+firma: firmaBase64 ? 'capturada' : 'pendiente'
+}
+});
+}
+
+// ✅ Verificar si el email ya existe
+const existe = await usersCollection.findOne({ email: email.toLowerCase() });
+if (existe) {
+return res.status(400).json({ error: 'Este email ya está registrado. Inicia sesión.' });
+}
+
+// ✅ Crear usuario
+const hashed = await bcrypt.hash(password, 10);
+const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
+const refCode = 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+const newUser = {
+uid,
+email: email.toLowerCase(),
+nombre: nombre.trim(),
+telefono: telefono || null,
+password: hashed,
+refCode,
+tier: 'premium',
+isPremium: true,
+premiumSince: new Date(),
+avatar: avatarBase64 || null,
+firmaDigital: firmaBase64 || null,
+firmaHash: firmaBase64 ? crypto.createHash('sha256').update(firmaBase64).digest('hex') : null,
+webauthnRegistered: false,
+isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()),
+createdAt: new Date(),
+lastLogin: new Date(),
+affiliates: {
+level: 'plata',
+totalReferrals: 0,
+pendingBalance: 0,
+availableBalance: 0,
+withdrawnBalance: 0
+},
+metadata: {
+registrationMethod: 'premium_auto',
+userAgent: req.headers['user-agent'] || 'unknown',
+ip: req.ip
+}
+};
+
+const result = await usersCollection.insertOne(newUser);
+
+// ✅ Crear perfil
+await profilesCollection.insertOne({
+userId: result.insertedId,
+uid: uid,
+displayName: nombre.trim(),
+avatarUrl: avatarBase64 || null,
+bio: 'Usuario Premium de ApiRomwiner Vault',
+isPublic: true,
+identityVerified: true,
+sellerPremium: true,
+premiumSince: new Date(),
+createdAt: new Date()
+});
+
+// ✅ Crear wallet con bono de bienvenida
+await walletCollection.insertOne({
+userId: result.insertedId,
+balance: 5.00,
+currency: 'USD',
+history: [{
+type: 'welcome_bonus',
+amount: 5.00,
+message: '🎁 Bono de bienvenida Premium',
+date: new Date()
+}],
+createdAt: new Date()
+});
+
+// ✅ Crear registro de afiliados
+await affiliatesCollection.insertOne({
+userId: result.insertedId,
+refCode: refCode,
+level: 'plata',
+createdAt: new Date()
+});
+
+// ✅ Generar token JWT
+const token = jwt.sign({
+uid: uid,
+email: email.toLowerCase(),
+isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()),
+tier: 'premium'
+}, JWT_SECRET, { expiresIn: '7d' });
+
+// ✅ Auditoría
+await logAudit('premium_register', {
+uid,
+email: email.toLowerCase(),
+nombre: nombre.trim(),
+hasAvatar: !!avatarBase64,
+hasFirma: !!firmaBase64
+});
+
+logger.info(`🎉 Nuevo usuario Premium registrado: ${email}`);
+
+res.status(201).json({
+success: true,
+message: '✅ ¡Bienvenido a ApiRomwiner Premium!',
+token,
+user: {
+uid,
+email: email.toLowerCase(),
+nombre: nombre.trim(),
+tier: 'premium',
+avatar: avatarBase64 || null,
+firmaDigital: firmaBase64 ? true : false,
+refCode,
+welcomeBonus: 5.00
+},
+nextSteps: [
+'📱 Registra tu huella digital para máxima seguridad',
+'🔐 Activa la multifirma para acciones críticas',
+'📤 Sube tu primer archivo al Vault'
+]
+});
+
+} catch (e) {
+logger.error('❌ Premium register error: ' + e.message);
+res.status(500).json({ error: 'Error en registro Premium: ' + e.message });
+}
+});
+
+// 🔐 REGISTRO DE HUELLA DIGITAL (WEBAUTHN) PARA USUARIOS PREMIUM
+app.post('/api/identity/register-fingerprint', authenticate, async(req, res) => {
+try {
+const { credential } = req.body;
+
+if (!credential) {
+return res.status(400).json({ error: 'Credencial de huella requerida' });
+}
+
+if (!mongoReady) {
+return res.json({
+success: true,
+message: 'Huella registrada (modo demo)',
+demo: true
+});
+}
+
+const user = await usersCollection.findOne({ uid: req.user.uid });
+if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+// ✅ Guardar credencial WebAuthn
+await usersCollection.updateOne(
+{ uid: req.user.uid },
+{
+$set: {
+webauthnRegistered: true,
+webauthnCredential: {
+id: credential.id,
+type: credential.type,
+rawId: credential.rawId,
+response: credential.response,
+registeredAt: new Date()
+},
+webauthnRegisteredAt: new Date()
+}
+}
+);
+
+await logAudit('fingerprint_registered', {
+uid: req.user.uid,
+credentialId: credential.id
+});
+
+logger.info(`🔐 Huella digital registrada para: ${req.user.uid}`);
+
+res.json({
+success: true,
+message: '✅ Huella digital registrada exitosamente',
+registeredAt: new Date().toISOString()
+});
+
+} catch (e) {
+logger.error('❌ Fingerprint register error: ' + e.message);
+res.status(500).json({ error: 'Error registrando huella: ' + e.message });
+}
+});
+
+// ✅ VERIFICAR SI EL USUARIO TIENE HUELLA REGISTRADA
+app.get('/api/identity/fingerprint-status', authenticate, async(req, res) => {
+try {
+if (!mongoReady) {
+return res.json({
+success: true,
+registered: false,
+demo: true
+});
+}
+
+const user = await usersCollection.findOne(
+{ uid: req.user.uid },
+{ projection: { webauthnRegistered: 1, webauthnRegisteredAt: 1 } }
+);
+
+res.json({
+success: true,
+registered: user?.webauthnRegistered || false,
+registeredAt: user?.webauthnRegisteredAt || null
+});
+
+} catch (e) {
+res.status(500).json({ error: 'Error verificando estado: ' + e.message });
+}
+});
+
+// ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL ABSOLUTO
 // ============================================
 async function startServer() {
