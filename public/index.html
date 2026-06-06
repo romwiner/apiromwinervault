@@ -15374,5 +15374,573 @@ document.addEventListener('keydown', (e) => {
 // La función cargarVault() se llamará desde el script principal
 // cuando el usuario inicie sesión
 </script>
+<!-- 🚀 MODAL DE AUTO-REGISTRO PREMIUM -->
+<div id="premiumRegisterModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
+<div style="background:#151922;border:2px solid #00e676;border-radius:16px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,230,118,0.3);">
+
+<!-- Header -->
+<div style="text-align:center;margin-bottom:24px;">
+<div style="font-size:3rem;margin-bottom:8px;">👑</div>
+<h2 style="color:#00e676;margin:0 0 8px 0;font-size:1.5rem;">Registro Premium</h2>
+<p style="color:#8b95a5;font-size:0.9rem;margin:0;">Crea tu cuenta en 4 pasos y obtén acceso inmediato</p>
+</div>
+
+<!-- Indicador de pasos -->
+<div id="premiumStepsIndicator" style="display:flex;justify-content:center;gap:8px;margin-bottom:24px;">
+<div class="premium-step-dot" data-step="1" style="width:40px;height:40px;border-radius:50%;background:#00e676;color:#000;display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;">1</div>
+<div class="premium-step-dot" data-step="2" style="width:40px;height:40px;border-radius:50%;background:#2a2f3a;color:#8b95a5;display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;">2</div>
+<div class="premium-step-dot" data-step="3" style="width:40px;height:40px;border-radius:50%;background:#2a2f3a;color:#8b95a5;display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;">3</div>
+<div class="premium-step-dot" data-step="4" style="width:40px;height:40px;border-radius:50%;background:#2a2f3a;color:#8b95a5;display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;">4</div>
+</div>
+
+<!-- PASO 1: Datos personales -->
+<div id="premiumStep1" class="premium-step">
+<h3 style="color:#fff;margin:0 0 16px 0;">📝 Paso 1: Tus Datos</h3>
+
+<label style="display:block;margin:12px 0 6px;color:#8b95a5;font-size:0.9rem;">Nombre completo *</label>
+<input id="premiumNombre" type="text" placeholder="Ej: Juan Pérez" style="width:100%;padding:12px;border-radius:8px;border:1px solid #2a2f3a;background:#0b0c10;color:#fff;font-size:1rem;" required>
+
+<label style="display:block;margin:12px 0 6px;color:#8b95a5;font-size:0.9rem;">Email *</label>
+<input id="premiumEmail" type="email" placeholder="tu@email.com" style="width:100%;padding:12px;border-radius:8px;border:1px solid #2a2f3a;background:#0b0c10;color:#fff;font-size:1rem;" required>
+
+<label style="display:block;margin:12px 0 6px;color:#8b95a5;font-size:0.9rem;">Teléfono (opcional)</label>
+<input id="premiumTelefono" type="tel" placeholder="+52 123 456 7890" style="width:100%;padding:12px;border-radius:8px;border:1px solid #2a2f3a;background:#0b0c10;color:#fff;font-size:1rem;">
+
+<label style="display:block;margin:12px 0 6px;color:#8b95a5;font-size:0.9rem;">Contraseña *</label>
+<input id="premiumPassword" type="password" placeholder="8+ chars, 1 mayúscula, 1 número, 1 símbolo" style="width:100%;padding:12px;border-radius:8px;border:1px solid #2a2f3a;background:#0b0c10;color:#fff;font-size:1rem;" required>
+<div id="premiumPasswordStrength" style="font-size:0.75rem;color:#8b95a5;margin-top:4px;"></div>
+
+<label style="display:block;margin:12px 0 6px;color:#8b95a5;font-size:0.9rem;">Confirmar contraseña *</label>
+<input id="premiumPasswordConfirm" type="password" placeholder="Repite tu contraseña" style="width:100%;padding:12px;border-radius:8px;border:1px solid #2a2f3a;background:#0b0c10;color:#fff;font-size:1rem;" required>
+
+<div style="margin:16px 0;padding:12px;background:rgba(0,230,118,0.1);border-radius:8px;border-left:3px solid #00e676;">
+<p style="color:#00e676;font-size:0.85rem;margin:0;">🎁 <strong>Bono de bienvenida:</strong> $5.00 USD al registrarte</p>
+</div>
+
+<button onclick="premiumNextStep(2)" style="width:100%;padding:14px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:bold;font-size:1rem;cursor:pointer;margin-top:16px;">
+Siguiente →
+</button>
+</div>
+
+<!-- PASO 2: Avatar -->
+<div id="premiumStep2" class="premium-step hidden">
+<h3 style="color:#fff;margin:0 0 16px 0;">🖼️ Paso 2: Tu Avatar</h3>
+<p style="color:#8b95a5;font-size:0.9rem;margin-bottom:16px;">Sube una foto o usa una generada automáticamente</p>
+
+<div style="text-align:center;margin:20px 0;">
+<img id="premiumAvatarPreview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23151922' stroke='%2300e676' stroke-width='4'/%3E%3Ctext x='50' y='65' font-size='30' fill='%2300e676' text-anchor='middle'%3E👤%3C/text%3E%3C/svg%3E" style="width:150px;height:150px;border-radius:50%;border:3px solid #00e676;object-fit:cover;">
+</div>
+
+<input type="file" id="premiumAvatarInput" accept="image/*" style="display:none;" onchange="premiumHandleAvatar(event)">
+
+<div style="display:flex;gap:12px;margin:16px 0;">
+<button onclick="document.getElementById('premiumAvatarInput').click()" style="flex:1;padding:12px;background:#29b6f6;color:#000;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+📷 Subir foto
+</button>
+<button onclick="premiumGenerateAvatar()" style="flex:1;padding:12px;background:#ab47bc;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+🎨 Generar automático
+</button>
+</div>
+
+<div style="display:flex;gap:12px;margin-top:20px;">
+<button onclick="premiumNextStep(1)" style="flex:1;padding:12px;background:transparent;border:1px solid #8b95a5;color:#8b95a5;border-radius:8px;cursor:pointer;">
+← Atrás
+</button>
+<button onclick="premiumNextStep(3)" style="flex:1;padding:12px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">
+Siguiente →
+</button>
+</div>
+</div>
+
+<!-- PASO 3: Firma digital -->
+<div id="premiumStep3" class="premium-step hidden">
+<h3 style="color:#fff;margin:0 0 16px 0;">✍️ Paso 3: Tu Firma Digital</h3>
+<p style="color:#8b95a5;font-size:0.9rem;margin-bottom:16px;">Dibuja tu firma con el dedo o mouse</p>
+
+<canvas id="premiumSignatureCanvas" width="500" height="200" style="width:100%;height:200px;border:2px solid #2a2f3a;border-radius:8px;background:#000;cursor:crosshair;touch-action:none;"></canvas>
+
+<div style="display:flex;gap:12px;margin:16px 0;">
+<button onclick="premiumClearSignature()" style="flex:1;padding:12px;background:#ff5252;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+🗑️ Borrar
+</button>
+</div>
+
+<div style="display:flex;gap:12px;margin-top:20px;">
+<button onclick="premiumNextStep(2)" style="flex:1;padding:12px;background:transparent;border:1px solid #8b95a5;color:#8b95a5;border-radius:8px;cursor:pointer;">
+← Atrás
+</button>
+<button onclick="premiumNextStep(4)" style="flex:1;padding:12px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">
+Siguiente →
+</button>
+</div>
+</div>
+
+<!-- PASO 4: Huella digital -->
+<div id="premiumStep4" class="premium-step hidden">
+<h3 style="color:#fff;margin:0 0 16px 0;">🔐 Paso 4: Huella Digital</h3>
+<p style="color:#8b95a5;font-size:0.9rem;margin-bottom:16px;">Registra tu huella para máxima seguridad (opcional)</p>
+
+<div style="text-align:center;margin:30px 0;">
+<div style="font-size:5rem;margin-bottom:16px;">👆</div>
+<button onclick="premiumRegisterFingerprint()" id="premiumFingerprintBtn" style="padding:16px 32px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:bold;font-size:1rem;cursor:pointer;">
+🔐 Registrar mi huella
+</button>
+<div id="premiumFingerprintStatus" style="margin-top:16px;color:#8b95a5;font-size:0.9rem;"></div>
+</div>
+
+<div style="padding:12px;background:rgba(41,182,246,0.1);border-radius:8px;border-left:3px solid #29b6f6;margin:16px 0;">
+<p style="color:#29b6f6;font-size:0.85rem;margin:0;">💡 <strong>Nota:</strong> La huella digital te permite iniciar sesión sin contraseña y firmar documentos digitalmente</p>
+</div>
+
+<div style="display:flex;gap:12px;margin-top:20px;">
+<button onclick="premiumNextStep(3)" style="flex:1;padding:12px;background:transparent;border:1px solid #8b95a5;color:#8b95a5;border-radius:8px;cursor:pointer;">
+← Atrás
+</button>
+<button onclick="premiumCompleteRegistration()" id="premiumCompleteBtn" style="flex:2;padding:12px;background:#00e676;color:#000;border:none;border-radius:8px;font-weight:bold;font-size:1rem;cursor:pointer;">
+🎉 Completar Registro
+</button>
+</div>
+</div>
+
+<!-- Botón cerrar -->
+<button onclick="closePremiumRegister()" style="width:100%;padding:10px;background:transparent;border:1px solid #ff5252;color:#ff5252;border-radius:8px;cursor:pointer;margin-top:16px;">
+✕ Cancelar
+</button>
+
+</div>
+</div>
+
+<!-- 🚀 SCRIPT: REGISTRO PREMIUM -->
+<script>
+// Variables globales
+let premiumAvatarBase64 = null;
+let premiumSignatureBase64 = null;
+let premiumFingerprintRegistered = false;
+let premiumSignatureCtx = null;
+let premiumIsDrawing = false;
+
+// Abrir modal de registro premium
+function openPremiumRegister() {
+const modal = document.getElementById('premiumRegisterModal');
+if (modal) {
+modal.classList.remove('hidden');
+premiumNextStep(1);
+premiumInitSignatureCanvas();
+}
+}
+
+// Cerrar modal
+function closePremiumRegister() {
+const modal = document.getElementById('premiumRegisterModal');
+if (modal) {
+modal.classList.add('hidden');
+}
+}
+
+// Navegar entre pasos
+function premiumNextStep(step) {
+// Ocultar todos los pasos
+document.querySelectorAll('.premium-step').forEach(el => el.classList.add('hidden'));
+
+// Mostrar el paso actual
+const currentStep = document.getElementById('premiumStep' + step);
+if (currentStep) {
+currentStep.classList.remove('hidden');
+}
+
+// Actualizar indicador de pasos
+document.querySelectorAll('.premium-step-dot').forEach((dot, index) => {
+if (index + 1 <= step) {
+dot.style.background = '#00e676';
+dot.style.color = '#000';
+} else {
+dot.style.background = '#2a2f3a';
+dot.style.color = '#8b95a5';
+}
+});
+}
+
+// Validar paso 1
+function premiumValidateStep1() {
+const nombre = document.getElementById('premiumNombre').value.trim();
+const email = document.getElementById('premiumEmail').value.trim();
+const password = document.getElementById('premiumPassword').value;
+const passwordConfirm = document.getElementById('premiumPasswordConfirm').value;
+
+if (!nombre || nombre.length < 3) {
+if (typeof showNotification === 'function') showNotification('⚠️ El nombre debe tener al menos 3 caracteres', 'warning');
+else alert('⚠️ El nombre debe tener al menos 3 caracteres');
+return false;
+}
+
+if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+if (typeof showNotification === 'function') showNotification('⚠️ Email inválido', 'warning');
+else alert('⚠️ Email inválido');
+return false;
+}
+
+if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+if (typeof showNotification === 'function') showNotification('⚠️ Contraseña débil. Requiere: 8+ caracteres, 1 mayúscula, 1 número, 1 símbolo', 'warning');
+else alert('⚠️ Contraseña débil. Requiere: 8+ caracteres, 1 mayúscula, 1 número, 1 símbolo');
+return false;
+}
+
+if (password !== passwordConfirm) {
+if (typeof showNotification === 'function') showNotification('⚠️ Las contraseñas no coinciden', 'warning');
+else alert('⚠️ Las contraseñas no coinciden');
+return false;
+}
+
+return true;
+}
+
+// Manejar avatar
+function premiumHandleAvatar(event) {
+const file = event.target.files[0];
+if (!file) return;
+
+if (!file.type.startsWith('image/')) {
+if (typeof showNotification === 'function') showNotification('⚠️ Solo se permiten imágenes', 'warning');
+else alert('⚠️ Solo se permiten imágenes');
+return;
+}
+
+if (file.size > 5 * 1024 * 1024) {
+if (typeof showNotification === 'function') showNotification('⚠️ La imagen debe pesar menos de 5MB', 'warning');
+else alert('⚠️ La imagen debe pesar menos de 5MB');
+return;
+}
+
+const reader = new FileReader();
+reader.onload = (e) => {
+premiumAvatarBase64 = e.target.result;
+document.getElementById('premiumAvatarPreview').src = premiumAvatarBase64;
+if (typeof showNotification === 'function') showNotification('✅ Avatar cargado', 'success');
+};
+reader.readAsDataURL(file);
+}
+
+// Generar avatar automático
+function premiumGenerateAvatar() {
+const nombre = document.getElementById('premiumNombre').value.trim() || 'Usuario';
+const canvas = document.createElement('canvas');
+canvas.width = canvas.height = 200;
+const ctx = canvas.getContext('2d');
+
+// Fondo
+ctx.fillStyle = '#0b0c10';
+ctx.fillRect(0, 0, 200, 200);
+
+// Generar patrón basado en el nombre
+let hash = 0;
+for (let i = 0; i < nombre.length; i++) {
+hash = ((hash << 5) - hash) + nombre.charCodeAt(i);
+hash = hash & hash;
+}
+
+// Dibujar patrón simétrico
+const colors = ['#00e676', '#29b6f6', '#ab47bc', '#ffa726'];
+const cellSize = 20;
+
+for (let y = 0; y < 10; y++) {
+for (let x = 0; x < 5; x++) {
+const val = Math.abs(Math.sin(hash + x * 100 + y) * 10000) % 100;
+if (val > 50) {
+ctx.fillStyle = colors[Math.floor(val / 25) % colors.length];
+ctx.fillRect(x * cellSize, y * cellSize, cellSize - 2, cellSize - 2);
+ctx.fillRect((9 - x) * cellSize, y * cellSize, cellSize - 2, cellSize - 2); // Espejo
+}
+}
+}
+
+// Iniciales del nombre
+const initials = nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+ctx.fillStyle = '#fff';
+ctx.font = 'bold 60px system-ui';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(initials, 100, 100);
+
+premiumAvatarBase64 = canvas.toDataURL();
+document.getElementById('premiumAvatarPreview').src = premiumAvatarBase64;
+
+if (typeof showNotification === 'function') showNotification('🎨 Avatar generado automáticamente', 'success');
+}
+
+// Inicializar canvas de firma
+function premiumInitSignatureCanvas() {
+const canvas = document.getElementById('premiumSignatureCanvas');
+if (!canvas) return;
+
+premiumSignatureCtx = canvas.getContext('2d');
+premiumSignatureCtx.strokeStyle = '#00e676';
+premiumSignatureCtx.lineWidth = 3;
+premiumSignatureCtx.lineCap = 'round';
+premiumSignatureCtx.lineJoin = 'round';
+
+// Mouse events
+canvas.addEventListener('mousedown', (e) => {
+premiumIsDrawing = true;
+const rect = canvas.getBoundingClientRect();
+premiumSignatureCtx.beginPath();
+premiumSignatureCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+});
+
+canvas.addEventListener('mousemove', (e) => {
+if (!premiumIsDrawing) return;
+const rect = canvas.getBoundingClientRect();
+premiumSignatureCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+premiumSignatureCtx.stroke();
+});
+
+canvas.addEventListener('mouseup', () => {
+premiumIsDrawing = false;
+premiumCaptureSignature();
+});
+
+canvas.addEventListener('mouseleave', () => {
+premiumIsDrawing = false;
+});
+
+// Touch events
+canvas.addEventListener('touchstart', (e) => {
+e.preventDefault();
+premiumIsDrawing = true;
+const rect = canvas.getBoundingClientRect();
+const touch = e.touches[0];
+premiumSignatureCtx.beginPath();
+premiumSignatureCtx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+e.preventDefault();
+if (!premiumIsDrawing) return;
+const rect = canvas.getBoundingClientRect();
+const touch = e.touches[0];
+premiumSignatureCtx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+premiumSignatureCtx.stroke();
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+premiumIsDrawing = false;
+premiumCaptureSignature();
+});
+}
+
+// Capturar firma
+function premiumCaptureSignature() {
+const canvas = document.getElementById('premiumSignatureCanvas');
+if (canvas) {
+premiumSignatureBase64 = canvas.toDataURL();
+}
+}
+
+// Borrar firma
+function premiumClearSignature() {
+const canvas = document.getElementById('premiumSignatureCanvas');
+if (canvas && premiumSignatureCtx) {
+premiumSignatureCtx.clearRect(0, 0, canvas.width, canvas.height);
+premiumSignatureBase64 = null;
+if (typeof showNotification === 'function') showNotification('🗑️ Firma borrada', 'info');
+}
+}
+
+// Registrar huella digital
+async function premiumRegisterFingerprint() {
+const btn = document.getElementById('premiumFingerprintBtn');
+const status = document.getElementById('premiumFingerprintStatus');
+
+try {
+btn.disabled = true;
+btn.textContent = '⏳ Registrando...';
+status.textContent = 'Toca tu sensor de huella...';
+
+// Verificar si WebAuthn está disponible
+if (!window.PublicKeyCredential) {
+throw new Error('WebAuthn no está disponible en este navegador');
+}
+
+// Crear credencial
+const challenge = new Uint8Array(32);
+window.crypto.getRandomValues(challenge);
+
+const userId = new Uint8Array(16);
+window.crypto.getRandomValues(userId);
+
+const email = document.getElementById('premiumEmail').value.trim();
+const nombre = document.getElementById('premiumNombre').value.trim();
+
+const credential = await navigator.credentials.create({
+publicKey: {
+challenge: challenge,
+rp: {
+name: 'ApiRomwiner Vault',
+id: window.location.hostname
+},
+user: {
+id: userId,
+name: email,
+displayName: nombre
+},
+pubKeyCredParams: [
+{ type: 'public-key', alg: -7 }, // ES256
+{ type: 'public-key', alg: -257 } // RS256
+],
+authenticatorSelection: {
+authenticatorAttachment: 'platform', // Solo biometría del dispositivo
+userVerification: 'required',
+residentKey: 'preferred'
+},
+timeout: 60000
+}
+});
+
+if (!credential) {
+throw new Error('No se pudo crear la credencial');
+}
+
+// Guardar en el servidor
+const token = localStorage.getItem('token');
+const res = await fetch('/api/identity/register-fingerprint', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'Authorization': 'Bearer ' + token
+},
+body: JSON.stringify({
+credential: {
+id: credential.id,
+type: credential.type,
+rawId: Array.from(new Uint8Array(credential.rawId)),
+response: {
+attestationObject: Array.from(new Uint8Array(credential.response.attestationObject)),
+clientDataJSON: Array.from(new Uint8Array(credential.response.clientDataJSON))
+}
+}
+})
+});
+
+const data = await res.json();
+
+if (data.success) {
+premiumFingerprintRegistered = true;
+status.textContent = '✅ ¡Huella registrada exitosamente!';
+status.style.color = '#00e676';
+btn.textContent = '✅ Huella registrada';
+btn.style.background = '#66bb6a';
+
+if (typeof showNotification === 'function') showNotification('🔐 Huella digital registrada', 'success');
+} else {
+throw new Error(data.error || 'Error del servidor');
+}
+
+} catch (e) {
+console.error('❌ Fingerprint error:', e);
+status.textContent = '❌ ' + (e.message || 'Error registrando huella');
+status.style.color = '#ff5252';
+btn.disabled = false;
+btn.textContent = '🔐 Registrar mi huella';
+
+if (typeof showNotification === 'function') showNotification('❌ ' + e.message, 'error');
+}
+}
+
+// Completar registro
+async function premiumCompleteRegistration() {
+if (!premiumValidateStep1()) return;
+
+const btn = document.getElementById('premiumCompleteBtn');
+btn.disabled = true;
+btn.textContent = '⏳ Creando cuenta...';
+
+try {
+const nombre = document.getElementById('premiumNombre').value.trim();
+const email = document.getElementById('premiumEmail').value.trim();
+const telefono = document.getElementById('premiumTelefono').value.trim();
+const password = document.getElementById('premiumPassword').value;
+
+const res = await fetch('/api/register/premium', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+nombre,
+email,
+telefono,
+password,
+avatarBase64: premiumAvatarBase64,
+firmaBase64: premiumSignatureBase64
+})
+});
+
+const data = await res.json();
+
+if (data.success) {
+// Guardar token
+localStorage.setItem('token', data.token);
+localStorage.setItem('userEmail', data.user.email);
+localStorage.setItem('userTier', data.user.tier);
+
+if (typeof showNotification === 'function') {
+showNotification('🎉 ¡Bienvenido a ApiRomwiner Premium!', 'success');
+} else {
+alert('🎉 ¡Bienvenido a ApiRomwiner Premium!\n\n🎁 Bono de bienvenida: $' + data.user.welcomeBonus + ' USD');
+}
+
+// Cerrar modal
+closePremiumRegister();
+
+// Recargar página para mostrar dashboard
+setTimeout(() => {
+window.location.reload();
+}, 1500);
+
+} else {
+throw new Error(data.error || 'Error en el registro');
+}
+
+} catch (e) {
+console.error('❌ Registration error:', e);
+if (typeof showNotification === 'function') {
+showNotification('❌ ' + e.message, 'error');
+} else {
+alert('❌ ' + e.message);
+}
+btn.disabled = false;
+btn.textContent = '🎉 Completar Registro';
+}
+}
+
+// Validación de contraseña en tiempo real
+document.addEventListener('DOMContentLoaded', () => {
+const passwordInput = document.getElementById('premiumPassword');
+const strengthDiv = document.getElementById('premiumPasswordStrength');
+
+if (passwordInput && strengthDiv) {
+passwordInput.addEventListener('input', () => {
+const pass = passwordInput.value;
+let strength = 0;
+let feedback = [];
+
+if (pass.length >= 8) strength++;
+else feedback.push('8+ caracteres');
+
+if (/[A-Z]/.test(pass)) strength++;
+else feedback.push('1 mayúscula');
+
+if (/[0-9]/.test(pass)) strength++;
+else feedback.push('1 número');
+
+if (/[^a-zA-Z0-9]/.test(pass)) strength++;
+else feedback.push('1 símbolo');
+
+const colors = ['#ff5252', '#ffa726', '#ffd54f', '#66bb6a', '#00e676'];
+const labels = ['Muy débil', 'Débil', 'Regular', 'Fuerte', 'Muy fuerte'];
+
+strengthDiv.textContent = feedback.length > 0 ? 'Requiere: ' + feedback.join(', ') : labels[strength];
+strengthDiv.style.color = colors[strength];
+});
+}
+});
+</script>
 </body>
 </html>
