@@ -1,0 +1,166 @@
+/* ============================================
+   📁 ARCHIVO: public/style.css
+   📝 Estilos para Romwiner Vault
+   ============================================ */
+
+/* --- Estilos Base --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #f4f6f8;
+  color: #333;
+  padding: 20px;
+  line-height: 1.6;
+}
+
+/* --- Indicador de Estado de la API --- */
+#apiStatus {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#apiStatus.online {
+  background-color: #4CAF50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+
+#apiStatus.offline {
+  background-color: #F44336;
+  box-shadow: 0 0 8px rgba(244, 67, 54, 0.6);
+}
+
+#statusText {
+  font-size: 14px;
+  font-weight: 500;
+  vertical-align: middle;
+  color: #555;
+}
+
+/* --- Insignia de Nivel (Tier) --- */
+#userTierBadge {
+  display: inline-block;
+  margin: 15px 0;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tier-personal {
+  background-color: #2196F3;
+  color: white;
+}
+
+.tier-enterprise {
+  background-color: #FF9800;
+  color: white;
+}
+
+/* --- Barra de Cuota (Quota) --- */
+#quotaDisplay {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  max-width: 400px;
+}
+
+#quotaFill {
+  height: 10px;
+  background-color: #4CAF50;
+  border-radius: 5px;
+  transition: width 0.5s ease-in-out, background-color 0.3s ease;
+  margin-bottom: 10px;
+}
+
+#quotaText {
+  font-size: 14px;
+  color: #666;
+  display: block;
+}
+
+#quotaText.quota-warning {
+  color: #FF9800;
+  font-weight: 600;
+}
+
+#quotaText.quota-critical {
+  color: #F44336;
+  font-weight: 700;
+}
+
+/* Cuando está crítico o en advertencia, cambiar el color de la barra también */
+#quotaDisplay:has(.quota-warning) #quotaFill {
+  background-color: #FF9800;
+}
+
+#quotaDisplay:has(.quota-critical) #quotaFill {
+  background-color: #F44336;
+}
+
+/* --- Notificaciones Flotantes --- */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.notification-success {
+  background-color: #4CAF50;
+}
+
+.notification-error {
+  background-color: #F44336;
+}
+
+.notification-info {
+  background-color: #2196F3;
+}
+
+/* --- Utilidades --- */
+.hidden {
+  display: none !important;
+}
+
+/* --- Animaciones --- */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
