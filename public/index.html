@@ -19326,7 +19326,7 @@ async function exportFinancialData(formato = 'csv') {
   }
 }
 </script>
-
+<script>
 // ==========================================
 // 📈 FUNCIÓN: DIBUJAR GRÁFICO DE LÍNEAS (MEJORADO)
 // ==========================================
@@ -19387,7 +19387,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
     canvas.setAttribute('aria-label', 'Gráfico sin datos');
     return;
   }
-
+<script>
   // ✅ Calcular rangos con protección contra NaN
   const maxVal = Math.max(...datosFinal);
   const minVal = Math.min(0, ...datosFinal);
@@ -19423,7 +19423,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
     ctx.textAlign = 'right';
     ctx.fillText('$' + valor.toFixed(0), padding - 5, y + 3);
   }
-
+<script>
   // ✅ Protección contra división por cero
   const stepX = datosFinal.length > 1 
     ? (width - 2 * padding) / (datosFinal.length - 1) 
@@ -19458,7 +19458,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
     else ctx.lineTo(x, y);
   });
   ctx.stroke();
-
+<script>
   // Puntos con efecto hover (más grandes)
   ctx.fillStyle = color;
   const puntosCoords = [];
@@ -19491,7 +19491,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
       ctx.fillText(displayLabel, x, height - padding + 15);
     }
   });
-
+<script>
   // ✅ Tooltip interactivo al pasar el mouse
   canvas.onmousemove = (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -19524,6 +19524,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
   console.log(`📈 Gráfico de líneas dibujado: ${datosFinal.length} puntos`);
 }
 <script>
+ <script>       
 // ==========================================
 // 🥧 FUNCIÓN: DIBUJAR GRÁFICO DE DONA (MEJORADO)
 // ==========================================
@@ -19533,7 +19534,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
     console.warn('⚠️ Canvas no encontrado:', canvasId);
     return;
   }
-
+<script>
   // ✅ Validación robusta de entrada
   if (!Array.isArray(labels) || !Array.isArray(datos)) {
     console.warn('⚠️ labels o datos no son arrays');
@@ -19557,7 +19558,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
   );
 
   const ctx = canvas.getContext('2d');
-  
+  <script>
   // ✅ Manejar redimensionamiento con devicePixelRatio
   const dpr = window.devicePixelRatio || 1;
   const displayWidth = canvas.offsetWidth || 400;
@@ -19589,7 +19590,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
   }
 
   const total = datosFinal.reduce((sum, val) => sum + val, 0);
-  
+  <script>
   // ✅ Protección contra total = 0 (división por cero)
   if (total === 0) {
     ctx.fillStyle = '#8b95a5';
@@ -19599,13 +19600,13 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
     canvas.setAttribute('aria-label', 'Gráfico sin ventas');
     return;
   }
-
+<script>
   // ✅ Accesibilidad ARIA
   canvas.setAttribute('role', 'img');
   canvas.setAttribute('aria-label', 
     `Gráfico de dona: ${labelsFinal.length} categorías, total ${total}`
   );
-
+<script>
   // ✅ Dibujar segmentos con animación
   let startAngle = -Math.PI / 2;
   const segmentos = []; // Guardar coords para tooltip
@@ -19651,7 +19652,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
   ctx.fillStyle = '#8b95a5';
   ctx.font = '11px system-ui';
   ctx.fillText('Total', centerX, centerY + 12);
-
+<script>
   // ✅ Leyenda mejorada con manejo de muchas categorías
   const legendY = height - 25;
   const maxLabelsInLegend = Math.min(labelsFinal.length, 6); // Máximo 6 en leyenda
@@ -19677,7 +19678,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
       : labelText;
     ctx.fillText(displayLabel, x - 15, legendY + 3);
   });
-
+<script>
   // ✅ Indicador si hay más categorías
   if (labelsFinal.length > maxLabelsInLegend) {
     ctx.fillStyle = '#6a7585';
@@ -19689,7 +19690,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
       legendY + 15
     );
   }
-
+<script>
   // ✅ Tooltip interactivo al pasar el mouse
   canvas.onmousemove = (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -19724,7 +19725,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
 
   console.log(`🥧 Gráfico de dona dibujado: ${labelsFinal.length} categorías, total ${total}`);
 }
-<script>                                         
+<script>                                        
 // ==========================================
 // 🛡️ HELPER: VERIFICAR QUE escapeHTML EXISTE
 // ==========================================
@@ -19739,6 +19740,7 @@ if (typeof escapeHTML !== 'function') {
       .replace(/'/g, '&#39;');
   }
 }
+<script>          
 // ==========================================
 // 🛡️ HELPER: FORMATEAR MONEDA SEGURO
 // ==========================================
@@ -19747,7 +19749,7 @@ function formatearMoneda(valor) {
   if (isNaN(num)) return '$0.00';
   return '$' + num.toFixed(2);
 }
-
+<script>
 // ==========================================
 // 🛡️ HELPER: FORMATEAR FECHA SEGURO
 // ==========================================
