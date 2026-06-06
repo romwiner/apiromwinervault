@@ -3600,6 +3600,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+<script>  
 // === AUTH ===
 
 // ✅ Helper para sanitizar email antes de usar en logs/almacenamiento (previene XSS)
@@ -11664,7 +11665,7 @@ async function exportFinancialData(formato = 'csv') {
   }
 }
 </script>
-
+ <script> 
 // ==========================================
 // 📈 FUNCIÓN: DIBUJAR GRÁFICO DE LÍNEAS (MEJORADO)
 // ==========================================
@@ -11681,7 +11682,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
     labels = [];
     datos = [];
   }
-
+ <script> 
   // ✅ Filtrar datos inválidos (NaN, null, undefined)
   const datosLimpios = datos.map(d => {
     const n = Number(d);
@@ -11715,7 +11716,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
   const padding = 40;
 
   ctx.clearRect(0, 0, width, height);
-
+ <script> 
   // ✅ Mensaje si no hay datos
   if (datosFinal.length === 0) {
     ctx.fillStyle = '#8b95a5';
@@ -11730,7 +11731,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
   const maxVal = Math.max(...datosFinal);
   const minVal = Math.min(0, ...datosFinal);
   const rango = maxVal - minVal || 1;
-
+ <script> 
   // ✅ Accesibilidad ARIA
   canvas.setAttribute('role', 'img');
   canvas.setAttribute('aria-label', 
@@ -11761,7 +11762,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
     ctx.textAlign = 'right';
     ctx.fillText('$' + valor.toFixed(0), padding - 5, y + 3);
   }
-
+ <script> 
   // ✅ Protección contra división por cero
   const stepX = datosFinal.length > 1 
     ? (width - 2 * padding) / (datosFinal.length - 1) 
@@ -11782,7 +11783,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
   ctx.lineTo(padding + (datosFinal.length - 1) * stepX, height - padding);
   ctx.closePath();
   ctx.fill();
-
+ <script> 
   // Línea principal con suavizado
   ctx.strokeStyle = color;
   ctx.lineWidth = 2.5;
@@ -11796,7 +11797,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
     else ctx.lineTo(x, y);
   });
   ctx.stroke();
-
+ <script> 
   // Puntos con efecto hover (más grandes)
   ctx.fillStyle = color;
   const puntosCoords = [];
@@ -11812,7 +11813,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
     ctx.stroke();
     puntosCoords.push({ x, y, valor, label: labelsFinal[i] });
   });
-
+ <script> 
   // Etiquetas X (solo algunas para no saturar)
   ctx.fillStyle = '#8b95a5';
   ctx.font = '10px system-ui';
@@ -11829,7 +11830,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
       ctx.fillText(displayLabel, x, height - padding + 15);
     }
   });
-
+ <script> 
   // ✅ Tooltip interactivo al pasar el mouse
   canvas.onmousemove = (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -11861,7 +11862,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
 
   console.log(`📈 Gráfico de líneas dibujado: ${datosFinal.length} puntos`);
 }
-
+<script> 
 // ==========================================
 // 🥧 FUNCIÓN: DIBUJAR GRÁFICO DE DONA (MEJORADO)
 // ==========================================
@@ -11871,14 +11872,14 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
     console.warn('⚠️ Canvas no encontrado:', canvasId);
     return;
   }
-
+ <script> 
   // ✅ Validación robusta de entrada
   if (!Array.isArray(labels) || !Array.isArray(datos)) {
     console.warn('⚠️ labels o datos no son arrays');
     labels = [];
     datos = [];
   }
-
+ <script> 
   // ✅ Filtrar datos inválidos y negativos
   const datosLimpios = datos.map(d => {
     const n = Number(d);
@@ -12027,7 +12028,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
       legendY + 15
     );
   }
-
+ <script>                                        
   // ✅ Tooltip interactivo al pasar el mouse
   canvas.onmousemove = (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -12062,6 +12063,8 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
 
   console.log(`🥧 Gráfico de dona dibujado: ${labelsFinal.length} categorías, total ${total}`);
 }
+                                                                                
+<script>                                        
 // ==========================================
 // 🛡️ HELPER: VERIFICAR QUE escapeHTML EXISTE
 // ==========================================
@@ -12075,8 +12078,8 @@ if (typeof escapeHTML !== 'function') {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
-}
-
+}       
+<script>
 // ==========================================
 // 🛡️ HELPER: FORMATEAR MONEDA SEGURO
 // ==========================================
@@ -12085,7 +12088,7 @@ function formatearMoneda(valor) {
   if (isNaN(num)) return '$0.00';
   return '$' + num.toFixed(2);
 }
-
+<script>
 // ==========================================
 // 🛡️ HELPER: FORMATEAR FECHA SEGURO
 // ==========================================
@@ -12099,7 +12102,7 @@ function formatearFecha(fecha) {
     return 'Fecha inválida';
   }
 }
-
+<script>
 // ==========================================
 // 🏆 FUNCIÓN: RENDERIZAR TOP PRODUCTOS (MEJORADA)
 // ==========================================
@@ -12181,7 +12184,7 @@ function renderTopProductos(productos) {
 
   console.log(`🏆 Top productos renderizado: ${Math.min(productos.length, 5)} items`);
 }
-
+<script>
 // ==========================================
 // 📅 FUNCIÓN: RENDERIZAR TIMELINE DE AFILIADOS (MEJORADA)
 // ==========================================
@@ -12291,7 +12294,7 @@ function renderAffiliateTimeline(timeline) {
 
   console.log(`📅 Timeline de afiliados renderizado: ${Math.min(timeline.length, 10)} de ${timeline.length} eventos`);
 }
-
+<script>
 // ==========================================
 // 🛡️ HELPER: SANITIZAR ID (si no existe)
 // ==========================================
@@ -12317,7 +12320,7 @@ if (typeof handleSessionExpired !== 'function') {
     setTimeout(() => window.location.reload(), 1500);
   }
 }
-
+<script>
 // ==========================================
 // 📥 FUNCIÓN: EXPORTAR DATOS FINANCIEROS (CORREGIDA)
 // ==========================================
@@ -12427,7 +12430,7 @@ async function exportFinancialData(formato = 'csv') {
     }
   }
 }
-
+<script>
 // ==========================================
 // 📦 FUNCIÓN PARA CARGAR Y MOSTRAR EL VAULT (CORREGIDA)
 // ==========================================
@@ -12606,7 +12609,7 @@ async function cargarVault() {
     `;
   }
 }
-
+<script>
 // ==========================================
 // 🛡️ HELPER: SANITIZAR ID (previene XSS)
 // ==========================================
@@ -12628,7 +12631,7 @@ function handleSessionExpired() {
   }
   setTimeout(() => window.location.reload(), 1500);
 }
-
+<script>
 // ==========================================
 // 👁️ FUNCIÓN: VER ARCHIVO (VISOR MULTIMEDIA CORREGIDO)
 // ==========================================
@@ -12771,7 +12774,8 @@ async function verArchivo(id) {
             📥 Descargar archivo
           </button>
         </div>
-      `;
+
+       <script>   
       // ✅ Usar addEventListener en lugar de onclick inline (más seguro)
       const btnDescargar = contenido.querySelector('[data-action="descargar"]');
       if (btnDescargar) {
@@ -12789,7 +12793,7 @@ async function verArchivo(id) {
     contenido.innerHTML = `<p style="color:#ff5252;">❌ ${escapeHTML(mensajeError)}</p>`;
   }
 }
-
+<script>
 // ==========================================
 // ❌ FUNCIÓN: CERRAR VISOR
 // ==========================================
@@ -12812,7 +12816,7 @@ function cerrarMedia() {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') cerrarMedia();
 });
-
+<script>
 // ==========================================
 // 📥 FUNCIÓN: DESCARGAR ARCHIVO (CORREGIDA)
 // ==========================================
@@ -12911,7 +12915,7 @@ async function descargarArchivo(id) {
     }
   }
 }
-
+<script>
 // ==========================================
 // 🗑️ FUNCIÓN: ELIMINAR ARCHIVO (CORREGIDA)
 // ==========================================
@@ -12988,8 +12992,7 @@ async function eliminarArchivo(id) {
     }
   }
 }
-
-
+<script>
 // ==========================================
 // 🚀 INICIAR CUANDO CARGUE LA PÁGINA
 // ==========================================
