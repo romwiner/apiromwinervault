@@ -4357,7 +4357,7 @@ function sanitizeEmail(email) {
   return clean.substring(0, 255);
 }
 
-// 🔐 Scroll a auth con fallback y accesibilidad
+// 🔐 Scroll a auth con fallback y accesibilidad (✅ CORREGIDO)
 function scrollToAuth() {
   const authSection = document.getElementById('authSection');
   if (!authSection) {
@@ -4365,6 +4365,11 @@ function scrollToAuth() {
     return;
   }
   
+  // ✅ 1. HACERLO VISIBLE (¡ESTAS 2 LÍNEAS ERAN LO QUE FALTABA!)
+  authSection.style.display = 'block';
+  authSection.classList.remove('hidden');
+  
+  // ✅ 2. Hacer scroll suave hacia la sección
   try {
     authSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (e) {
@@ -4372,11 +4377,22 @@ function scrollToAuth() {
     authSection.scrollIntoView(true);
   }
   
+  // ✅ 3. Enfocar el campo de email automáticamente (mejor UX)
+  setTimeout(() => {
+    const emailInput = document.getElementById('email');
+    if (emailInput) {
+      emailInput.focus();
+      // Cambiar título para que el usuario sepa qué hacer
+      const title = authSection.querySelector('h2');
+      if (title) title.textContent = '✨ Crea tu cuenta o inicia sesión';
+    }
+  }, 500);
+  
   // ✅ Feedback de accesibilidad
   authSection.setAttribute('tabindex', '-1');
   authSection.focus?.({ preventScroll: true });
   
-  log('📜 Scroll a sección de auth', 'info');
+  log('📜 Sección de auth mostrada correctamente', 'success');
 }
 
 // === DASHBOARD: REFRESH MEJORADO CON SEGURIDAD ===
