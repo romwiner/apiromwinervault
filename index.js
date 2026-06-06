@@ -315,6 +315,24 @@ app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+// ✅ Servir archivos estáticos (frontend) en /app
+app.use('/app', express.static('public'));
+
+app.get('/', (req, res) => {
+  res.redirect('/app');
+});
+
+app.get('/api/status', (req, res) => {
+  res.json({
+    success: true,
+    status: 'online',
+    message: 'ApiRomwiner Vault API',
+    version: '1.0',
+    database: 'MongoDB',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // ✅ Servir frontend en /app
 app.use('/app', express.static('public'));
 
