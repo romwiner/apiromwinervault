@@ -315,7 +315,13 @@ app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+// ✅ Servir frontend en /app
+app.use('/app', express.static('public'));
 
+// ✅ Redirigir raíz al frontend
+app.get('/', (req, res) => {
+  res.redirect('/app');
+});
 app.get('/api/status', (req, res) => {
   res.json({
     success: true,
