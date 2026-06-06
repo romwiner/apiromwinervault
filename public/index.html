@@ -8593,6 +8593,7 @@ async function login(event) {
 
 })();
 </script>
+ <script> 
   // ============================================
   // 🔓 FUNCIÓN logout() MEJORADA
   // ============================================
@@ -8652,7 +8653,8 @@ async function login(event) {
     
     return true;
   }
-
+</body>script>
+<script>
   // ============================================
   // 🔍 FUNCIÓN esAdminVisual() CON ADVERTENCIA
   // ============================================
@@ -13666,7 +13668,7 @@ async function login(event) {
 
 })();
 </script>
-  
+  <script>
   // ✅ Validar extensión de archivo
   if (!file.name.toLowerCase().endsWith('.json')) {
     showNotification('⚠️ El archivo debe tener extensión .json', 'error');
@@ -19521,7 +19523,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
 
   console.log(`📈 Gráfico de líneas dibujado: ${datosFinal.length} puntos`);
 }
-
+<script>
 // ==========================================
 // 🥧 FUNCIÓN: DIBUJAR GRÁFICO DE DONA (MEJORADO)
 // ==========================================
@@ -19722,6 +19724,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
 
   console.log(`🥧 Gráfico de dona dibujado: ${labelsFinal.length} categorías, total ${total}`);
 }
+<script>                                         
 // ==========================================
 // 🛡️ HELPER: VERIFICAR QUE escapeHTML EXISTE
 // ==========================================
@@ -19736,7 +19739,6 @@ if (typeof escapeHTML !== 'function') {
       .replace(/'/g, '&#39;');
   }
 }
-
 // ==========================================
 // 🛡️ HELPER: FORMATEAR MONEDA SEGURO
 // ==========================================
@@ -19759,7 +19761,7 @@ function formatearFecha(fecha) {
     return 'Fecha inválida';
   }
 }
-
+<script>
 // ==========================================
 // 🏆 FUNCIÓN: RENDERIZAR TOP PRODUCTOS (MEJORADA)
 // ==========================================
@@ -19841,7 +19843,7 @@ function renderTopProductos(productos) {
 
   console.log(`🏆 Top productos renderizado: ${Math.min(productos.length, 5)} items`);
 }
-
+<script>
 // ==========================================
 // 📅 FUNCIÓN: RENDERIZAR TIMELINE DE AFILIADOS (MEJORADA)
 // ==========================================
@@ -19951,7 +19953,7 @@ function renderAffiliateTimeline(timeline) {
 
   console.log(`📅 Timeline de afiliados renderizado: ${Math.min(timeline.length, 10)} de ${timeline.length} eventos`);
 }
-
+<script>
 // ==========================================
 // 🛡️ HELPER: SANITIZAR ID (si no existe)
 // ==========================================
@@ -19961,7 +19963,7 @@ if (typeof sanitizeId !== 'function') {
     return String(id).replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
   }
 }
-
+<script>
 // ==========================================
 // 🛡️ HELPER: MANEJAR SESIÓN EXPIRADA (si no existe)
 // ==========================================
@@ -19977,7 +19979,7 @@ if (typeof handleSessionExpired !== 'function') {
     setTimeout(() => window.location.reload(), 1500);
   }
 }
-
+<script>
 // ==========================================
 // 📥 FUNCIÓN: EXPORTAR DATOS FINANCIEROS (CORREGIDA)
 // ==========================================
@@ -20087,7 +20089,7 @@ async function exportFinancialData(formato = 'csv') {
     }
   }
 }
-
+<script>
 // ==========================================
 // 📦 FUNCIÓN PARA CARGAR Y MOSTRAR EL VAULT (CORREGIDA)
 // ==========================================
@@ -20266,7 +20268,7 @@ async function cargarVault() {
     `;
   }
 }
-
+<script>
 // ==========================================
 // 🛡️ HELPER: SANITIZAR ID (previene XSS)
 // ==========================================
@@ -20288,7 +20290,7 @@ function handleSessionExpired() {
   }
   setTimeout(() => window.location.reload(), 1500);
 }
-
+<script>
 // ==========================================
 // 👁️ FUNCIÓN: VER ARCHIVO (VISOR MULTIMEDIA CORREGIDO)
 // ==========================================
@@ -20378,7 +20380,8 @@ async function verArchivo(id) {
              alt="${escapeHTML(archivo.titulo)}" 
              style="max-width:100%;max-height:70vh;display:block;margin:0 auto;border-radius:8px;">
       `;
-    }
+    <script>}
+          
     // 🎬 VIDEOS
     else if (tipo.startsWith('video/')) {
       contenido.innerHTML = `
@@ -20449,7 +20452,7 @@ async function verArchivo(id) {
     contenido.innerHTML = `<p style="color:#ff5252;">❌ ${escapeHTML(mensajeError)}</p>`;
   }
 }
-
+<script>
 // ==========================================
 // ❌ FUNCIÓN: CERRAR VISOR
 // ==========================================
@@ -20472,7 +20475,7 @@ function cerrarMedia() {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') cerrarMedia();
 });
-
+<script>
 // ==========================================
 // 📥 FUNCIÓN: DESCARGAR ARCHIVO (CORREGIDA)
 // ==========================================
@@ -20571,6 +20574,7 @@ async function descargarArchivo(id) {
     }
   }
 }
+ <script>     
 // ==========================================
 // 🗑️ FUNCIÓN: ELIMINAR ARCHIVO (CORREGIDA)
 // ==========================================
@@ -20671,7 +20675,7 @@ async function eliminarArchivo(id) {
     mostrarMensajeSeguro('❌ ' + msg, 'error');
   }
 }
-
+<script>
 // ==========================================
 // 🔒 HELPER: Mostrar mensaje de forma segura
 // ==========================================
@@ -20698,7 +20702,7 @@ function mostrarMensajeSeguro(mensaje, tipo) {
                 .replace(/&#39;/g, "'"));
   }
 }
-
+<script>
 // ==========================================
 // 🔒 HELPER: Extraer mensaje de error de forma segura
 // ==========================================
@@ -20727,7 +20731,7 @@ async function extraerMensajeError(resp) {
     return `Error ${resp.status}: ${resp.statusText || 'desconocido'}`.substring(0, 100);
   }
 }
-
+<script>
 // ==========================================
 // 🚀 INICIAR CUANDO CARGUE LA PÁGINA
 // ==========================================
