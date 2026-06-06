@@ -317,7 +317,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/status', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.json({
+    success: true,
+    status: 'online',
+    message: 'ApiRomwiner Vault API',
+    version: '1.0',
+    database: 'MongoDB',
+    timestamp: new Date().toISOString()
+  });
 });
 // 📁 UPLOADS
 const uploadDir = path.join(__dirname, 'uploads');
