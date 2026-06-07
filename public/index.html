@@ -1332,32 +1332,244 @@ img, canvas, video, audio {
   .glass { background: #fff; border: 1px solid #000; box-shadow: none; }
   button, .notification { display: none !important; }
 }
+  /* === SUCCESS VIEW - ESTILOS SEGUROS === */
+#successView {
+  animation: fadeIn 0.4s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+#successView::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #00e676, #29b6f6, #ab47bc);
+  animation: slideGradient 3s linear infinite;
+}
+
+@keyframes slideGradient {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.success-subtitle {
+  color: #00e676;
+  font-weight: 600;
+  margin: 12px 0;
+}
+
+.success-info-box {
+  margin: 16px 0;
+  padding: 12px;
+  background: rgba(0, 230, 118, 0.1);
+  border-radius: 8px;
+  border-left: 3px solid #00e676;
+}
+
+.success-info-title {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.success-info-list {
+  margin: 8px 0 0 16px;
+  font-size: 0.85rem;
+  color: #b0b8c4;
+}
+
+.success-info-list li {
+  margin-bottom: 4px;
+}
+
+.success-actions {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.success-actions button {
+  flex: 1;
+  min-width: 140px;
+  position: relative;
+  overflow: hidden;
+}
+
+.success-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.success-actions button.loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  100% { left: 100%; }
+}
+
+.success-status-box {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.success-status-box.success {
+  border-color: rgba(0, 230, 118, 0.3);
+  background: rgba(0, 230, 118, 0.05);
+}
+
+.success-status-box.error {
+  border-color: rgba(255, 82, 82, 0.3);
+  background: rgba(255, 82, 82, 0.05);
+}
+
+.success-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-pending {
+  background: rgba(255, 167, 38, 0.2);
+  color: #ffa726;
+}
+
+.status-success {
+  background: rgba(0, 230, 118, 0.2);
+  color: #00e676;
+}
+
+.status-error {
+  background: rgba(255, 82, 82, 0.2);
+  color: #ff5252;
+}
+
+.success-status-response {
+  margin: 6px 0 0;
+  color: #00e676;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-size: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.success-diagnostic-log {
+  margin-top: 10px;
+  padding: 8px;
+  background: #0a0a0a;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.7rem;
+  max-height: 100px;
+  overflow-y: auto;
+  color: #6a7585;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.success-diagnostic-log:empty {
+  display: none;
+}
+
+.diagnostic-entry {
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.diagnostic-entry:last-child {
+  border-bottom: none;
+}
+
+.diagnostic-entry.success { color: #00e676; }
+.diagnostic-entry.error { color: #ff5252; }
+.diagnostic-entry.warning { color: #ffa726; }
+.diagnostic-entry.info { color: #8ab4f8; }
+
+/* Accesibilidad: foco visible */
+#successView button:focus-visible {
+  outline: 2px solid #00e676;
+  outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .success-actions {
+    flex-direction: column;
+  }
+  .success-actions button {
+    width: 100%;
+  }
+}
 </style>
  </head>
 <body>
-  <!-- 🎉 VISTA DE ÉXITO: Confirma que el frontend está cargando -->
-  <div class="glass green fade-in" id="successView">
-    <h1>🎉 ¡ApiRomwiner Vault está vivo!</h1>
-    <p style="color:#00e676;font-weight:600;margin:12px 0">✅ El servidor encontró <code>public/index.html</code></p>
-    <p>Si ves esto, tu frontend está bien ubicado y cargando correctamente.</p>
-    
-    <div style="margin:16px 0;padding:12px;background:rgba(0,230,118,0.1);border-radius:8px;border-left:3px solid #00e676">
-      <p style="margin:0;font-size:0.9rem"><strong>Próximos pasos:</strong></p>
-      <ol style="margin:8px 0 0 16px;font-size:0.85rem;color:#b0b8c4">
-        <li>Conecta tu MongoDB en Render → Environment → MONGODB_URI</li>
-        <li>O usa el modo demo para probar funciones</li>
-        <li>Sube tu primer archivo a 🗄️ Mi Vault</li>
-      </ol>
-    </div>
-    
-    <button onclick="checkAPI()">🔍 Verificar conexión al API</button>
-    <button class="btn-sec" onclick="window.location.reload()">🔄 Recargar página</button>
-    
-    <div id="apiStatus" style="margin-top:12px;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.8rem;display:none">
-      <strong>Estado del API:</strong>
-      <pre id="apiResponse" style="margin:6px 0 0;color:#00e676;white-space:pre-wrap;font-family:monospace"></pre>
-    </div>
+ <!-- 🎉 VISTA DE ÉXITO: Diagnóstico inicial (solo visible sin sesión) -->
+<div class="glass green fade-in hidden" id="successView" role="region" aria-labelledby="successTitle" aria-live="polite">
+  <h1 id="successTitle">🎉 ¡ApiRomwiner Vault está vivo!</h1>
+  <p class="success-subtitle">✅ El servidor encontró <code>public/index.html</code></p>
+  <p>Si ves esto, tu frontend está bien ubicado y cargando correctamente.</p>
+  
+  <div class="success-info-box">
+    <p class="success-info-title"><strong>Próximos pasos:</strong></p>
+    <ol class="success-info-list">
+      <li>Conecta tu MongoDB en Render → Environment → MONGODB_URI</li>
+      <li>O usa el modo demo para probar funciones</li>
+      <li>Sube tu primer archivo a 🗄️ Mi Vault</li>
+    </ol>
   </div>
+  
+  <div class="success-actions">
+    <button id="btnCheckAPI" type="button" class="btn-primary" aria-label="Verificar conexión con el servidor API">
+      🔍 Verificar conexión al API
+    </button>
+    <button id="btnReload" type="button" class="btn-sec" aria-label="Recargar la página completa">
+      🔄 Recargar página
+    </button>
+  </div>
+  
+  <div id="apiStatus" class="success-status-box hidden" role="status" aria-live="polite">
+    <div class="success-status-header">
+      <strong>Estado del API:</strong>
+      <span id="apiStatusBadge" class="status-badge status-pending">⏳ Pendiente</span>
+    </div>
+    <pre id="apiResponse" class="success-status-response" aria-label="Respuesta detallada del servidor"></pre>
+  </div>
+  
+  <div id="diagnosticLog" class="success-diagnostic-log" role="log" aria-label="Registro de diagnóstico" aria-live="off"></div>
+</div>
 
  <!-- 🗄️ SECCIÓN VAULT (se mostrará después del login) -->
 <div id="vaultSection" class="hidden">
@@ -17083,5 +17295,404 @@ strengthDiv.style.color = colors[strength];
 }
 });
 </script>
+  <script>  
+ // ============================================
+// 🔐 SUCCESS VIEW: DIAGNÓSTICO SEGURO (CSP-COMPLIANT)
+// ============================================
+(function() {
+  'use strict';
+  
+  // ✅ Constantes de configuración
+  const API_TIMEOUT_MS = 10000; // 10 segundos
+  const MAX_RESPONSE_SIZE = 5000; // 5KB máximo para mostrar
+  const MAX_RETRIES = 2;
+  
+  // ✅ Estado interno
+  let diagnosticEntries = [];
+  let isChecking = false;
+  
+  // ============================================
+  // 🛡️ HELPERS DE SEGURIDAD
+  // ============================================
+  
+  /**
+   * Sanitiza texto para mostrar en pantalla (previene XSS)
+   */
+  function sanitizeForDisplay(text, maxLen = 500) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .substring(0, maxLen);
+  }
+  
+  /**
+   * Sanitiza JSON para mostrar (limita tamaño y profundidad)
+   */
+  function sanitizeJSON(obj, maxDepth = 5) {
+    try {
+      const seen = new WeakSet();
+      const sanitized = JSON.stringify(obj, function(key, value) {
+        // Prevenir referencias circulares
+        if (typeof value === 'object' && value !== null) {
+          if (seen.has(value)) return '[Circular]';
+          seen.add(value);
+        }
+        // Limitar strings largos
+        if (typeof value === 'string' && value.length > 200) {
+          return value.substring(0, 200) + '...';
+        }
+        return value;
+      }, 2);
+      
+      // Limitar tamaño total
+      if (sanitized.length > MAX_RESPONSE_SIZE) {
+        return sanitized.substring(0, MAX_RESPONSE_SIZE) + '\n\n[... respuesta truncada por seguridad]';
+      }
+      return sanitized;
+    } catch (e) {
+      return '[Error al formatear respuesta]';
+    }
+  }
+  
+  /**
+   * Agrega entrada al log de diagnóstico
+   */
+  function addDiagnostic(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString();
+    const icons = {
+      success: '✅',
+      error: '❌',
+      warning: '⚠️',
+      info: 'ℹ️'
+    };
+    
+    diagnosticEntries.push({
+      timestamp,
+      message: sanitizeForDisplay(message, 200),
+      type,
+      icon: icons[type] || 'ℹ️'
+    });
+    
+    // Mantener solo las últimas 20 entradas
+    if (diagnosticEntries.length > 20) {
+      diagnosticEntries = diagnosticEntries.slice(-20);
+    }
+    
+    renderDiagnosticLog();
+  }
+  
+  /**
+   * Renderiza el log de diagnóstico
+   */
+  function renderDiagnosticLog() {
+    const logEl = document.getElementById('diagnosticLog');
+    if (!logEl) return;
+    
+    logEl.innerHTML = diagnosticEntries.map(entry => 
+      `<div class="diagnostic-entry ${entry.type}">` +
+      `[${entry.timestamp}] ${entry.icon} ${entry.message}` +
+      `</div>`
+    ).join('');
+    
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  
+  // ============================================
+  // 🌐 VERIFICACIÓN DE API CON TIMEOUT Y REINTENTOS
+  // ============================================
+  
+  /**
+   * Verifica conexión al API con timeout y reintentos
+   */
+  async function checkAPIWithRetry(retriesLeft = MAX_RETRIES) {
+    if (isChecking) {
+      addDiagnostic('Ya hay una verificación en curso', 'warning');
+      return;
+    }
+    
+    isChecking = true;
+    const btnCheck = document.getElementById('btnCheckAPI');
+    const statusBox = document.getElementById('apiStatus');
+    const statusBadge = document.getElementById('apiStatusBadge');
+    const responsePre = document.getElementById('apiResponse');
+    
+    // ✅ UI: Estado de carga
+    if (btnCheck) {
+      btnCheck.disabled = true;
+      btnCheck.classList.add('loading');
+      btnCheck.textContent = '⏳ Verificando...';
+      btnCheck.setAttribute('aria-busy', 'true');
+    }
+    
+    if (statusBox) statusBox.classList.remove('hidden');
+    if (statusBadge) {
+      statusBadge.className = 'status-badge status-pending';
+      statusBadge.textContent = '⏳ Conectando...';
+    }
+    if (responsePre) responsePre.textContent = 'Consultando servidor...';
+    
+    addDiagnostic('Iniciando verificación de API', 'info');
+    
+    // ✅ Configurar AbortController para timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+    
+    try {
+      addDiagnostic(`Intentando conexión (reintentos restantes: ${retriesLeft})`, 'info');
+      
+      const startTime = performance.now();
+      
+      const response = await fetch('/api/status', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        signal: controller.signal,
+        credentials: 'same-origin'
+      });
+      
+      clearTimeout(timeoutId);
+      const duration = Math.round(performance.now() - startTime);
+      
+      addDiagnostic(`Respuesta recibida en ${duration}ms (HTTP ${response.status})`, 'info');
+      
+      // ✅ Validar Content-Type
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Respuesta no es JSON válido');
+      }
+      
+      // ✅ Parsear JSON con manejo de errores
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        throw new Error('Error al parsear respuesta JSON');
+      }
+      
+      // ✅ Validar estructura de respuesta
+      if (!data || typeof data !== 'object') {
+        throw new Error('Respuesta inválida del servidor');
+      }
+      
+      // ✅ Determinar estado
+      const isSuccess = response.ok && (data.success === true || data.status === 'online');
+      
+      // ✅ Actualizar UI según resultado
+      if (isSuccess) {
+        if (statusBox) statusBox.classList.add('success');
+        if (statusBadge) {
+          statusBadge.className = 'status-badge status-success';
+          statusBadge.textContent = '✅ Online';
+        }
+        if (responsePre) {
+          responsePre.textContent = sanitizeJSON(data);
+          responsePre.style.color = '#00e676';
+        }
+        
+        addDiagnostic(`API conectada correctamente (${duration}ms)`, 'success');
+        
+        // ✅ Mostrar info adicional si existe
+        if (data.database) {
+          addDiagnostic(`Base de datos: ${sanitizeForDisplay(data.database, 50)}`, 'success');
+        }
+        if (data.features && Array.isArray(data.features)) {
+          addDiagnostic(`Funciones activas: ${data.features.length}`, 'success');
+        }
+        
+        // ✅ Auto-ocultar successView tras 3 segundos si todo está OK
+        setTimeout(() => {
+          const successView = document.getElementById('successView');
+          if (successView && !localStorage.getItem('token')) {
+            // Solo ocultar si no hay sesión (no molestar al usuario logueado)
+            addDiagnostic('Diagnóstico completado. Puedes cerrar este panel.', 'info');
+          }
+        }, 3000);
+        
+      } else {
+        throw new Error(data.error || `Estado HTTP: ${response.status}`);
+      }
+      
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      // ✅ Manejo específico de errores
+      let errorMessage, errorType;
+      
+      if (error.name === 'AbortError') {
+        errorMessage = `Timeout: el servidor tardó más de ${API_TIMEOUT_MS/1000}s en responder`;
+        errorType = 'warning';
+      } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        errorMessage = 'Error de red: verifica tu conexión a internet';
+        errorType = 'error';
+      } else if (error.message.includes('JSON')) {
+        errorMessage = 'El servidor devolvió datos inválidos';
+        errorType = 'error';
+      } else {
+        errorMessage = error.message || 'Error desconocido';
+        errorType = 'error';
+      }
+      
+      // ✅ Actualizar UI con error
+      if (statusBox) statusBox.classList.add('error');
+      if (statusBadge) {
+        statusBadge.className = 'status-badge status-error';
+        statusBadge.textContent = '❌ Error';
+      }
+      if (responsePre) {
+        responsePre.textContent = `❌ ${sanitizeForDisplay(errorMessage, 300)}`;
+        responsePre.style.color = '#ff5252';
+      }
+      
+      addDiagnostic(errorMessage, errorType);
+      
+      // ✅ Reintentar si quedan intentos
+      if (retriesLeft > 0 && errorType !== 'warning') {
+        addDiagnostic(`Reintentando en 2 segundos...`, 'warning');
+        setTimeout(() => {
+          isChecking = false;
+          checkAPIWithRetry(retriesLeft - 1);
+        }, 2000);
+        return; // No resetear UI aún
+      }
+      
+    } finally {
+      // ✅ Resetear UI (solo si no estamos reintentando)
+      if (retriesLeft === 0 || isChecking) {
+        setTimeout(() => {
+          if (btnCheck) {
+            btnCheck.disabled = false;
+            btnCheck.classList.remove('loading');
+            btnCheck.textContent = '🔍 Verificar conexión al API';
+            btnCheck.removeAttribute('aria-busy');
+          }
+          isChecking = false;
+        }, 500);
+      }
+    }
+  }
+  
+  // ============================================
+  // 🔄 RECARGAR PÁGINA (SEGURO)
+  // ============================================
+  
+  function reloadPage() {
+    const btnReload = document.getElementById('btnReload');
+    if (btnReload) {
+      btnReload.disabled = true;
+      btnReload.textContent = '⏳ Recargando...';
+      addDiagnostic('Recargando página...', 'info');
+    }
+    
+    // ✅ Forzar recarga sin caché
+    setTimeout(() => {
+      window.location.href = window.location.href + '?t=' + Date.now();
+    }, 300);
+  }
+  
+  // ============================================
+  // 👁️ LÓGICA DE VISIBILIDAD INTELIGENTE
+  // ============================================
+  
+  function shouldShowSuccessView() {
+    // ✅ NO mostrar si:
+    // 1. Hay token de sesión activa
+    if (localStorage.getItem('token')) return false;
+    
+    // 2. El usuario ya vio el diagnóstico (guardado en sessionStorage)
+    if (sessionStorage.getItem('diagnosticShown')) return false;
+    
+    // 3. La URL tiene parámetros específicos (ej: ?ref=XXX)
+    if (window.location.search.includes('ref=')) return false;
+    
+    return true;
+  }
+  
+  function hideSuccessView() {
+    const successView = document.getElementById('successView');
+    if (successView) {
+      successView.classList.add('hidden');
+      successView.setAttribute('aria-hidden', 'true');
+      sessionStorage.setItem('diagnosticShown', 'true');
+    }
+  }
+  
+  function showSuccessView() {
+    const successView = document.getElementById('successView');
+    if (successView) {
+      successView.classList.remove('hidden');
+      successView.setAttribute('aria-hidden', 'false');
+    }
+  }
+  
+  // ============================================
+  // 🚀 INICIALIZACIÓN (CSP-COMPLIANT)
+  // ============================================
+  
+  function initSuccessView() {
+    // ✅ Verificar si debemos mostrar el successView
+    if (!shouldShowSuccessView()) {
+      hideSuccessView();
+      return;
+    }
+    
+    showSuccessView();
+    addDiagnostic('Panel de diagnóstico inicializado', 'info');
+    
+    // ✅ Registrar event listeners (NO usar onclick inline)
+    const btnCheck = document.getElementById('btnCheckAPI');
+    const btnReload = document.getElementById('btnReload');
+    
+    if (btnCheck) {
+      btnCheck.addEventListener('click', function(e) {
+        e.preventDefault();
+        checkAPIWithRetry();
+      });
+    }
+    
+    if (btnReload) {
+      btnReload.addEventListener('click', function(e) {
+        e.preventDefault();
+        reloadPage();
+      });
+    }
+    
+    // ✅ Auto-verificar al cargar (después de 1 segundo)
+    setTimeout(() => {
+      addDiagnostic('Auto-verificación iniciada...', 'info');
+      checkAPIWithRetry();
+    }, 1000);
+    
+    // ✅ Ocultar automáticamente si el usuario inicia sesión
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'token' && e.newValue) {
+        addDiagnostic('Sesión detectada. Ocultando diagnóstico...', 'success');
+        setTimeout(hideSuccessView, 1500);
+      }
+    });
+  }
+  
+  // ✅ Ejecutar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSuccessView);
+  } else {
+    initSuccessView();
+  }
+  
+  // ✅ Exponer funciones globales (solo si son necesarias para otros scripts)
+  window.successViewAPI = {
+    check: checkAPIWithRetry,
+    hide: hideSuccessView,
+    show: showSuccessView,
+    addDiagnostic: addDiagnostic
+  };
+  
+})();
+ </script>   
 </body>
 </html>
