@@ -23698,5 +23698,114 @@ strengthDiv.style.color = colors[strength];
     }
   });
 </script>
+    ... (todo tu código existente: bóveda, marketplace, streaming, etc.) ...
+
+<!-- 🛡️ VALIDADOR DE LISTA BLANCA: apiromwinervault (Seguridad Militar) -->
+<script>
+  // CONFIGURACIÓN DE LISTA BLANCA
+  const LISTA_VERDE = [
+    // Imágenes
+    '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif', '.svg', '.heic', '.ico',
+    // Videos
+    '.mp4', '.mov', '.avi', '.mkv', '.wmv', '.flv', '.webm', '.m4v', '.mpg', '.mpeg',
+    // Audio
+    '.mp3', '.wav', '.m4a', '.ogg', '.aac', '.flac', '.wma',
+    // Documentos (sin macros)
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.rtf', 
+    '.odt', '.ods', '.odp', '.csv', '.epub', '.md',
+    // Comprimidos
+    '.rar', '.zip', '.7z', '.tar', '.gz', '.tgz', '.bz2',
+    // Diseño
+    '.psd', '.ai', '.indd', '.cdr', '.xd',
+    // Código
+    '.html', '.htm', '.css', '.json', '.xml', '.php', '.py', '.java', '.cpp', '.c', '.cs', '.sql',
+    // Fuentes y otros
+    '.ttf', '.otf', '.eot', '.woff', '.woff2', '.log', '.ini', '.cfg', '.ics'
+  ];
+
+  const LISTA_AMARILLA = ['.js', '.docm', '.xlsm', '.pptm'];
+  
+  const LISTA_ROJA = [
+    '.exe', '.bat', '.cmd', '.scr', '.pif', '.com', '.vbs', '.jar', '.apk', 
+    '.msi', '.dll', '.sys', '.reg', '.sh', '.ps1', '.wsf', '.hta', '.cpl',
+    '.dmg', '.deb', '.rpm', '.pkg'
+  ];
+
+  // FUNCIÓN DE VALIDACIÓN
+  function validarArchivoSeguro(archivo) {
+    const nombre = archivo.name.toLowerCase();
+    const extension = '.' + nombre.split('.').pop();
+    const tamañoMB = archivo.size / (1024 * 1024);
+
+    // 1. Verificar tamaño (máximo 500MB)
+    if (tamañoMB > 500) {
+      return { 
+        permitido: false, 
+        nivel: 'rojo',
+        mensaje: '⛔ BLOQUEADO: El archivo supera el límite de 500MB.'
+      };
+    }
+
+    // 2. Verificar lista ROJA (bloqueado total)
+    if (LISTA_ROJA.includes(extension)) {
+      return { 
+        permitido: false, 
+        nivel: 'rojo',
+        mensaje: `⛔ BLOQUEADO POR SEGURIDAD: El formato ${extension} es un archivo ejecutable/peligroso y está prohibido en ApiRomwiner Vault.`
+      };
+    }
+
+    // 3. Verificar lista AMARILLA (advertencia)
+    if (LISTA_AMARILLA.includes(extension)) {
+      return { 
+        permitido: true, 
+        nivel: 'amarillo',
+        mensaje: `⚠️ ADVERTENCIA: El formato ${extension} puede contener código ejecutable. Proceda con precaución.`
+      };
+    }
+
+    // 4. Verificar lista VERDE (permitido)
+    if (LISTA_VERDE.includes(extension)) {
+      return { 
+        permitido: true, 
+        nivel: 'verde',
+        mensaje: `✅ SEGURO: El archivo ${extension} ha pasado la auditoría de seguridad y está listo para cifrado.`
+      };
+    }
+
+    // 5. Formato desconocido
+    return { 
+      permitido: false, 
+      nivel: 'rojo',
+      mensaje: `⛔ BLOQUEADO: El formato ${extension} no está en la lista blanca de ApiRomwiner Vault.`
+    };
+  }
+
+  // FUNCIÓN GLOBAL PARA USAR EN CUALQUIER INPUT DE ARCHIVO
+  window.validarYProcesarArchivo = function(inputFile) {
+    const archivo = inputFile.files[0];
+    if (!archivo) return false;
+
+    const resultado = validarArchivoSeguro(archivo);
+
+    // Mostrar resultado al usuario
+    if (resultado.nivel === 'rojo') {
+      alert(resultado.mensaje);
+      inputFile.value = ''; // Limpiar el input
+      return false;
+    } else if (resultado.nivel === 'amarillo') {
+      const confirmar = confirm(resultado.mensaje + '\n\n¿Desea continuar de todos modos?');
+      if (!confirmar) {
+        inputFile.value = '';
+        return false;
+      }
+    }
+
+    console.log('🛡️ [AUDITORÍA IA]', resultado.mensaje);
+    return true;
+  };
+</script>
+
 </body>
 </html>
+
