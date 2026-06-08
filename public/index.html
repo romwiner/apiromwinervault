@@ -23417,6 +23417,286 @@ strengthDiv.style.color = colors[strength];
   };
   
 })();
- </script>   
+ </script> 
+  <!-- 🧠 SISTEMA MAESTRO UNIFICADO: apiromwinervault (Vistas Separadas + Admin Oculto y Seguro) -->
+<style>
+  .hidden { display: none !important; }
+  body { margin: 0; padding: 0; background-color: #0b0c10; font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; }
+  button { transition: all 0.2s; }
+  button:hover { transform: translateY(-2px); }
+</style>
+
+<!-- ============================================ -->
+<!-- 1. PANTALLA DE BIENVENIDA Y REGISTRO -->
+<!-- ============================================ -->
+<section id="vistaLanding" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #0b0c10 0%, #1a1f2a 100%);">
+  <div style="text-align: center; margin-bottom: 32px;">
+    <div style="font-size: 4rem; margin-bottom: 12px;">🔐</div>
+    <h1 style="margin: 0; font-size: 2.5rem; color: #f8fafc;">ApiRomwiner Vault</h1>
+    <p style="margin: 12px 0 0 0; font-size: 1rem; color: #94a3b8; max-width: 500px;">Bóveda Suiza con Cifrado Militar. Guarda, audita con IA y monetiza tu información (.txt, .mp3, .mp4, .rar, .zip, archivos bancarios y secretos) con venta granular.</p>
+  </div>
+
+  <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #059669; border-radius: 20px; padding: 32px; max-width: 450px; width: 100%; box-shadow: 0 20px 60px rgba(5, 150, 105, 0.2);">
+    <div style="display: flex; background: #1e293b; border-radius: 12px; padding: 4px; margin-bottom: 24px;">
+      <button type="button" id="tabRegistro" style="flex: 1; padding: 10px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Registrarse</button>
+      <button type="button" id="tabLogin" style="flex: 1; padding: 10px; background: transparent; color: #94a3b8; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Iniciar Sesión</button>
+    </div>
+
+    <!-- Formulario de Registro -->
+    <form id="formRegistro" style="display: flex; flex-direction: column; gap: 14px;">
+      <input type="text" id="regNombre" required placeholder="Nombre de usuario *" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <input type="email" id="regEmail" required placeholder="Correo electrónico *" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <input type="password" id="regPassword" required minlength="8" placeholder="Contraseña (mín. 8 caracteres) *" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <select id="regTipoCuenta" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px; cursor: pointer;">
+        <option value="freemium">🆓 Freemium (Gratis: Bóveda, Feed, Wallet, Ads, Afiliados)</option>
+        <option value="normal">💎 Usuario Normal ($25/mes: +Calificaciones, Donaciones, Streaming)</option>
+        <option value="empresarial">🏢 Empresarial (Costo mayor: Para organizaciones y equipos)</option>
+      </select>
+      <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">✨ Crear Cuenta</button>
+    </form>
+
+    <!-- Formulario de Login -->
+    <form id="formLogin" style="display: none; flex-direction: column; gap: 14px;">
+      <input type="email" id="loginEmail" required placeholder="Correo electrónico" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <input type="password" id="loginPassword" required placeholder="Contraseña" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #38bdf8, #0ea5e9); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">🔓 Iniciar Sesión</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- 2. PANEL DE USUARIO FREEMIUM -->
+<!-- ============================================ -->
+<section id="vistaFreemium" class="hidden" style="min-height: 100vh; padding: 20px;">
+  <div style="max-width: 900px; margin: 0 auto;">
+    <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #64748b; border-radius: 16px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.3rem;">👋 Hola, <span id="nombreFreemium" style="color: #64748b;">Usuario</span></h2>
+        <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #94a3b8;">🆓 Cuenta Freemium</p>
+      </div>
+      <button type="button" class="btn-logout" style="padding: 10px 16px; background: transparent; color: #ef4444; border: 1px solid #ef4444; border-radius: 8px; font-weight: 600; cursor: pointer;">🚪 Cerrar Sesión</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px;">
+      <button class="btn-accion" style="padding: 20px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; text-align: center; color: #e2e8f0; cursor: pointer;">
+        <div style="font-size: 2rem;">📤</div><div style="font-weight: bold; margin-top: 8px;">Subir a Bóveda</div><div style="font-size: 0.75rem; color: #94a3b8;">.txt, .mp3, .mp4, .rar, .zip</div>
+      </button>
+      <button class="btn-accion" style="padding: 20px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; text-align: center; color: #e2e8f0; cursor: pointer;">
+        <div style="font-size: 2rem;">📱</div><div style="font-weight: bold; margin-top: 8px;">Publicar en Feed</div>
+      </button>
+      <button class="btn-accion" style="padding: 20px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; text-align: center; color: #e2e8f0; cursor: pointer;">
+        <div style="font-size: 2rem;">💰</div><div style="font-weight: bold; margin-top: 8px;">Mi Wallet</div><div style="font-size: 0.75rem; color: #94a3b8;">Gana por referidos y Ads</div>
+      </button>
+    </div>
+
+    <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid #fbbf24; border-radius: 12px; padding: 20px; text-align: center;">
+      <h3 style="color: #fbbf24; margin-top: 0;">💎 Desbloquea todo por $25 USD/mes</h3>
+      <p>Obtén calificaciones de usuarios, recibe donaciones, haz streaming y accede a herramientas avanzadas.</p>
+      <button class="btn-upgrade" style="padding: 10px 20px; background: #fbbf24; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Actualizar a Normal</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- 3. PANEL DE USUARIO NORMAL ($25/mes) -->
+<!-- ============================================ -->
+<section id="vistaNormal" class="hidden" style="min-height: 100vh; padding: 20px;">
+  <div style="max-width: 1000px; margin: 0 auto;">
+    <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #fbbf24; border-radius: 16px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.3rem;">💎 Hola, <span id="nombreNormal" style="color: #fbbf24;">Usuario</span></h2>
+        <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #94a3b8;">💎 Cuenta Normal • Suscripción Activa ($25/mes)</p>
+      </div>
+      <button type="button" class="btn-logout" style="padding: 10px 16px; background: transparent; color: #ef4444; border: 1px solid #ef4444; border-radius: 8px; font-weight: 600; cursor: pointer;">🚪 Cerrar Sesión</button>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px;">
+      <div style="background: #1e293b; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #059669;">
+        <div style="font-size: 0.8rem; color: #94a3b8;">💰 Wallet</div>
+        <div style="font-size: 1.5rem; font-weight: bold; color: #059669;">$0.00</div>
+      </div>
+      <div style="background: #1e293b; border-radius: 12px; padding: 16px; text-align: center;">
+        <div style="font-size: 0.8rem; color: #94a3b8;">⭐ Calificación</div>
+        <div style="font-size: 1.5rem; font-weight: bold; color: #fbbf24;">5.0</div>
+      </div>
+    </div>
+
+    <h3 style="color: #f8fafc; margin-bottom: 16px;">🚀 Herramientas Avanzadas</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+      <button class="btn-accion" style="padding: 20px; background: linear-gradient(135deg, rgba(5, 150, 105, 0.2), rgba(16, 185, 129, 0.2)); border: 1px solid #059669; border-radius: 12px; text-align: center; color: #e2e8f0; cursor: pointer;">
+        <div style="font-size: 2rem;">💰</div><div style="font-weight: bold; margin-top: 8px;">Vender Archivo</div>
+      </button>
+      <button class="btn-accion" style="padding: 20px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; text-align: center; color: #e2e8f0; cursor: pointer;">
+        <div style="font-size: 2rem;">⭐</div><div style="font-weight: bold; margin-top: 8px;">Calificar Usuarios/Ventas</div>
+      </button>
+      <button class="btn-accion" style="padding: 20px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; text-align: center; color: #e2e8f0; cursor: pointer;">
+        <div style="font-size: 2rem;">🎁</div><div style="font-weight: bold; margin-top: 8px;">Recibir Donaciones</div>
+      </button>
+      <button class="btn-accion" style="padding: 20px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; text-align: center; color: #e2e8f0; cursor: pointer;">
+        <div style="font-size: 2rem;">🎥</div><div style="font-weight: bold; margin-top: 8px;">Streaming</div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- 4. PANEL EMPRESARIAL -->
+<!-- ============================================ -->
+<section id="vistaEmpresarial" class="hidden" style="min-height: 100vh; padding: 20px;">
+  <div style="max-width: 1000px; margin: 0 auto;">
+    <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #a78bfa; border-radius: 16px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.3rem;">🏢 Panel Empresarial, <span id="nombreEmpresarial" style="color: #a78bfa;">Organización</span></h2>
+        <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #94a3b8;">🏢 Cuenta Empresarial • API + Equipos + 1TB</p>
+      </div>
+      <button type="button" class="btn-logout" style="padding: 10px 16px; background: transparent; color: #ef4444; border: 1px solid #ef4444; border-radius: 8px; font-weight: 600; cursor: pointer;">🚪 Cerrar Sesión</button>
+    </div>
+    <p style="text-align: center; color: #94a3b8; padding: 40px;">Panel de herramientas corporativas, gestión de equipos y API (Integrado con el Centro Enterprise).</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- 5. PANEL DE ADMINISTRADOR SUPREMO (OCULTO Y SEGURO) -->
+<!-- ============================================ -->
+<section id="vistaAdmin" class="hidden" style="min-height: 100vh; padding: 20px;">
+  <div style="max-width: 1000px; margin: 0 auto;">
+    <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #ef4444; border-radius: 16px; padding: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.3rem; color: #f8fafc;">👑 PANEL DE COMANDO SUPREMO</h2>
+        <!-- NOTA DE SEGURIDAD CRÍTICA: No se muestra tu nombre ni correo real para protegerte de hackeos -->
+        <p style="margin: 4px 0 0 0; font-size: 0.9rem; color: #ef4444; font-weight: bold;">Rol: Creador y Administrador General</p>
+        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Estado: <span style="color: #059669;">CUENTA IRREVOCABLE, PERMANENTE E INTRANSFERIBLE (Identidad 100% Protegida)</span></p>
+      </div>
+      <button type="button" class="btn-logout" style="padding: 10px 16px; background: transparent; color: #ef4444; border: 1px solid #ef4444; border-radius: 8px; font-weight: 600; cursor: pointer;">🚪 Cerrar Sesión</button>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+      <button class="btn-accion" style="padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 12px; text-align: center; color: #fca5a5; cursor: pointer;">
+        <div style="font-size: 2rem;">👥</div><div style="font-weight: bold; margin-top: 8px;">Gestionar Usuarios</div>
+      </button>
+      <button class="btn-accion" style="padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 12px; text-align: center; color: #fca5a5; cursor: pointer;">
+        <div style="font-size: 2rem;">🔑</div><div style="font-weight: bold; margin-top: 8px;">Rotar Claves Maestras</div>
+      </button>
+      <button class="btn-accion" style="padding: 20px; background: rgba(251, 191, 36, 0.1); border: 1px solid #fbbf24; border-radius: 12px; text-align: center; color: #fcd34d; cursor: pointer;">
+        <div style="font-size: 2rem;">👑</div><div style="font-weight: bold; margin-top: 8px;">Transferir Poderes</div><div style="font-size: 0.7rem;">Requiere validación física</div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- 🧠 CEREBRO DE LA APP: Controla qué ve cada usuario de forma segura -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 1. Referencias a las pantallas
+    const vistaLanding = document.getElementById('vistaLanding');
+    const vistaFreemium = document.getElementById('vistaFreemium');
+    const vistaNormal = document.getElementById('vistaNormal');
+    const vistaEmpresarial = document.getElementById('vistaEmpresarial');
+    const vistaAdmin = document.getElementById('vistaAdmin');
+
+    // 2. Función para mostrar solo una pantalla y ocultar las demás
+    function mostrarPantalla(pantalla) {
+      vistaLanding.classList.add('hidden');
+      vistaFreemium.classList.add('hidden');
+      vistaNormal.classList.add('hidden');
+      vistaEmpresarial.classList.add('hidden');
+      vistaAdmin.classList.add('hidden');
+      pantalla.classList.remove('hidden');
+    }
+
+    // 3. Cambiar entre pestañas Registro / Login
+    document.getElementById('tabRegistro').addEventListener('click', () => {
+      document.getElementById('formRegistro').style.display = 'flex';
+      document.getElementById('formLogin').style.display = 'none';
+      document.getElementById('tabRegistro').style.background = '#059669';
+      document.getElementById('tabRegistro').style.color = 'white';
+      document.getElementById('tabLogin').style.background = 'transparent';
+      document.getElementById('tabLogin').style.color = '#94a3b8';
+    });
+
+    document.getElementById('tabLogin').addEventListener('click', () => {
+      document.getElementById('formLogin').style.display = 'flex';
+      document.getElementById('formRegistro').style.display = 'none';
+      document.getElementById('tabLogin').style.background = '#38bdf8';
+      document.getElementById('tabLogin').style.color = 'white';
+      document.getElementById('tabRegistro').style.background = 'transparent';
+      document.getElementById('tabRegistro').style.color = '#94a3b8';
+    });
+
+    // 4. Lógica de REGISTRO
+    document.getElementById('formRegistro').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const nombre = document.getElementById('regNombre').value;
+      const email = document.getElementById('regEmail').value.toLowerCase().trim();
+      const tipo = document.getElementById('regTipoCuenta').value;
+      
+      // Guardar en el navegador (simulando base de datos segura)
+      localStorage.setItem('arv_nombre', nombre);
+      localStorage.setItem('arv_email', email);
+      localStorage.setItem('arv_tipo', tipo);
+      
+      iniciarSesion(nombre, email, tipo);
+    });
+
+    // 5. Lógica de LOGIN
+    document.getElementById('formLogin').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.toLowerCase().trim();
+      // Recuperar datos guardados
+      const nombreGuardado = localStorage.getItem('arv_nombre') || 'Usuario';
+      const tipoGuardado = localStorage.getItem('arv_tipo') || 'freemium';
+      
+      iniciarSesion(nombreGuardado, email, tipoGuardado);
+    });
+
+    // 6. CEREBRO DE ENRUTAMIENTO (Aquí está tu control supremo y anónimo)
+    function iniciarSesion(nombre, email, tipo) {
+      // ¡TU CUENTA DE CREADOR! 
+      // CAMBIA 'rraygoza67@gmail.com' POR TU CORREO REAL SI ES DIFERENTE.
+      // El sistema lo reconocerá, pero NUNCA lo mostrará en la pantalla para protegerte.
+      const adminEmailSecreto = 'rraygoza67@gmail.com'; 
+      
+      if (email === adminEmailSecreto) {
+        mostrarPantalla(vistaAdmin);
+        return; // Detiene la ejecución aquí, nadie más puede ver esto.
+      }
+
+      // Rutas para usuarios normales
+      if (tipo === 'freemium') {
+        document.getElementById('nombreFreemium').textContent = nombre;
+        mostrarPantalla(vistaFreemium);
+      } else if (tipo === 'normal') {
+        document.getElementById('nombreNormal').textContent = nombre;
+        mostrarPantalla(vistaNormal);
+      } else if (tipo === 'empresarial') {
+        document.getElementById('nombreEmpresarial').textContent = nombre;
+        mostrarPantalla(vistaEmpresarial);
+      }
+    }
+
+    // 7. CERRAR SESIÓN
+    document.querySelectorAll('.btn-logout').forEach(btn => {
+      btn.addEventListener('click', function() {
+        localStorage.removeItem('arv_nombre');
+        localStorage.removeItem('arv_email');
+        localStorage.removeItem('arv_tipo');
+        mostrarPantalla(vistaLanding);
+        document.getElementById('formRegistro').reset();
+        document.getElementById('formLogin').reset();
+      });
+    });
+
+    // 8. Verificar al cargar la página si ya hay alguien conectado
+    const emailGuardado = localStorage.getItem('arv_email');
+    const tipoGuardado = localStorage.getItem('arv_tipo');
+    const nombreGuardado = localStorage.getItem('arv_nombre');
+    
+    if (emailGuardado && tipoGuardado && nombreGuardado) {
+      iniciarSesion(nombreGuardado, emailGuardado, tipoGuardado);
+    } else {
+      mostrarPantalla(vistaLanding);
+    }
+  });
+</script>
 </body>
 </html>
