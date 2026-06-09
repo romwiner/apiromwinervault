@@ -23565,6 +23565,31 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 })();
 </script>
+  <!-- 🚨 SCRIPT DE EMERGENCIA: MUESTRA SOLO EL REGISTRO -->
+<script>
+(function() {
+  // Esperar 2 segundos para que otros scripts terminen
+  setTimeout(function() {
+    // 1. OCULTAR TODO
+    var secciones = document.querySelectorAll('section, .glass, #authSection, #landingView, #dashboardView, #vaultSection, #marketplaceSection, #socialFeedPanel');
+    for (var i = 0; i < secciones.length; i++) {
+      secciones[i].style.display = 'none';
+      secciones[i].classList.add('hidden');
+    }
+    
+    // 2. MOSTRAR SOLO LA PANTALLA DE REGISTRO
+    var registro = document.getElementById('vistaLanding');
+    if (registro) {
+      registro.style.display = 'flex';
+      registro.classList.remove('hidden');
+      console.log('✅ PANTALLA DE REGISTRO MOSTRADA');
+    } else {
+      console.error('❌ No se encontró vistaLanding');
+      alert('Error: Pantalla de registro no encontrada');
+    }
+  }, 2000);
+})();
+</script>
 </body>
 </html>
 
