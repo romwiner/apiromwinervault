@@ -10422,19 +10422,61 @@ function closeMediaPlayer() {
   addLogEntry('🎬 Reproductor cerrado', 'info');
 }
 
-// === INICIALIZACIÓN FINAL ===
+// === INICIALIZACIÓN FINAL (CORREGIDA - NO LLAMA init() AUTOMÁTICAMENTE) ===
+// ✅ Solo inicializa si el usuario YA está logueado (tiene token válido)
 document.addEventListener('DOMContentLoaded', () => {
-  // Iniciar app
-  if (typeof init === 'function') {
-    init();
-  } else {
-    // Fallback seguro: mostrar notificación sin exponer detalles
-    addLogEntry('⚠️ Función init() no definida, usando fallback', 'warning');
-    showNotification('🔄 Cargando interfaz...', 'info', 2000);
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  
+  // ✅ Si NO hay token, mostrar pantalla de registro (NO llamar init())
+  if (!token) {
+    console.log('ℹ️ Sin sesión activa - Mostrando pantalla de registro');
+    // El Cerebro Maestro se encarga de mostrar vistaLanding
+    return;
   }
+  
+  // ✅ Si HAY token, verificar que sea válido antes de inicializar
+  console.log('✅ Token detectado - Verificando sesión...');
+  
+  // Verificar token con el backend
+  fetch('/api/profile', {
+    method: 'GET',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => {
+    if (response.status === 401) {
+      // Token inválido/expirado - limpiar y mostrar registro
+      console.warn('⚠️ Token expirado - Mostrando registro');
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
+      return;
+    }
+    
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+    
+    return response.json();
+  })
+  .then(data => {
+    if (data && data.success) {
+      // Token válido - inicializar app
+      console.log('✅ Sesión válida - Inicializando app');
+      if (typeof init === 'function') {
+        init();
+      }
+    }
+  })
+  .catch(error => {
+    console.error('❌ Error verificando sesión:', error);
+    // En caso de error, limpiar token y mostrar registro
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth_token');
+  });
 });
-</script>
-<script>  
+
 // === AUTH ===
 
 // ✅ Helper para sanitizar email antes de usar en logs/almacenamiento (previene XSS)
@@ -10525,13 +10567,19 @@ async function login(event) {
       localStorage.setItem('arv_admin', 'true');
     }
     
-    // Cargar perfil y mostrar dashboard
+    // ✅ IMPORTANTE: NO llamar showDashboard() aquí
+    // El Cerebro Maestro se encarga de mostrar la vista correcta
+    // Solo cargar perfil y actualizar UI
     if (typeof loadUser === 'function') await loadUser();
-    if (typeof showDashboard === 'function') showDashboard();
     
     // ✅ Log seguro
     addLogEntry('✅ Acceso concedido • Tipo: ' + tipoCuenta, 'success');
     showNotification('✅ Sesión iniciada', 'success');
+    
+    // ✅ Recargar página para que el Cerebro Maestro muestre la vista correcta
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
     
   } catch (e) {
     // ✅ Manejo seguro de errores: no exponer detalles internos
