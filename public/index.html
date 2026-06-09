@@ -23348,8 +23348,23 @@ document.addEventListener('DOMContentLoaded', function() {
     })
     .catch(() => {}); // Ignorar errores
   }
-});
-</script>  
+}); 
+</script>
+  <script>
+(function(){
+setTimeout(function(){
+var todas = document.querySelectorAll('section, .glass, [id]');
+for(var i=0;i<todas.length;i++){
+todas[i].style.display='none';
+todas[i].classList.add('hidden');
+}
+var registro = document.getElementById('vistaLanding');
+if(registro){
+registro.style.display='flex';
+registro.classList.remove('hidden');
+}
+},3000);
+})();
 </script>
 </body>
 </html>
