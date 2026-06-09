@@ -5378,54 +5378,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 </script>
-
-<!-- 🔐 SECCIÓN DE AUTENTICACIÓN DE IDENTIDAD REAL: apiromwinervault (IdP Militar) -->
-<section id="authSection" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 480px; margin: 40px auto; padding: 20px;">
-  
-  <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #059669; border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(5, 150, 105, 0.2);">
     
-    <!-- Encabezado de Identidad -->
-    <div style="text-align: center; margin-bottom: 24px;">
-      <div style="font-size: 2.5rem; margin-bottom: 8px;">🛡️</div>
-      <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc; letter-spacing: -0.5px;">Autenticación de Identidad Real</h2>
-      <p style="margin: 8px 0 0 0; font-size: 0.85rem; color: #94a3b8;">Proveedor de Identidad Verificada (IdP) para ApiRomwiner Vault</p>
-      <div style="margin-top: 12px; display: flex; justify-content: center; gap: 8px;">
-        <span style="background: rgba(5, 150, 105, 0.15); color: #059669; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(5, 150, 105, 0.3);">🔒 Cifrado AES-256</span>
-        <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(56, 189, 248, 0.3);">🤖 IA Activa</span>
-      </div>
-    </div>
-
-    <!-- Pestañas de Acción -->
-    <div style="display: flex; background: #1e293b; border-radius: 12px; padding: 4px; margin-bottom: 24px;">
-      <button type="button" id="tabLogin" class="auth-tab" style="flex: 1; padding: 10px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">Iniciar Sesión</button>
-      <button type="button" id="tabRegister" class="auth-tab" style="flex: 1; padding: 10px; background: transparent; color: #94a3b8; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">Registrar Identidad</button>
-    </div>
-
-    <!-- Formulario Seguro -->
-    <form id="authForm" style="display: flex; flex-direction: column; gap: 16px;">
-      
-      <div>
-        <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">Correo Electrónico de Identidad</label>
-        <input type="email" id="authEmail" placeholder="tu@identidad.com" required style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px; font-size: 0.95rem;">
-      </div>
-
-      <div>
-        <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">Contraseña Maestra</label>
-        <input type="password" id="authPass" placeholder="Mínimo 12 caracteres, alta seguridad" required style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px; font-size: 0.95rem;">
-        <!-- Medidor de fuerza de contraseña con IA -->
-        <div id="passStrengthMeter" style="height: 4px; background: #334155; border-radius: 2px; margin-top: 8px; overflow: hidden; display: none;">
-          <div id="passStrengthBar" style="height: 100%; width: 0%; background: #ef4444; transition: width 0.3s, background 0.3s;"></div>
-        </div>
-        <p id="passStrengthText" style="font-size: 0.75rem; color: #64748b; margin-top: 4px; display: none;"></p>
-      </div>
-
-      <!-- Campo extra solo para registro -->
-      <div id="registerFields" style="display: none; flex-direction: column; gap: 16px;">
-        <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; border-radius: 8px; padding: 12px; font-size: 0.8rem; color: #cbd5e1;">
-          🤖 <strong>Verificación de Identidad con IA:</strong> Al registrarte, nuestro sistema analizará patrones de dispositivo para garantizar que eres una persona real y única, apta para ser proveedor de identidad ante otras empresas.
-        </div>
-      </div>
-
       <!-- Términos y Privacidad (Internos, sin enlaces externos) -->
       <div style="display: flex; align-items: flex-start; gap: 8px; margin-top: 8px;">
         <input type="checkbox" id="acceptTerms" required style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
