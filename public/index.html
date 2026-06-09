@@ -10293,14 +10293,13 @@ async function toggleFavorite() {
     showNotification('⚠️ Error al actualizar favoritos', 'warning');
   }
 }
-
 // === MEDIA PLAYER: FUNCIONES MEJORADAS (100% LOCAL, 0% EXTERNOS) ===
 
 // ✅ Helper para generar placeholder de video/audio como data URL (sin conexiones externas)
 function generateMediaPlaceholder(type = 'video', fileName = '') {
   const width = type === 'video' ? 640 : 300;
   const height = type === 'video' ? 360 : 60;
-  const safeName = sanitizeForLog(fileName, 30);
+  const safeName = sanitizeForDisplay(fileName, 30);
   
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
@@ -10322,7 +10321,7 @@ function openSecurePlayer(fileId, fileName, fileType = 'auto') {
   const error = document.getElementById('mediaError');
   
   if (!modal || !video || !audio) {
-    log('⚠️ Elementos del reproductor no encontrados', 'warning');
+    addLogEntry('⚠️ Elementos del reproductor no encontrados', 'warning');
     return;
   }
   
@@ -10346,7 +10345,7 @@ function openSecurePlayer(fileId, fileName, fileType = 'auto') {
   const isAudio = ['mp3', 'wav', 'ogg', 'm4a'].includes(ext) || fileType === 'audio';
   
   // ✅ Sanitizar fileName antes de mostrar en UI
-  const safeFileName = sanitizeForLog(fileName, 50);
+  const safeFileName = sanitizeForDisplay(fileName, 50);
   if (title) {
     title.textContent = safeFileName || 'Reproduciendo...';
     title.setAttribute('aria-label', `Archivo: ${safeFileName}`);
@@ -10404,7 +10403,7 @@ function openSecurePlayer(fileId, fileName, fileType = 'auto') {
   modal.setAttribute('aria-hidden', 'false');
   
   // ✅ Sanitizar fileName antes de loguear
-  log(`🎬 Reproductor abierto: ${safeFileName}`, 'info');
+  addLogEntry(`🎬 Reproductor abierto: ${safeFileName}`, 'info');
 }
 
 function closeMediaPlayer() {
@@ -10428,7 +10427,7 @@ function closeMediaPlayer() {
     modal.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
   }
   
-  log('🎬 Reproductor cerrado', 'info');
+  addLogEntry('🎬 Reproductor cerrado', 'info');
 }
 
 // === INICIALIZACIÓN FINAL ===
@@ -10438,7 +10437,7 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
   } else {
     // Fallback seguro: mostrar notificación sin exponer detalles
-    log('⚠️ Función init() no definida, usando fallback', 'warning');
+    addLogEntry('⚠️ Función init() no definida, usando fallback', 'warning');
     showNotification('🔄 Cargando interfaz...', 'info', 2000);
   }
 });
@@ -10481,14 +10480,14 @@ async function login(event) {
   
   // Validaciones básicas
   if (!email || !pass) {
-    log('⚠️ Ingresa correo y contraseña', 'warning');
+    addLogEntry('⚠️ Ingresa correo y contraseña', 'warning');
     showNotification('⚠️ Completa todos los campos', 'warning');
     return;
   }
   
   // Validar formato de email
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    log('⚠️ Formato de email inválido', 'warning');
+    addLogEntry('⚠️ Formato de email inválido', 'warning');
     showNotification('⚠️ Ingresa un email válido', 'warning');
     if (emailInput) {
       emailInput.classList.add('error');
@@ -10523,24 +10522,23 @@ async function login(event) {
     // Almacenar sesión de forma segura
     token = r.token;
     localStorage.setItem('token', token);
-    localStorage.setItem('userEmail', email); // ✅ Email ya sanitizado
+    localStorage.setItem('arv_email', email); // ✅ Email ya sanitizado
     
-    // Tier y roles (siempre verificar en backend en cada request sensible)
-    userTier = r.user?.tier || 'personal';
-    localStorage.setItem('userTier', userTier);
+    // ✅ Guardar tipo de cuenta del Sistema Maestro
+    const tipoCuenta = r.user?.tier || localStorage.getItem('arv_tipo') || 'freemium';
+    localStorage.setItem('arv_tipo', tipoCuenta);
     
-    if (r.user?.isAdmin) {
-      localStorage.setItem('isAdmin', 'true');
-      isAdmin = true;
+    // ✅ Verificar si es administrador (correo específico)
+    if (email === 'rraygoza67@gmail.com') {
+      localStorage.setItem('arv_admin', 'true');
     }
     
     // Cargar perfil y mostrar dashboard
-    await loadUser();
-    showDashboard();
+    if (typeof loadUser === 'function') await loadUser();
+    if (typeof showDashboard === 'function') showDashboard();
     
-    // ✅ Sanitizar userTier antes de loguear (previene XSS)
-    const safeTier = String(userTier).replace(/[^a-z]/gi, '').substring(0, 20);
-    log('✅ Acceso concedido • Tier: ' + safeTier, 'success');
+    // ✅ Log seguro
+    addLogEntry('✅ Acceso concedido • Tipo: ' + tipoCuenta, 'success');
     showNotification('✅ Sesión iniciada', 'success');
     
   } catch (e) {
@@ -10549,7 +10547,7 @@ async function login(event) {
                 e.message.includes('403') ? '❌ Acceso denegado' : 
                 '❌ Error de conexión';
     
-    log(msg, 'error');
+    addLogEntry(msg, 'error');
     showNotification(msg, 'error');
     
     // Feedback visual en el input con ARIA
@@ -10589,14 +10587,14 @@ async function register(event) {
   
   // Validaciones básicas
   if (!email || !pass) {
-    log('⚠️ Ingresa correo y contraseña', 'warning');
+    addLogEntry('⚠️ Ingresa correo y contraseña', 'warning');
     showNotification('⚠️ Completa todos los campos', 'warning');
     return;
   }
   
   // Validar formato de email
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    log('⚠️ Formato de email inválido', 'warning');
+    addLogEntry('⚠️ Formato de email inválido', 'warning');
     showNotification('⚠️ Ingresa un email válido', 'warning');
     if (emailInput) {
       emailInput.classList.add('error');
@@ -10607,7 +10605,7 @@ async function register(event) {
   
   // ✅ Validar aceptación de términos con feedback accesible
   if (!acceptTerms) {
-    log('⚠️ Debes aceptar Términos y Privacidad', 'warning');
+    addLogEntry('⚠️ Debes aceptar Términos y Privacidad', 'warning');
     showNotification('⚠️ Acepta los Términos para continuar', 'warning');
     if (termsCheck) {
       termsCheck.classList.add('error');
@@ -10624,7 +10622,7 @@ async function register(event) {
   const passErrors = validatePasswordStrength(pass);
   if (passErrors.length > 0) {
     const msg = '⚠️ Contraseña débil. Requiere: ' + passErrors.join(', ');
-    log(msg, 'warning');
+    addLogEntry(msg, 'warning');
     showNotification(msg, 'warning');
     if (passInput) {
       passInput.classList.add('error');
@@ -10655,7 +10653,7 @@ async function register(event) {
     // ✅ Registro: password nunca se loguea, email ya sanitizado
     await req('/register', 'POST', { email, password: pass });
     
-    log('✅ Cuenta creada. Inicia sesión para comenzar.', 'success');
+    addLogEntry('✅ Cuenta creada. Inicia sesión para comenzar.', 'success');
     
     // Limpiar campo de contraseña por seguridad
     if (passInput) passInput.value = '';
@@ -10668,7 +10666,7 @@ async function register(event) {
                 e.message.includes('400') ? '❌ Datos inválidos' : 
                 '❌ Error de registro';
     
-    log(msg, 'error');
+    addLogEntry(msg, 'error');
     showNotification(msg, 'error');
     
   } finally {
@@ -10680,147 +10678,18 @@ async function register(event) {
     }
   }
 }
- // ✅ Helper para sanitizar texto antes de insertar en DOM o logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[<>]/g, '') // Remover tags HTML
-    .replace(/javascript:/gi, '') // Prevenir protocolos peligrosos
-    .substring(0, maxLen);
-}
-
-// ✅ Helper reutilizable para validar fortaleza de contraseña
-function validatePasswordStrength(pass) {
-  const errors = [];
-  if (!pass || pass.length < 8) errors.push('mínimo 8 caracteres');
-  if (!/[A-Z]/.test(pass)) errors.push('1 mayúscula');
-  if (!/[0-9]/.test(pass)) errors.push('1 número');
-  if (!/[^a-zA-Z0-9]/.test(pass)) errors.push('1 símbolo (!@#$%^&*)');
-  return errors;
-}
-
-// ✅ Validar formato de email con sanitización previa
-function isValidEmail(email) {
-  if (!email) return false;
-  // Sanitizar primero para prevenir inyección en regex
-  const clean = String(email).trim().toLowerCase();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
-}
-
-// ... dentro de register() ...
-
-  // ✅ Validar formato de email con sanitización
-  if (!isValidEmail(email)) {
-    log('⚠️ Formato de email inválido', 'warning');
-    showNotification('⚠️ Ingresa un email válido', 'warning');
-    if (emailInput) {
-      emailInput.classList.add('error');
-      emailInput.setAttribute('aria-invalid', 'true'); // ✅ Accesibilidad
-    }
-    return;
-  }
-  
-  // ✅ Validar aceptación de términos con feedback accesible
-  if (!acceptTerms) {
-    log('⚠️ Debes aceptar Términos y Privacidad', 'warning');
-    showNotification('⚠️ Acepta los Términos para continuar', 'warning');
-    if (termsCheck) {
-      termsCheck.classList.add('error');
-      termsCheck.setAttribute('aria-invalid', 'true');
-      // ✅ Enfocar para accesibilidad
-      setTimeout(() => {
-        termsCheck?.focus?.();
-        termsCheck?.classList?.remove('error');
-        termsCheck?.removeAttribute?.('aria-invalid');
-      }, 2000);
-    }
-    return;
-  }
-  
-  // 🔐 Validación fuerte de contraseña con feedback específico (reutilizando helper)
-  const passErrors = validatePasswordStrength(pass);
-  
-  if (passErrors.length > 0) {
-    const msg = '⚠️ Contraseña débil. Requiere: ' + passErrors.join(', ');
-    log(msg, 'warning');
-    showNotification(msg, 'warning');
-    if (passInput) {
-      passInput.classList.add('error');
-      passInput.setAttribute('aria-invalid', 'true');
-      passInput.focus();
-      setTimeout(() => {
-        passInput.classList.remove('error');
-        passInput.removeAttribute('aria-invalid');
-      }, 3000);
-    }
-    return;
-  }
-  
-  // ✅ Referencia segura al botón con fallback robusto
-  const btn = event?.currentTarget || 
-              document.querySelector('#authSection button[type="submit"]') ||
-              document.querySelector('#authSection button[onclick*="register"]');
-  
-  try {
-    // UI: estado de carga con accesibilidad
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '✨ Creando...';
-      btn.setAttribute('aria-busy', 'true'); // ✅ Feedback para lectores de pantalla
-    }
-    if (emailInput) emailInput.classList.remove('error');
-    if (passInput) passInput.classList.remove('error');
-    
-    // ✅ Registro: email ya sanitizado, password nunca se loguea
-    await req('/register', 'POST', { email, password: pass });
-    
-    log('✅ Cuenta creada. Inicia sesión para comenzar.', 'success');
-    
-    // Limpiar campo de contraseña por seguridad
-    if (passInput) passInput.value = '';
-    
-    showNotification('✅ Cuenta creada. Inicia sesión.', 'success');
-    
-  } catch (e) {
-    // ✅ Mensajes de error específicos sin exponer detalles internos
-    const msg = e.message.includes('409') ? '❌ Email ya registrado' : 
-                e.message.includes('400') ? '❌ Datos inválidos' : 
-                '❌ Error de registro';
-    
-    log(msg, 'error');
-    showNotification(msg, 'error');
-    
-  } finally {
-    // ✅ Restaurar UI siempre, incluyendo atributos ARIA
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '✨ Registrar Cuenta Nueva';
-      btn.removeAttribute('aria-busy'); // ✅ Limpieza crítica
-    }
-  }
-}
-
 // 👤 Cargar perfil de usuario con validaciones de seguridad y sanitización
 async function loadUser() {
   try {
     const p = await req('/api/profile');
-    currentUser = p.user || p.profile;
     
-    // Tier con fallback seguro y sanitización
-    const rawTier = currentUser?.tier || localStorage.getItem('userTier') || 'personal';
-    userTier = sanitizeForDisplay(rawTier, 20).replace(/[^a-z]/gi, '').toLowerCase() || 'personal';
-    localStorage.setItem('userTier', userTier);
-    
-    // Admin: siempre verificar en backend, localStorage es solo UX
-    isAdmin = p.user?.isAdmin === true;
-    if (isAdmin) {
-      localStorage.setItem('isAdmin', 'true');
-    } else {
-      localStorage.removeItem('isAdmin');
-    }
+    // ✅ Obtener datos del Sistema Maestro
+    const userEmail = localStorage.getItem('arv_email') || 'demo_user';
+    const userTipo = localStorage.getItem('arv_tipo') || 'freemium';
+    const isAdmin = userEmail === 'rraygoza67@gmail.com';
     
     // ✅ Sanitizar nombre para mostrar (previene XSS)
-    const rawName = p.profile?.displayName || p.user?.email?.split('@')?.[0] || 'Usuario';
+    const rawName = p?.profile?.displayName || p?.user?.email?.split('@')?.[0] || userEmail.split('@')[0] || 'Usuario';
     const safeName = sanitizeForDisplay(rawName, 50);
     
     // Actualizar UI con null checks y sanitización
@@ -10830,23 +10699,24 @@ async function loadUser() {
       emailEl.setAttribute('aria-label', `Usuario: ${safeName}`);
     }
     
-    // ✅ Actualizar badge de tier con sanitización
+    // ✅ Actualizar badge de tipo de cuenta con sanitización
     const tierBadge = document.getElementById('userTierBadge');
     if (tierBadge) {
-      tierBadge.textContent = userTier.charAt(0).toUpperCase() + userTier.slice(1);
-      tierBadge.className = `tier-badge tier-${userTier}`;
-      tierBadge.setAttribute('aria-label', `Nivel de cuenta: ${userTier}`);
+      const safeTipo = sanitizeForDisplay(userTipo, 20).replace(/[^a-z]/gi, '').toLowerCase() || 'freemium';
+      tierBadge.textContent = safeTipo.charAt(0).toUpperCase() + safeTipo.slice(1);
+      tierBadge.className = `tier-badge tier-${safeTipo}`;
+      tierBadge.setAttribute('aria-label', `Tipo de cuenta: ${safeTipo}`);
     }
     
     // ✅ Mostrar/ocultar funciones enterprise con ARIA
     const enterpriseFeatures = document.getElementById('enterpriseFeatures');
     if (enterpriseFeatures) {
-      const isVisible = userTier === 'enterprise';
+      const isVisible = userTipo === 'empresarial';
       enterpriseFeatures.classList.toggle('hidden', !isVisible);
       enterpriseFeatures.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
     }
     
-    // ✅ Panel Admin: solo si isAdmin real (verificado por backend)
+    // ✅ Panel Admin: solo si es el correo del creador
     const adminPanel = document.getElementById('adminPanel');
     if (adminPanel) {
       adminPanel.style.display = isAdmin ? 'block' : 'none';
@@ -10856,121 +10726,28 @@ async function loadUser() {
     // ✅ QR de referido: generar localmente (0% externos)
     const refQr = document.getElementById('refQr');
     if (refQr && typeof generateLocalQR === 'function') {
-      const refCode = currentUser?.refCode || localStorage.getItem('refCode') || 'ROM000';
+      const refCode = p?.user?.refCode || localStorage.getItem('refCode') || 'ROM000';
       const refLink = `${window.location.origin}?ref=${refCode}`;
       refQr.src = generateLocalQR(refLink, 160); // ✅ SVG embebido, sin HTTP externo
       refQr.alt = 'Código QR de referido';
       refQr.dataset.qr = refLink;
     }
     
-    // ✅ Cuota de usuario con validación
-    if (p.quota) {
-      userQuota = p.quota;
-      if (typeof updateQuotaDisplay === 'function') updateQuotaDisplay();
-    }
+    addLogEntry('✅ Perfil cargado: ' + safeName, 'success');
     
   } catch (e) {
     // ✅ Manejo seguro de errores: no exponer detalles internos
-    log('⚠️ Error cargando perfil: ' + sanitizeForDisplay(e.message, 100), 'warning');
+    addLogEntry('⚠️ Error cargando perfil: ' + sanitizeForDisplay(e.message, 100), 'warning');
     
     // Fallback: mostrar email básico si falla carga de perfil
-    const email = localStorage.getItem('userEmail');
+    const email = localStorage.getItem('arv_email');
     const emailEl = document.getElementById('uEmail');
     if (emailEl && email) {
       const safeEmail = sanitizeForDisplay(email.split('@')[0], 30);
       emailEl.textContent = safeEmail;
     }
   }
-} 
-// ✅ Helper reutilizable para sanitizar texto antes de insertar en DOM/logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[<>]/g, '') // Remover tags HTML
-    .replace(/javascript:/gi, '') // Prevenir protocolos peligrosos
-    .replace(/"/g, '&quot;') // Escapar comillas para atributos HTML
-    .substring(0, maxLen);
-}
-
-// ✅ Helper para sanitizar valores usados en className (previene inyección CSS)
-function sanitizeClassName(str) {
-  if (!str) return '';
-  return String(str).replace(/[^a-z0-9\-_]/gi, '').substring(0, 30).toLowerCase();
-}
-
-    // Nombre para mostrar: sanitizado para prevenir XSS (usando helper reutilizable)
-    const rawName = p.profile?.displayName;
-    const safeName = rawName && rawName !== 'Demo' 
-      ? sanitizeForDisplay(rawName, 50) 
-      : sanitizeForDisplay(localStorage.getItem('userEmail')?.split('@')?.[0], 20) || 'Usuario';
-    
-    const emailEl = document.getElementById('uEmail');
-    if (emailEl) {
-      emailEl.textContent = safeName;
-      emailEl.setAttribute('aria-label', `Usuario: ${safeName}`); // ✅ Accesibilidad
-    }
-    
-    // Badge de tier con sanitización de className (previene inyección CSS)
-    const tierBadge = document.getElementById('userTierBadge');
-    if (tierBadge) {
-      const safeTier = sanitizeClassName(userTier || 'personal');
-      tierBadge.textContent = safeTier.charAt(0).toUpperCase() + safeTier.slice(1);
-      tierBadge.className = `tier-badge tier-${safeTier}`; // ✅ className seguro
-      tierBadge.setAttribute('aria-label', `Nivel de cuenta: ${safeTier}`);
-    }
-    
-    // Panel Enterprise: mostrar solo si corresponde con ARIA
-    const dashboard = document.getElementById('dashboardView');
-    const enterpriseFeatures = document.getElementById('enterpriseFeatures');
-    if (dashboard && enterpriseFeatures) {
-      const isEnterprise = userTier === 'enterprise';
-      dashboard.classList.toggle('enterprise', isEnterprise);
-      enterpriseFeatures.classList.toggle('hidden', !isEnterprise);
-      enterpriseFeatures.setAttribute('aria-hidden', isEnterprise ? 'false' : 'true'); // ✅ Accesibilidad
-    }
-    
-    // Panel Admin: solo si isAdmin real (verificado por backend) con ARIA
-    const adminPanel = document.getElementById('adminPanel');
-    if (adminPanel) {
-      adminPanel.style.display = isAdmin ? 'block' : 'none';
-      adminPanel.setAttribute('aria-hidden', isAdmin ? 'false' : 'true'); // ✅ Accesibilidad
-      if (isAdmin && dashboard) dashboard.classList.add('enterprise');
-    }
-    
-    // 🔐 QR de referido: GENERACIÓN 100% LOCAL (sin APIs externas) - versión segura
-    const refCode = currentUser?.refCode || localStorage.getItem('refCode') || 'ROM000';
-    // ✅ Sanitizar refCode antes de usar en URL y SVG
-    const safeRefCode = sanitizeForDisplay(refCode, 20).replace(/[^a-zA-Z0-9]/g, '');
-    const refLink = `${window.location.origin || ''}?ref=${safeRefCode}`;
-    
-    // Usar función local para generar QR (ver implementación abajo)
-    if (typeof generarQRLocal === 'function') {
-      generarQRLocal('refQr', refLink, 160);
-    }
-    
-    // Guardar refCode para persistencia (solo si es seguro)
-    if (safeRefCode) localStorage.setItem('refCode', safeRefCode);
-    
-    // Cuota de usuario
-    if (p.quota) userQuota = p.quota;
-    
-    // Actualizar UI según quota
-    if (typeof updateQuotaUI === 'function') updateQuotaUI();
-    
-  } catch (e) {
-    // ✅ Sanitizar mensaje de error antes de loguear (previene XSS)
-    log('⚠️ Perfil: ' + sanitizeForDisplay(e.message, 100), 'warning');
-    
-    // Fallback: mostrar email básico si falla carga de perfil
-    const email = localStorage.getItem('userEmail');
-    const emailEl = document.getElementById('uEmail');
-    if (emailEl && email) {
-      const safeEmail = sanitizeForDisplay(email.split('@')?.[0], 20) || 'Usuario';
-      emailEl.textContent = safeEmail;
-    }
-  }
-}
-
+}  
 // 🖼️ Generar QR LOCALMENTE (SVG embebido, 0% conexiones externas) - versión segura
 function generarQRLocal(elementId, data, size = 160) {
   const el = document.getElementById(elementId);
@@ -11007,7 +10784,7 @@ function generarQRLocal(elementId, data, size = 160) {
   el.style.borderColor = '#00e676';
   el.setAttribute('aria-label', 'Código QR de referido'); // ✅ Accesibilidad
   
-  log('🔐 QR generado localmente', 'info');
+  addLogEntry('🔐 QR generado localmente', 'info');
 }
 
 // 🔢 Generar patrón QR determinista (simulado, local) - versión segura
@@ -11061,45 +10838,7 @@ function showDashboard() {
       // Si es URL externa no permitida, usar placeholder seguro
       avatarEl.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="40" fill="%23151922" stroke="%2300e676" stroke-width="4"/%3E%3Ctext x="50" y="65" font-size="30" fill="%2300e676" text-anchor="middle"%3E👤%3C/text%3E%3C/svg%3E';
       avatarEl.setAttribute('aria-label', 'Avatar predeterminado');
-      log('⚠️ Avatar externo bloqueado por seguridad', 'warning');
-    }
-  }
-// ✅ Helper reutilizable para sanitizar texto antes de insertar en DOM/logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[<>]/g, '') // Remover tags HTML
-    .replace(/javascript:/gi, '') // Prevenir protocolos peligrosos
-    .replace(/"/g, '&quot;') // Escapar comillas para atributos HTML
-    .substring(0, maxLen);
-}
-
-// ✅ Helper para sanitizar valores usados en className (previene inyección CSS)
-function sanitizeClassName(str) {
-  if (!str) return '';
-  return String(str).replace(/[^a-z0-9\-_]/gi, '').substring(0, 30).toLowerCase();
-}
-
-// Transición de vistas con validaciones y ARIA
-function showDashboard() {
-  // 🔐 Cargar avatar: validación estricta (prevenir XSS)
-  const savedAvatar = localStorage.getItem('romwiner_avatar');
-  const avatarEl = document.getElementById('userAvatar');
-  
-  if (savedAvatar && avatarEl) {
-    // ✅ Validación estricta: solo data:image o same-origin
-    const isDataUrl = /^data:image\/(png|jpeg|jpg|gif|webp);/.test(savedAvatar);
-    const isSameOrigin = savedAvatar.startsWith(window.location.origin + '/');
-    
-    if (isDataUrl || isSameOrigin) {
-      avatarEl.src = savedAvatar;
-      avatarEl.setAttribute('aria-label', 'Avatar de usuario');
-      avatarEl.setAttribute('loading', 'lazy'); // ✅ Mejora rendimiento
-    } else {
-      // Si es URL externa no permitida, usar placeholder seguro
-      avatarEl.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="40" fill="%23151922" stroke="%2300e676" stroke-width="4"/%3E%3Ctext x="50" y="65" font-size="30" fill="%2300e676" text-anchor="middle"%3E👤%3C/text%3E%3C/svg%3E';
-      avatarEl.setAttribute('aria-label', 'Avatar predeterminado');
-      log('⚠️ Avatar externo bloqueado por seguridad', 'warning');
+      addLogEntry('⚠️ Avatar externo bloqueado por seguridad', 'warning');
     }
   }
   
@@ -11122,7 +10861,7 @@ function showDashboard() {
   // Refresh de datos con manejo seguro
   if (typeof refresh === 'function') {
     refresh().catch(e => {
-      log('⚠️ Error en refresh: ' + sanitizeForDisplay(e.message, 100), 'warning');
+      addLogEntry('⚠️ Error en refresh: ' + sanitizeForDisplay(e.message, 100), 'warning');
     });
   }
   
@@ -11132,22 +10871,22 @@ function showDashboard() {
   // Mostrar sección de perfil si existe la función
   if (typeof showProfileSection === 'function') showProfileSection();
   
-  log('📊 Dashboard mostrado', 'info');
+  addLogEntry('📊 Dashboard mostrado', 'info');
 }
 
 // 🚪 Logout seguro: limpieza completa de sesión
 function logout() {
   // Limpiar tokens y datos sensibles en memoria
   token = '';
-  currentUser = null;
-  userTier = 'personal';
-  isAdmin = false;
   
-  // Remover items de localStorage (solo los de sesión)
+  // ✅ Limpiar datos del Sistema Maestro
   localStorage.removeItem('token');
-  localStorage.removeItem('userTier');
-  localStorage.removeItem('isAdmin');
-  // NOTA: No removemos userEmail/refCode para UX, pero se validan en backend
+  localStorage.removeItem('arv_email');
+  localStorage.removeItem('arv_nombre');
+  localStorage.removeItem('arv_tipo');
+  localStorage.removeItem('arv_admin');
+  localStorage.removeItem('userEmail');
+  // NOTA: No removemos refCode para UX, pero se validan en backend
   
   // Actualizar UI con ARIA
   const dashboard = document.getElementById('dashboardView');
@@ -11169,7 +10908,7 @@ function logout() {
     avatarEl.setAttribute('aria-label', 'Avatar predeterminado');
   }
   
-  log('🚪 Sesión cerrada', 'info');
+  addLogEntry('🚪 Sesión cerrada', 'info');
   
   // Scroll suave al top
   window.scrollTo({ top: 0, behavior: 'smooth' });
