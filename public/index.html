@@ -11271,7 +11271,7 @@ async function simulateEnvelopeEncryption(titulo, categoria) {
 
 // ✅ Abrir modal con reset completo y foco accesible
 function openUpload() {
-  const modal = document.getElementById('uploadModal');
+  const modal = document.getElementById('uploadModal')
   if (!modal) return;
   
   modal.classList.remove('hidden');
@@ -11295,39 +11295,29 @@ function openUpload() {
     }
   });
   
-  // ✅ Resetear UI de progreso
-  const progress = document.getElementById('uploadProgress');
-  const progressFill = document.getElementById('uploadProgressFill');
-  const status = document.getElementById('uploadStatus');
-  const btn = document.getElementById('uploadBtn');
-  const priceSection = document.getElementById('priceSection');
-  
-  if (progress) progress.classList.add('hidden');
-  if (progressFill) progressFill.style.width = '0%';
-  if (status) {
-    status.textContent = '';
-    status.style.color = '';
-  }
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = '✅ Subir y Cifrar';
-  }
-  if (priceSection) priceSection.style.display = 'none';
-  
-  // ✅ Enfocar primer input para accesibilidad
-  const titleInput = document.getElementById('uploadTitle');
-  if (titleInput) {
-    setTimeout(() => titleInput.focus(), 100);
-  }
-}
+// ✅ Resetear UI de progreso
+const progress = document.getElementById('uploadProgress');
+const progressFill = document.getElementById('uploadProgressFill');
+const status = document.getElementById('uploadStatus');
+const btn = document.getElementById('uploadBtn');
+const priceSection = document.getElementById('priceSection');
 
-// ✅ Cerrar modal con limpieza de estado
-function closeUpload() {
-  const modal = document.getElementById('uploadModal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-  }
+if (progress) progress.classList.add('hidden');
+if (progressFill) progressFill.style.width = '0%';
+if (status) {
+  status.textContent = '';
+  status.style.color = '';
+}
+if (btn) {
+  btn.disabled = false;
+  btn.textContent = '✅ Subir y Cifrar';
+}
+if (priceSection) priceSection.style.display = 'none';
+
+// ✅ Enfocar primer input para accesibilidad
+const titleInput = document.getElementById('uploadTitle');
+if (titleInput) {
+  setTimeout(() => titleInput.focus(), 100);
 }
 
 // ✅ Event listener para toggle de precio (con cleanup)
@@ -11406,31 +11396,22 @@ async function doUpload(event) {
     return;
   }
   
-  // ✅ Validar tipo de archivo (lista blanca segura)
-  const allowedTypes = [
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'application/pdf', 'application/msword', 
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain', 'text/markdown',
-    'audio/mpeg', 'audio/wav', 'audio/ogg',
-    'video/mp4', 'video/webm',
-    'application/zip', 'application/x-rar-compressed'
-  ];
-  const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'txt', 'md', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'zip', 'rar'];
-  
-  const ext = file.name.split('.').pop()?.toLowerCase() || '';
-  if (!allowedTypes.includes(file.type) && !allowedExts.includes(ext)) {
-    showNotification(`⚠️ Formato no soportado: .${ext}`, 'error');
+  // ✅ Validar archivo con Lista Blanca Militar (IA integrada)
+  const validacion = validarArchivoSeguro(file);
+  if (!validacion.permitido) {
+    showNotification(validacion.mensaje, 'error');
     if (fileInput) {
-      fileInput.value = ''; // Limpiar selección inválida
+      fileInput.value = '';
       fileInput.classList.add('error');
       setTimeout(() => fileInput.classList.remove('error'), 2000);
     }
     return;
   }
   
-  // ✅ Validar tamaño según tier
-  const maxSizeMB = { personal: 100, business: 500, enterprise: 5000 }[userTier] || 100;
+  // ✅ Validar tamaño según tipo de cuenta
+  const tipoCuenta = localStorage.getItem('arv_tipo') || 'freemium';
+  const maxSizeMB = tipoCuenta === 'empresarial' ? 500 : 
+                    tipoCuenta === 'normal' ? 200 : 100;
   const fileMB = file.size / (1024 * 1024);
   
   if (fileMB > maxSizeMB) {
@@ -11480,7 +11461,7 @@ async function doUpload(event) {
   let interval = null;
   const startProgress = () => {
     interval = setInterval(() => {
-      prog = Math.min(90, prog + Math.random() * 8 + 2); // Progreso realista
+      prog = Math.min(90, prog + Math.random() * 8 + 2);
       if (progressFill) {
         progressFill.style.width = Math.round(prog) + '%';
         progressFill.setAttribute('aria-valuenow', Math.round(prog));
@@ -11505,25 +11486,25 @@ async function doUpload(event) {
     formData.append('categoria', cat);
     formData.append('forSale', forSale.toString());
     if (forSale) formData.append('price', price.toFixed(2));
-    formData.append('archivo', file, file.name); // ✅ Nombre original preservado
+    formData.append('archivo', file, file.name);
     
     // ✅ Headers seguros
     const headers = { 'Authorization': `Bearer ${token}` };
     
-    // ✅ Fetch con AbortController para cancelación
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2min timeout para uploads grandes
+    // ✅ Fetch con timeout de 2 minutos
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 120000)
+    );
     
-    // ✅ Enviar al backend
-    const r = await fetch(API + '/vault', {
+    const fetchPromise = fetch(API + '/vault', {
       method: 'POST',
       headers,
       body: formData,
-      signal: controller.signal,
       credentials: 'same-origin'
     });
     
-    clearTimeout(timeoutId);
+    const r = await Promise.race([fetchPromise, timeoutPromise]);
+    
     stopProgress();
     
     // ✅ Procesar respuesta
@@ -11546,7 +11527,7 @@ async function doUpload(event) {
     
     // ✅ Sanitizar título antes de loguear (previene XSS)
     const safeTitle = sanitizeForDisplay(titulo, 50);
-    log(`📦 ${safeTitle} guardado • ${fileMB.toFixed(1)}MB • ${cat}`, 'success');
+    addLogEntry(`📦 ${safeTitle} guardado • ${fileMB.toFixed(1)}MB • ${cat}`, 'success');
     showNotification('✅ Archivo subido exitosamente', 'success');
     
     // ✅ Reset y refresh con delay para feedback visual
@@ -11567,7 +11548,7 @@ async function doUpload(event) {
     
     // ✅ Mensajes de error específicos
     let errorMsg = e.message;
-    if (e.name === 'AbortError') {
+    if (e.message === 'Timeout') {
       errorMsg = '⏱️ La subida tardó demasiado. Verifica tu conexión.';
     } else if (errorMsg.includes('401')) {
       errorMsg = '❌ Sesión expirada. Inicia sesión de nuevo.';
@@ -11582,14 +11563,14 @@ async function doUpload(event) {
       status.style.color = '#ff5252';
     }
     
-    log('❌ Upload fallido: ' + sanitizeForDisplay(e.message, 100), 'error');
+    addLogEntry('❌ Upload fallido: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(sanitizeForDisplay(errorMsg, 100), 'error');
-    console.error('Upload error details:', { name: e.name, message: e.message, stack: e.stack });
+    console.error('Upload error details:', { name: e.name, message: e.message });
     
   } finally {
     // ✅ Cleanup garantizado: siempre restaurar UI
     isUploading = false;
-    stopProgress(); // ✅ Asegurar que el intervalo se limpie
+    stopProgress();
     
     if (btn) {
       btn.disabled = false;
@@ -11597,19 +11578,6 @@ async function doUpload(event) {
       btn.removeAttribute('aria-busy');
     }
   }
-}
-// ✅ Helper para sanitizar texto antes de insertar en DOM/logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
-    .substring(0, maxLen);
-}
-
-// ✅ Helper para sanitizar IDs usados en onclick (previene inyección de código)
-function sanitizeIdForEvent(str) {
-  if (!str) return '';
-  return String(str).replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 50);
 }
 
 // === VAULT: LIST - FUNCIONES MEJORADAS ===
@@ -11621,12 +11589,12 @@ async function showVault() {
     const list = document.getElementById('vaultList');
     
     if (!modal || !list) {
-      log('⚠️ Elementos del vault no encontrados', 'warning');
+      addLogEntry('⚠️ Elementos del vault no encontrados', 'warning');
       return;
     }
     
     modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false'); // ✅ Accesibilidad
+    modal.setAttribute('aria-hidden', 'false');
     
     list.innerHTML = '<p style="text-align:center;color:#8b95a5" role="status">🔄 Cargando...</p>';
     
