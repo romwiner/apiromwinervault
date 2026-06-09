@@ -10929,21 +10929,11 @@ function sanitizeText(str, maxLen = 100) {
     .replace(/javascript:/gi, '') // Prevenir protocolos peligrosos
     .trim();
 }
-
-// 🛡️ Función auxiliar: validar y sanitizar email
-function sanitizeEmail(email) {
-  if (!email) return '';
-  const clean = email.trim().toLowerCase();
-  // Validar formato básico
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return null;
-  return clean.substring(0, 255);
-}
-
 // 🔐 Scroll a auth con fallback y accesibilidad (✅ CORREGIDO)
 function scrollToAuth() {
   const authSection = document.getElementById('authSection');
   if (!authSection) {
-    log('⚠️ Sección de auth no encontrada', 'warning');
+    addLogEntry('⚠️ Sección de auth no encontrada', 'warning');
     return;
   }
   
@@ -10974,9 +10964,8 @@ function scrollToAuth() {
   authSection.setAttribute('tabindex', '-1');
   authSection.focus?.({ preventScroll: true });
   
-  log('📜 Sección de auth mostrada correctamente', 'success');
+  addLogEntry('📜 Sección de auth mostrada correctamente', 'success');
 }
-
 // === DASHBOARD: REFRESH MEJORADO CON SEGURIDAD ===
 async function refresh(event) {
   // ✅ Prevenir comportamiento por defecto si es submit
@@ -10984,7 +10973,7 @@ async function refresh(event) {
   
   // ✅ Verificar token antes de continuar
   if (!token) {
-    log('⚠️ Sin token, no se puede refrescar', 'warning');
+    addLogEntry('⚠️ Sin token, no se puede refrescar', 'warning');
     showNotification('⚠️ Inicia sesión para actualizar', 'warning');
     return;
   }
@@ -11000,17 +10989,18 @@ async function refresh(event) {
       btn.setAttribute('aria-busy', 'true');
     }
     
-    // ✅ Fetch paralelo con AbortController para evitar bloqueos infinitos
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    // ✅ Fetch paralelo con timeout de 15 segundos
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 15000)
+    );
     
-    const [w, d, a] = await Promise.all([
-      req('/api/wallet', 'GET', null, false, { signal: controller.signal }),
-      req('/api/dashboard', 'GET', null, false, { signal: controller.signal }),
-      req('/api/affiliates/dashboard', 'GET', null, false, { signal: controller.signal })
+    const fetchPromise = Promise.all([
+      req('/api/wallet', 'GET'),
+      req('/api/dashboard', 'GET'),
+      req('/api/affiliates/dashboard', 'GET')
     ]);
     
-    clearTimeout(timeoutId);
+    const [w, d, a] = await Promise.race([fetchPromise, timeoutPromise]);
     
     // ✅ Actualizar UI con null checks y sanitización
     const saldoEl = document.getElementById('saldo');
@@ -11041,27 +11031,21 @@ async function refresh(event) {
       afiliadosEl.setAttribute('aria-label', `Ganancias de afiliados: ${fmt(balance)}`);
     }
     
-    // ✅ Actualizar quota si existe
-    if (d.dashboard?.quota) {
-      userQuota = d.dashboard.quota;
-      if (typeof updateQuotaDisplay === 'function') updateQuotaDisplay();
-    }
-    
-    log('🟢 Métricas actualizadas', 'success');
+    addLogEntry('🟢 Métricas actualizadas', 'success');
     
   } catch (e) {
     // ✅ Manejo específico de errores para mejor UX
-    if (e.name === 'AbortError') {
-      log('⚠️ Timeout actualizando métricas', 'warning');
+    if (e.message === 'Timeout') {
+      addLogEntry('⚠️ Timeout actualizando métricas', 'warning');
       showNotification('⚠️ La conexión es lenta. Intenta de nuevo.', 'warning');
     } else if (e.message.includes('401')) {
-      log('⚠️ Sesión expirada', 'warning');
+      addLogEntry('⚠️ Sesión expirada', 'warning');
       showNotification('⚠️ Sesión expirada. Inicia sesión de nuevo.', 'warning');
     } else if (e.message.includes('403')) {
-      log('⚠️ Acceso denegado', 'warning');
+      addLogEntry('⚠️ Acceso denegado', 'warning');
       showNotification('⚠️ No tienes permiso para esta acción.', 'warning');
     } else {
-      log('⚠️ Error sincronizando: ' + sanitizeForDisplay(e.message, 100), 'warning');
+      addLogEntry('⚠️ Error sincronizando: ' + sanitizeForDisplay(e.message, 100), 'warning');
       showNotification('⚠️ No se pudo actualizar. Verifica tu conexión.', 'warning');
     }
   } finally {
