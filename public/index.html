@@ -3832,20 +3832,18 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // Fórmula ofuscada: La palabra real es imposible de leer a simple vista
-    let claveOculta = atob("OTlYb21lcnB1U3RsdWFW").split("").reverse().join("");
-    
-    if (intento === claveOculta) {
-      adminLoginForm.classList.add('hidden');
-      adminDashboard.classList.remove('hidden');
-      addLog('✅ Acceso concedido al Administrador Supremo');
-      addLog('🔐 Nivel de permisos: Absoluto e Irrevocable');
-    } else {
-      alert('⛔ Clave incorrecta. Este intento ha sido registrado.');
-      addLog('⛔ Intento de acceso fallido');
-      adminKeyInput.value = '';
-    }
-  });
+   // ✅ Verificación segura: el backend ya confirmó que eres admin al iniciar sesión
+const esAdmin = localStorage.getItem('arv_admin') === 'true';
+if (esAdmin) {
+  adminLoginForm.classList.add('hidden');
+  adminDashboard.classList.remove('hidden');
+  addLog('✅ Acceso concedido al Administrador Supremo');
+  addLog('🔐 Verificado por el backend (correo autorizado)');
+} else {
+  alert('⛔ Acceso denegado. Tu correo no está autorizado como administrador.');
+  addLog('⛔ Intento de acceso no autorizado');
+  adminKeyInput.value = '';
+}
 
   // Permitir acceso con Enter
   adminKeyInput.addEventListener('keypress', function(e) {
