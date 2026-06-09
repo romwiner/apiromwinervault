@@ -3682,29 +3682,29 @@ img, canvas, video, audio {
     }
   });
 </script>
-
-<!-- 👑 PANEL ADMIN CON ACCESO SEGURO INTEGRADO -->
+<!-- 👑 PANEL ADMIN CON ACCESO SEGURO (Verificación por JWT del Backend) -->
 <section id="adminPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 0 auto; padding: 20px;">
   <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #7c3aed; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3);">
     
-   <div id="adminLoginForm" style="text-align: center; padding: 40px 20px;">
-  <div style="font-size: 4rem; margin-bottom: 16px;">🔐</div>
-  <h2 style="margin: 0 0 8px 0; font-size: 1.5rem; color: #f8fafc;">Verificación de Administrador</h2>
-  <p style="margin: 0 0 24px 0; font-size: 0.9rem; color: #94a3b8;">El sistema está verificando tu identidad con el servidor seguro...</p>
-  <div style="max-width: 400px; margin: 0 auto;">
-    <div style="padding: 20px; background: #1e293b; border: 2px solid #7c3aed; border-radius: 12px; margin-bottom: 16px;">
-      <div style="font-size: 2rem; margin-bottom: 12px;">🔄</div>
-      <p style="color: #a78bfa; font-weight: bold; margin: 0;">Verificando permisos...</p>
-      <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 8px;">Consulta segura con el backend</p>
+    <!-- FORMULARIO DE VERIFICACIÓN (Sin clave, verifica con el backend) -->
+    <div id="adminLoginForm" style="text-align: center; padding: 40px 20px;">
+      <div style="font-size: 4rem; margin-bottom: 16px;">🔐</div>
+      <h2 style="margin: 0 0 8px 0; font-size: 1.5rem; color: #f8fafc;">Verificación de Administrador</h2>
+      <p style="margin: 0 0 24px 0; font-size: 0.9rem; color: #94a3b8;">El sistema verificará tu identidad con el servidor seguro</p>
+      <div style="max-width: 400px; margin: 0 auto;">
+        <div style="padding: 20px; background: #1e293b; border: 2px solid #7c3aed; border-radius: 12px; margin-bottom: 16px;">
+          <div style="font-size: 2rem; margin-bottom: 12px;">🛡️</div>
+          <p style="color: #a78bfa; font-weight: bold; margin: 0;">Verificación Segura</p>
+          <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 8px;">Se consultará tu token JWT con el backend</p>
+        </div>
+        <button type="button" id="btnAdminLogin" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer;">
+          🔍 Verificar Acceso Admin
+        </button>
+      </div>
+      <p style="margin: 20px 0 0 0; font-size: 0.75rem; color: #64748b;">🛡️ Acceso verificado por el servidor (cero claves en el navegador)</p>
     </div>
-    <button type="button" id="btnAdminLogin" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer;">
-      🔍 Verificar Acceso
-    </button>
-  </div>
-  <p style="margin: 20px 0 0 0; font-size: 0.75rem; color: #64748b;">🛡️ Acceso verificado por el servidor (cero claves en el navegador)</p>
-</div>
 
-    <!-- PANEL ADMIN (OCULTO HASTA VERIFICAR CLAVE) -->
+    <!-- PANEL ADMIN (OCULTO HASTA VERIFICAR) -->
     <div id="adminDashboard" class="hidden">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #7c3aed; padding-bottom: 16px;">
         <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc;">👑 Panel de Comando Supremo</h2>
@@ -3718,6 +3718,10 @@ img, canvas, video, audio {
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        <button type="button" class="admin-tool-btn" data-tool="view-users" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">📊</div>
+          <div style="font-weight: bold;">Ver Usuarios</div>
+        </button>
         <button type="button" class="admin-tool-btn" data-tool="gift" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
           <div style="font-size: 2rem; margin-bottom: 8px;">🎁</div>
           <div style="font-weight: bold;">Regalar Cuenta</div>
@@ -3726,10 +3730,6 @@ img, canvas, video, audio {
           <div style="font-size: 2rem; margin-bottom: 8px;">🗑️</div>
           <div style="font-weight: bold;">Eliminar Usuario</div>
         </button>
-        <button type="button" class="admin-tool-btn" data-tool="create-user" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
-          <div style="font-size: 2rem; margin-bottom: 8px;">➕</div>
-          <div style="font-weight: bold;">Crear Usuario</div>
-        </button>
         <button type="button" class="admin-tool-btn" data-tool="change-password" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
           <div style="font-size: 2rem; margin-bottom: 8px;">🔐</div>
           <div style="font-weight: bold;">Cambiar Contraseña</div>
@@ -3737,10 +3737,6 @@ img, canvas, video, audio {
         <button type="button" class="admin-tool-btn" data-tool="rotate-keys" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
           <div style="font-size: 2rem; margin-bottom: 8px;">🔑</div>
           <div style="font-weight: bold;">Rotar Claves</div>
-        </button>
-        <button type="button" class="admin-tool-btn" data-tool="view-users" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
-          <div style="font-size: 2rem; margin-bottom: 8px;">📊</div>
-          <div style="font-weight: bold;">Ver Usuarios</div>
         </button>
         <button type="button" class="admin-tool-btn" data-tool="pay-user" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
           <div style="font-size: 2rem; margin-bottom: 8px;">💰</div>
@@ -3792,11 +3788,11 @@ img, canvas, video, audio {
 </section>
 
 <script>
-// 🔐 SISTEMA DE ACCESO ADMIN CON FORMULARIO INTEGRADO
+// 🔐 SISTEMA DE ACCESO ADMIN SEGURO (Verificación por JWT del Backend)
+// ❌ NO usa claves ocultas ni atob() - Solo verifica el token JWT con el backend
 document.addEventListener('DOMContentLoaded', function() {
   const adminLoginForm = document.getElementById('adminLoginForm');
   const adminDashboard = document.getElementById('adminDashboard');
-  const adminKeyInput = document.getElementById('adminKeyInput');
   const btnAdminLogin = document.getElementById('btnAdminLogin');
   const adminLogs = document.getElementById('adminLogs');
   const adminToolModal = document.getElementById('adminToolModal');
@@ -3808,11 +3804,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const adminAIProgressBar = document.getElementById('adminAIProgressBar');
   const adminAIStatus = document.getElementById('adminAIStatus');
   const adminAIPercent = document.getElementById('adminAIPercent');
-
+  
   let currentTool = null;
   let uploadedDocuments = { signature: null, fingerprint: null, letter: null };
-
-  // Función para agregar logs
+  
+  // ✅ Función para agregar logs
   function addLog(mensaje) {
     if (adminLogs) {
       const time = new Date().toLocaleTimeString();
@@ -3824,36 +3820,64 @@ document.addEventListener('DOMContentLoaded', function() {
       adminLogs.scrollTop = adminLogs.scrollHeight;
     }
   }
-
-  // Verificar clave maestra
-  btnAdminLogin.addEventListener('click', function() {
-    const intento = adminKeyInput.value;
-    if (!intento) {
-      alert('⚠️ Ingresa la clave maestra');
+  
+  // ✅ VERIFICACIÓN SEGURA: Consulta al backend con el token JWT
+  btnAdminLogin.addEventListener('click', async function() {
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+    
+    if (!token) {
+      alert('⛔ No hay sesión activa. Inicia sesión primero.');
       return;
     }
-
-   // ✅ Verificación segura: el backend ya confirmó que eres admin al iniciar sesión
-const esAdmin = localStorage.getItem('arv_admin') === 'true';
-if (esAdmin) {
-  adminLoginForm.classList.add('hidden');
-  adminDashboard.classList.remove('hidden');
-  addLog('✅ Acceso concedido al Administrador Supremo');
-  addLog('🔐 Verificado por el backend (correo autorizado)');
-} else {
-  alert('⛔ Acceso denegado. Tu correo no está autorizado como administrador.');
-  addLog('⛔ Intento de acceso no autorizado');
-  adminKeyInput.value = '';
-}
-
-  // Permitir acceso con Enter
-  adminKeyInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      btnAdminLogin.click();
+    
+    btnAdminLogin.disabled = true;
+    btnAdminLogin.textContent = '⏳ Verificando con el servidor...';
+    
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.status === 401) {
+        alert('⛔ Sesión expirada. Inicia sesión nuevamente.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth_token');
+        window.location.reload();
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error('Error al verificar permisos');
+      }
+      
+      const data = await response.json();
+      const isAdmin = data.user && data.user.isAdmin === true;
+      
+      if (isAdmin) {
+        adminLoginForm.classList.add('hidden');
+        adminDashboard.classList.remove('hidden');
+        addLog('✅ Acceso concedido al Administrador Supremo');
+        addLog('🔐 Verificado por el backend (JWT válido + email autorizado)');
+        addLog('🛡️ Nivel de permisos: Absoluto e Irrevocable');
+      } else {
+        alert('⛔ Acceso denegado. Tu cuenta no tiene permisos de administrador.');
+        addLog('⛔ Intento de acceso no autorizado');
+      }
+    } catch (error) {
+      console.error('❌ Error verificando admin:', error);
+      alert('❌ Error al verificar permisos. Intenta de nuevo.');
+      addLog('❌ Error de conexión al verificar permisos');
+    } finally {
+      btnAdminLogin.disabled = false;
+      btnAdminLogin.textContent = '🔍 Verificar Acceso Admin';
     }
   });
-
-  // Event listeners para botones de herramientas
+  
+  // ✅ Event listeners para botones de herramientas
   document.querySelectorAll('.admin-tool-btn').forEach(btn => {
     btn.addEventListener('click', function() {
       const tool = this.dataset.tool;
@@ -3862,290 +3886,259 @@ if (esAdmin) {
       addLog(`🛠️ Herramienta abierta: ${tool}`);
     });
   });
-
-  // Función para abrir herramientas
+  
+  // ✅ Función para abrir herramientas
   function openAdminTool(tool) {
     adminToolModal.classList.remove('hidden');
     adminAIProgress.classList.add('hidden');
-    adminActions.style.display = 'flex';
+    document.getElementById('adminActions').style.display = 'flex';
     btnConfirmAdmin.disabled = false;
     btnConfirmAdmin.textContent = '✅ Confirmar Acción';
     btnConfirmAdmin.style.background = '#7c3aed';
     btnConfirmAdmin.style.color = 'white';
     uploadedDocuments = { signature: null, fingerprint: null, letter: null };
-
-    switch(tool) {
-      case 'gift':
-        adminToolTitle.textContent = '🎁 Regalar Cuenta Premium';
-        adminToolContent.innerHTML = `
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Correo del beneficiario:</label>
-          <input type="email" id="giftEmail" placeholder="usuario@ejemplo.com" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; margin-bottom: 12px;">
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Días de premium:</label>
-          <input type="number" id="giftDays" value="30" min="1" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-        `;
-        break;
-        
-      case 'delete-user':
-        adminToolTitle.textContent = '🗑️ Eliminar Usuario (IRREVERSIBLE)';
-        adminToolContent.innerHTML = `
-          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 8px; padding: 12px; margin-bottom: 12px; color: #fca5a5; font-size: 0.85rem;">
-            ⚠️ ADVERTENCIA: Esta acción eliminará permanentemente al usuario. No hay vuelta atrás.
+    
+    const tools = {
+      'view-users': {
+        title: '📊 Ver Usuarios',
+        html: '<p style="color:#cbd5e1;">Cargando lista de usuarios desde el backend...</p>',
+        action: async () => {
+          const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+          try {
+            const res = await fetch('/api/admin/users', {
+              headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.success) {
+              let html = '<div style="max-height:300px;overflow-y:auto;font-family:monospace;font-size:0.8rem;">';
+              data.users.forEach(u => {
+                html += `<p style="margin:4px 0;color:#cbd5e1;">${u.isAdmin ? '👑' : '👤'} ${u.email} - ${u.tier}</p>`;
+              });
+              html += '</div>';
+              adminToolContent.innerHTML = html;
+              addLog(`📊 ${data.users.length} usuarios cargados`);
+            }
+          } catch (e) {
+            alert('❌ Error cargando usuarios');
+          }
+        }
+      },
+      'gift': {
+        title: '🎁 Regalar Cuenta Premium',
+        html: `
+          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Correo del beneficiario:</label>
+          <input type="email" id="giftEmail" placeholder="usuario@ejemplo.com" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;margin-bottom:12px;">
+          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Saldo inicial (USD):</label>
+          <input type="number" id="giftBalance" value="10" min="0" step="0.01" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;">
+        `
+      },
+      'delete-user': {
+        title: '🗑️ Eliminar Usuario (IRREVERSIBLE)',
+        html: `
+          <div style="background:rgba(239,68,68,0.1);border:1px solid #ef4444;border-radius:8px;padding:12px;margin-bottom:12px;color:#fca5a5;font-size:0.85rem;">
+            ⚠️ ADVERTENCIA: Esta acción eliminará permanentemente al usuario.
           </div>
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Correo del usuario a eliminar:</label>
-          <input type="email" id="deleteEmail" placeholder="usuario@ejemplo.com" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-        `;
-        btnConfirmAdmin.style.background = '#ef4444';
-        break;
-        
-      case 'create-user':
-        adminToolTitle.textContent = '➕ Crear Usuario Manual';
-        adminToolContent.innerHTML = `
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Nombre completo:</label>
-          <input type="text" id="newUserName" placeholder="Juan Pérez" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; margin-bottom: 12px;">
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Correo:</label>
-          <input type="email" id="newUserEmail" placeholder="usuario@ejemplo.com" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; margin-bottom: 12px;">
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Contraseña temporal:</label>
-          <input type="text" id="newUserPass" value="Temp123!" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-        `;
-        break;
-        
-      case 'change-password':
-        adminToolTitle.textContent = '🔐 Cambiar Contraseña de Usuario';
-        adminToolContent.innerHTML = `
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Correo del usuario:</label>
-          <input type="email" id="changePassEmail" placeholder="usuario@ejemplo.com" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; margin-bottom: 12px;">
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Nueva contraseña:</label>
-          <input type="text" id="newPassword" placeholder="Nueva contraseña segura" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-        `;
-        break;
-        
-      case 'rotate-keys':
-        adminToolTitle.textContent = '🔑 Rotar Claves de Cifrado Maestro';
-        adminToolContent.innerHTML = `
-          <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid #fbbf24; border-radius: 8px; padding: 12px; margin-bottom: 12px; color: #fcd34d; font-size: 0.85rem;">
-            ⚠️ Esta acción regenerará todas las claves AES-256-GCM. Todos los usuarios deberán re-autenticarse.
+          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Correo del usuario:</label>
+          <input type="email" id="deleteEmail" placeholder="usuario@ejemplo.com" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;">
+        `,
+        danger: true
+      },
+      'change-password': {
+        title: '🔐 Cambiar Contraseña',
+        html: `
+          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Correo del usuario:</label>
+          <input type="email" id="changePassEmail" placeholder="usuario@ejemplo.com" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;margin-bottom:12px;">
+          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Nueva contraseña:</label>
+          <input type="password" id="newPassword" placeholder="Mínimo 8 caracteres" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;">
+        `
+      },
+      'rotate-keys': {
+        title: '🔑 Rotar Claves de Cifrado',
+        html: `
+          <div style="background:rgba(251,191,36,0.1);border:1px solid #fbbf24;border-radius:8px;padding:12px;margin-bottom:12px;color:#fcd34d;font-size:0.85rem;">
+            ⚠️ Esta acción regenerará todas las claves AES-256-GCM.
           </div>
-          <p style="color: #cbd5e1; font-size: 0.9rem;">¿Confirmar rotación de claves maestras?</p>
-        `;
-        break;
-        
-      case 'view-users':
-        adminToolTitle.textContent = '📊 Base de Datos de Usuarios';
-        adminToolContent.innerHTML = `
-          <div style="background: #1e293b; border-radius: 8px; padding: 12px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.8rem;">
-            <p style="color: #38bdf8; margin: 0 0 8px 0;">// Total usuarios: 1,247</p>
-            <p style="color: #cbd5e1; margin: 4px 0;">👤 Usuario 1 (usuario1@mail.com) - Premium</p>
-            <p style="color: #cbd5e1; margin: 4px 0;">👤 Usuario 2 (usuario2@mail.com) - Gratis</p>
-            <p style="color: #cbd5e1; margin: 4px 0;">👤 Usuario 3 (usuario3@mail.com) - Premium</p>
-            <p style="color: #64748b; margin: 4px 0;">... y 1,244 más</p>
+          <p style="color:#cbd5e1;">¿Confirmar rotación de claves maestras?</p>
+        `
+      },
+      'pay-user': {
+        title: '💰 Pagar a Usuario',
+        html: `
+          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Correo del usuario:</label>
+          <input type="email" id="payEmail" placeholder="usuario@ejemplo.com" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;margin-bottom:12px;">
+          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Monto (USD):</label>
+          <input type="number" id="payAmount" placeholder="100.00" min="0.01" step="0.01" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;">
+        `
+      },
+      'transfer-power': {
+        title: '👑 Transferir Poderes',
+        html: `
+          <div style="background:rgba(251,191,36,0.2);border:2px solid #fbbf24;border-radius:8px;padding:16px;margin-bottom:16px;color:#fcd34d;">
+            <p style="margin:0;font-weight:bold;">⚠️ REQUIERE VERIFICACIÓN FÍSICA ⚠️</p>
+            <p style="margin:8px 0 0 0;font-size:0.85rem;">Esta acción NO se puede ejecutar automáticamente. Requiere documentos físicos.</p>
           </div>
-        `;
-        btnConfirmAdmin.textContent = '🔄 Actualizar Lista';
-        break;
-        
-      case 'pay-user':
-        adminToolTitle.textContent = '💰 Pagar a Usuario';
-        adminToolContent.innerHTML = `
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Correo del usuario:</label>
-          <input type="email" id="payEmail" placeholder="usuario@ejemplo.com" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; margin-bottom: 12px;">
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Monto (USD):</label>
-          <input type="number" id="payAmount" placeholder="100.00" min="0.01" step="0.01" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-        `;
-        break;
-        
-      case 'transfer-power':
-        adminToolTitle.textContent = '👑 Transferir Poderes Supremos';
-        adminToolContent.innerHTML = `
-          <div style="background: rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24; border-radius: 8px; padding: 16px; margin-bottom: 16px; color: #fcd34d;">
-            <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 1rem;">⚠️ TRANSFERENCIA REQUIERE DOCUMENTOS FÍSICOS ⚠️</p>
-            <p style="margin: 0; font-size: 0.85rem;">Esta acción NO se puede ejecutar automáticamente. Requiere verificación presencial.</p>
+          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Correo del nuevo propietario:</label>
+          <input type="email" id="transferEmail" placeholder="nuevo@propietario.com" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;">
+        `
+      },
+      'nuke-app': {
+        title: '☢️ BORRAR APP',
+        html: `
+          <div style="background:rgba(239,68,68,0.2);border:2px solid #ef4444;border-radius:8px;padding:16px;margin-bottom:12px;color:#fca5a5;">
+            <p style="margin:0;font-weight:bold;">⚠️ ACCIÓN EXTREMA ⚠️</p>
+            <p style="margin:8px 0 0 0;font-size:0.85rem;">Esto eliminará TODO. IRREVERSIBLE.</p>
           </div>
-          <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px;">Correo del nuevo propietario:</label>
-          <input type="email" id="transferEmail" placeholder="nuevo@propietario.com" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; margin-bottom: 16px;">
-          <p style="font-size: 0.85rem; color: #fbbf24; font-weight: bold; margin-bottom: 10px;">📎 Adjuntar documentos físicos:</p>
-          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
-            <label style="background: #1e293b; border: 1px dashed #475569; border-radius: 8px; padding: 12px; cursor: pointer;">
-              <input type="file" id="fileSignature" accept="image/*,.pdf" style="display: none;">
-              <span style="font-size: 1.5rem;">✍️</span> Firma física
-              <div id="statusSignature" style="color: #64748b; font-size: 0.75rem;">Sin adjuntar</div>
-            </label>
-            <label style="background: #1e293b; border: 1px dashed #475569; border-radius: 8px; padding: 12px; cursor: pointer;">
-              <input type="file" id="fileFingerprint" accept="image/*,.pdf" style="display: none;">
-              <span style="font-size: 1.5rem;">👆</span> Huella digital
-              <div id="statusFingerprint" style="color: #64748b; font-size: 0.75rem;">Sin adjuntar</div>
-            </label>
-            <label style="background: #1e293b; border: 1px dashed #475569; border-radius: 8px; padding: 12px; cursor: pointer;">
-              <input type="file" id="fileLetter" accept="image/*,.pdf" style="display: none;">
-              <span style="font-size: 1.5rem;">📄</span> Carta por escrito
-              <div id="statusLetter" style="color: #64748b; font-size: 0.75rem;">Sin adjuntar</div>
-            </label>
-          </div>
-        `;
-        setupFileInput('fileSignature', 'statusSignature', 'signature');
-        setupFileInput('fileFingerprint', 'statusFingerprint', 'fingerprint');
-        setupFileInput('fileLetter', 'statusLetter', 'letter');
-        btnConfirmAdmin.style.background = '#fbbf24';
-        btnConfirmAdmin.style.color = '#000';
-        btnConfirmAdmin.textContent = '📋 Registrar Solicitud';
-        break;
-        
-      case 'nuke-app':
-        adminToolTitle.textContent = '☢️ BORRAR COMPLETAMENTE LA APP';
-        adminToolContent.innerHTML = `
-          <div style="background: rgba(239, 68, 68, 0.2); border: 2px solid #ef4444; border-radius: 8px; padding: 16px; margin-bottom: 12px; color: #fca5a5;">
-            <p style="margin: 0 0 8px 0; font-weight: bold;">⚠️ ACCIÓN EXTREMA ⚠️</p>
-            <p style="margin: 0; font-size: 0.85rem;">Esto eliminará todos los usuarios, archivos y transacciones. IRREVERSIBLE.</p>
-          </div>
-          <label style="font-size: 0.85rem; color: #ef4444; display: block; margin-bottom: 6px; font-weight: bold;">Escribe "BORRAR" para confirmar:</label>
-          <input type="text" id="nukeConfirm" placeholder="BORRAR" style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 2px solid #ef4444; color: #fff; border-radius: 8px;">
-        `;
-        btnConfirmAdmin.style.background = '#ef4444';
-        btnConfirmAdmin.textContent = '☢️ EJECUTAR DESTRUCCIÓN';
-        break;
-        
-      case 'ai-audit':
-        adminToolTitle.textContent = '🤖 Auditoría IA Profunda del Sistema';
-        adminToolContent.innerHTML = `
-          <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 12px;">La IA escaneará:</p>
-          <ul style="color: #94a3b8; font-size: 0.85rem; padding-left: 20px;">
+          <label style="font-size:0.85rem;color:#ef4444;display:block;margin-bottom:6px;font-weight:bold;">Escribe "BORRAR" para confirmar:</label>
+          <input type="text" id="nukeConfirm" placeholder="BORRAR" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:2px solid #ef4444;color:#fff;border-radius:8px;">
+        `,
+        danger: true
+      },
+      'ai-audit': {
+        title: '🤖 Auditoría IA del Sistema',
+        html: `
+          <p style="color:#cbd5e1;margin-bottom:12px;">La IA escaneará:</p>
+          <ul style="color:#94a3b8;font-size:0.85rem;padding-left:20px;">
             <li>Integridad de todas las bóvedas</li>
             <li>Patrones de fraude en afiliados</li>
             <li>Amenazas de seguridad externas</li>
             <li>Anomalías en transacciones</li>
           </ul>
-        `;
-        break;
-    }
-  }
-
-  function setupFileInput(inputId, statusId, docType) {
-    const input = document.getElementById(inputId);
-    const status = document.getElementById(statusId);
+        `
+      }
+    };
     
-    input.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-        if (!allowedTypes.includes(file.type)) {
-          alert('⛔ Solo se permiten imágenes (.jpg, .png) o PDF');
-          input.value = '';
-          return;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-          alert('⛔ El documento no puede superar los 10MB');
-          input.value = '';
-          return;
-        }
-        uploadedDocuments[docType] = file;
-        status.textContent = '✅ ' + file.name;
-        status.style.color = '#059669';
-      }
-    });
-  }
-
-  btnConfirmAdmin.addEventListener('click', function() {
-    if (currentTool === 'nuke-app') {
-      const confirmText = document.getElementById('nukeConfirm').value;
-      if (confirmText !== 'BORRAR') {
-        alert('⚠️ Debes escribir "BORRAR" exactamente');
-        return;
-      }
+    const toolData = tools[tool] || { title: 'Herramienta', html: '<p>Función en desarrollo</p>' };
+    adminToolTitle.textContent = toolData.title;
+    adminToolContent.innerHTML = toolData.html;
+    
+    if (toolData.danger) {
+      btnConfirmAdmin.style.background = '#ef4444';
+    } else {
+      btnConfirmAdmin.style.background = '#7c3aed';
     }
-
-    if (currentTool === 'transfer-power') {
-      if (!uploadedDocuments.signature || !uploadedDocuments.fingerprint || !uploadedDocuments.letter) {
-        alert('⛔ Debes adjuntar los TRES documentos físicos');
-        return;
-      }
-      handleTransferRequest();
+    
+    if (toolData.action) {
+      toolData.action();
+    }
+  }
+  
+  // ✅ Botón confirmar acción
+  btnConfirmAdmin.addEventListener('click', async function() {
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+    
+    if (!token) {
+      alert('⛔ Sesión expirada');
       return;
     }
-
-    btnConfirmAdmin.disabled = true;
-    btnConfirmAdmin.textContent = '⏳ Procesando...';
-    adminAIProgress.classList.remove('hidden');
     
-    let progress = 0;
-    const auditSteps = [
-      "🤖 IA: Validando permisos...",
-      "🔐 Verificando integridad...",
-      "🛡️ Escaneando conflictos...",
-      "✅ Acción aprobada. Ejecutando..."
-    ];
-
-    const interval = setInterval(() => {
-      progress += 5;
-      adminAIProgressBar.style.width = progress + '%';
-      adminAIPercent.textContent = progress + '%';
-      const stepIndex = Math.min(Math.floor(progress / 25), auditSteps.length - 1);
-      adminAIStatus.textContent = auditSteps[stepIndex];
-
-      if (progress >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          executeAdminAction(currentTool);
-        }, 500);
+    try {
+      let endpoint = '';
+      let method = 'POST';
+      let body = {};
+      
+      switch(currentTool) {
+        case 'gift':
+          endpoint = '/api/admin/gift-account';
+          body = {
+            recipientEmail: document.getElementById('giftEmail')?.value,
+            initialBalance: parseFloat(document.getElementById('giftBalance')?.value || 0)
+          };
+          if (!body.recipientEmail) {
+            alert('⚠️ Ingresa el correo del beneficiario');
+            return;
+          }
+          break;
+          
+        case 'delete-user':
+          endpoint = `/api/admin/users/${encodeURIComponent(document.getElementById('deleteEmail')?.value)}`;
+          method = 'DELETE';
+          if (!document.getElementById('deleteEmail')?.value) {
+            alert('⚠️ Ingresa el correo del usuario');
+            return;
+          }
+          break;
+          
+        case 'change-password':
+          endpoint = `/api/admin/reset-password/${encodeURIComponent(document.getElementById('changePassEmail')?.value)}`;
+          body = { newPassword: document.getElementById('newPassword')?.value };
+          if (!body.newPassword || body.newPassword.length < 8) {
+            alert('⚠️ La contraseña debe tener al menos 8 caracteres');
+            return;
+          }
+          break;
+          
+        case 'rotate-keys':
+          endpoint = '/api/admin/rotate-keys';
+          break;
+          
+        case 'nuke-app':
+          if (document.getElementById('nukeConfirm')?.value !== 'BORRAR') {
+            alert('⚠️ Debes escribir "BORRAR" exactamente');
+            return;
+          }
+          alert('☢️ Esta función está deshabilitada por seguridad. Contacta al desarrollador.');
+          adminToolModal.classList.add('hidden');
+          return;
+          
+        default:
+          alert(`🛠️ Herramienta "${currentTool}" en desarrollo`);
+          adminToolModal.classList.add('hidden');
+          return;
       }
-    }, 80);
-  });
-
-  function handleTransferRequest() {
-    const transferEmail = document.getElementById('transferEmail').value;
-    const message = `📋 SOLICITUD REGISTRADA (PENDIENTE DE VERIFICACIÓN PRESENCIAL)\n\n📧 Nuevo propietario: ${transferEmail}\n📎 Documentos: ${uploadedDocuments.signature.name}, ${uploadedDocuments.fingerprint.name}, ${uploadedDocuments.letter.name}\n\n⚠️ La transferencia NO se ejecutará hasta verificación física.`;
-    addLog(`📋 Solicitud de transferencia registrada - PENDIENTE`);
-    adminToolModal.classList.add('hidden');
-    alert(message);
-  }
-
-  function executeAdminAction(tool) {
-    let message = '';
-    switch(tool) {
-      case 'gift':
-        const giftEmail = document.getElementById('giftEmail').value;
-        const giftDays = document.getElementById('giftDays').value;
-        message = `🎁 Cuenta premium regalada a ${giftEmail} por ${giftDays} días`;
-        break;
-      case 'delete-user':
-        const deleteEmail = document.getElementById('deleteEmail').value;
-        message = `🗑️ Usuario ${deleteEmail} eliminado permanentemente`;
-        break;
-      case 'create-user':
-        const newEmail = document.getElementById('newUserEmail').value;
-        message = `➕ Usuario ${newEmail} creado exitosamente`;
-        break;
-      case 'change-password':
-        const changeEmail = document.getElementById('changePassEmail').value;
-        message = `🔐 Contraseña de ${changeEmail} cambiada`;
-        break;
-      case 'rotate-keys':
-        message = '🔑 Claves maestras rotadas';
-        break;
-      case 'view-users':
-        message = '📊 Lista de usuarios actualizada';
-        break;
-      case 'pay-user':
-        const payEmail = document.getElementById('payEmail').value;
-        const payAmount = document.getElementById('payAmount').value;
-        message = `💰 Pago de $${payAmount} USD enviado a ${payEmail}`;
-        break;
-      case 'nuke-app':
-        message = '☢️ APP DESTRUIDA (Simulación)';
-        break;
-      case 'ai-audit':
-        message = '🤖 Auditoría IA completada: 0 amenazas';
-        break;
+      
+      const options = {
+        method: method,
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      };
+      
+      if (method !== 'DELETE' && Object.keys(body).length > 0) {
+        options.body = JSON.stringify(body);
+      }
+      
+      const res = await fetch(endpoint, options);
+      
+      if (res.status === 401) {
+        alert('⛔ Sesión expirada');
+        localStorage.removeItem('token');
+        window.location.reload();
+        return;
+      }
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        addLog(`✅ ${currentTool}: ${data.message || 'Acción completada'}`);
+        alert(`✅ ${data.message || 'Acción completada'}`);
+      } else {
+        throw new Error(data.error || 'Error en la acción');
+      }
+      
+      adminToolModal.classList.add('hidden');
+    } catch (error) {
+      console.error('❌ Error:', error);
+      alert('❌ Error: ' + error.message);
+      addLog(`❌ ${currentTool}: ${error.message}`);
     }
-    addLog(message);
-    adminToolModal.classList.add('hidden');
-    alert(`✅ ${message}`);
-  }
-
+  });
+  
+  // ✅ Botón cancelar
   btnCancelAdmin.addEventListener('click', function() {
     adminToolModal.classList.add('hidden');
   });
+  
+  // ✅ Auto-verificar si ya hay sesión admin activa al cargar
+  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+  if (token && localStorage.getItem('arv_admin') === 'true') {
+    adminLoginForm.classList.add('hidden');
+    adminDashboard.classList.remove('hidden');
+    addLog('✅ Sesión admin activa detectada');
+  }
 });
 </script>
-  <script>
+
     // ============================================================
     // 📱 SERVICE WORKER (Modo Seguro - Solo si existe localmente)
     // ============================================================
