@@ -11812,7 +11812,7 @@ async function showVersions(fileId) {
       alert('📜 Historial de versiones:\n(vacío)');
       return;
     }
-    
+     <script>
     // ✅ Sanitizar cada entrada antes de mostrar
     const list = versions.map(v => {
       const date = new Date(v.date);
@@ -20106,7 +20106,7 @@ async function verArchivo(id) {
       }
       return;
     }
-
+ <script>
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
