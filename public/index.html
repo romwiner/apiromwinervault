@@ -9671,6 +9671,7 @@ async function doUpload() {
   const fileInput = document.getElementById('uploadFile');
   const forSaleCheck = document.getElementById('uploadForSale');
   const priceInput = document.getElementById('uploadPrice');
+  const priceSection = document.getElementById('priceSection');
   const status = document.getElementById('uploadStatus');
   const btn = document.getElementById('uploadBtn');
   const progress = document.getElementById('uploadProgress');
@@ -9707,9 +9708,10 @@ async function doUpload() {
     return;
   }
   
-  const fileError = validateFile(file);
-  if (fileError) {
-    showNotification(fileError, 'error');
+  // ✅ Validación con Lista Blanca Militar (IA integrada)
+  const validacion = validarArchivoSeguro(file);
+  if (!validacion.permitido) {
+    showNotification(validacion.mensaje, 'error');
     return;
   }
   
@@ -9913,7 +9915,7 @@ async function doExportVault() {
     const exportData = {
       version: '1.0',
       exportedAt: new Date().toISOString(),
-      userId: currentUser?.uid || 'demo_user',
+      userId: localStorage.getItem('arv_email') || 'demo_user',
       zeroKnowledge: zk,
       items: [] // En producción: fetch('/api/vault/export')
     };
@@ -9935,7 +9937,7 @@ async function doExportVault() {
     showNotification('✅ Exportación iniciada. Guarda el archivo en un lugar seguro.', 'success');
     if (zk) showNotification('🔐 Recuerda cifrar este archivo con tu clave maestra', 'warning', 7000);
     
-    log('📦 Exportación completada', 'success');
+    addLogEntry('📦 Exportación completada', 'success');
     
   } catch (e) {
     console.error('❌ Export error:', e);
@@ -9946,7 +9948,7 @@ async function doExportVault() {
       status.style.color = '#ff5252';
     }
     showNotification(`❌ ${safeMsg}`, 'error');
-    log('❌ Export fallido: ' + sanitizeUserMessage(e.message), 'error');
+    addLogEntry('❌ Export fallido: ' + sanitizeUserMessage(e.message), 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -9967,7 +9969,7 @@ function closeExportModal() {
     status.textContent = '';
     status.removeAttribute('aria-live');
   }
-  log('🔒 Modal de exportación cerrado', 'info');
+  addLogEntry('🔒 Modal de exportación cerrado', 'info');
 }
 
 // 📥 Importar backup con validación robusta - versión segura
@@ -10027,10 +10029,19 @@ async function doImportVault() {
     }
     
     // ✅ Validar usuario con sanitización del mensaje
-    if (data.userId && data.userId !== currentUser?.uid && !force) {
+    const userEmail = localStorage.getItem('arv_email');
+    if (data.userId && data.userId !== userEmail && !force) {
       // ✅ Sanitizar userId antes de incluirlo en mensaje de error
       const safeUserId = sanitizeUserMessage(data.userId, 'usuario desconocido');
       throw new Error(`Este backup pertenece a otro usuario (${safeUserId}). Usa "Forzar importación" para importar como nueva bóveda.`);
+    }
+    
+    // ✅ Estado de importación
+    if (btn) {
+      btn.textContent = '⏳ Importando...';
+    }
+    if (status) {
+      status.textContent = '📥 Importando items...';
     }
     
     // ✅ Simular importación exitosa (demo)
@@ -10041,7 +10052,7 @@ async function doImportVault() {
     }
     
     showNotification(`✅ Backup importado: ${data.items.length} items`, 'success');
-    log(`📥 Importación completada: ${data.items.length} items`, 'success');
+    addLogEntry(`📥 Importación completada: ${data.items.length} items`, 'success');
     
     // ✅ Resetear y cerrar
     setTimeout(() => {
@@ -10061,7 +10072,7 @@ async function doImportVault() {
       status.style.color = '#ff5252';
     }
     showNotification(safeMsg.replace('❌ ', ''), 'error');
-    log('❌ Import fallido: ' + sanitizeUserMessage(e.message), 'error');
+    addLogEntry('❌ Import fallido: ' + sanitizeUserMessage(e.message), 'error');
     
   } finally {
     if (btn) {
@@ -10088,70 +10099,9 @@ function closeImportModal() {
   }
   const fileInput = document.getElementById('importFile');
   if (fileInput) fileInput.value = '';
-  log('🔒 Modal de importación cerrado', 'info');
+  addLogEntry('🔒 Modal de importación cerrado', 'info');
 }
-     if (btn) {
-      btn.disabled = true;
-      btn.textContent = '⏳ Importando...';
-      btn.setAttribute('aria-busy', 'true'); // ✅ Accesibilidad
-    }
-    if (status) {
-      status.textContent = '📥 Importando items...';
-      status.setAttribute('aria-live', 'polite');
-    }
-    
-    // Demo: simular importación
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (status) {
-      status.textContent = `✅ ${data.items.length} items importados exitosamente`;
-    }
-    
-    showNotification(`✅ Backup importado: ${data.items.length} items`, 'success');
-    log(`📥 Importación completada: ${data.items.length} items`, 'success');
-    
-    setTimeout(() => {
-      closeImportModal();
-      if (typeof refresh === 'function') refresh();
-    }, 1500);
-    
-  } catch (e) {
-    console.error('❌ Import error:', e);
-    // ✅ Mensaje seguro: no exponer detalles internos
-    const safeMsg = e.message.includes('JSON') ? '❌ Archivo JSON inválido' : 
-                   e.message.includes('usuario') ? e.message : 
-                   '❌ Error al importar. Verifica el archivo.';
-    if (status) {
-      status.textContent = safeMsg;
-      status.style.color = '#ff5252';
-    }
-    showNotification(safeMsg.replace('❌ ', ''), 'error');
-    log('❌ Import fallido: ' + sanitizeUserMessage(e.message), 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '✅ Importar';
-      btn.removeAttribute('aria-busy');
-    }
-  }
-}
-
-function closeImportModal() {
-  const modal = document.getElementById('importModal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
-  }
-  const status = document.getElementById('importStatus');
-  if (status) {
-    status.textContent = '';
-    status.removeAttribute('aria-live');
-  }
-  const fileInput = document.getElementById('importFile');
-  if (fileInput) fileInput.value = '';
-  log('🔒 Modal de importación cerrado', 'info');
-}
-
+  
 // === MARKETPLACE: FUNCIONES MEJORADAS ===
 
 // ✅ Helper para validar URL de thumbnail (solo permite relativas o data URLs seguras)
@@ -10175,7 +10125,7 @@ function sanitizeForDisplay(str, maxLen = 300) {
 // 👁️ Abrir modal de producto con datos - versión segura
 function openMarketItemModal(item) {
   if (!item) {
-    log('⚠️ openMarketItemModal llamado sin item', 'warning');
+    addLogEntry('⚠️ openMarketItemModal llamado sin item', 'warning');
     return;
   }
   
@@ -10265,7 +10215,7 @@ function openMarketItemModal(item) {
     modal.focus?.();
   }
   
-  log(`🛍️ Producto abierto: ${sanitizeForDisplay(item.titulo, 50)}`, 'info');
+  addLogEntry(`🛍️ Producto abierto: ${sanitizeForDisplay(item.titulo, 50)}`, 'info');
 }
 
 function closeMarketItemModal() {
@@ -10275,7 +10225,7 @@ function closeMarketItemModal() {
     modal.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
   }
   currentMarketItem = null;
-  log('🔒 Modal de producto cerrado', 'info');
+  addLogEntry('🔒 Modal de producto cerrado', 'info');
 }
 
 // 💰 Comprar producto - versión segura
@@ -10299,7 +10249,7 @@ async function buyMarketItem() {
     // ✅ Mensaje seguro: sanitizar título antes de mostrar
     const safeTitle = sanitizeForDisplay(currentMarketItem.titulo, 50);
     showNotification(`✅ Compra exitosa: ${safeTitle}`, 'success');
-    log(`💰 Compra completada: ${currentMarketItem.id}`, 'success');
+    addLogEntry(`💰 Compra completada: ${currentMarketItem.id}`, 'success');
     
     // Actualizar UI si hay funciones de refresh
     if (typeof refresh === 'function') refresh();
@@ -10310,7 +10260,7 @@ async function buyMarketItem() {
     console.error('❌ Buy error:', e);
     // ✅ Mensaje seguro: no exponer detalles internos
     showNotification('❌ Error en compra. Intenta de nuevo.', 'error');
-    log('❌ Compra fallida: ' + sanitizeUserMessage(e.message), 'error');
+    addLogEntry('❌ Compra fallida: ' + sanitizeUserMessage(e.message), 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -10318,14 +10268,6 @@ async function buyMarketItem() {
       btn.removeAttribute('aria-busy');
     }
   }
-}
-// ✅ Helper para sanitizar IDs y nombres antes de usar en logs/display (previene XSS)
-function sanitizeForLog(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[<>]/g, '')
-    .replace(/javascript:/gi, '')
-    .substring(0, maxLen);
 }
 
 // ❤️ Toggle favorito - versión segura
@@ -10340,12 +10282,12 @@ async function toggleFavorite() {
     const isFav = Math.random() > 0.5;
     
     // ✅ Sanitizar título antes de mostrar en notificación
-    const safeTitle = sanitizeForLog(currentMarketItem.titulo, 50);
+    const safeTitle = sanitizeForDisplay(currentMarketItem.titulo, 50);
     showNotification(isFav ? `❤️ Agregado a favoritos: ${safeTitle}` : `🤍 Removido de favoritos: ${safeTitle}`, 'info');
     
     // ✅ Sanitizar ID antes de loguear
-    const safeId = sanitizeForLog(currentMarketItem.id, 30);
-    log(`❤️ Favorito ${isFav ? 'agregado' : 'removido'}: ${safeId}`, 'info');
+    const safeId = sanitizeForDisplay(currentMarketItem.id, 30);
+    addLogEntry(`❤️ Favorito ${isFav ? 'agregado' : 'removido'}: ${safeId}`, 'info');
   } catch (e) {
     console.error('❌ Favorite error:', e);
     showNotification('⚠️ Error al actualizar favoritos', 'warning');
