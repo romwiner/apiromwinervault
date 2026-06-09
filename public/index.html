@@ -11058,96 +11058,13 @@ async function refresh(event) {
   }
 }
 
-// === QUOTA: DISPLAY MEJORADO CON ACCESIBILIDAD ===
-function updateQuotaDisplay() {
-  if (!userQuota) return;
-  
-  // ✅ Null checks seguros para todos los elementos DOM
-  const display = document.getElementById('quotaDisplay');
-  const fill = document.getElementById('quotaFill');
-  const text = document.getElementById('quotaText');
-  
-  if (!display || !fill || !text) {
-    log('⚠️ Elementos de quota no encontrados', 'warning');
-    return;
-  }
-  
-  const used = Number(userQuota.usedGB || 0);
-  const limit = userQuota.tier?.storageLimitGB;
-  
-  // ✅ Caso: almacenamiento ilimitado
-  if (limit === -1 || limit === Infinity) {
-    text.textContent = '📦 Almacenamiento ilimitado';
-    text.className = '';
-    text.setAttribute('aria-label', 'Tu plan tiene almacenamiento ilimitado');
-    fill.style.width = '100%';
-    fill.setAttribute('aria-valuenow', '100');
-    display.classList.remove('hidden');
-    display.setAttribute('aria-hidden', 'false');
-    return;
-  }
-  
-  // ✅ Caso: límite definido
-  if (limit && limit > 0) {
-    const percent = Math.min(100, Math.max(0, (used / limit) * 100));
-    const percentRounded = Math.round(percent);
-    
-    // Actualizar barra de progreso con atributos ARIA
-    fill.style.width = percentRounded + '%';
-    fill.setAttribute('aria-valuenow', percentRounded);
-    fill.setAttribute('aria-valuemin', '0');
-    fill.setAttribute('aria-valuemax', '100');
-    
-    // Actualizar texto con formato consistente
-    text.textContent = `${used.toFixed(2)} GB / ${limit} GB`;
-    
-    // ✅ Alertas visuales y de accesibilidad según uso
-    if (percent >= 90) {
-      text.className = 'quota-critical';
-      text.textContent += ' ⚠️ Casi lleno';
-      text.setAttribute('aria-label', `Almacenamiento crítico: ${percentRounded}% usado`);
-      // ✅ Notificación única para no saturar
-      if (!display.dataset.criticalNotified) {
-        showNotification('⚠️ Tu almacenamiento está casi lleno (90%)', 'warning', 8000);
-        display.dataset.criticalNotified = 'true';
-      }
-    } else if (percent >= 75) {
-      text.className = 'quota-warning';
-      text.textContent += ' ⚠️ Considera limpiar';
-      text.setAttribute('aria-label', `Almacenamiento: ${percentRounded}% usado`);
-      delete display.dataset.criticalNotified;
-    } else {
-      text.className = '';
-      text.setAttribute('aria-label', `Almacenamiento: ${percentRounded}% usado`);
-      delete display.dataset.criticalNotified;
-    }
-    
-    display.classList.remove('hidden');
-    display.setAttribute('aria-hidden', 'false');
-    
-  } else {
-    // ✅ Caso: sin datos de quota
-    display.classList.add('hidden');
-    display.setAttribute('aria-hidden', 'true');
-  }
-}
-// ✅ Helper para sanitizar texto antes de insertar en DOM/logs (previene XSS)
-function sanitizeForDisplay(str, maxLen = 100) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[<>]/g, '')
-    .replace(/javascript:/gi, '')
-    .replace(/"/g, '&quot;')
-    .substring(0, maxLen);
-}
-
-// === VAULT: CREATE TEXT - FUNCIONES MEJORADAS ===
+  // === VAULT: CREATE TEXT - FUNCIONES MEJORADAS ===
 
 // ✅ Abrir modal con validación de existencia y accesibilidad
 function openCreate() {
   const modal = document.getElementById('createModal');
   if (!modal) {
-    log('⚠️ Modal de creación no encontrado', 'warning');
+    addLogEntry('⚠️ Modal de creación no encontrado', 'warning');
     return;
   }
   
@@ -11160,7 +11077,7 @@ function openCreate() {
     setTimeout(() => titleInput.focus(), 100);
   }
   
-  log('📤 Modal de creación abierto', 'info');
+  addLogEntry('📤 Modal de creación abierto', 'info');
 }
 
 // ✅ Cerrar modal con limpieza segura de todos los campos
@@ -11184,10 +11101,56 @@ function closeCreate() {
     }
   });
   
-  log('🔒 Modal de creación cerrado', 'info');
+  addLogEntry('🔒 Modal de creación cerrado', 'info');
 }
 
 // ✅ Publicar texto con validaciones fuertes y seguridad
+async function publish(event) {
+  if (event) event.preventDefault();
+  
+  // ✅ Obtener y sanitizar inputs para prevenir XSS
+  const titleInput = document.getElementById('itemTitle');
+  const priceInput = document.getElementById('itemPrice');
+  const catSelect = document.getElementById('itemCat');
+  const forSaleCheck = document.getElementById('itemForSale');
+  
+  const rawTitle = titleInput?.value || '';
+  const titulo = sanitizeForDisplay(rawTitle, 100); // ✅ Sanitizar para XSS
+  const price = parseFloat(priceInput?.value) || 0;
+  const categoria = catSelect?.value || 'general';
+  const forSale = !!forSaleCheck?.checked;
+  
+  // ✅ Validaciones con feedback específico y visual
+  if (!titulo || titulo.length < 3) {
+    showNotification('⚠️ El título debe tener al menos 3 caracteres', 'error');
+    if (titleInput) {
+      titleInput.classList.add('error');
+      titleInput.setAttribute('aria-invalid', 'true');
+      titleInput.focus();
+      setTimeout(() => {
+        titleInput.classList.remove('error');
+        titleInput.removeAttribute('aria-invalid');
+      }, 2000);
+    }
+    return;
+  }
+  
+  // ✅ Validar precio: no negativo, máximo razonable, solo si es para venta
+  if (forSale && (isNaN(price) || price < 1 || price > 9999)) {
+    showNotification('⚠️ El precio debe estar entre $1.00 y $9,999.00 USD', 'error');
+    if (priceInput) {
+      priceInput.classList.add('error');
+      priceInput.setAttribute('aria-invalid', 'true');
+      priceInput.focus();
+      setTimeout(() => {
+        priceInput.classList.remove('error');
+        priceInput.removeAttribute('aria-invalid');
+      }, 2000);
+    }
+    return;
+  }
+  
+  // ✅ Publicar texto con validaciones fuertes y seguridad
 async function publish(event) {
   if (event) event.preventDefault();
   
@@ -11258,7 +11221,7 @@ async function publish(event) {
       encryptionMethod: 'envelope-v1'
     }, false);
     
-    log('📦 Activo publicado y cifrado', 'success');
+    addLogEntry('📦 Activo publicado y cifrado', 'success');
     showNotification('✅ Contenido publicado', 'success');
     
     // ✅ Reset y refresh para mantener UI sincronizada
@@ -11273,7 +11236,7 @@ async function publish(event) {
                 e.message.includes('403') ? '❌ Acceso denegado' : 
                 '❌ Error publicando';
     
-    log(msg + ': ' + sanitizeForDisplay(e.message, 100), 'error');
+    addLogEntry(msg + ': ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(msg, 'error');
     
   } finally {
