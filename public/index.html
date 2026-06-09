@@ -9551,59 +9551,6 @@ async function init() {
   setupGlobalListeners();
 }
 
-// 🎨 Actualizar UI según tier del usuario
-function updateTierUI() {
-  // Mostrar/ocultar funciones enterprise con ARIA para accesibilidad
-  document.querySelectorAll('.enterprise-only').forEach(el => {
-    const isVisible = userTier === 'enterprise';
-    el.style.display = isVisible ? '' : 'none';
-    el.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
-  });
-  
-  // Actualizar badge de tier
-  const badge = document.getElementById('userTierBadge');
-  if (badge) {
-    // ✅ Sanitizar texto del badge (previene XSS si userTier viene de fuente externa)
-    const safeTier = String(userTier || 'personal').replace(/[^a-z]/gi, '').substring(0, 20);
-    badge.textContent = safeTier.charAt(0).toUpperCase() + safeTier.slice(1);
-    badge.className = `tier-badge tier-${safeTier}`;
-  }
-  
-  // Habilitar/deshabilitar funciones según quota
-  if (userQuota) {
-    const quotaDisplay = document.getElementById('quotaDisplay');
-    const quotaFill = document.getElementById('quotaFill');
-    const quotaText = document.getElementById('quotaText');
-    
-    if (quotaDisplay && quotaFill && quotaText) {
-      const used = Number(userQuota.used || 0);
-      const limit = Number(userQuota.limit || 0);
-      
-      // ✅ Prevenir división por cero
-      const pct = limit > 0 ? Math.min(100, Math.max(0, (used / limit) * 100)) : 0;
-      quotaFill.style.width = pct + '%';
-      quotaFill.setAttribute('aria-valuenow', Math.round(pct));
-      quotaText.textContent = `${used} / ${limit} items`;
-      quotaDisplay.classList.remove('hidden');
-      quotaDisplay.setAttribute('aria-hidden', 'false');
-      
-      // Alertas de cuota con mensajes sanitizados
-      if (pct >= 90) {
-        quotaText.className = 'quota-critical';
-        quotaText.textContent += ' ⚠️ Casi lleno';
-        quotaText.setAttribute('aria-label', 'Almacenamiento crítico: 90% o más usado');
-      } else if (pct >= 75) {
-        quotaText.className = 'quota-warning';
-        quotaText.textContent += ' ⚠️ 75% usado';
-        quotaText.setAttribute('aria-label', 'Almacenamiento: 75% o más usado');
-      } else {
-        quotaText.className = '';
-        quotaText.setAttribute('aria-label', `Almacenamiento: ${Math.round(pct)}% usado`);
-      }
-    }
-  }
-}
-
 // 🌐 Event listeners globales para accesibilidad y UX
 function setupGlobalListeners() {
   // ✅ Prevenir registro múltiple de listeners (evita fugas de memoria)
@@ -9613,7 +9560,6 @@ function setupGlobalListeners() {
   // Cerrar modales con tecla Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      // ✅ CORREGIDO: Seleccionar todos los modales, luego filtrar los que NO están ocultos
       document.querySelectorAll('.modal').forEach(modal => {
         if (!modal.classList.contains('hidden')) {
           modal.classList.add('hidden');
@@ -9634,22 +9580,11 @@ function setupGlobalListeners() {
       }
     });
   });
-}
-  // Cerrar modales al hacer clic fuera del contenido
-  document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.classList.add('hidden');
-        modal.setAttribute('aria-hidden', 'true');
-        log('🔒 Modal cerrado al hacer clic fuera', 'info');
-      }
-    });
-  });
   
   // Prevenir scroll cuando hay modal abierto
   let modalObserver = null;
   const setupModalObserver = () => {
-    if (modalObserver) return; // ✅ Evitar múltiples observers
+    if (modalObserver) return;
     modalObserver = new MutationObserver(() => {
       const hasOpenModal = Array.from(document.querySelectorAll('.modal')).some(m => !m.classList.contains('hidden'));
       document.body.style.overflow = hasOpenModal ? 'hidden' : '';
@@ -9658,23 +9593,11 @@ function setupGlobalListeners() {
   };
   setupModalObserver();
   
-  // ✅ Limpieza de observer al cerrar la página (previene fugas de memoria)
+  // ✅ Limpieza de observer al cerrar la página
   window.addEventListener('beforeunload', () => {
     if (modalObserver) modalObserver.disconnect();
   });
 }
-
-// === UPLOAD MODAL: FUNCIONES MEJORADAS ===
-
-// ✅ Flag para prevenir uploads simultáneos
-let isUploading = false;
-
-// ✅ Helper para sanitizar nombre de archivo (previene XSS en preview)
-function sanitizeFileName(name) {
-  if (!name) return '';
-  return String(name).replace(/[<>]/g, '').substring(0, 100);
-}
-
 // 👁️ Preview de archivo seleccionado
 document.addEventListener('DOMContentLoaded', () => {
   const uploadFile = document.getElementById('uploadFile');
