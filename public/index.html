@@ -3687,21 +3687,22 @@ img, canvas, video, audio {
 <section id="adminPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 0 auto; padding: 20px;">
   <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #7c3aed; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3);">
     
-    <!-- FORMULARIO DE ACCESO ADMIN -->
-    <div id="adminLoginForm" style="text-align: center; padding: 40px 20px;">
-      <div style="font-size: 4rem; margin-bottom: 16px;">🔐</div>
-      <h2 style="margin: 0 0 8px 0; font-size: 1.5rem; color: #f8fafc;">Acceso de Administrador Supremo</h2>
-      <p style="margin: 0 0 24px 0; font-size: 0.9rem; color: #94a3b8;">Ingresa la clave maestra para acceder al panel de comando</p>
-      
-      <div style="max-width: 400px; margin: 0 auto;">
-        <input type="password" id="adminKeyInput" placeholder="🔑 Clave Maestra de Administrador" style="width: 100%; box-sizing: border-box; padding: 14px; background: #1e293b; border: 2px solid #334155; color: #fff; border-radius: 10px; font-size: 1rem; margin-bottom: 16px; text-align: center;">
-        <button type="button" id="btnAdminLogin" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer;">
-          🔓 Acceder al Panel
-        </button>
-      </div>
-      
-      <p style="margin: 20px 0 0 0; font-size: 0.75rem; color: #64748b;">⚠️ Todos los intentos de acceso son registrados</p>
+   <div id="adminLoginForm" style="text-align: center; padding: 40px 20px;">
+  <div style="font-size: 4rem; margin-bottom: 16px;">🔐</div>
+  <h2 style="margin: 0 0 8px 0; font-size: 1.5rem; color: #f8fafc;">Verificación de Administrador</h2>
+  <p style="margin: 0 0 24px 0; font-size: 0.9rem; color: #94a3b8;">El sistema está verificando tu identidad con el servidor seguro...</p>
+  <div style="max-width: 400px; margin: 0 auto;">
+    <div style="padding: 20px; background: #1e293b; border: 2px solid #7c3aed; border-radius: 12px; margin-bottom: 16px;">
+      <div style="font-size: 2rem; margin-bottom: 12px;">🔄</div>
+      <p style="color: #a78bfa; font-weight: bold; margin: 0;">Verificando permisos...</p>
+      <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 8px;">Consulta segura con el backend</p>
     </div>
+    <button type="button" id="btnAdminLogin" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer;">
+      🔍 Verificar Acceso
+    </button>
+  </div>
+  <p style="margin: 20px 0 0 0; font-size: 0.75rem; color: #64748b;">🛡️ Acceso verificado por el servidor (cero claves en el navegador)</p>
+</div>
 
     <!-- PANEL ADMIN (OCULTO HASTA VERIFICAR CLAVE) -->
     <div id="adminDashboard" class="hidden">
