@@ -22688,119 +22688,447 @@ strengthDiv.style.color = colors[strength];
   </div>
 </section>
 
-<!-- 🧠 CEREBRO DE LA APP: Controla qué ve cada usuario de forma segura -->
+<!-- 🧠 CEREBRO MAESTRO UNIFICADO CON IA LOCAL (ÚNICO CONTROLADOR DE LA APP) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // 1. Referencias a las pantallas
-    const vistaLanding = document.getElementById('vistaLanding');
-    const vistaFreemium = document.getElementById('vistaFreemium');
-    const vistaNormal = document.getElementById('vistaNormal');
-    const vistaEmpresarial = document.getElementById('vistaEmpresarial');
-    const vistaAdmin = document.getElementById('vistaAdmin');
-
-    // 2. Función para mostrar solo una pantalla y ocultar las demás
-    function mostrarPantalla(pantalla) {
-      vistaLanding.classList.add('hidden');
-      vistaFreemium.classList.add('hidden');
-      vistaNormal.classList.add('hidden');
-      vistaEmpresarial.classList.add('hidden');
-      vistaAdmin.classList.add('hidden');
-      pantalla.classList.remove('hidden');
-    }
-
-    // 3. Cambiar entre pestañas Registro / Login
-    document.getElementById('tabRegistro').addEventListener('click', () => {
-      document.getElementById('formRegistro').style.display = 'flex';
-      document.getElementById('formLogin').style.display = 'none';
-      document.getElementById('tabRegistro').style.background = '#059669';
-      document.getElementById('tabRegistro').style.color = 'white';
-      document.getElementById('tabLogin').style.background = 'transparent';
-      document.getElementById('tabLogin').style.color = '#94a3b8';
-    });
-
-    document.getElementById('tabLogin').addEventListener('click', () => {
-      document.getElementById('formLogin').style.display = 'flex';
-      document.getElementById('formRegistro').style.display = 'none';
-      document.getElementById('tabLogin').style.background = '#38bdf8';
-      document.getElementById('tabLogin').style.color = 'white';
-      document.getElementById('tabRegistro').style.background = 'transparent';
-      document.getElementById('tabRegistro').style.color = '#94a3b8';
-    });
-
-    // 4. Lógica de REGISTRO
-    document.getElementById('formRegistro').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const nombre = document.getElementById('regNombre').value;
-      const email = document.getElementById('regEmail').value.toLowerCase().trim();
-      const tipo = document.getElementById('regTipoCuenta').value;
-      
-      // Guardar en el navegador (simulando base de datos segura)
-      localStorage.setItem('arv_nombre', nombre);
-      localStorage.setItem('arv_email', email);
-      localStorage.setItem('arv_tipo', tipo);
-      
-      iniciarSesion(nombre, email, tipo);
-    });
-
-    // 5. Lógica de LOGIN
-    document.getElementById('formLogin').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value.toLowerCase().trim();
-      // Recuperar datos guardados
-      const nombreGuardado = localStorage.getItem('arv_nombre') || 'Usuario';
-      const tipoGuardado = localStorage.getItem('arv_tipo') || 'freemium';
-      
-      iniciarSesion(nombreGuardado, email, tipoGuardado);
-    });
-
-    // 6. CEREBRO DE ENRUTAMIENTO (Aquí está tu control supremo y anónimo)
-    function iniciarSesion(nombre, email, tipo) {
-      // ¡TU CUENTA DE CREADOR! 
-      // CAMBIA 'rraygoza67@gmail.com' POR TU CORREO REAL SI ES DIFERENTE.
-      // El sistema lo reconocerá, pero NUNCA lo mostrará en la pantalla para protegerte.
-      const adminEmailSecreto = 'rraygoza67@gmail.com'; 
-      
-      if (email === adminEmailSecreto) {
-        mostrarPantalla(vistaAdmin);
-        return; // Detiene la ejecución aquí, nadie más puede ver esto.
-      }
-
-      // Rutas para usuarios normales
-      if (tipo === 'freemium') {
-        document.getElementById('nombreFreemium').textContent = nombre;
-        mostrarPantalla(vistaFreemium);
-      } else if (tipo === 'normal') {
-        document.getElementById('nombreNormal').textContent = nombre;
-        mostrarPantalla(vistaNormal);
-      } else if (tipo === 'empresarial') {
-        document.getElementById('nombreEmpresarial').textContent = nombre;
-        mostrarPantalla(vistaEmpresarial);
-      }
-    }
-
-    // 7. CERRAR SESIÓN
-    document.querySelectorAll('.btn-logout').forEach(btn => {
-      btn.addEventListener('click', function() {
-        localStorage.removeItem('arv_nombre');
-        localStorage.removeItem('arv_email');
-        localStorage.removeItem('arv_tipo');
-        mostrarPantalla(vistaLanding);
-        document.getElementById('formRegistro').reset();
-        document.getElementById('formLogin').reset();
+(function() {
+  'use strict';
+  
+  console.log('🧠 [CEREBRO MAESTRO] Inicializando sistema unificado con IA local...');
+  
+  // ============================================
+  // 🤖 MÓDULO DE IA LOCAL
+  // ============================================
+  const IA = {
+    // Base de datos de patrones de comportamiento
+    patrones: {
+      intentosLogin: 0,
+      ultimoLogin: null,
+      erroresDetectados: [],
+      accionesUsuario: [],
+      tiempoSesion: 0
+    },
+    
+    // Analizar comportamiento del usuario
+    analizarComportamiento(accion, datos = {}) {
+      this.patrones.accionesUsuario.push({
+        accion,
+        timestamp: Date.now(),
+        datos
       });
-    });
-
-    // 8. Verificar al cargar la página si ya hay alguien conectado
+      
+      // Mantener solo las últimas 100 acciones
+      if (this.patrones.accionesUsuario.length > 100) {
+        this.patrones.accionesUsuario = this.patrones.accionesUsuario.slice(-100);
+      }
+      
+      // Detectar patrones sospechosos
+      this.detectarAnomalias();
+    },
+    
+    // Detectar anomalías de seguridad
+    detectarAnomalias() {
+      const ahora = Date.now();
+      const accionesRecientes = this.patrones.accionesUsuario.filter(
+        a => ahora - a.timestamp < 60000 // Último minuto
+      );
+      
+      // Detectar múltiples intentos de login fallidos
+      const intentosLogin = accionesRecientes.filter(a => a.accion === 'login_fallido');
+      if (intentosLogin.length >= 5) {
+        this.alertarSeguridad('⚠️ Múltiples intentos de login detectados', 'warning');
+      }
+      
+      // Detectar actividad inusual
+      if (accionesRecientes.length > 50) {
+        this.alertarSeguridad('⚠️ Actividad inusualmente alta detectada', 'warning');
+      }
+    },
+    
+    // Alertar sobre problemas de seguridad
+    alertarSeguridad(mensaje, nivel = 'info') {
+      console.log(`🛡️ [IA SEGURIDAD] ${mensaje}`);
+      this.patrones.erroresDetectados.push({
+        mensaje,
+        nivel,
+        timestamp: Date.now()
+      });
+      
+      // Mantener solo los últimos 50 errores
+      if (this.patrones.erroresDetectados.length > 50) {
+        this.patrones.erroresDetectados = this.patrones.erroresDetectados.slice(-50);
+      }
+    },
+    
+    // Recomendar acciones basadas en comportamiento
+    recomendarAcciones() {
+      const recomendaciones = [];
+      
+      // Si el usuario tiene muchos archivos, recomendar limpieza
+      const archivos = JSON.parse(localStorage.getItem('vault_files') || '[]');
+      if (archivos.length > 50) {
+        recomendaciones.push('💡 Tienes muchos archivos. Considera organizarlos en carpetas.');
+      }
+      
+      // Si no ha subido archivos en 7 días, recomendar actividad
+      const ultimoUpload = localStorage.getItem('ultimo_upload');
+      if (ultimoUpload) {
+        const dias = (Date.now() - parseInt(ultimoUpload)) / (1000 * 60 * 60 * 24);
+        if (dias > 7) {
+          recomendaciones.push('💡 No has subido archivos recientemente. ¡Sube tu primer archivo!');
+        }
+      }
+      
+      return recomendaciones;
+    },
+    
+    // Generar reporte de auditoría
+    generarReporte() {
+      return {
+        totalAcciones: this.patrones.accionesUsuario.length,
+        erroresDetectados: this.patrones.erroresDetectados.length,
+        tiempoSesion: this.patrones.tiempoSesion,
+        recomendaciones: this.recomendarAcciones(),
+        estado: this.patrones.erroresDetectados.length === 0 ? '✅ Seguro' : '⚠️ Revisar'
+      };
+    }
+  };
+  
+  // Exponer IA globalmente para otros scripts
+  window.IA = IA;
+  
+  // ============================================
+  // 🎯 CONTROLADOR PRINCIPAL DE VISTAS
+  // ============================================
+  const ControladorVistas = {
+    vistas: {},
+    vistaActual: null,
+    
+    // Inicializar referencias a vistas
+    inicializar() {
+      this.vistas = {
+        landing: document.getElementById('vistaLanding'),
+        freemium: document.getElementById('vistaFreemium'),
+        normal: document.getElementById('vistaNormal'),
+        empresarial: document.getElementById('vistaEmpresarial'),
+        admin: document.getElementById('vistaAdmin')
+      };
+      
+      // Validar que todas las vistas existan
+      Object.entries(this.vistas).forEach(([nombre, elemento]) => {
+        if (!elemento) {
+          console.error(`❌ [CEREBRO] Vista "${nombre}" no encontrada en el DOM`);
+        }
+      });
+      
+      console.log('✅ [CEREBRO] Controlador de vistas inicializado');
+    },
+    
+    // Mostrar una vista específica
+    mostrar(nombreVista) {
+      if (!this.vistas[nombreVista]) {
+        console.error(`❌ [CEREBRO] Vista "${nombreVista}" no existe`);
+        return false;
+      }
+      
+      // Ocultar todas las vistas
+      Object.values(this.vistas).forEach(vista => {
+        if (vista) vista.classList.add('hidden');
+      });
+      
+      // Mostrar la vista solicitada
+      this.vistas[nombreVista].classList.remove('hidden');
+      this.vistaActual = nombreVista;
+      
+      console.log(`✅ [CEREBRO] Vista "${nombreVista}" mostrada`);
+      IA.analizarComportamiento('cambio_vista', { vista: nombreVista });
+      
+      return true;
+    },
+    
+    // Obtener vista actual
+    obtenerActual() {
+      return this.vistaActual;
+    }
+  };
+  
+  // ============================================
+  // 🔐 SISTEMA DE AUTENTICACIÓN
+  // ============================================
+  const Autenticacion = {
+    // Email del administrador (CAMBIAR SI ES NECESARIO)
+    ADMIN_EMAIL: 'rraygoza67@gmail.com',
+    
+    // Registrar nuevo usuario
+    registrar(nombre, email, tipo) {
+      if (!nombre || !email || !tipo) {
+        this.mostrarError('Todos los campos son obligatorios');
+        return false;
+      }
+      
+      if (nombre.length < 3) {
+        this.mostrarError('El nombre debe tener al menos 3 caracteres');
+        return false;
+      }
+      
+      if (!this.validarEmail(email)) {
+        this.mostrarError('Email inválido');
+        return false;
+      }
+      
+      // Guardar datos
+      localStorage.setItem('arv_nombre', nombre);
+      localStorage.setItem('arv_email', email.toLowerCase().trim());
+      localStorage.setItem('arv_tipo', tipo);
+      localStorage.setItem('arv_fecha_registro', new Date().toISOString());
+      
+      console.log(`✅ [AUTH] Usuario registrado: ${email} (${tipo})`);
+      IA.analizarComportamiento('registro_exitoso', { email, tipo });
+      
+      return true;
+    },
+    
+    // Iniciar sesión
+    iniciarSesion(email) {
+      if (!email) {
+        this.mostrarError('Email requerido');
+        return false;
+      }
+      
+      const emailLower = email.toLowerCase().trim();
+      const nombreGuardado = localStorage.getItem('arv_nombre');
+      const tipoGuardado = localStorage.getItem('arv_tipo');
+      const emailGuardado = localStorage.getItem('arv_email');
+      
+      // Verificar si el email coincide
+      if (emailGuardado && emailGuardado !== emailLower) {
+        IA.analizarComportamiento('login_fallido', { email: emailLower });
+        this.mostrarError('Email no registrado. Regístrate primero.');
+        return false;
+      }
+      
+      // Actualizar último login
+      localStorage.setItem('arv_ultimo_login', new Date().toISOString());
+      
+      console.log(`✅ [AUTH] Login exitoso: ${emailLower}`);
+      IA.analizarComportamiento('login_exitoso', { email: emailLower });
+      
+      // Determinar qué vista mostrar
+      if (emailLower === this.ADMIN_EMAIL) {
+        ControladorVistas.mostrar('admin');
+      } else if (tipoGuardado === 'freemium') {
+        const nombreEl = document.getElementById('nombreFreemium');
+        if (nombreEl) nombreEl.textContent = nombreGuardado || 'Usuario';
+        ControladorVistas.mostrar('freemium');
+      } else if (tipoGuardado === 'normal') {
+        const nombreEl = document.getElementById('nombreNormal');
+        if (nombreEl) nombreEl.textContent = nombreGuardado || 'Usuario';
+        ControladorVistas.mostrar('normal');
+      } else if (tipoGuardado === 'empresarial') {
+        const nombreEl = document.getElementById('nombreEmpresarial');
+        if (nombreEl) nombreEl.textContent = nombreGuardado || 'Usuario';
+        ControladorVistas.mostrar('empresarial');
+      } else {
+        ControladorVistas.mostrar('freemium');
+      }
+      
+      return true;
+    },
+    
+    // Cerrar sesión
+    cerrarSesion() {
+      const email = localStorage.getItem('arv_email');
+      
+      localStorage.removeItem('arv_nombre');
+      localStorage.removeItem('arv_email');
+      localStorage.removeItem('arv_tipo');
+      localStorage.removeItem('arv_fecha_registro');
+      localStorage.removeItem('arv_ultimo_login');
+      
+      console.log(`✅ [AUTH] Sesión cerrada: ${email}`);
+      IA.analizarComportamiento('logout', { email });
+      
+      ControladorVistas.mostrar('landing');
+      
+      // Limpiar formularios
+      const formRegistro = document.getElementById('formRegistro');
+      const formLogin = document.getElementById('formLogin');
+      if (formRegistro) formRegistro.reset();
+      if (formLogin) formLogin.reset();
+    },
+    
+    // Validar formato de email
+    validarEmail(email) {
+      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return regex.test(email);
+    },
+    
+    // Mostrar error al usuario
+    mostrarError(mensaje) {
+      console.error(`❌ [AUTH] ${mensaje}`);
+      if (typeof showNotification === 'function') {
+        showNotification(`⚠️ ${mensaje}`, 'error');
+      } else {
+        alert(`⚠️ ${mensaje}`);
+      }
+    }
+  };
+  
+  // ============================================
+  // 🎨 CONTROLADOR DE UI
+  // ============================================
+  const UI = {
+    // Inicializar tabs de registro/login
+    inicializarTabs() {
+      const tabRegistro = document.getElementById('tabRegistro');
+      const tabLogin = document.getElementById('tabLogin');
+      const formRegistro = document.getElementById('formRegistro');
+      const formLogin = document.getElementById('formLogin');
+      
+      if (!tabRegistro || !tabLogin || !formRegistro || !formLogin) {
+        console.error('❌ [UI] Elementos de tabs no encontrados');
+        return;
+      }
+      
+      tabRegistro.addEventListener('click', () => {
+        formRegistro.style.display = 'flex';
+        formLogin.style.display = 'none';
+        tabRegistro.style.background = '#059669';
+        tabRegistro.style.color = 'white';
+        tabLogin.style.background = 'transparent';
+        tabLogin.style.color = '#94a3b8';
+        IA.analizarComportamiento('tab_cambiado', { tab: 'registro' });
+      });
+      
+      tabLogin.addEventListener('click', () => {
+        formLogin.style.display = 'flex';
+        formRegistro.style.display = 'none';
+        tabLogin.style.background = '#38bdf8';
+        tabLogin.style.color = 'white';
+        tabRegistro.style.background = 'transparent';
+        tabRegistro.style.color = '#94a3b8';
+        IA.analizarComportamiento('tab_cambiado', { tab: 'login' });
+      });
+      
+      console.log('✅ [UI] Tabs inicializados');
+    },
+    
+    // Inicializar formularios
+    inicializarFormularios() {
+      const formRegistro = document.getElementById('formRegistro');
+      const formLogin = document.getElementById('formLogin');
+      
+      if (formRegistro) {
+        formRegistro.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const nombre = document.getElementById('regNombre')?.value;
+          const email = document.getElementById('regEmail')?.value;
+          const tipo = document.getElementById('regTipoCuenta')?.value;
+          
+          if (Autenticacion.registrar(nombre, email, tipo)) {
+            Autenticacion.iniciarSesion(email);
+          }
+        });
+      }
+      
+      if (formLogin) {
+        formLogin.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const email = document.getElementById('loginEmail')?.value;
+          Autenticacion.iniciarSesion(email);
+        });
+      }
+      
+      console.log('✅ [UI] Formularios inicializados');
+    },
+    
+    // Inicializar botones de logout
+    inicializarLogout() {
+      document.querySelectorAll('.btn-logout').forEach(btn => {
+        btn.addEventListener('click', () => {
+          Autenticacion.cerrarSesion();
+        });
+      });
+      
+      console.log('✅ [UI] Botones de logout inicializados');
+    }
+  };
+  
+  // ============================================
+  // 🚀 INICIALIZACIÓN PRINCIPAL
+  // ============================================
+  function inicializar() {
+    console.log('🚀 [CEREBRO] Iniciando sistema maestro...');
+    
+    // 1. Inicializar controlador de vistas
+    ControladorVistas.inicializar();
+    
+    // 2. Inicializar UI
+    UI.inicializarTabs();
+    UI.inicializarFormularios();
+    UI.inicializarLogout();
+    
+    // 3. Verificar sesión existente
     const emailGuardado = localStorage.getItem('arv_email');
     const tipoGuardado = localStorage.getItem('arv_tipo');
     const nombreGuardado = localStorage.getItem('arv_nombre');
     
     if (emailGuardado && tipoGuardado && nombreGuardado) {
-      iniciarSesion(nombreGuardado, emailGuardado, tipoGuardado);
+      console.log('✅ [CEREBRO] Sesión existente detectada');
+      Autenticacion.iniciarSesion(emailGuardado);
     } else {
-      mostrarPantalla(vistaLanding);
+      console.log('ℹ️ [CEREBRO] Sin sesión activa, mostrando landing');
+      ControladorVistas.mostrar('landing');
     }
-  });
+    
+    // 4. Iniciar monitoreo de tiempo de sesión
+    setInterval(() => {
+      IA.patrones.tiempoSesion += 60;
+    }, 60000);
+    
+    // 5. Mostrar recomendaciones de IA (si hay)
+    setTimeout(() => {
+      const recomendaciones = IA.recomendarAcciones();
+      if (recomendaciones.length > 0) {
+        console.log('💡 [IA] Recomendaciones:', recomendaciones);
+      }
+    }, 3000);
+    
+    console.log('✅ [CEREBRO] Sistema maestro inicializado correctamente');
+    console.log('🤖 [IA] Módulo de inteligencia artificial activo');
+    console.log('🛡️ [SEGURIDAD] Monitoreo de anomalías activo');
+  }
+  
+  // ============================================
+  // 📊 API PÚBLICA (para otros scripts)
+  // ============================================
+  window.CerebroMaestro = {
+    // Control de vistas
+    mostrarVista: (nombre) => ControladorVistas.mostrar(nombre),
+    obtenerVistaActual: () => ControladorVistas.obtenerActual(),
+    
+    // Autenticación
+    registrar: (nombre, email, tipo) => Autenticacion.registrar(nombre, email, tipo),
+    iniciarSesion: (email) => Autenticacion.iniciarSesion(email),
+    cerrarSesion: () => Autenticacion.cerrarSesion(),
+    
+    // IA
+    obtenerReporteIA: () => IA.generarReporte(),
+    analizarComportamiento: (accion, datos) => IA.analizarComportamiento(accion, datos),
+    
+    // Utilidades
+    esAdmin: (email) => email && email.toLowerCase().trim() === Autenticacion.ADMIN_EMAIL
+  };
+  
+  // ============================================
+  // 🎯 EJECUTAR AL CARGAR EL DOM
+  // ============================================
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializar);
+  } else {
+    inicializar();
+  }
+  
+})();
 </script>
     ... (todo tu código existente: bóveda, marketplace, streaming, etc.) ...
 
