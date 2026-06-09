@@ -13727,15 +13727,25 @@ document.head.appendChild(estilo);
 // 🔧 CONFIGURACIÓN GLOBAL (sin enlaces externos)
 // ============================================
 const API = window.location.origin;  // Usa el mismo dominio del servidor
-let token = localStorage.getItem('auth_token') || '';
+
+// ✅ Token consistente: lee de AMBAS claves posibles
+let token = localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
 
 // Variable global para la firma
 let sigData = null;
 
-// Referencias globales al canvas
-const sigCanvas = document.getElementById('sigCanvas');
+// Referencias globales al canvas (null-safe: no da error si no existe aún)
+let sigCanvas = null;
 let sigContext = null;
 let isDrawing = false;
+
+// ✅ Inicializar canvas cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    sigCanvas = document.getElementById('sigCanvas');
+    if (sigCanvas) {
+        sigContext = sigCanvas.getContext('2d');
+    }
+});
 
 // ============================================
 // 🎬 MEDIA PLAYER (CORREGIDO)
