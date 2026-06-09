@@ -9612,11 +9612,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      const error = validateFile(file);
-      if (error) {
+         // ✅ Validación con Lista Blanca Militar (IA integrada)
+      const validacion = validarArchivoSeguro(file);
+      if (!validacion.permitido) {
         filePreview.style.display = 'block';
         filePreview.style.color = '#ff5252';
-        filePreview.textContent = error; // ✅ validateFile retorna strings seguros
+        filePreview.textContent = validacion.mensaje;
         uploadFile.value = '';
         return;
       }
