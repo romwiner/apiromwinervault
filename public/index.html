@@ -49,6 +49,33 @@
   <!-- 11. PRECONNECT LOCAL (Acelera la carga sin riesgos externos) -->
   <link rel="preconnect" href="/">
 <style>
+/* 🛡️ BLOQUEO ABSOLUTO: Impide que la bóveda/feed se muestren sin sesión */
+body:not(.sesion-activa) #vaultSection,
+body:not(.sesion-activa) #socialFeedPanel,
+body:not(.sesion-activa) #dashboardView,
+body:not(.sesion-activa) #authSection,
+body:not(.sesion-activa) #landingView,
+body:not(.sesion-activa) #successView,
+body:not(.sesion-activa) #vistaFreemium,
+body:not(.sesion-activa) #vistaNormal,
+body:not(.sesion-activa) #vistaEmpresarial,
+body:not(.sesion-activa) #vistaAdmin {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body:not(.sesion-activa) #vistaLanding {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+body.sesion-activa #vistaLanding {
+  display: none !important;
+}
+  
 /* ============================================
    🔐 APIROMWINER VAULT - CSS BLINDADO v2.0
    Seguridad: CERO enlaces externos
