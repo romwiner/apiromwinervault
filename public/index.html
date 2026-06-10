@@ -49,31 +49,33 @@
   <!-- 11. PRECONNECT LOCAL (Acelera la carga sin riesgos externos) -->
   <link rel="preconnect" href="/">
 <style>
-/* 🛡️ BLOQUEO ABSOLUTO: Impide que la bóveda/feed se muestren sin sesión */
-body:not(.sesion-activa) #vaultSection,
-body:not(.sesion-activa) #socialFeedPanel,
-body:not(.sesion-activa) #dashboardView,
-body:not(.sesion-activa) #authSection,
-body:not(.sesion-activa) #landingView,
-body:not(.sesion-activa) #successView,
-body:not(.sesion-activa) #vistaFreemium,
-body:not(.sesion-activa) #vistaNormal,
-body:not(.sesion-activa) #vistaEmpresarial,
-body:not(.sesion-activa) #vistaAdmin {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
+/* 🎯 CONTROL DE VISTAS - UNIFICADO Y FUNCIONAL */
 
-body:not(.sesion-activa) #vistaLanding {
+/* Al inicio (sin sesión): Solo mostrar registro */
+#vistaLanding {
   display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
 }
 
-body.sesion-activa #vistaLanding {
+#vistaFreemium, #vistaNormal, #vistaEmpresarial, #vistaAdmin {
   display: none !important;
+}
+
+/* Cuando hay sesión activa: Ocultar registro y mostrar paneles */
+body.en-app #vistaLanding {
+  display: none !important;
+}
+
+body.en-app #vistaFreemium,
+body.en-app #vistaNormal,
+body.en-app #vistaEmpresarial,
+body.en-app #vistaAdmin {
+  display: block !important;
+}
+
+/* Permitir que la bóveda y el feed se muestren dentro de la app */
+body.en-app #vaultSection,
+body.en-app #socialFeedPanel {
+  display: block !important;
 }
   
 /* ============================================
@@ -23329,14 +23331,17 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(() => {}); // Ignorar errores
   }
 }); 
- <script>
-<!-- 🛡️ CONTROLADOR ÚNICO DEFINITIVO -->
+<!-- 🎯 CONTROLADOR MAESTRO UNIFICADO (Versión Mejorada) -->
 <script>
 window.addEventListener('load', function() {
+  console.log('🎯 Controlador Maestro Unificado iniciado');
+  
+  // 1. Verificar sesión
   const email = localStorage.getItem('arv_email');
   const tipo = localStorage.getItem('arv_tipo');
   const nombre = localStorage.getItem('arv_nombre');
   
+  // 2. Referencias a todas las vistas
   const vistas = {
     landing: document.getElementById('vistaLanding'),
     freemium: document.getElementById('vistaFreemium'),
@@ -23345,19 +23350,37 @@ window.addEventListener('load', function() {
     admin: document.getElementById('vistaAdmin')
   };
   
-  // Ocultar TODAS las vistas
-  Object.values(vistas).forEach(v => {
-    if (v) { v.classList.add('hidden'); v.style.display = 'none'; }
-  });
+  // 3. Función para ocultar TODAS las vistas
+  function ocultarTodas() {
+    Object.values(vistas).forEach(v => {
+      if (v) {
+        v.classList.add('hidden');
+        v.style.display = 'none';
+      }
+    });
+  }
   
+  // 4. Función para mostrar UNA vista
+  function mostrarVista(vista) {
+    ocultarTodas();
+    if (vista) {
+      vista.classList.remove('hidden');
+      vista.style.display = vista === vistas.landing ? 'flex' : 'block';
+      console.log('✅ Mostrando vista:', vista.id);
+    }
+  }
+  
+  // 5. Decidir qué mostrar según sesión
   if (!email || !tipo || !nombre) {
     // Sin sesión: mostrar registro
-    if (vistas.landing) {
-      vistas.landing.classList.remove('hidden');
-      vistas.landing.style.display = 'flex';
-    }
+    console.log('ℹ️ Sin sesión activa → Mostrando registro');
+    document.body.classList.remove('en-app');
+    mostrarVista(vistas.landing);
   } else {
-    // Con sesión: mostrar panel correcto
+    // Con sesión: agregar clase al body y mostrar panel correcto
+    console.log('✅ Sesión activa detectada:', email);
+    document.body.classList.add('en-app');
+    
     let panel = null;
     if (email.toLowerCase() === 'rraygoza67@gmail.com') {
       panel = vistas.admin;
@@ -23376,21 +23399,18 @@ window.addEventListener('load', function() {
     }
     
     if (panel) {
-      panel.classList.remove('hidden');
-      panel.style.display = 'block';
-      if (typeof loadUser === 'function') loadUser();
+      mostrarVista(panel);
+      // Cargar datos del usuario si la función existe
+      if (typeof loadUser === 'function') {
+        setTimeout(loadUser, 100);
+      }
+    } else {
+      // Si no hay panel válido, mostrar registro
+      mostrarVista(vistas.landing);
     }
   }
   
-  // Botones cerrar sesión
-  document.querySelectorAll('.btn-logout').forEach(btn => {
-    btn.onclick = function() {
-      localStorage.clear();
-      window.location.reload();
-    };
-  });
-  
-  // Tabs y formularios
+  // 6. Tabs registro/login
   const tabReg = document.getElementById('tabRegistro');
   const tabLog = document.getElementById('tabLogin');
   const formReg = document.getElementById('formRegistro');
@@ -23398,33 +23418,65 @@ window.addEventListener('load', function() {
   
   if (tabReg && tabLog && formReg && formLog) {
     tabReg.onclick = () => {
-      formReg.style.display = 'flex'; formLog.style.display = 'none';
-      tabReg.style.background = '#059669'; tabReg.style.color = 'white';
-      tabLog.style.background = 'transparent'; tabLog.style.color = '#94a3b8';
+      formReg.style.display = 'flex';
+      formLog.style.display = 'none';
+      tabReg.style.background = '#059669';
+      tabReg.style.color = 'white';
+      tabLog.style.background = 'transparent';
+      tabLog.style.color = '#94a3b8';
     };
+    
     tabLog.onclick = () => {
-      formLog.style.display = 'flex'; formReg.style.display = 'none';
-      tabLog.style.background = '#38bdf8'; tabLog.style.color = 'white';
-      tabReg.style.background = 'transparent'; tabReg.style.color = '#94a3b8';
+      formLog.style.display = 'flex';
+      formReg.style.display = 'none';
+      tabLog.style.background = '#38bdf8';
+      tabLog.style.color = 'white';
+      tabReg.style.background = 'transparent';
+      tabReg.style.color = '#94a3b8';
     };
+    
+    // Formulario de registro
     formReg.onsubmit = function(e) {
       e.preventDefault();
-      localStorage.setItem('arv_nombre', document.getElementById('regNombre').value);
-      localStorage.setItem('arv_email', document.getElementById('regEmail').value.toLowerCase().trim());
-      localStorage.setItem('arv_tipo', document.getElementById('regTipoCuenta').value);
-      window.location.reload();
+      const nombreVal = document.getElementById('regNombre').value;
+      const emailVal = document.getElementById('regEmail').value.toLowerCase().trim();
+      const tipoVal = document.getElementById('regTipoCuenta').value;
+      
+      localStorage.setItem('arv_nombre', nombreVal);
+      localStorage.setItem('arv_email', emailVal);
+      localStorage.setItem('arv_tipo', tipoVal);
+      
+      console.log('✅ Registro exitoso:', emailVal);
+      location.reload();
     };
+    
+    // Formulario de login
     formLog.onsubmit = function(e) {
       e.preventDefault();
       const emailLogin = document.getElementById('loginEmail').value.toLowerCase().trim();
       const emailGuardado = localStorage.getItem('arv_email');
+      
       if (emailGuardado && emailGuardado === emailLogin) {
-        window.location.reload();
+        console.log('✅ Login exitoso:', emailLogin);
+        location.reload();
       } else {
         alert('⚠️ Usuario no encontrado. Regístrate primero.');
       }
     };
   }
+  
+  // 7. Botones de cerrar sesión y volver al inicio
+  document.querySelectorAll('.btn-logout, .btn-volver-inicio').forEach(btn => {
+    btn.onclick = function() {
+      if (confirm('¿Cerrar sesión y volver al inicio?')) {
+        localStorage.clear();
+        console.log('🚪 Sesión cerrada');
+        location.reload();
+      }
+    };
+  });
+  
+  console.log('🎯 Controlador Maestro Unificado listo');
 });
 </script>
 </body>
