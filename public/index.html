@@ -73,8 +73,7 @@
     display: block !important;
   }
 </style> 
-
-  
+<style>  
 /* ============================================
    🔐 APIROMWINER VAULT - CSS BLINDADO v2.0
    Seguridad: CERO enlaces externos
@@ -23332,108 +23331,8 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(() => {}); // Ignorar errores
   }
 }); 
-<!-- 🎯 CONTROLADOR DEFINITIVO (Unificado) -->
-<script>
-window.addEventListener('load', function() {
-  console.log('🎯 Controlador iniciado');
-  
-  // 1. Verificar sesión
-  const email = localStorage.getItem('arv_email');
-  const tipo = localStorage.getItem('arv_tipo');
-  const nombre = localStorage.getItem('arv_nombre');
-  
-  // 2. Activar o desactivar la app según sesión
-  if (email && tipo && nombre) {
-    document.body.classList.add('app-activa');
-    console.log('✅ Sesión activa:', email);
-    
-    // Mostrar nombre en el panel correcto
-    if (tipo === 'freemium') {
-      const el = document.getElementById('nombreFreemium');
-      if (el) el.textContent = nombre;
-    } else if (tipo === 'normal') {
-      const el = document.getElementById('nombreNormal');
-      if (el) el.textContent = nombre;
-    } else if (tipo === 'empresarial') {
-      const el = document.getElementById('nombreEmpresarial');
-      if (el) el.textContent = nombre;
-    }
-    
-    // Cargar datos del usuario si existe la función
-    if (typeof loadUser === 'function') {
-      setTimeout(loadUser, 100);
-    }
-  } else {
-    document.body.classList.remove('app-activa');
-    console.log('ℹ️ Sin sesión activa');
-  }
-  
-  // 3. Tabs registro/login
-  const tabReg = document.getElementById('tabRegistro');
-  const tabLog = document.getElementById('tabLogin');
-  const formReg = document.getElementById('formRegistro');
-  const formLog = document.getElementById('formLogin');
-  
-  if (tabReg && tabLog && formReg && formLog) {
-    tabReg.onclick = () => {
-      formReg.style.display = 'flex';
-      formLog.style.display = 'none';
-      tabReg.style.background = '#059669';
-      tabReg.style.color = 'white';
-      tabLog.style.background = 'transparent';
-      tabLog.style.color = '#94a3b8';
-    };
-    
-    tabLog.onclick = () => {
-      formLog.style.display = 'flex';
-      formReg.style.display = 'none';
-      tabLog.style.background = '#38bdf8';
-      tabLog.style.color = 'white';
-      tabReg.style.background = 'transparent';
-      tabReg.style.color = '#94a3b8';
-    };
-    
-    // Formulario de registro
-    formReg.onsubmit = function(e) {
-      e.preventDefault();
-      localStorage.setItem('arv_nombre', document.getElementById('regNombre').value);
-      localStorage.setItem('arv_email', document.getElementById('regEmail').value.toLowerCase().trim());
-      localStorage.setItem('arv_tipo', document.getElementById('regTipoCuenta').value);
-      console.log('✅ Registro exitoso');
-      location.reload();
-    };
-    
-    // Formulario de login
-    formLog.onsubmit = function(e) {
-      e.preventDefault();
-      const emailLogin = document.getElementById('loginEmail').value.toLowerCase().trim();
-      const emailGuardado = localStorage.getItem('arv_email');
-      
-      if (emailGuardado && emailGuardado === emailLogin) {
-        console.log('✅ Login exitoso');
-        location.reload();
-      } else {
-        alert('⚠️ Usuario no encontrado. Regístrate primero.');
-      }
-    };
-  }
-  
-  // 4. Botones de cerrar sesión y volver al inicio
-  document.querySelectorAll('.btn-logout, .btn-volver-inicio').forEach(btn => {
-    btn.onclick = function() {
-      if (confirm('¿Cerrar sesión y volver al inicio?')) {
-        localStorage.clear();
-        console.log('🚪 Sesión cerrada');
-        location.reload();
-      }
-    };
-  });
-  
-  console.log('🎯 Controlador listo');
-});
 </script>
-   
-</script>
+
 </body>
 </html>
 
