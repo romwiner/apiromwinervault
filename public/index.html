@@ -23303,145 +23303,47 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 }); 
  <script>
-  <!-- 🛡️ CONTROLADOR FINAL (Agrega esto al final) -->
+<!-- 🛡️ CONTROLADOR ÚNICO DEFINITIVO -->
 <script>
 window.addEventListener('load', function() {
-    // Ocultar todas las pantallas internas
-    ['vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 'vistaAdmin', 'dashboardView', 'authSection'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.classList.add('hidden'); el.style.display = 'none'; }
-    });
-
-    const email = localStorage.getItem('arv_email');
-    const tipo = localStorage.getItem('arv_tipo');
-    const nombre = localStorage.getItem('arv_nombre');
-    const vistaLanding = document.getElementById('vistaLanding');
-
-    if (!email || !tipo || !nombre) {
-        // Sin sesión: mostrar registro
-        if (vistaLanding) { vistaLanding.classList.remove('hidden'); vistaLanding.style.display = 'flex'; }
-    } else {
-        // Con sesión: mostrar panel correcto
-        if (vistaLanding) vistaLanding.classList.add('hidden');
-        
-        let panel = null;
-        if (email.toLowerCase() === 'rraygoza67@gmail.com') {
-            panel = document.getElementById('vistaAdmin');
-        } else if (tipo === 'freemium') {
-            panel = document.getElementById('vistaFreemium');
-            const el = document.getElementById('nombreFreemium');
-            if (el) el.textContent = nombre;
-        } else if (tipo === 'normal') {
-            panel = document.getElementById('vistaNormal');
-            const el = document.getElementById('nombreNormal');
-            if (el) el.textContent = nombre;
-        } else if (tipo === 'empresarial') {
-            panel = document.getElementById('vistaEmpresarial');
-            const el = document.getElementById('nombreEmpresarial');
-            if (el) el.textContent = nombre;
-        }
-
-        if (panel) {
-            panel.classList.remove('hidden');
-            panel.style.display = 'block';
-            if (typeof loadUser === 'function') loadUser();
-        }
-    }
-
-    // Botones de cerrar sesión
-    document.querySelectorAll('.btn-logout').forEach(btn => {
-        btn.addEventListener('click', function() {
-            localStorage.clear();
-            window.location.reload();
-        });
-    });
-
-    // Tabs registro/login
-    const tabReg = document.getElementById('tabRegistro');
-    const tabLog = document.getElementById('tabLogin');
-    const formReg = document.getElementById('formRegistro');
-    const formLog = document.getElementById('formLogin');
-
-    if (tabReg && tabLog && formReg && formLog) {
-        tabReg.addEventListener('click', () => {
-            formReg.style.display = 'flex'; formLog.style.display = 'none';
-            tabReg.style.background = '#059669'; tabReg.style.color = 'white';
-            tabLog.style.background = 'transparent'; tabLog.style.color = '#94a3b8';
-        });
-        tabLog.addEventListener('click', () => {
-            formLog.style.display = 'flex'; formReg.style.display = 'none';
-            tabLog.style.background = '#38bdf8'; tabLog.style.color = 'white';
-            tabReg.style.background = 'transparent'; tabReg.style.color = '#94a3b8';
-        });
-        formReg.addEventListener('submit', function(e) {
-            e.preventDefault();
-            localStorage.setItem('arv_nombre', document.getElementById('regNombre').value);
-            localStorage.setItem('arv_email', document.getElementById('regEmail').value.toLowerCase().trim());
-            localStorage.setItem('arv_tipo', document.getElementById('regTipoCuenta').value);
-            window.location.reload();
-        });
-        formLog.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const emailLogin = document.getElementById('loginEmail').value.toLowerCase().trim();
-            const emailGuardado = localStorage.getItem('arv_email');
-            if (emailGuardado && emailGuardado === emailLogin) {
-                window.location.reload();
-            } else {
-                alert('⚠️ Usuario no encontrado. Regístrate primero.');
-            }
-        });
-    }
-});
-</script>
-  <!-- 🛡️ CONTROLADOR FINAL CON PRIORIDAD (NO BORRA NADA) -->
-<script>
-// Este script se ejecuta DESPUÉS de todos los demás
-window.addEventListener('load', function() {
-  console.log('🛡️ Controlador final ejecutándose...');
-  
-  // Verificar si hay sesión
   const email = localStorage.getItem('arv_email');
   const tipo = localStorage.getItem('arv_tipo');
   const nombre = localStorage.getItem('arv_nombre');
   
-  const vistaLanding = document.getElementById('vistaLanding');
-  const vistaFreemium = document.getElementById('vistaFreemium');
-  const vistaNormal = document.getElementById('vistaNormal');
-  const vistaEmpresarial = document.getElementById('vistaEmpresarial');
-  const vistaAdmin = document.getElementById('vistaAdmin');
+  const vistas = {
+    landing: document.getElementById('vistaLanding'),
+    freemium: document.getElementById('vistaFreemium'),
+    normal: document.getElementById('vistaNormal'),
+    empresarial: document.getElementById('vistaEmpresarial'),
+    admin: document.getElementById('vistaAdmin')
+  };
   
-  // Ocultar TODAS las pantallas
-  [vistaLanding, vistaFreemium, vistaNormal, vistaEmpresarial, vistaAdmin].forEach(v => {
-    if (v) {
-      v.classList.add('hidden');
-      v.style.display = 'none';
-    }
+  // Ocultar TODAS las vistas
+  Object.values(vistas).forEach(v => {
+    if (v) { v.classList.add('hidden'); v.style.display = 'none'; }
   });
   
   if (!email || !tipo || !nombre) {
-    // SIN SESIÓN: Mostrar SOLO registro
-    if (vistaLanding) {
-      vistaLanding.classList.remove('hidden');
-      vistaLanding.style.display = 'flex';
-      console.log('✅ Mostrando pantalla de registro');
+    // Sin sesión: mostrar registro
+    if (vistas.landing) {
+      vistas.landing.classList.remove('hidden');
+      vistas.landing.style.display = 'flex';
     }
   } else {
-    // CON SESIÓN: Mostrar panel correcto
-    if (vistaLanding) vistaLanding.classList.add('hidden');
-    
+    // Con sesión: mostrar panel correcto
     let panel = null;
     if (email.toLowerCase() === 'rraygoza67@gmail.com') {
-      panel = vistaAdmin;
+      panel = vistas.admin;
     } else if (tipo === 'freemium') {
-      panel = vistaFreemium;
+      panel = vistas.freemium;
       const el = document.getElementById('nombreFreemium');
       if (el) el.textContent = nombre;
     } else if (tipo === 'normal') {
-      panel = vistaNormal;
+      panel = vistas.normal;
       const el = document.getElementById('nombreNormal');
       if (el) el.textContent = nombre;
     } else if (tipo === 'empresarial') {
-      panel = vistaEmpresarial;
+      panel = vistas.empresarial;
       const el = document.getElementById('nombreEmpresarial');
       if (el) el.textContent = nombre;
     }
@@ -23449,14 +23351,11 @@ window.addEventListener('load', function() {
     if (panel) {
       panel.classList.remove('hidden');
       panel.style.display = 'block';
-      console.log('✅ Mostrando panel:', panel.id);
-      
-      // Cargar datos del usuario
       if (typeof loadUser === 'function') loadUser();
     }
   }
   
-  // Botones de cerrar sesión
+  // Botones cerrar sesión
   document.querySelectorAll('.btn-logout').forEach(btn => {
     btn.onclick = function() {
       localStorage.clear();
@@ -23464,7 +23363,7 @@ window.addEventListener('load', function() {
     };
   });
   
-  // Tabs registro/login
+  // Tabs y formularios
   const tabReg = document.getElementById('tabRegistro');
   const tabLog = document.getElementById('tabLogin');
   const formReg = document.getElementById('formRegistro');
@@ -23472,14 +23371,15 @@ window.addEventListener('load', function() {
   
   if (tabReg && tabLog && formReg && formLog) {
     tabReg.onclick = () => {
-      formReg.style.display = 'flex';
-      formLog.style.display = 'none';
+      formReg.style.display = 'flex'; formLog.style.display = 'none';
+      tabReg.style.background = '#059669'; tabReg.style.color = 'white';
+      tabLog.style.background = 'transparent'; tabLog.style.color = '#94a3b8';
     };
     tabLog.onclick = () => {
-      formLog.style.display = 'flex';
-      formReg.style.display = 'none';
+      formLog.style.display = 'flex'; formReg.style.display = 'none';
+      tabLog.style.background = '#38bdf8'; tabLog.style.color = 'white';
+      tabReg.style.background = 'transparent'; tabReg.style.color = '#94a3b8';
     };
-    
     formReg.onsubmit = function(e) {
       e.preventDefault();
       localStorage.setItem('arv_nombre', document.getElementById('regNombre').value);
@@ -23487,7 +23387,6 @@ window.addEventListener('load', function() {
       localStorage.setItem('arv_tipo', document.getElementById('regTipoCuenta').value);
       window.location.reload();
     };
-    
     formLog.onsubmit = function(e) {
       e.preventDefault();
       const emailLogin = document.getElementById('loginEmail').value.toLowerCase().trim();
