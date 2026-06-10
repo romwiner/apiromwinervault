@@ -22472,54 +22472,7 @@ strengthDiv.style.color = colors[strength];
     show: showSuccessView,
     addDiagnostic: addDiagnostic
   };
-  
-})();
- </script> 
-  <!-- 🧠 SISTEMA MAESTRO UNIFICADO: apiromwinervault (Vistas Separadas + Admin Oculto y Seguro) -->
-<style>
-  .hidden { display: none !important; }
-  body { margin: 0; padding: 0; background-color: #0b0c10; font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; }
-  button { transition: all 0.2s; }
-  button:hover { transform: translateY(-2px); }
-</style>
-
-<!-- ============================================ -->
-<!-- 1. PANTALLA DE BIENVENIDA Y REGISTRO -->
-<!-- ============================================ -->
-<section id="vistaLanding" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #0b0c10 0%, #1a1f2a 100%);">
-  <div style="text-align: center; margin-bottom: 32px;">
-    <div style="font-size: 4rem; margin-bottom: 12px;">🔐</div>
-    <h1 style="margin: 0; font-size: 2.5rem; color: #f8fafc;">ApiRomwiner Vault</h1>
-    <p style="margin: 12px 0 0 0; font-size: 1rem; color: #94a3b8; max-width: 500px;">Bóveda Suiza con Cifrado Militar. Guarda, audita con IA y monetiza tu información (.txt, .mp3, .mp4, .rar, .zip, archivos bancarios y secretos) con venta granular.</p>
-  </div>
-
-  <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #059669; border-radius: 20px; padding: 32px; max-width: 450px; width: 100%; box-shadow: 0 20px 60px rgba(5, 150, 105, 0.2);">
-    <div style="display: flex; background: #1e293b; border-radius: 12px; padding: 4px; margin-bottom: 24px;">
-      <button type="button" id="tabRegistro" style="flex: 1; padding: 10px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Registrarse</button>
-      <button type="button" id="tabLogin" style="flex: 1; padding: 10px; background: transparent; color: #94a3b8; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Iniciar Sesión</button>
-    </div>
-
-    <!-- Formulario de Registro -->
-    <form id="formRegistro" style="display: flex; flex-direction: column; gap: 14px;">
-      <input type="text" id="regNombre" required placeholder="Nombre de usuario *" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-      <input type="email" id="regEmail" required placeholder="Correo electrónico *" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-      <input type="password" id="regPassword" required minlength="8" placeholder="Contraseña (mín. 8 caracteres) *" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-      <select id="regTipoCuenta" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px; cursor: pointer;">
-        <option value="freemium">🆓 Freemium (Gratis: Bóveda, Feed, Wallet, Ads, Afiliados)</option>
-        <option value="normal">💎 Usuario Normal ($25/mes: +Calificaciones, Donaciones, Streaming)</option>
-        <option value="empresarial">🏢 Empresarial (Costo mayor: Para organizaciones y equipos)</option>
-      </select>
-      <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">✨ Crear Cuenta</button>
-    </form>
-
-    <!-- Formulario de Login -->
-    <form id="formLogin" style="display: none; flex-direction: column; gap: 14px;">
-      <input type="email" id="loginEmail" required placeholder="Correo electrónico" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-      <input type="password" id="loginPassword" required placeholder="Contraseña" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-      <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #38bdf8, #0ea5e9); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">🔓 Iniciar Sesión</button>
-    </form>
-  </div>
-</section>
+<section>
 
 <!-- ============================================ -->
 <!-- 2. PANEL DE USUARIO FREEMIUM -->
