@@ -23349,7 +23349,97 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(() => {}); // Ignorar errores
   }
 }); 
-  
+ <script>
+  <!-- 🛡️ CONTROLADOR FINAL (Agrega esto al final) -->
+<script>
+window.addEventListener('load', function() {
+    // Ocultar todas las pantallas internas
+    ['vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 'vistaAdmin', 'dashboardView', 'authSection'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.classList.add('hidden'); el.style.display = 'none'; }
+    });
+
+    const email = localStorage.getItem('arv_email');
+    const tipo = localStorage.getItem('arv_tipo');
+    const nombre = localStorage.getItem('arv_nombre');
+    const vistaLanding = document.getElementById('vistaLanding');
+
+    if (!email || !tipo || !nombre) {
+        // Sin sesión: mostrar registro
+        if (vistaLanding) { vistaLanding.classList.remove('hidden'); vistaLanding.style.display = 'flex'; }
+    } else {
+        // Con sesión: mostrar panel correcto
+        if (vistaLanding) vistaLanding.classList.add('hidden');
+        
+        let panel = null;
+        if (email.toLowerCase() === 'rraygoza67@gmail.com') {
+            panel = document.getElementById('vistaAdmin');
+        } else if (tipo === 'freemium') {
+            panel = document.getElementById('vistaFreemium');
+            const el = document.getElementById('nombreFreemium');
+            if (el) el.textContent = nombre;
+        } else if (tipo === 'normal') {
+            panel = document.getElementById('vistaNormal');
+            const el = document.getElementById('nombreNormal');
+            if (el) el.textContent = nombre;
+        } else if (tipo === 'empresarial') {
+            panel = document.getElementById('vistaEmpresarial');
+            const el = document.getElementById('nombreEmpresarial');
+            if (el) el.textContent = nombre;
+        }
+
+        if (panel) {
+            panel.classList.remove('hidden');
+            panel.style.display = 'block';
+            if (typeof loadUser === 'function') loadUser();
+        }
+    }
+
+    // Botones de cerrar sesión
+    document.querySelectorAll('.btn-logout').forEach(btn => {
+        btn.addEventListener('click', function() {
+            localStorage.clear();
+            window.location.reload();
+        });
+    });
+
+    // Tabs registro/login
+    const tabReg = document.getElementById('tabRegistro');
+    const tabLog = document.getElementById('tabLogin');
+    const formReg = document.getElementById('formRegistro');
+    const formLog = document.getElementById('formLogin');
+
+    if (tabReg && tabLog && formReg && formLog) {
+        tabReg.addEventListener('click', () => {
+            formReg.style.display = 'flex'; formLog.style.display = 'none';
+            tabReg.style.background = '#059669'; tabReg.style.color = 'white';
+            tabLog.style.background = 'transparent'; tabLog.style.color = '#94a3b8';
+        });
+        tabLog.addEventListener('click', () => {
+            formLog.style.display = 'flex'; formReg.style.display = 'none';
+            tabLog.style.background = '#38bdf8'; tabLog.style.color = 'white';
+            tabReg.style.background = 'transparent'; tabReg.style.color = '#94a3b8';
+        });
+        formReg.addEventListener('submit', function(e) {
+            e.preventDefault();
+            localStorage.setItem('arv_nombre', document.getElementById('regNombre').value);
+            localStorage.setItem('arv_email', document.getElementById('regEmail').value.toLowerCase().trim());
+            localStorage.setItem('arv_tipo', document.getElementById('regTipoCuenta').value);
+            window.location.reload();
+        });
+        formLog.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const emailLogin = document.getElementById('loginEmail').value.toLowerCase().trim();
+            const emailGuardado = localStorage.getItem('arv_email');
+            if (emailGuardado && emailGuardado === emailLogin) {
+                window.location.reload();
+            } else {
+                alert('⚠️ Usuario no encontrado. Regístrate primero.');
+            }
+        });
+    }
+});
+</script>
 </body>
 </html>
 
