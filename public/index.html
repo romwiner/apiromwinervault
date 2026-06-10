@@ -48,31 +48,65 @@
   
   <!-- 11. PRECONNECT LOCAL (Acelera la carga sin riesgos externos) -->
   <link rel="preconnect" href="/">
-  
- <style>
-  /* 🎯 CONTROL ABSOLUTO DE VISTAS */
-  /* Al inicio: Solo mostrar registro */
-  #vistaFreemium, #vistaNormal, #vistaEmpresarial, #vistaAdmin, 
-  #vaultSection, #socialFeedPanel, #dashboardView, #authSection, #successView {
-    display: none !important;
-  }
-  #vistaLanding {
-    display: flex !important;
-  }
+  <style>
+/* 🛡️ BLOQUEO ABSOLUTO - Sin sesión = Solo landing visible */
+body:not(.app-activa) #vistaFreemium,
+body:not(.app-activa) #vistaNormal,
+body:not(.app-activa) #vistaEmpresarial,
+body:not(.app-activa) #vistaAdmin,
+body:not(.app-activa) #vaultSection,
+body:not(.app-activa) #socialFeedPanel,
+body:not(.app-activa) #adsSection,
+body:not(.app-activa) #digitalIdentityPanel,
+body:not(.app-activa) #portableFeatures,
+body:not(.app-activa) #affiliatesPanel,
+body:not(.app-activa) #enterpriseFeatures,
+body:not(.app-activa) #marketplaceSection,
+body:not(.app-activa) #earningsCenter,
+body:not(.app-activa) #installShareSection,
+body:not(.app-activa) #quickActionsAndIdentity,
+body:not(.app-activa) #financialAnalyticsPanel,
+body:not(.app-activa) #dashboardView,
+body:not(.app-activa) #authSection,
+body:not(.app-activa) #successView,
+body:not(.app-activa) #notificationsAndTransparency,
+body:not(.app-activa) #pwaBanner,
+body:not(.app-activa) #autoPayBanner,
+body:not(.app-activa) #collabPanel,
+body:not(.app-activa) #analyticsPanel,
+body:not(.app-activa) #aiAnalysisPanel,
+body:not(.app-activa) #legalPanel,
+body:not(.app-activa) #youtubePreviewSection,
+body:not(.app-activa) #productPreviewPlayer,
+body:not(.app-activa) #securePlayerModal {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 
-  /* Cuando hay sesión: Ocultar registro, mostrar el resto */
-  body.app-activa #vistaLanding {
-    display: none !important;
-  }
-  body.app-activa #vistaFreemium,
-  body.app-activa #vistaNormal,
-  body.app-activa #vistaEmpresarial,
-  body.app-activa #vistaAdmin,
-  body.app-activa #vaultSection,
-  body.app-activa #socialFeedPanel {
-    display: block !important;
-  }
-</style> 
+/* Landing siempre visible sin sesión */
+#vistaLanding {
+  display: flex !important;
+}
+
+/* Con sesión: ocultar landing, mostrar el resto */
+body.app-activa #vistaLanding {
+  display: none !important;
+}
+
+body.app-activa #vistaFreemium,
+body.app-activa #vistaNormal,
+body.app-activa #vistaEmpresarial,
+body.app-activa #vistaAdmin,
+body.app-activa #vaultSection,
+body.app-activa #socialFeedPanel {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+</style>
+
 <style>  
 /* ============================================
    🔐 APIROMWINER VAULT - CSS BLINDADO v2.0
@@ -1559,6 +1593,7 @@ img, canvas, video, audio {
   }
 }
 </style>
+
  </head>
 <body>
  <!-- 🎉 VISTA DE ÉXITO: Diagnóstico inicial (solo visible sin sesión) -->
