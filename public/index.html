@@ -23366,6 +23366,139 @@ registro.classList.remove('hidden');
 },3000);
 })();
 </script>
+<!-- ========================================== -->
+<!-- PANTALLA DE INICIO INDESTRUCTIBLE -->
+<!-- ========================================== -->
+<style>
+  .hidden { display: none !important; }
+  body { margin: 0; padding: 0; background-color: #0b0c10; font-family: system-ui, sans-serif; color: #e2e8f0; }
+</style>
+
+<section id="vistaLanding" style="min-height: 100vh; display: flex !important; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #0b0c10 0%, #1a1f2a 100%);">
+  <div style="text-align: center; margin-bottom: 32px;">
+    <div style="font-size: 4rem; margin-bottom: 12px;">🔐</div>
+    <h1 style="margin: 0; font-size: 2.5rem; color: #f8fafc;">ApiRomwiner Vault</h1>
+    <p style="margin: 12px 0 0 0; font-size: 1rem; color: #94a3b8; max-width: 500px;">Bóveda Suiza con Cifrado Militar. Regístrate o inicia sesión.</p>
+  </div>
+
+  <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #059669; border-radius: 20px; padding: 32px; max-width: 450px; width: 100%; box-shadow: 0 20px 60px rgba(5, 150, 105, 0.2);">
+    <div style="display: flex; background: #1e293b; border-radius: 12px; padding: 4px; margin-bottom: 24px;">
+      <button type="button" id="tabRegistro" style="flex: 1; padding: 10px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Registrarse</button>
+      <button type="button" id="tabLogin" style="flex: 1; padding: 10px; background: transparent; color: #94a3b8; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Iniciar Sesión</button>
+    </div>
+
+    <!-- Formulario de Registro -->
+    <form id="formRegistro" style="display: flex; flex-direction: column; gap: 14px;">
+      <input type="text" id="regNombre" required placeholder="Nombre de usuario *" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <input type="email" id="regEmail" required placeholder="Correo electrónico *" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <input type="password" id="regPassword" required minlength="8" placeholder="Contraseña (mín. 8 caracteres) *" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <select id="regTipoCuenta" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+        <option value="freemium">🆓 Freemium (Gratis)</option>
+        <option value="normal">💎 Usuario Normal</option>
+        <option value="empresarial">🏢 Empresarial</option>
+      </select>
+      <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">✨ Crear Cuenta</button>
+    </form>
+
+    <!-- Formulario de Login -->
+    <form id="formLogin" style="display: none; flex-direction: column; gap: 14px;">
+      <input type="email" id="loginEmail" required placeholder="Correo electrónico" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <input type="password" id="loginPassword" required placeholder="Contraseña" style="width: 100%; box-sizing: border-box; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #38bdf8, #0ea5e9); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">🔓 Iniciar Sesión</button>
+    </form>
+  </div>
+</section>
+
+<!-- ========================================== -->
+<!-- SCRIPT MAESTRO DE CONTROL (A PRUEBA DE FALLOS) -->
+<!-- ========================================== -->
+<script>
+(function() {
+  console.log("🧠 Sistema de control iniciado...");
+
+  // 1. Forzar que la pantalla de inicio SIEMPRE se muestre al cargar si no hay sesión
+  const landing = document.getElementById('vistaLanding');
+  if (landing) {
+    landing.style.display = 'flex'; // ¡Forzamos que sea visible!
+    landing.classList.remove('hidden');
+  }
+
+  // 2. Ocultar TODAS las demás pantallas por seguridad
+  const otrasVistas = ['vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 'vistaAdmin', 'dashboardView', 'authSection'];
+  otrasVistas.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add('hidden');
+      el.style.display = 'none';
+    }
+  });
+
+  // 3. Lógica de pestañas (Registro / Login)
+  const tabRegistro = document.getElementById('tabRegistro');
+  const tabLogin = document.getElementById('tabLogin');
+  const formRegistro = document.getElementById('formRegistro');
+  const formLogin = document.getElementById('formLogin');
+
+  if (tabRegistro && formRegistro && formLogin) {
+    tabRegistro.addEventListener('click', () => {
+      formRegistro.style.display = 'flex';
+      formLogin.style.display = 'none';
+      tabRegistro.style.background = '#059669';
+      tabRegistro.style.color = 'white';
+      tabLogin.style.background = 'transparent';
+      tabLogin.style.color = '#94a3b8';
+    });
+
+    tabLogin.addEventListener('click', () => {
+      formLogin.style.display = 'flex';
+      formRegistro.style.display = 'none';
+      tabLogin.style.background = '#38bdf8';
+      tabLogin.style.color = 'white';
+      tabRegistro.style.background = 'transparent';
+      tabRegistro.style.color = '#94a3b8';
+    });
+  }
+
+  // 4. Manejo del Registro
+  if (formRegistro) {
+    formRegistro.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const nombre = document.getElementById('regNombre').value;
+      const email = document.getElementById('regEmail').value.toLowerCase().trim();
+      const tipo = document.getElementById('regTipoCuenta').value;
+      
+      localStorage.setItem('arv_nombre', nombre);
+      localStorage.setItem('arv_email', email);
+      localStorage.setItem('arv_tipo', tipo);
+      
+      alert('✅ Cuenta creada. Ahora inicia sesión.');
+      tabLogin.click(); // Cambiar a pestaña de login
+    });
+  }
+
+  // 5. Manejo del Login
+  if (formLogin) {
+    formLogin.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.toLowerCase().trim();
+      const nombreGuardado = localStorage.getItem('arv_nombre') || 'Usuario';
+      const tipoGuardado = localStorage.getItem('arv_tipo') || 'freemium';
+      
+      // AQUÍ ESTÁ TU CONTROL SUPREMO
+      if (email === 'rraygoza67@gmail.com') {
+        alert('👑 Acceso de Administrador concedido');
+        // Aquí iría la lógica para mostrar vistaAdmin, pero por ahora solo avisamos
+      } else {
+        alert('✅ Bienvenido, ' + nombreGuardado + ' (' + tipoGuardado + ')');
+        // Aquí iría la lógica para mostrar su vista correspondiente
+      }
+    });
+  }
+
+  console.log("✅ Pantalla de inicio asegurada. No se pondrá negra.");
+})();
+</script>
+  
 </body>
 </html>
 
