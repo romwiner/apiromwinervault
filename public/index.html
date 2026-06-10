@@ -48,35 +48,32 @@
   
   <!-- 11. PRECONNECT LOCAL (Acelera la carga sin riesgos externos) -->
   <link rel="preconnect" href="/">
-<style>
-/* 🎯 CONTROL DE VISTAS - UNIFICADO Y FUNCIONAL */
+  
+ <style>
+  /* 🎯 CONTROL ABSOLUTO DE VISTAS */
+  /* Al inicio: Solo mostrar registro */
+  #vistaFreemium, #vistaNormal, #vistaEmpresarial, #vistaAdmin, 
+  #vaultSection, #socialFeedPanel, #dashboardView, #authSection, #successView {
+    display: none !important;
+  }
+  #vistaLanding {
+    display: flex !important;
+  }
 
-/* Al inicio (sin sesión): Solo mostrar registro */
-#vistaLanding {
-  display: flex !important;
-}
+  /* Cuando hay sesión: Ocultar registro, mostrar el resto */
+  body.app-activa #vistaLanding {
+    display: none !important;
+  }
+  body.app-activa #vistaFreemium,
+  body.app-activa #vistaNormal,
+  body.app-activa #vistaEmpresarial,
+  body.app-activa #vistaAdmin,
+  body.app-activa #vaultSection,
+  body.app-activa #socialFeedPanel {
+    display: block !important;
+  }
+</style> 
 
-#vistaFreemium, #vistaNormal, #vistaEmpresarial, #vistaAdmin {
-  display: none !important;
-}
-
-/* Cuando hay sesión activa: Ocultar registro y mostrar paneles */
-body.en-app #vistaLanding {
-  display: none !important;
-}
-
-body.en-app #vistaFreemium,
-body.en-app #vistaNormal,
-body.en-app #vistaEmpresarial,
-body.en-app #vistaAdmin {
-  display: block !important;
-}
-
-/* Permitir que la bóveda y el feed se muestren dentro de la app */
-body.en-app #vaultSection,
-body.en-app #socialFeedPanel {
-  display: block !important;
-}
   
 /* ============================================
    🔐 APIROMWINER VAULT - CSS BLINDADO v2.0
@@ -23335,86 +23332,43 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(() => {}); // Ignorar errores
   }
 }); 
-<!-- 🎯 CONTROLADOR MAESTRO UNIFICADO (Versión Mejorada) -->
+<!-- 🎯 CONTROLADOR DEFINITIVO (Unificado) -->
 <script>
 window.addEventListener('load', function() {
-  console.log('🎯 Controlador Maestro Unificado iniciado');
+  console.log('🎯 Controlador iniciado');
   
   // 1. Verificar sesión
   const email = localStorage.getItem('arv_email');
   const tipo = localStorage.getItem('arv_tipo');
   const nombre = localStorage.getItem('arv_nombre');
   
-  // 2. Referencias a todas las vistas
-  const vistas = {
-    landing: document.getElementById('vistaLanding'),
-    freemium: document.getElementById('vistaFreemium'),
-    normal: document.getElementById('vistaNormal'),
-    empresarial: document.getElementById('vistaEmpresarial'),
-    admin: document.getElementById('vistaAdmin')
-  };
-  
-  // 3. Función para ocultar TODAS las vistas
-  function ocultarTodas() {
-    Object.values(vistas).forEach(v => {
-      if (v) {
-        v.classList.add('hidden');
-        v.style.display = 'none';
-      }
-    });
-  }
-  
-  // 4. Función para mostrar UNA vista
-  function mostrarVista(vista) {
-    ocultarTodas();
-    if (vista) {
-      vista.classList.remove('hidden');
-      vista.style.display = vista === vistas.landing ? 'flex' : 'block';
-      console.log('✅ Mostrando vista:', vista.id);
-    }
-  }
-  
-  // 5. Decidir qué mostrar según sesión
-  if (!email || !tipo || !nombre) {
-    // Sin sesión: mostrar registro
-    console.log('ℹ️ Sin sesión activa → Mostrando registro');
-    document.body.classList.remove('en-app');
-    mostrarVista(vistas.landing);
-  } else {
-    // Con sesión: agregar clase al body y mostrar panel correcto
-    console.log('✅ Sesión activa detectada:', email);
-    document.body.classList.add('en-app');
+  // 2. Activar o desactivar la app según sesión
+  if (email && tipo && nombre) {
+    document.body.classList.add('app-activa');
+    console.log('✅ Sesión activa:', email);
     
-    let panel = null;
-    if (email.toLowerCase() === 'rraygoza67@gmail.com') {
-      panel = vistas.admin;
-    } else if (tipo === 'freemium') {
-      panel = vistas.freemium;
+    // Mostrar nombre en el panel correcto
+    if (tipo === 'freemium') {
       const el = document.getElementById('nombreFreemium');
       if (el) el.textContent = nombre;
     } else if (tipo === 'normal') {
-      panel = vistas.normal;
       const el = document.getElementById('nombreNormal');
       if (el) el.textContent = nombre;
     } else if (tipo === 'empresarial') {
-      panel = vistas.empresarial;
       const el = document.getElementById('nombreEmpresarial');
       if (el) el.textContent = nombre;
     }
     
-    if (panel) {
-      mostrarVista(panel);
-      // Cargar datos del usuario si la función existe
-      if (typeof loadUser === 'function') {
-        setTimeout(loadUser, 100);
-      }
-    } else {
-      // Si no hay panel válido, mostrar registro
-      mostrarVista(vistas.landing);
+    // Cargar datos del usuario si existe la función
+    if (typeof loadUser === 'function') {
+      setTimeout(loadUser, 100);
     }
+  } else {
+    document.body.classList.remove('app-activa');
+    console.log('ℹ️ Sin sesión activa');
   }
   
-  // 6. Tabs registro/login
+  // 3. Tabs registro/login
   const tabReg = document.getElementById('tabRegistro');
   const tabLog = document.getElementById('tabLogin');
   const formReg = document.getElementById('formRegistro');
@@ -23442,15 +23396,10 @@ window.addEventListener('load', function() {
     // Formulario de registro
     formReg.onsubmit = function(e) {
       e.preventDefault();
-      const nombreVal = document.getElementById('regNombre').value;
-      const emailVal = document.getElementById('regEmail').value.toLowerCase().trim();
-      const tipoVal = document.getElementById('regTipoCuenta').value;
-      
-      localStorage.setItem('arv_nombre', nombreVal);
-      localStorage.setItem('arv_email', emailVal);
-      localStorage.setItem('arv_tipo', tipoVal);
-      
-      console.log('✅ Registro exitoso:', emailVal);
+      localStorage.setItem('arv_nombre', document.getElementById('regNombre').value);
+      localStorage.setItem('arv_email', document.getElementById('regEmail').value.toLowerCase().trim());
+      localStorage.setItem('arv_tipo', document.getElementById('regTipoCuenta').value);
+      console.log('✅ Registro exitoso');
       location.reload();
     };
     
@@ -23461,7 +23410,7 @@ window.addEventListener('load', function() {
       const emailGuardado = localStorage.getItem('arv_email');
       
       if (emailGuardado && emailGuardado === emailLogin) {
-        console.log('✅ Login exitoso:', emailLogin);
+        console.log('✅ Login exitoso');
         location.reload();
       } else {
         alert('⚠️ Usuario no encontrado. Regístrate primero.');
@@ -23469,7 +23418,7 @@ window.addEventListener('load', function() {
     };
   }
   
-  // 7. Botones de cerrar sesión y volver al inicio
+  // 4. Botones de cerrar sesión y volver al inicio
   document.querySelectorAll('.btn-logout, .btn-volver-inicio').forEach(btn => {
     btn.onclick = function() {
       if (confirm('¿Cerrar sesión y volver al inicio?')) {
@@ -23480,8 +23429,10 @@ window.addEventListener('load', function() {
     };
   });
   
-  console.log('🎯 Controlador Maestro Unificado listo');
+  console.log('🎯 Controlador listo');
 });
+</script>
+   
 </script>
 </body>
 </html>
