@@ -23393,6 +23393,114 @@ window.addEventListener('load', function() {
     }
 });
 </script>
+  <!-- 🛡️ CONTROLADOR FINAL CON PRIORIDAD (NO BORRA NADA) -->
+<script>
+// Este script se ejecuta DESPUÉS de todos los demás
+window.addEventListener('load', function() {
+  console.log('🛡️ Controlador final ejecutándose...');
+  
+  // Verificar si hay sesión
+  const email = localStorage.getItem('arv_email');
+  const tipo = localStorage.getItem('arv_tipo');
+  const nombre = localStorage.getItem('arv_nombre');
+  
+  const vistaLanding = document.getElementById('vistaLanding');
+  const vistaFreemium = document.getElementById('vistaFreemium');
+  const vistaNormal = document.getElementById('vistaNormal');
+  const vistaEmpresarial = document.getElementById('vistaEmpresarial');
+  const vistaAdmin = document.getElementById('vistaAdmin');
+  
+  // Ocultar TODAS las pantallas
+  [vistaLanding, vistaFreemium, vistaNormal, vistaEmpresarial, vistaAdmin].forEach(v => {
+    if (v) {
+      v.classList.add('hidden');
+      v.style.display = 'none';
+    }
+  });
+  
+  if (!email || !tipo || !nombre) {
+    // SIN SESIÓN: Mostrar SOLO registro
+    if (vistaLanding) {
+      vistaLanding.classList.remove('hidden');
+      vistaLanding.style.display = 'flex';
+      console.log('✅ Mostrando pantalla de registro');
+    }
+  } else {
+    // CON SESIÓN: Mostrar panel correcto
+    if (vistaLanding) vistaLanding.classList.add('hidden');
+    
+    let panel = null;
+    if (email.toLowerCase() === 'rraygoza67@gmail.com') {
+      panel = vistaAdmin;
+    } else if (tipo === 'freemium') {
+      panel = vistaFreemium;
+      const el = document.getElementById('nombreFreemium');
+      if (el) el.textContent = nombre;
+    } else if (tipo === 'normal') {
+      panel = vistaNormal;
+      const el = document.getElementById('nombreNormal');
+      if (el) el.textContent = nombre;
+    } else if (tipo === 'empresarial') {
+      panel = vistaEmpresarial;
+      const el = document.getElementById('nombreEmpresarial');
+      if (el) el.textContent = nombre;
+    }
+    
+    if (panel) {
+      panel.classList.remove('hidden');
+      panel.style.display = 'block';
+      console.log('✅ Mostrando panel:', panel.id);
+      
+      // Cargar datos del usuario
+      if (typeof loadUser === 'function') loadUser();
+    }
+  }
+  
+  // Botones de cerrar sesión
+  document.querySelectorAll('.btn-logout').forEach(btn => {
+    btn.onclick = function() {
+      localStorage.clear();
+      window.location.reload();
+    };
+  });
+  
+  // Tabs registro/login
+  const tabReg = document.getElementById('tabRegistro');
+  const tabLog = document.getElementById('tabLogin');
+  const formReg = document.getElementById('formRegistro');
+  const formLog = document.getElementById('formLogin');
+  
+  if (tabReg && tabLog && formReg && formLog) {
+    tabReg.onclick = () => {
+      formReg.style.display = 'flex';
+      formLog.style.display = 'none';
+    };
+    tabLog.onclick = () => {
+      formLog.style.display = 'flex';
+      formReg.style.display = 'none';
+    };
+    
+    formReg.onsubmit = function(e) {
+      e.preventDefault();
+      localStorage.setItem('arv_nombre', document.getElementById('regNombre').value);
+      localStorage.setItem('arv_email', document.getElementById('regEmail').value.toLowerCase().trim());
+      localStorage.setItem('arv_tipo', document.getElementById('regTipoCuenta').value);
+      window.location.reload();
+    };
+    
+    formLog.onsubmit = function(e) {
+      e.preventDefault();
+      const emailLogin = document.getElementById('loginEmail').value.toLowerCase().trim();
+      const emailGuardado = localStorage.getItem('arv_email');
+      if (emailGuardado && emailGuardado === emailLogin) {
+        window.location.reload();
+      } else {
+        alert('⚠️ Usuario no encontrado. Regístrate primero.');
+      }
+    };
+  }
+});
+</script>
 </body>
 </html>
 
