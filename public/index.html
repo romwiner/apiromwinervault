@@ -24050,6 +24050,92 @@ document.addEventListener('DOMContentLoaded', function() {
   
 })();
 </script>
+  <!-- 🔓 SCRIPT DESBLOQUEADOR MÁGICO DEL FORMULARIO -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Esperar a que todo cargue
+  setTimeout(function() {
+    
+    // 1. FORZAR que TODO sea clickeable
+    document.querySelectorAll('#digitalIdentityPanel, #digitalIdentityPanel *').forEach(function(el) {
+      el.style.pointerEvents = 'auto';
+      el.style.cursor = 'auto';
+      el.style.userSelect = 'auto';
+      el.style.zIndex = '99999';
+      el.style.position = el.style.position || 'relative';
+    });
+    
+    // 2. Eliminar cualquier cosa que bloquee clicks
+    document.querySelectorAll('[style*="pointer-events: none"], .overlay, .modal-backdrop, .blocker').forEach(function(el) {
+      if (el.id !== 'digitalIdentityPanel' && !el.closest('#digitalIdentityPanel')) {
+        el.style.pointerEvents = 'none';
+        el.style.display = 'none';
+      }
+    });
+    
+    // 3. Asegurar que los inputs sean clickeables
+    var inputs = document.querySelectorAll('#digitalIdentityPanel input, #digitalIdentityPanel select, #digitalIdentityPanel textarea');
+    inputs.forEach(function(input) {
+      input.style.pointerEvents = 'auto';
+      input.style.cursor = 'text';
+      input.disabled = false;
+      input.readOnly = false;
+    });
+    
+    // 4. Asegurar que los botones sean clickeables
+    var buttons = document.querySelectorAll('#digitalIdentityPanel button');
+    buttons.forEach(function(btn) {
+      btn.style.pointerEvents = 'auto';
+      btn.style.cursor = 'pointer';
+      btn.disabled = false;
+    });
+    
+    // 5. Quitar el atributo hidden del formulario si existe
+    var form = document.getElementById('registrationForm');
+    if (form) {
+      form.style.display = 'block';
+      form.style.visibility = 'visible';
+      form.style.opacity = '1';
+      form.style.pointerEvents = 'auto';
+      form.classList.remove('hidden');
+    }
+    
+    // 6. Remover cualquier listener que bloquee clicks
+    document.body.addEventListener('click', function(e) {
+      if (e.target.closest('#digitalIdentityPanel')) {
+        e.stopPropagation();
+      }
+    }, true);
+    
+    console.log('✅ Formulario desbloqueado mágicamente');
+    
+  }, 1000); // Esperar 1 segundo después de cargar
+});
+
+// Script adicional: Cuando se hace clic en Crear Cuenta, forzar desbloqueo
+var btnCreate = document.getElementById('btnCreateAccount');
+if (btnCreate) {
+  btnCreate.addEventListener('click', function() {
+    setTimeout(function() {
+      // Forzar desbloqueo otra vez
+      var panel = document.getElementById('digitalIdentityPanel');
+      if (panel) {
+        panel.style.pointerEvents = 'auto';
+        panel.style.zIndex = '99999';
+        panel.style.position = 'relative';
+        
+        // Hacer que el primer input sea clickeable
+        var primerInput = document.getElementById('regIdentityName');
+        if (primerInput) {
+          primerInput.style.pointerEvents = 'auto';
+          primerInput.disabled = false;
+          primerInput.focus();
+        }
+      }
+    }, 500);
+  });
+}
+</script>
 </body>
 </html>
 
