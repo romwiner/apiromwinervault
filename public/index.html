@@ -24136,6 +24136,71 @@ if (btnCreate) {
   });
 }
 </script>
+  <!-- 👁️ DESBLOQUEADOR DEL BOTÓN DEL OJO (Contraseña) -->
+<script>
+(function() {
+  // Esperar a que el formulario sea visible
+  const observer = new MutationObserver(function(mutations) {
+    const btnOjo = document.getElementById('togglePwd');
+    const inputPwd = document.getElementById('regPassword');
+    
+    if (btnOjo && inputPwd) {
+      // FORZAR que el botón sea clickeable
+      btnOjo.style.pointerEvents = 'auto';
+      btnOjo.style.cursor = 'pointer';
+      btnOjo.style.zIndex = '999999';
+      btnOjo.style.position = 'absolute';
+      btnOjo.disabled = false;
+      
+      // FORZAR que el input sea escribible
+      inputPwd.style.pointerEvents = 'auto';
+      inputPwd.style.cursor = 'text';
+      inputPwd.disabled = false;
+      inputPwd.readOnly = false;
+      
+      // Agregar el evento si no existe
+      if (!btnOjo.hasAttribute('data-listener-added')) {
+        btnOjo.setAttribute('data-listener-added', 'true');
+        
+        btnOjo.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          if (inputPwd.type === 'password') {
+            inputPwd.type = 'text';
+            btnOjo.textContent = '🙈';
+          } else {
+            inputPwd.type = 'password';
+            btnOjo.textContent = '👁️';
+          }
+          
+          // Mantener el foco en el input
+          inputPwd.focus();
+        });
+        
+        console.log('👁️ Botón del ojo desbloqueado');
+      }
+    }
+  });
+  
+  observer.observe(document.body, { childList: true, subtree: true });
+  
+  // También intentar inmediatamente
+  setTimeout(function() {
+    const btnOjo = document.getElementById('togglePwd');
+    const inputPwd = document.getElementById('regPassword');
+    
+    if (btnOjo && inputPwd) {
+      btnOjo.style.pointerEvents = 'auto';
+      btnOjo.style.cursor = 'pointer';
+      btnOjo.style.zIndex = '999999';
+      btnOjo.disabled = false;
+      inputPwd.style.pointerEvents = 'auto';
+      inputPwd.disabled = false;
+    }
+  }, 500);
+})();
+</script>
 </body>
 </html>
 
