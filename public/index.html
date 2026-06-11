@@ -4729,67 +4729,37 @@ document.addEventListener('DOMContentLoaded', function() {
       identityPanel: !!document.getElementById('digitalIdentityPanel')
     });
 
-    // 1. Botón "Crear Cuenta Gratis" - Mostrar panel de Identidad Digital KYC
+     // 1. Botón "Crear Cuenta Gratis" - Mostrar SOLO el formulario
     if (btnCreateAccount) {
       btnCreateAccount.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         
-        console.log('✅ [CLICK] Botón crear cuenta presionado');
-        
         const identityPanel = document.getElementById('digitalIdentityPanel');
         const landingView = document.getElementById('vistaLanding');
         
         if (identityPanel) {
-          // Agregar clase al body para desbloquear CSS
-          document.body.classList.add('app-activa');
-          console.log('✅ [BODY] Clase app-activa agregada');
+          // Activar modo registro (usa el CSS del Paso 1)
+          document.body.classList.add('registro-activo');
+          document.body.classList.remove('app-activa');
           
-          // Ocultar la landing
+          // Ocultar la pantalla de inicio
           if (landingView) {
             landingView.style.display = 'none';
-            landingView.style.visibility = 'hidden';
-            landingView.style.opacity = '0';
-            landingView.style.pointerEvents = 'none';
-            console.log('✅ [LANDING] Ocultada');
           }
           
-          // Mostrar el panel de identidad con múltiples propiedades
+          // Mostrar el formulario de identidad
           identityPanel.classList.remove('hidden');
           identityPanel.style.display = 'block';
-          identityPanel.style.visibility = 'visible';
-          identityPanel.style.opacity = '1';
-          identityPanel.style.pointerEvents = 'auto';
-          console.log('✅ [PANEL] Mostrado');
           
-          // Scroll suave y efectos visuales
+          // Hacer scroll y enfocar el primer campo
           setTimeout(() => {
-            identityPanel.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'start' 
-            });
-            
-            identityPanel.style.transition = 'box-shadow 0.3s';
-            identityPanel.style.boxShadow = '0 0 50px rgba(5, 150, 105, 0.9)';
-            setTimeout(() => {
-              identityPanel.style.boxShadow = '';
-            }, 2500);
-            
+            identityPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
             const firstInput = document.getElementById('regIdentityName');
-            if (firstInput) {
-              firstInput.focus();
-              console.log('✅ [INPUT] Primer campo enfocado');
-            }
+            if (firstInput) firstInput.focus();
           }, 300);
-          
-          console.log('🎉 [SUCCESS] Panel de Identidad Digital KYC activado');
-        } else {
-          alert('⚠️ Error: No se encontró el panel de registro.\n\nRecarga la página e intenta de nuevo.');
-          console.error('❌ [ERROR] Panel digitalIdentityPanel no encontrado');
         }
       });
-    } else {
-      console.error('❌ [ERROR] Botón btnCreateAccount no existe');
     }
 
     // 2. Botón "Unirme por $25 USD" - Mostrar promoción
