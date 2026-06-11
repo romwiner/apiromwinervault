@@ -4730,7 +4730,7 @@ document.addEventListener('DOMContentLoaded', function() {
       identityPanel: !!document.getElementById('digitalIdentityPanel')
     });
 
-     // 1. Botón "Crear Cuenta Gratis" - Mostrar SOLO el formulario
+    // 1. Botón "Crear Cuenta Gratis" - SOLUCIÓN DEFINITIVA
     if (btnCreateAccount) {
       btnCreateAccount.addEventListener('click', function(e) {
         e.preventDefault();
@@ -4740,29 +4740,46 @@ document.addEventListener('DOMContentLoaded', function() {
         const landingView = document.getElementById('vistaLanding');
         
         if (identityPanel) {
-          // Activar modo registro (usa el CSS del Paso 1)
+          // OCULTAR PANTALLA DE INICIO COMPLETAMENTE
+          if (landingView) {
+            landingView.style.display = 'none';
+            landingView.style.visibility = 'hidden';
+            landingView.style.opacity = '0';
+            landingView.style.height = '0';
+            landingView.style.overflow = 'hidden';
+            landingView.style.margin = '0';
+            landingView.style.padding = '0';
+          }
+          
+          // OCULTAR OTROS PANELES QUE PUEDAN APARECER
+          const otrosPaneles = ['vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 'vistaAdmin', 'vaultSection', 'socialFeedPanel', 'earningsCenter', 'marketplaceSection', 'dashboardView'];
+          otrosPaneles.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              el.style.display = 'none';
+              el.style.visibility = 'hidden';
+            }
+          });
+          
+          // ACTIVAR MODO REGISTRO
           document.body.classList.add('registro-activo');
           document.body.classList.remove('app-activa');
           
-          // Ocultar la pantalla de inicio
-          if (landingView) {
-            landingView.style.display = 'none';
-          }
-          
-          // Mostrar el formulario de identidad
+          // MOSTRAR FORMULARIO
           identityPanel.classList.remove('hidden');
           identityPanel.style.display = 'block';
+          identityPanel.style.visibility = 'visible';
+          identityPanel.style.opacity = '1';
           
-          // Hacer scroll y enfocar el primer campo
+          // SCROLL ARRIBA Y ENFOCAR
           setTimeout(() => {
-            identityPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             const firstInput = document.getElementById('regIdentityName');
             if (firstInput) firstInput.focus();
           }, 300);
         }
       });
     }
-
     // 2. Botón "Unirme por $25 USD" - Mostrar promoción
     if (btnShowPromo) {
       btnShowPromo.addEventListener('click', function() {
