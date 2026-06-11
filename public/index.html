@@ -24836,6 +24836,77 @@ if (btnCreate) {
   }
 })();
 </script>
+  <!-- 🔓 DESBLOQUEADOR DEL LOGIN - Solo navegador -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    
+    // 1. FORZAR que el botón azul funcione
+    const btnShowLogin = document.getElementById('btnShowLogin');
+    if (btnShowLogin) {
+      btnShowLogin.style.pointerEvents = 'auto';
+      btnShowLogin.style.cursor = 'pointer';
+      btnShowLogin.style.zIndex = '999999';
+      btnShowLogin.disabled = false;
+      
+      btnShowLogin.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🔵 Botón azul clickeado');
+        
+        const landingView = document.getElementById('vistaLanding');
+        if (landingView) {
+          landingView.style.display = 'none';
+        }
+        
+        const loginContainer = document.getElementById('loginContainer');
+        if (loginContainer) {
+          loginContainer.classList.remove('hidden');
+          loginContainer.style.display = 'block';
+          loginContainer.style.visibility = 'visible';
+          loginContainer.style.opacity = '1';
+          loginContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        const identidadGuardada = localStorage.getItem('arv_identity');
+        if (identidadGuardada) {
+          const loginUsername = document.getElementById('loginUsername');
+          if (loginUsername) loginUsername.value = identidadGuardada;
+        }
+        
+        setTimeout(function() {
+          const inputsLogin = document.querySelectorAll('#loginContainer input');
+          inputsLogin.forEach(function(input) {
+            input.style.pointerEvents = 'auto';
+            input.style.cursor = 'text';
+            input.disabled = false;
+            input.readOnly = false;
+          });
+          
+          const btnLogin = document.getElementById('btnLogin');
+          if (btnLogin) {
+            btnLogin.style.pointerEvents = 'auto';
+            btnLogin.style.cursor = 'pointer';
+            btnLogin.disabled = false;
+          }
+          
+          const loginPassword = document.getElementById('loginPassword');
+          if (loginPassword) loginPassword.focus();
+        }, 300);
+      };
+    }
+    
+    const loginContainer = document.getElementById('loginContainer');
+    if (loginContainer) {
+      loginContainer.querySelectorAll('*').forEach(function(el) {
+        el.style.pointerEvents = 'auto';
+        el.style.zIndex = '999999';
+      });
+    }
+    
+  }, 1000);
+});
+</script>
 </body>
 </html>
 
