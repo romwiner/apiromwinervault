@@ -24938,8 +24938,111 @@ document.addEventListener('DOMContentLoaded', function() {
       <input type="text" id="aiInput" placeholder="Pregunta sobre tu bóveda, ventas, seguridad..." style="flex: 1; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; font-size: 0.85rem; outline: none;">
       <button id="aiSend" style="padding: 0 15px; background: #059669; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">➤</button>
     </div>
-  </div>
-</div>
+<script>
+(function() {
+  const toggleBtn = document.getElementById('aiAgentToggle');
+  const chatWindow = document.getElementById('aiAgentChat');
+  const messagesContainer = document.getElementById('aiMessages');
+  const input = document.getElementById('aiInput');
+  const sendBtn = document.getElementById('aiSend');
+  let isOpen = false;
+
+  // Función para agregar mensajes al chat
+  function addMessage(text, isUser = false) {
+    const msgDiv = document.createElement('div');
+    msgDiv.style.cssText = `
+      max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.4; word-wrap: break-word;
+      background: ${isUser ? '#38bdf8' : '#1e293b'};
+      color: ${isUser ? '#0f172a' : '#e2e8f0'};
+      align-self: ${isUser ? 'flex-end' : 'flex-start'};
+      border: ${isUser ? 'none' : '1px solid #334155'};
+    `;
+    msgDiv.innerHTML = text;
+    messagesContainer.appendChild(msgDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  // Función de "Escribiendo..."
+  function showTyping() {
+    const typingDiv = document.createElement('div');
+    typingDiv.id = 'aiTyping';
+    typingDiv.style.cssText = 'align-self: flex-start; color: #64748b; font-size: 0.8rem; padding: 5px; font-style: italic;';
+    typingDiv.textContent = '🧠 IA Auditora está analizando...';
+    messagesContainer.appendChild(typingDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  function hideTyping() {
+    const typingDiv = document.getElementById('aiTyping');
+    if (typingDiv) typingDiv.remove();
+  }
+
+  // 🧠 CEREBRO DE LA IA (Respuestas según palabras clave)
+  function getAIResponse(userText) {
+    const text = userText.toLowerCase();
+    
+    if (text.includes('hola') || text.includes('buenas') || text.includes('hey')) {
+      return '👋 ¡Saludos! Soy la <b>IA Auditora de ApiRomwiner Vault</b>. Mi trabajo es asegurar tu bóveda, auditar archivos y ayudarte a monetizar. ¿En qué te asisto hoy?';
+    } 
+    if (text.includes('venta') || text.includes('vender') || text.includes('dinero') || text.includes('ganar')) {
+      return '💰 <b>Centro de Monetización:</b><br>Puedes ganar dinero de 4 formas:<br>1. <b>Venta Granular:</b> Vende archivos (.zip, .pdf) y te quedas el 70%.<br>2. <b>Afiliados:</b> Gana 15% por cada referido.<br>3. <b>Ver Publicidad:</b> Hasta $0.50 USD diarios.<br>4. <b>Donativos:</b> Recibe apoyo de la comunidad.<br><i>¿Quieres que te explique cómo subir tu primer activo?</i>';
+    }
+    if (text.includes('auditor') || text.includes('seguridad') || text.includes('cifrado') || text.includes('virus')) {
+      return '🛡️ <b>Protocolo de Seguridad:</b><br>Tu bóveda usa <b>Cifrado AES-256-GCM</b> local. Yo escaneo cada archivo que subes en busca de scripts maliciosos, rastreadores o enlaces externos. <b>Zero-Knowledge:</b> Ni yo ni los servidores podemos ver tus archivos sin tu clave maestra.';
+    }
+    if (text.includes('afiliado') || text.includes('referido') || text.includes('cadena')) {
+      return '🔗 <b>Red de Afiliados:</b><br>Tu código único está en la sección "Programa de Afiliados". Compártelo. Si tu referido vende un archivo, tú ganas una comisión pasiva de por vida. La cadena es inmutable y se registra en tu panel.';
+    }
+    if (text.includes('ayuda') || text.includes('ayudar') || text.includes('como')) {
+      return '🤖 <b>Comandos rápidos que entiendo:</b><br>• "Cómo vender"<br>• "Seguridad y cifrado"<br>• "Afiliados"<br>• "Auditar un archivo"<br>Escribe lo que necesites y te guiaré.';
+    }
+    if (text.includes('premium') || text.includes('normal') || text.includes('freemium') || text.includes('nivel')) {
+      return '📊 <b>Sistema de Niveles:</b><br>• <b>Freemium:</b> Funciones básicas.<br>• <b>Usuario Normal:</b> Retiros reales habilitados.<br>• <b>Premium:</b> Cero comisiones en ventas.<br><i>Tip: Genera ganancias o paga la mensualidad para ascender.</i>';
+    }
+    
+    // Respuesta por defecto (Simulación de análisis)
+    return '🔍 <b>Analizando consulta...</b><br>He registrado tu pregunta en el log de auditoría local. Para acciones críticas, por favor usa los botones del <b>Panel de Control</b>. Recuerda que toda tu actividad está protegida por la red interna aislada.';
+  }
+
+  // Enviar mensaje
+  function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+    
+    addMessage(text, true);
+    input.value = '';
+    
+    showTyping();
+    
+    // Simular tiempo de procesamiento de la IA
+    setTimeout(() => {
+      hideTyping();
+      const response = getAIResponse(text);
+      addMessage(response, false);
+    }, 1200 + Math.random() * 800);
+  }
+
+  // Event Listeners
+  toggleBtn.addEventListener('click', () => {
+    isOpen = !isOpen;
+    chatWindow.style.display = isOpen ? 'flex' : 'none';
+    toggleBtn.innerHTML = isOpen ? '✕' : '🤖';
+    
+    // Mensaje de bienvenida la primera vez
+    if (isOpen && messagesContainer.children.length === 0) {
+      setTimeout(() => {
+        addMessage('🔐 <b>Conexión Segura Establecida.</b><br>Hola, soy tu asistente de IA. Tu bóveda está aislada y cifrada. ¿Quieres saber cómo monetizar tus activos o necesitas una auditoría de seguridad?', false);
+      }, 500);
+    }
+  });
+
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+})();
+</script>
 </body>
 </html>
 
