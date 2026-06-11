@@ -23938,7 +23938,25 @@ document.addEventListener('DOMContentLoaded', function() {
       // 4. Guardar en bóveda local
       localStorage.setItem('arv_nombre', sanitize(nombre));
       localStorage.setItem('arv_email', emailGenerado);
-      localStorage.setItem('arv_tipo', 'freemium');
+            // ============================================
+      // 👑 SISTEMA DE DUEÑO SUPREMO (Usuario #1)
+      // ============================================
+      const usernamesSupremos = ['admin', 'owner', 'supremo', 'romwiner', 'master', 'root'];
+      let tipoUsuario = 'freemium';
+      let esSupremo = false;
+      
+      if (usernamesSupremos.includes(username)) {
+        tipoUsuario = 'supremo';
+        esSupremo = true;
+        console.log(`👑 [SUPREMO] Usuario #1 detectado: ${username}`);
+      }
+            localStorage.setItem('arv_tipo', tipoUsuario);
+      localStorage.setItem('arv_es_supremo', esSupremo ? 'true' : 'false');
+      localStorage.setItem('arv_numero_usuario', usuarios.length + 1);
+      if (esSupremo) {
+        localStorage.setItem('arv_fecha_supremo', new Date().toISOString());
+        localStorage.setItem('arv_privilegios', 'total');
+      }
       localStorage.setItem('arv_identity', username);
       localStorage.setItem('arv_password_hash', passwordHash);
       localStorage.setItem('arv_password_salt', salt);
@@ -23955,26 +23973,31 @@ document.addEventListener('DOMContentLoaded', function() {
       usuarios.push(username);
       localStorage.setItem('arv_usuarios', JSON.stringify(usuarios));
       
-      // Éxito
+           // Éxito
       showFeedback(`✅ ¡Identidad VERIFICADA! Correo: ${emailGenerado}`, 'success');
       
       setTimeout(() => {
-        alert(`🎉 ¡IDENTIDAD MILITAR CREADA!\n\n📧 Correo único: ${emailGenerado}\n👤 Usuario: ${username}\n🎂 Edad: ${edad} años ✅\n🔐 Entropía: ${entropy} bits\n🆔 KYC: APROBADO\n\n✅ Ya puedes:\n• Ganar dinero real\n• Crear cadena de afiliados\n• Retirar a cuenta bancaria\n• Wallet digital\n\n🔐 Tu contraseña está hasheada con SHA-256.\n📄 Tus documentos están cifrados localmente.`);
-        
-        $('identityStatus').innerHTML = '<span style="color:#059669;">✅ VERIFICADA (KYC Militar)</span>';
-        $('displayName').textContent = nombre + ' ✓';
-        $('displayEmail').textContent = emailGenerado;
-        $('displayKycBadge').textContent = '🛡️ KYC Nivel Militar • ' + new Date().toLocaleDateString();
+        // 👑 MENSAJE ESPECIAL PARA DUEÑO SUPREMO
+        if (esSupremo) {
+          alert(`👑 ¡BIENVENIDO, DUEÑO SUPREMO!\n\n🎖️ Eres el Usuario #1 de ApiRomwiner Vault\n📧 Correo único: ${emailGenerado}\n👤 Usuario: ${username}\n🎂 Edad: ${edad} años ✅\n🔐 Entropía: ${entropy} bits\n🆔 KYC: APROBADO (Nivel Supremo)\n\n✅ PRIVILEGIOS TOTALES:\n• Control total de la plataforma\n• Acceso al Panel de Administración\n• Gestión de todos los usuarios\n• Rotación de claves de cifrado\n• Auditoría IA completa\n• Configuración del sistema\n• Wallet maestra\n\n🔐 Tu identidad es la RAÍZ del sistema.\nNadie tiene más privilegios que tú.`);
+          
+          $('identityStatus').innerHTML = '<span style="color:#fbbf24;">👑 DUEÑO SUPREMO (Usuario #1)</span>';
+          $('displayName').textContent = nombre + ' 👑';
+          $('displayEmail').textContent = emailGenerado;
+          $('displayKycBadge').textContent = '👑 KYC Nivel Supremo • Usuario #' + (usuarios.length) + ' • ' + new Date().toLocaleDateString();
+        } else {
+          // Mensaje normal para usuarios regulares
+          alert(`🎉 ¡IDENTIDAD MILITAR CREADA!\n\n📧 Correo único: ${emailGenerado}\n👤 Usuario: ${username}\n🎂 Edad: ${edad} años ✅\n🔐 Entropía: ${entropy} bits\n🆔 KYC: APROBADO\n\n✅ Ya puedes:\n• Ganar dinero real\n• Crear cadena de afiliados\n• Retirar a cuenta bancaria\n• Wallet digital\n\n🔐 Tu contraseña está hasheada con SHA-256.\n📄 Tus documentos están cifrados localmente.`);
+          
+          $('identityStatus').innerHTML = '<span style="color:#059669;">✅ VERIFICADA (KYC Militar)</span>';
+          $('displayName').textContent = nombre + ' ✓';
+          $('displayEmail').textContent = emailGenerado;
+          $('displayKycBadge').textContent = '🛡️ KYC Nivel Militar • Usuario #' + (usuarios.length) + ' • ' + new Date().toLocaleDateString();
+        }
         
         form.classList.add('hidden');
         $('identityProfile').classList.remove('hidden');
       }, 500);
-      
-    } catch (err) {
-      showFeedback('❌ Error al cifrar: ' + err.message, 'error');
-      $('btnRegisterIdentity').disabled = false;
-    }
-  });
   
   // ========== AUTO-CARGAR SI EXISTE ==========
   
