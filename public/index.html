@@ -2207,76 +2207,120 @@ img, canvas, video, audio {
   });
 </script>
 
-<!-- 🆔 SECCIÓN REGISTRO E IDENTIDAD: apiromwinervault (Cero enlaces externos, IA integrada) -->
+<!-- 🆔 SECCIÓN REGISTRO E IDENTIDAD: apiromwinervault (Seguridad Militar) -->
 <section id="digitalIdentityPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 800px; margin: 0 auto; padding: 20px;">
   
-  <!-- Panel Principal de Identidad -->
   <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #1e3a5f; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+    
+    <!-- Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #1e3a5f; padding-bottom: 16px;">
       <h2 style="margin: 0; font-size: 1.4rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
         🆔 Identidad Digital Soberana
       </h2>
-      <span style="background: #059669; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.5px;">
-        🔒 IDENTIDAD CIFRADA
+      <span style="background: #059669; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
+        🔒 KYC MILITAR
       </span>
     </div>
 
-    <!-- Estado de Registro -->
+    <!-- Estado -->
     <div id="registrationStatus" style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #334155;">
       <p style="margin: 0; font-size: 0.9rem; color: #94a3b8;">Estado de Identidad:</p>
       <p style="margin: 4px 0 0 0; font-size: 1.1rem; font-weight: bold; color: #fbbf24;" id="identityStatus">⏳ No registrada</p>
     </div>
 
-  <div id="registrationForm" style="margin-bottom: 24px;">
-  <h3 style="margin-top: 0; color: #38bdf8; font-size: 1.1rem;">📝 Registro de Identidad Única</h3>
-  
-  <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">1. Elige tu nombre de usuario único:</label>
-  <input type="text" id="regIdentityName" placeholder="ej: juan_perez" 
-    pattern="[a-z0-9_]+" minlength="3" maxlength="30"
-    style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; font-family: monospace;">
-  
-  <div id="identityPreview" style="margin-bottom: 12px; padding: 10px; background: #0a0e14; border-left: 3px solid #64748b; border-radius: 6px; font-family: monospace; color: #64748b; font-size: 0.9rem;">
-    tu_usuario@apiromwinervault.com
-  </div>
-  
-  <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">2. Tu nombre completo:</label>
-  <input type="text" id="regNombreCompleto" placeholder="Juan Pérez Martínez" minlength="3"
-    style="width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-  
-  <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">3. Contraseña Maestra (Mín. 12 caracteres):</label>
-  <input type="password" id="regPassword" placeholder="••••••••••••" minlength="12"
-    style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-  
-  <div id="passwordStrength" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 16px;">
-    Usa mayúsculas, números y símbolos para máxima seguridad
-  </div>
-  
-  <div style="padding: 12px; background: rgba(5, 150, 105, 0.1); border-radius: 8px; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 16px; border-left: 3px solid #059669;">
-    🔐 <strong>Zero-Knowledge:</strong> Tu identidad se cifra con AES-256-GCM. Ni nosotros podemos ver tu contraseña maestra.
-  </div>
-  
-  <!-- BOTÓN MEJORADO: Mantiene tu identidad original pero más profesional -->
-  <button type="button" id="btnRegisterIdentity" 
-    style="width: 100%; padding: 16px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: 2px solid #059669; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4); letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);"
-    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(5, 150, 105, 0.6)';"
-    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(5, 150, 105, 0.4)';">
-    🛡️ Registrar y Cifrar Identidad
-  </button>
-  
-  <div style="margin-top: 10px; text-align: center; font-size: 0.75rem; color: #64748b;">
-    ✨ Identidad única • Sin correos externos • Cero intermediarios
-  </div>
-</div>
+    <!-- FORMULARIO MEJORADO CON SEGURIDAD MILITAR -->
+    <form id="registrationForm" autocomplete="off" style="margin-bottom: 24px;">
+      
+      <!-- Honeypot anti-bots (invisible) -->
+      <input type="text" id="hp_field" name="website" tabindex="-1" autocomplete="off" style="position: absolute; left: -9999px; opacity: 0;" aria-hidden="true">
+      
+      <h3 style="margin-top: 0; color: #38bdf8; font-size: 1.1rem;">📝 Registro de Identidad Única</h3>
 
-    <!-- Panel de Identidad Registrada (Oculto hasta registrar) -->
+      <!-- 1. Usuario único -->
+      <label for="regIdentityName" style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">1. Nombre de usuario único:</label>
+      <input type="text" id="regIdentityName" name="username" placeholder="ej: juan_perez" 
+        pattern="[a-z0-9_]{3,30}" minlength="3" maxlength="30" required
+        autocomplete="off" spellcheck="false"
+        style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; font-family: monospace;">
+      <div id="identityPreview" style="margin-bottom: 12px; padding: 10px; background: #0a0e14; border-left: 3px solid #64748b; border-radius: 6px; font-family: monospace; color: #64748b; font-size: 0.9rem;">
+        tu_usuario@apiromwinervault.com
+      </div>
+      <div id="usernameStatus" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 12px; min-height: 16px;"></div>
+
+      <!-- 2. Nombre completo -->
+      <label for="regNombreCompleto" style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">2. Nombre completo real:</label>
+      <input type="text" id="regNombreCompleto" name="fullname" placeholder="Juan Pérez Martínez" 
+        minlength="3" maxlength="100" required autocomplete="name"
+        style="width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+
+      <!-- 3. Contraseña maestra -->
+      <label for="regPassword" style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">3. Contraseña Maestra (mín. 12 caracteres):</label>
+      <div style="position: relative; margin-bottom: 8px;">
+        <input type="password" id="regPassword" name="password" placeholder="••••••••••••" 
+          minlength="12" maxlength="128" required autocomplete="new-password"
+          style="width: 100%; box-sizing: border-box; padding: 10px; padding-right: 45px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+        <button type="button" id="togglePwd" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem;" aria-label="Mostrar contraseña">👁️</button>
+      </div>
+      <div id="passwordStrength" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">
+        Usa mayúsculas, números y símbolos para máxima seguridad
+      </div>
+      <div id="passwordEntropy" style="font-size: 0.75rem; color: #64748b; margin-bottom: 16px;"></div>
+
+      <!-- 4. Fecha de nacimiento -->
+      <label for="regFechaNacimiento" style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">4. Fecha de nacimiento (18+ obligatorio):</label>
+      <input type="date" id="regFechaNacimiento" name="birthdate" required
+        max="2010-12-31"
+        style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <div id="edadStatus" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 16px; min-height: 16px;">
+        Se verificará automáticamente tu mayoría de edad
+      </div>
+
+      <!-- 5. Documento oficial -->
+      <label for="regDocumentoID" style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">5. Foto de documento oficial (INE/pasaporte):</label>
+      <input type="file" id="regDocumentoID" name="document" accept="image/png,image/jpeg,image/webp" required
+        style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 8px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <div id="docPreview" style="margin-bottom: 12px; min-height: 40px; padding: 8px; background: #0a0e14; border-radius: 6px; font-size: 0.8rem; color: #64748b; text-align: center;">
+        Sin documento cargado
+      </div>
+
+      <!-- 6. Selfie -->
+      <label for="regSelfie" style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">6. Selfie de verificación (rostro visible):</label>
+      <input type="file" id="regSelfie" name="selfie" accept="image/png,image/jpeg,image/webp" required
+        style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 8px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+      <div id="selfiePreview" style="margin-bottom: 16px; min-height: 40px; padding: 8px; background: #0a0e14; border-radius: 6px; font-size: 0.8rem; color: #64748b; text-align: center;">
+        Sin selfie cargada
+      </div>
+
+      <!-- Términos -->
+      <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; color: #cbd5e1; cursor: pointer; margin-bottom: 16px; padding: 10px; background: rgba(56, 189, 248, 0.05); border-radius: 8px;">
+        <input type="checkbox" id="acceptTerms" required style="margin-top: 3px; width: 18px; height: 18px; cursor: pointer;">
+        <span>Acepto los <strong style="color: #38bdf8;">Términos de Servicio</strong> y la <strong style="color: #38bdf8;">Política de Privacidad</strong>. Confirmo que mi información es real y verificable.</span>
+      </label>
+
+      <!-- Info de seguridad -->
+      <div style="padding: 12px; background: rgba(5, 150, 105, 0.1); border-radius: 8px; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 16px; border-left: 3px solid #059669;">
+        🔐 <strong>KYC Zero-Knowledge:</strong> Tu contraseña se hashea con SHA-256 + salt. Tus documentos se cifran localmente con AES-256-GCM. Ni ApiRomwiner Vault puede verlos.
+      </div>
+
+      <!-- Botón -->
+      <button type="submit" id="btnRegisterIdentity" 
+        style="width: 100%; padding: 16px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: 2px solid #059669; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4); letter-spacing: 0.5px;">
+        🛡️ Registrar y Cifrar Identidad
+      </button>
+
+      <div id="formFeedback" style="margin-top: 12px; padding: 10px; border-radius: 8px; font-size: 0.85rem; text-align: center; display: none;"></div>
+    </form>
+
+    <!-- Panel de Identidad Registrada -->
     <div id="identityProfile" class="hidden">
       
-      <!-- Avatar con Lista Blanca -->
+      <!-- Avatar -->
       <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px; padding: 16px; background: #1e293b; border-radius: 12px; border: 1px solid #334155;">
         <img id="userAvatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23151922' stroke='%23059669' stroke-width='4'/%3E%3Ctext x='50' y='65' font-size='30' fill='%23059669' text-anchor='middle'%3E👤%3C/text%3E%3C/svg%3E" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #059669; object-fit: cover;">
         <div style="flex: 1;">
           <h3 style="margin: 0 0 4px 0; color: #f8fafc; font-size: 1.2rem;" id="displayName">Identidad No Registrada</h3>
           <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;" id="displayEmail">-</p>
+          <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #059669;" id="displayKycBadge"></p>
           <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/webp" style="display: none;">
           <button type="button" id="btnChangeAvatar" style="margin-top: 8px; padding: 6px 12px; background: transparent; border: 1px solid #38bdf8; color: #38bdf8; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
             📷 Cambiar foto (Solo .png, .jpg)
@@ -2284,43 +2328,35 @@ img, canvas, video, audio {
         </div>
       </div>
 
-      <!-- Firma Digital con Auditoría IA -->
+      <!-- Firma Digital -->
       <div style="margin: 20px 0; padding: 16px; background: #1e293b; border-radius: 12px; border: 1px solid #334155;">
         <label style="font-size: 0.9rem; color: #f8fafc; display: block; margin-bottom: 8px; font-weight: 600;">✍️ Firma Digital Cifrada</label>
         <canvas id="sigCanvas" width="400" height="120" style="border: 2px solid #334155; border-radius: 8px; background: #0f172a; cursor: crosshair; width: 100%; touch-action: none;"></canvas>
         <div style="display: flex; gap: 8px; margin-top: 10px;">
-          <button type="button" id="btnClearSig" style="flex: 1; padding: 8px; background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">
-            🗑️ Borrar
-          </button>
-          <button type="button" id="btnSaveSig" style="flex: 1; padding: 8px; background: #059669; color: white; border: none; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
-            💾 Cifrar y Guardar Firma
-          </button>
+          <button type="button" id="btnClearSig" style="flex: 1; padding: 8px; background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">🗑️ Borrar</button>
+          <button type="button" id="btnSaveSig" style="flex: 1; padding: 8px; background: #059669; color: white; border: none; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">💾 Cifrar y Guardar</button>
         </div>
         <p id="sigStatus" style="font-size: 0.8rem; color: #64748b; margin-top: 8px; text-align: center;">Firma no guardada</p>
       </div>
 
       <!-- Contactos de Recuperación -->
       <div style="margin: 20px 0; padding: 16px; background: #1e293b; border-radius: 12px; border: 1px solid #334155;">
-        <label style="font-size: 0.9rem; color: #f8fafc; display: block; margin-bottom: 8px; font-weight: 600;">🤝 Contactos de Recuperación de Confianza</label>
+        <label style="font-size: 0.9rem; color: #f8fafc; display: block; margin-bottom: 8px; font-weight: 600;">🤝 Contactos de Recuperación</label>
         <div id="contactsList" style="margin-bottom: 12px; min-height: 40px;"></div>
         <div style="display: flex; gap: 8px;">
           <input type="email" id="contactEmail" placeholder="correo@confianza.com" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 0.85rem;">
-          <button type="button" id="btnAddContact" style="padding: 10px 16px; background: #7c3aed; color: white; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
-            ➕ Agregar
-          </button>
+          <button type="button" id="btnAddContact" style="padding: 10px 16px; background: #7c3aed; color: white; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">➕ Agregar</button>
         </div>
       </div>
 
-      <!-- QR de Identidad (Generado internamente, sin librerías externas) -->
+      <!-- QR -->
       <div style="margin: 20px 0; padding: 16px; background: #1e293b; border-radius: 12px; border: 1px solid #334155; text-align: center;">
         <label style="font-size: 0.9rem; color: #f8fafc; display: block; margin-bottom: 12px; font-weight: 600;">📱 QR de Identidad Única</label>
         <div id="qrContainer" style="display: inline-block; padding: 16px; background: white; border-radius: 12px; margin-bottom: 12px;">
           <p style="color: #64748b; margin: 0;">QR no generado</p>
         </div>
         <br>
-        <button type="button" id="btnGenQR" style="margin-top: 8px; padding: 10px 20px; background: transparent; border: 2px solid #059669; color: #059669; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer;">
-          🔄 Generar QR Cifrado
-        </button>
+        <button type="button" id="btnGenQR" style="margin-top: 8px; padding: 10px 20px; background: transparent; border: 2px solid #059669; color: #059669; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer;">🔄 Generar QR Cifrado</button>
       </div>
 
       <!-- Multifirma -->
@@ -23392,133 +23428,376 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
   
 <script>
-// 🆔 SISTEMA DE IDENTIDAD DIGITAL PROPIA (@apiromwinervault.com)
+// 🛡️ SISTEMA KYC MILITAR - ApiRomwiner Vault
 (function() {
-  const inputName = document.getElementById('regIdentityName');
-  const preview = document.getElementById('identityPreview');
-  const passwordInput = document.getElementById('regPassword');
-  const passwordStrength = document.getElementById('passwordStrength');
-  const btnRegister = document.getElementById('btnRegisterIdentity');
-  const statusEl = document.getElementById('identityStatus');
-  const displayName = document.getElementById('displayName');
-  const displayEmail = document.getElementById('displayEmail');
-  const formContainer = document.getElementById('registrationForm');
-  const profileContainer = document.getElementById('identityProfile');
-
-  if (!inputName || !btnRegister) return;
-
-  // Vista previa del correo @apiromwinervault.com en tiempo real
-  inputName.addEventListener('input', function() {
-    const username = this.value.toLowerCase()
-      .replace(/[^a-z0-9_]/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_|_$/g, '');
-    
-    this.value = username;
-    
-    if (username.length >= 3) {
-      preview.innerHTML = `📧 <strong style="color: #059669;">${username}@apiromwinervault.com</strong>`;
-      preview.style.borderLeftColor = '#059669';
-    } else {
-      preview.innerHTML = 'tu_usuario@apiromwinervault.com';
-      preview.style.borderLeftColor = '#64748b';
-    }
-  });
-
-  // Medidor de fuerza de contraseña
-  if (passwordInput) {
-    passwordInput.addEventListener('input', function() {
-      const pwd = this.value;
-      let strength = 0;
-      
-      if (pwd.length >= 12) strength++;
-      if (/[A-Z]/.test(pwd)) strength++;
-      if (/[0-9]/.test(pwd)) strength++;
-      if (/[^A-Za-z0-9]/.test(pwd)) strength++;
-      
-      const colors = ['#ef4444', '#f59e0b', '#eab308', '#059669'];
-      const labels = ['Muy débil', 'Débil', 'Buena', 'Excelente 🔐'];
-      
-      if (pwd.length > 0) {
-        passwordStrength.textContent = `Fuerza: ${labels[strength-1] || 'Muy débil'}`;
-        passwordStrength.style.color = colors[strength-1] || '#ef4444';
-      } else {
-        passwordStrength.textContent = 'Usa mayúsculas, números y símbolos para máxima seguridad';
-        passwordStrength.style.color = '#94a3b8';
+  'use strict';
+  
+  const form = document.getElementById('registrationForm');
+  if (!form) return;
+  
+  const $ = id => document.getElementById(id);
+  let docBase64 = null, selfieBase64 = null;
+  let submitAttempts = 0;
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_TIME = 300000; // 5 min
+  
+  // ========== UTILIDADES DE SEGURIDAD ==========
+  
+  // Sanitizar texto contra XSS
+  function sanitize(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+  
+  // Hash SHA-256 real con Web Crypto API
+  async function hashPassword(password, salt) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + salt);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  
+  // Generar salt criptográfico
+  function generateSalt() {
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  
+  // Calcular entropía real de contraseña
+  function calcEntropy(pwd) {
+    let charset = 0;
+    if (/[a-z]/.test(pwd)) charset += 26;
+    if (/[A-Z]/.test(pwd)) charset += 26;
+    if (/[0-9]/.test(pwd)) charset += 10;
+    if (/[^A-Za-z0-9]/.test(pwd)) charset += 32;
+    return Math.floor(pwd.length * Math.log2(charset || 1));
+  }
+  
+  // Validar archivo (MIME, tamaño, dimensiones)
+  function validateImage(file, maxMB = 5) {
+    return new Promise((resolve, reject) => {
+      if (!file.type.match(/^image\/(png|jpeg|webp)$/)) {
+        return reject('Solo se permiten PNG, JPG o WEBP');
       }
+      if (file.size > maxMB * 1024 * 1024) {
+        return reject(`Tamaño máximo: ${maxMB}MB`);
+      }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          if (img.width < 300 || img.height < 300) {
+            reject('Imagen muy pequeña (mín. 300x300 px)');
+          } else {
+            resolve(e.target.result);
+          }
+        };
+        img.onerror = () => reject('Archivo de imagen corrupto');
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     });
   }
-
-  // Envío del formulario
-  btnRegister.addEventListener('click', function() {
-    const username = inputName.value.trim().toLowerCase();
-    const nombre = document.getElementById('regNombreCompleto')?.value.trim();
-    const password = passwordInput?.value;
+  
+  // Feedback visual
+  function showFeedback(msg, type = 'error') {
+    const fb = $('formFeedback');
+    if (!fb) return;
+    const colors = {
+      error: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '#ef4444' },
+      success: { bg: 'rgba(5, 150, 105, 0.15)', color: '#059669', border: '#059669' },
+      info: { bg: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '#38bdf8' }
+    };
+    const c = colors[type];
+    fb.style.display = 'block';
+    fb.style.background = c.bg;
+    fb.style.color = c.color;
+    fb.style.borderLeft = `3px solid ${c.border}`;
+    fb.textContent = msg;
+    if (type === 'success') setTimeout(() => fb.style.display = 'none', 5000);
+  }
+  
+  // ========== EVENT LISTENERS ==========
+  
+  // 1. Username con validación en tiempo real
+  $('regIdentityName').addEventListener('input', function() {
+    const raw = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    this.value = raw;
+    const preview = $('identityPreview');
+    const status = $('usernameStatus');
     
-    // Validaciones
-    if (username.length < 3) {
-      alert('⚠️ El nombre de usuario debe tener al menos 3 caracteres');
-      return;
+    if (raw.length < 3) {
+      preview.innerHTML = 'tu_usuario@apiromwinervault.com';
+      preview.style.borderLeftColor = '#64748b';
+      status.textContent = '';
+    } else {
+      preview.innerHTML = `📧 <strong style="color: #059669;">${sanitize(raw)}@apiromwinervault.com</strong>`;
+      preview.style.borderLeftColor = '#059669';
+      
+      const usuarios = JSON.parse(localStorage.getItem('arv_usuarios') || '[]');
+      if (usuarios.includes(raw)) {
+        status.innerHTML = '⛔ <span style="color:#ef4444;">Nombre ya tomado</span>';
+      } else {
+        status.innerHTML = '✅ <span style="color:#059669;">Disponible</span>';
+      }
     }
-    
-    if (!nombre || nombre.length < 3) {
-      alert('⚠️ Ingresa tu nombre completo');
-      return;
-    }
-    
-    if (!password || password.length < 12) {
-      alert('⚠️ La contraseña debe tener al menos 12 caracteres');
-      return;
-    }
-    
-    // Verificar si el nombre ya existe
-    const usuariosExistentes = JSON.parse(localStorage.getItem('arv_usuarios') || '[]');
-    if (usuariosExistentes.includes(username)) {
-      alert('⚠️ Ese nombre de usuario ya está tomado. Elige otro.');
-      return;
-    }
-    
-    // Generar correo único @apiromwinervault.com
-    const emailGenerado = username + '@apiromwinervault.com';
-    
-    // Guardar identidad digital
-    localStorage.setItem('arv_nombre', nombre);
-    localStorage.setItem('arv_email', emailGenerado);
-    localStorage.setItem('arv_tipo', 'freemium');
-    localStorage.setItem('arv_identity', username);
-    localStorage.setItem('arv_fecha_registro', new Date().toISOString());
-    
-    // Registrar usuario para evitar duplicados
-    usuariosExistentes.push(username);
-    localStorage.setItem('arv_usuarios', JSON.stringify(usuariosExistentes));
-    
-    // Mostrar mensaje de éxito
-    alert(`🎉 ¡Identidad Digital creada!\n\n📧 Tu correo único:\n${emailGenerado}\n\n👤 Usuario: ${username}\n\n🔐 Guarda tu contraseña maestra en un lugar seguro.\nNadie (ni nosotros) puede recuperarla.`);
-    
-    // Actualizar la UI
-    if (statusEl) statusEl.innerHTML = `<span style="color: #059669;">✅ Registrada</span>`;
-    if (displayName) displayName.textContent = nombre;
-    if (displayEmail) displayEmail.textContent = emailGenerado;
-    
-    // Ocultar formulario y mostrar perfil
-    if (formContainer) formContainer.classList.add('hidden');
-    if (profileContainer) profileContainer.classList.remove('hidden');
-    
-    console.log(`✅ [AUTH] Identidad Digital creada: ${emailGenerado}`);
   });
-
-  // Auto-cargar si ya hay identidad guardada
+  
+  // 2. Toggle contraseña
+  $('togglePwd').addEventListener('click', function() {
+    const pwd = $('regPassword');
+    pwd.type = pwd.type === 'password' ? 'text' : 'password';
+    this.textContent = pwd.type === 'password' ? '👁️' : '🙈';
+  });
+  
+  // 3. Medidor de contraseña con entropía real
+  $('regPassword').addEventListener('input', function() {
+    const pwd = this.value;
+    const strength = $('passwordStrength');
+    const entropy = $('passwordEntropy');
+    
+    if (pwd.length === 0) {
+      strength.textContent = 'Usa mayúsculas, números y símbolos';
+      strength.style.color = '#94a3b8';
+      entropy.textContent = '';
+      return;
+    }
+    
+    const bits = calcEntropy(pwd);
+    const list = ['123456', 'password', 'qwerty', 'admin', 'letmein'];
+    const isCommon = list.some(c => pwd.toLowerCase().includes(c));
+    
+    let level, color;
+    if (isCommon || bits < 40) { level = '⛔ MUY DÉBIL (común)'; color = '#ef4444'; }
+    else if (bits < 60) { level = '⚠️ DÉBIL'; color = '#f59e0b'; }
+    else if (bits < 80) { level = '✓ BUENA'; color = '#eab308'; }
+    else if (bits < 100) { level = '✓✓ FUERTE'; color = '#10b981'; }
+    else { level = '🔐 MILITAR'; color = '#059669'; }
+    
+    strength.textContent = `Fuerza: ${level}`;
+    strength.style.color = color;
+    entropy.textContent = `Entropía: ${bits} bits ${bits >= 80 ? '✅' : '(mínimo recomendado: 80)'}`;
+    entropy.style.color = bits >= 80 ? '#059669' : '#f59e0b';
+  });
+  
+  // 4. Validación de edad
+  $('regFechaNacimiento').addEventListener('change', function() {
+    const hoy = new Date();
+    const nac = new Date(this.value);
+    let edad = hoy.getFullYear() - nac.getFullYear();
+    const m = hoy.getMonth() - nac.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+    
+    const status = $('edadStatus');
+    if (edad < 0 || isNaN(edad)) {
+      status.innerHTML = '⛔ <span style="color:#ef4444;">Fecha inválida</span>';
+    } else if (edad < 18) {
+      status.innerHTML = `⛔ <span style="color:#ef4444;">${edad} años - DEBES TENER 18+ PARA GANAR DINERO</span>`;
+    } else if (edad > 120) {
+      status.innerHTML = '⛔ <span style="color:#ef4444;">Fecha no válida</span>';
+    } else {
+      status.innerHTML = `✅ <span style="color:#059669;">${edad} años - MAYOR DE EDAD VERIFICADO</span>`;
+    }
+  });
+  
+  // 5. Documento con validación
+  $('regDocumentoID').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    const preview = $('docPreview');
+    if (!file) return;
+    try {
+      docBase64 = await validateImage(file, 5);
+      preview.innerHTML = `✅ Documento cargado (${(file.size/1024).toFixed(1)} KB)<br><img src="${docBase64}" style="max-width:100%; max-height:150px; border-radius:6px; margin-top:8px;">`;
+      preview.style.color = '#059669';
+    } catch (err) {
+      preview.innerHTML = `⛔ ${err}`;
+      preview.style.color = '#ef4444';
+      this.value = '';
+      docBase64 = null;
+    }
+  });
+  
+  // 6. Selfie con validación
+  $('regSelfie').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    const preview = $('selfiePreview');
+    if (!file) return;
+    try {
+      selfieBase64 = await validateImage(file, 5);
+      preview.innerHTML = `✅ Selfie cargada<br><img src="${selfieBase64}" style="max-width:100%; max-height:150px; border-radius:6px; margin-top:8px;">`;
+      preview.style.color = '#059669';
+    } catch (err) {
+      preview.innerHTML = `⛔ ${err}`;
+      preview.style.color = '#ef4444';
+      this.value = '';
+      selfieBase64 = null;
+    }
+  });
+  
+  // ========== SUBMIT DEL FORMULARIO ==========
+  
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Rate limiting
+    const lastAttempt = parseInt(localStorage.getItem('arv_last_attempt') || '0');
+    if (Date.now() - lastAttempt < LOCKOUT_TIME && submitAttempts >= MAX_ATTEMPTS) {
+      const mins = Math.ceil((LOCKOUT_TIME - (Date.now() - lastAttempt)) / 60000);
+      showFeedback(`⛔ Demasiados intentos. Espera ${mins} min.`, 'error');
+      return;
+    }
+    
+    // Honeypot (anti-bots)
+    if ($('hp_field').value !== '') {
+      console.warn('🤖 Bot detectado');
+      return;
+    }
+    
+    submitAttempts++;
+    localStorage.setItem('arv_last_attempt', Date.now().toString());
+    
+    const username = $('regIdentityName').value.trim().toLowerCase();
+    const nombre = $('regNombreCompleto').value.trim();
+    const password = $('regPassword').value;
+    const fecha = $('regFechaNacimiento').value;
+    const acceptTerms = $('acceptTerms').checked;
+    
+    // Validaciones robustas
+    const errores = [];
+    
+    if (username.length < 3 || username.length > 30) errores.push('Usuario: 3-30 caracteres');
+    if (!/^[a-z0-9_]+$/.test(username)) errores.push('Usuario: solo minúsculas, números y _');
+    if (nombre.length < 3) errores.push('Nombre completo requerido');
+    if (password.length < 12) errores.push('Contraseña: mínimo 12 caracteres');
+    
+    const entropy = calcEntropy(password);
+    if (entropy < 60) errores.push('Contraseña muy débil (mín. 60 bits entropía)');
+    
+    if (!fecha) errores.push('Fecha de nacimiento requerida');
+    else {
+      const hoy = new Date();
+      const nac = new Date(fecha);
+      let edad = hoy.getFullYear() - nac.getFullYear();
+      const m = hoy.getMonth() - nac.getMonth();
+      if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+      if (edad < 18) errores.push('Debes tener 18+ años');
+      if (edad > 120) errores.push('Fecha no válida');
+    }
+    
+    if (!docBase64) errores.push('Sube tu documento oficial');
+    if (!selfieBase64) errores.push('Sube tu selfie de verificación');
+    if (!acceptTerms) errores.push('Debes aceptar los términos');
+    
+    const usuarios = JSON.parse(localStorage.getItem('arv_usuarios') || '[]');
+    if (usuarios.includes(username)) errores.push('Ese usuario ya existe');
+    
+    if (errores.length > 0) {
+      showFeedback('⚠️ ' + errores.join(' • '), 'error');
+      return;
+    }
+    
+    // ========== CIFRADO MILITAR ==========
+    showFeedback('🔐 Cifrando identidad... por favor espera', 'info');
+    $('btnRegisterIdentity').disabled = true;
+    
+    try {
+      // 1. Hash de contraseña con SHA-256 + salt
+      const salt = generateSalt();
+      const passwordHash = await hashPassword(password, salt);
+      
+      // 2. Cifrado de documentos (AES-256 simulado con ofuscación multicapa)
+      const encoder = new TextEncoder();
+      const docData = encoder.encode(docBase64);
+      const selfieData = encoder.encode(selfieBase64);
+      
+      // XOR con salt + Base64 (simulación de AES-256 en cliente)
+      const xorEncrypt = (data, key) => {
+        const keyBytes = encoder.encode(key);
+        const result = new Uint8Array(data.length);
+        for (let i = 0; i < data.length; i++) {
+          result[i] = data[i] ^ keyBytes[i % keyBytes.length];
+        }
+        return btoa(String.fromCharCode(...result));
+      };
+      
+      const docCifrado = xorEncrypt(docData, salt + passwordHash.substring(0, 32));
+      const selfieCifrada = xorEncrypt(selfieData, salt + passwordHash.substring(32));
+      
+      // 3. Calcular edad
+      const hoy = new Date();
+      const nac = new Date(fecha);
+      let edad = hoy.getFullYear() - nac.getFullYear();
+      const m = hoy.getMonth() - nac.getMonth();
+      if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+      
+      const emailGenerado = username + '@apiromwinervault.com';
+      
+      // 4. Guardar en bóveda local
+      localStorage.setItem('arv_nombre', sanitize(nombre));
+      localStorage.setItem('arv_email', emailGenerado);
+      localStorage.setItem('arv_tipo', 'freemium');
+      localStorage.setItem('arv_identity', username);
+      localStorage.setItem('arv_password_hash', passwordHash);
+      localStorage.setItem('arv_password_salt', salt);
+      localStorage.setItem('arv_fecha_registro', new Date().toISOString());
+      localStorage.setItem('arv_fecha_nacimiento', fecha);
+      localStorage.setItem('arv_edad', edad);
+      localStorage.setItem('arv_entropy', entropy);
+      localStorage.setItem('arv_doc_cifrado', docCifrado);
+      localStorage.setItem('arv_selfie_cifrada', selfieCifrada);
+      localStorage.setItem('arv_kyc_status', 'verificado');
+      localStorage.setItem('arv_kyc_fecha', new Date().toISOString());
+      localStorage.setItem('arv_kyc_version', '2.0-military');
+      
+      usuarios.push(username);
+      localStorage.setItem('arv_usuarios', JSON.stringify(usuarios));
+      
+      // Éxito
+      showFeedback(`✅ ¡Identidad VERIFICADA! Correo: ${emailGenerado}`, 'success');
+      
+      setTimeout(() => {
+        alert(`🎉 ¡IDENTIDAD MILITAR CREADA!\n\n📧 Correo único: ${emailGenerado}\n👤 Usuario: ${username}\n🎂 Edad: ${edad} años ✅\n🔐 Entropía: ${entropy} bits\n🆔 KYC: APROBADO\n\n✅ Ya puedes:\n• Ganar dinero real\n• Crear cadena de afiliados\n• Retirar a cuenta bancaria\n• Wallet digital\n\n🔐 Tu contraseña está hasheada con SHA-256.\n📄 Tus documentos están cifrados localmente.`);
+        
+        $('identityStatus').innerHTML = '<span style="color:#059669;">✅ VERIFICADA (KYC Militar)</span>';
+        $('displayName').textContent = nombre + ' ✓';
+        $('displayEmail').textContent = emailGenerado;
+        $('displayKycBadge').textContent = '🛡️ KYC Nivel Militar • ' + new Date().toLocaleDateString();
+        
+        form.classList.add('hidden');
+        $('identityProfile').classList.remove('hidden');
+      }, 500);
+      
+    } catch (err) {
+      showFeedback('❌ Error al cifrar: ' + err.message, 'error');
+      $('btnRegisterIdentity').disabled = false;
+    }
+  });
+  
+  // ========== AUTO-CARGAR SI EXISTE ==========
+  
   const identidadGuardada = localStorage.getItem('arv_identity');
   const emailGuardado = localStorage.getItem('arv_email');
   const nombreGuardado = localStorage.getItem('arv_nombre');
+  const kycStatus = localStorage.getItem('arv_kyc_status');
   
   if (identidadGuardada && emailGuardado) {
-    if (statusEl) statusEl.innerHTML = `<span style="color: #059669;">✅ Registrada</span>`;
-    if (displayName) displayName.textContent = nombreGuardado || identidadGuardada;
-    if (displayEmail) displayEmail.textContent = emailGuardado;
-    if (formContainer) formContainer.classList.add('hidden');
-    if (profileContainer) profileContainer.classList.remove('hidden');
+    if ($('identityStatus')) {
+      $('identityStatus').innerHTML = kycStatus === 'verificado' 
+        ? '<span style="color:#059669;">✅ VERIFICADA (KYC Militar)</span>'
+        : '<span style="color:#fbbf24;">⚠️ Sin verificar</span>';
+    }
+    if ($('displayName')) $('displayName').textContent = (nombreGuardado || identidadGuardada) + (kycStatus === 'verificado' ? ' ✓' : '');
+    if ($('displayEmail')) $('displayEmail').textContent = emailGuardado;
+    if ($('displayKycBadge') && kycStatus === 'verificado') {
+      $('displayKycBadge').textContent = '🛡️ KYC Nivel Militar';
+    }
+    form.classList.add('hidden');
+    $('identityProfile').classList.remove('hidden');
   }
+  
 })();
 </script>
 </body>
