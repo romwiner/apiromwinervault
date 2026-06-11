@@ -23856,6 +23856,26 @@ document.addEventListener('DOMContentLoaded', function() {
       selfieBase64 = null;
     }
   });
+
+    
+  // 7. Avatar obligatorio
+  if ($('regAvatar')) {
+    $('regAvatar').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      const preview = $('avatarPreview');
+      if (!file) return;
+      try {
+        avatarBase64 = await validateImage(file, 5);
+        preview.innerHTML = `✅ Avatar cargado<br><img src="${avatarBase64}" style="max-width:100px; max-height:100px; border-radius:50%; margin-top:8px; border: 3px solid #059669;">`;
+        preview.style.color = '#059669';
+      } catch (err) {
+        preview.innerHTML = `⛔ ${err}`;
+        preview.style.color = '#ef4444';
+        this.value = '';
+        avatarBase64 = null;
+      }
+    });
+  }
   
   // ========== SUBMIT DEL FORMULARIO ==========
   
