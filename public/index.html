@@ -24597,6 +24597,214 @@ if (btnCreate) {
   }, 500);
 })();
 </script>
+  <!-- 🔐 SISTEMA DE LOGIN MULTI-USUARIO - ApiRomwiner Vault -->
+<script>
+(function() {
+  'use strict';
+  
+  const loginContainer = document.getElementById('loginContainer');
+  const loginUsername = document.getElementById('loginUsername');
+  const loginPassword = document.getElementById('loginPassword');
+  const btnLogin = document.getElementById('btnLogin');
+  const btnShowRegister = document.getElementById('btnShowRegister');
+  const loginFeedback = document.getElementById('loginFeedback');
+  const btnCreateAccount = document.getElementById('btnCreateAccount');
+  
+  function showLoginFeedback(msg, type = 'error') {
+    if (!loginFeedback) return;
+    const colors = {
+      error: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '#ef4444' },
+      success: { bg: 'rgba(5, 150, 105, 0.15)', color: '#059669', border: '#059669' }
+    };
+    const c = colors[type];
+    loginFeedback.style.display = 'block';
+    loginFeedback.style.background = c.bg;
+    loginFeedback.style.color = c.color;
+    loginFeedback.style.borderLeft = `3px solid ${c.border}`;
+    loginFeedback.textContent = msg;
+  }
+  
+  async function verifyPassword(password, storedHash, salt) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + salt);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hash === storedHash;
+  }
+  
+  function mostrarVistaPorTipo(tipoUsuario, datosUsuario) {
+    const todasLasVistas = ['vistaLanding', 'vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 'vistaAdmin', 'digitalIdentityPanel'];
+    todasLasVistas.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = 'none';
+        el.style.visibility = 'hidden';
+        el.classList.add('hidden');
+      }
+    });
+    
+    document.body.classList.remove('registro-activo');
+    document.body.classList.add('app-activa');
+    
+    const displayName = document.getElementById('displayName');
+    const displayEmail = document.getElementById('displayEmail');
+    const userAvatar = document.getElementById('userAvatar');
+    const identityStatus = document.getElementById('identityStatus');
+    const displayKycBadge = document.getElementById('displayKycBadge');
+    
+    if (displayName) displayName.textContent = datosUsuario.nombre + (datosUsuario.esSupremo ? ' 👑' : ' ✓');
+    if (displayEmail) displayEmail.textContent = datosUsuario.email;
+    if (userAvatar && datosUsuario.avatar) userAvatar.src = datosUsuario.avatar;
+    
+    let vistaAMostrar = null;
+    let mensajeBienvenida = '';
+    let statusHTML = '';
+    let badgeText = '';
+    
+    switch(tipoUsuario) {
+      case 'supremo':
+        vistaAMostrar = document.getElementById('vistaAdmin') || document.getElementById('vistaFreemium');
+        statusHTML = '<span style="color:#fbbf24;">👑 DUEÑO SUPREMO</span>';
+        badgeText = '👑 KYC Nivel Supremo • Usuario #' + datosUsuario.numeroUsuario;
+        mensajeBienvenida = `👑 ¡Bienvenido de vuelta, Dueño Supremo!\n\n📧 ${datosUsuario.email}\n🎖️ Privilegios TOTALES activos`;
+        break;
+      case 'empresarial':
+        vistaAMostrar = document.getElementById('vistaEmpresarial');
+        statusHTML = '<span style="color:#a78bfa;">💼 EMPRESARIAL</span>';
+        badgeText = '💼 Plan Empresarial • Usuario #' + datosUsuario.numeroUsuario;
+        mensajeBienvenida = `💼 ¡Bienvenido, Usuario Empresarial!\n\n📧 ${datosUsuario.email}\n🚀 Funciones avanzadas habilitadas`;
+        break;
+      case 'normal':
+        vistaAMostrar = document.getElementById('vistaNormal') || document.getElementById('vistaFreemium');
+        statusHTML = '<span style="color:#38bdf8;">⭐ NORMAL</span>';
+        badgeText = '⭐ Plan Normal • Usuario #' + datosUsuario.numeroUsuario;
+        mensajeBienvenida = `⭐ ¡Bienvenido!\n\n📧 ${datosUsuario.email}\n✅ Funciones completas habilitadas`;
+        break;
+      case 'freemium':
+      default:
+        vistaAMostrar = document.getElementById('vistaFreemium');
+        statusHTML = '<span style="color:#059669;">✅ FREEMIUM</span>';
+        badgeText = '🆓 Plan Freemium • Usuario #' + datosUsuario.numeroUsuario;
+        mensajeBienvenida = `👋 ¡Bienvenido!\n\n📧 ${datosUsuario.email}\n🆓 Plan gratuito activo`;
+        break;
+    }
+    
+    if (identityStatus) identityStatus.innerHTML = statusHTML;
+    if (displayKycBadge) displayKycBadge.textContent = badgeText;
+    
+    if (vistaAMostrar) {
+      vistaAMostrar.style.display = 'block';
+      vistaAMostrar.style.visibility = 'visible';
+      vistaAMostrar.style.opacity = '1';
+      vistaAMostrar.classList.remove('hidden');
+    }
+    
+    setTimeout(() => {
+      alert(mensajeBienvenida);
+    }, 300);
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  
+  document.addEventListener('DOMContentLoaded', function() {
+    const identityGuardada = localStorage.getItem('arv_identity');
+    const emailGuardado = localStorage.getItem('arv_email');
+    const kycStatus = localStorage.getItem('arv_kyc_status');
+    
+    if (identityGuardada && emailGuardado && kycStatus === 'verificado') {
+      if (loginContainer) {
+        loginContainer.classList.remove('hidden');
+        loginContainer.style.display = 'block';
+      }
+      if (btnCreateAccount) btnCreateAccount.style.display = 'none';
+      if (loginUsername) loginUsername.value = identityGuardada;
+    } else {
+      if (loginContainer) {
+        loginContainer.classList.add('hidden');
+        loginContainer.style.display = 'none';
+      }
+      if (btnCreateAccount) btnCreateAccount.style.display = 'block';
+    }
+  });
+  
+  if (btnShowRegister) {
+    btnShowRegister.addEventListener('click', function() {
+      if (loginContainer) {
+        loginContainer.classList.add('hidden');
+        loginContainer.style.display = 'none';
+      }
+      if (btnCreateAccount) btnCreateAccount.style.display = 'block';
+    });
+  }
+  
+  if (btnLogin) {
+    btnLogin.addEventListener('click', async function() {
+      const username = loginUsername.value.trim().toLowerCase();
+      const password = loginPassword.value;
+      
+      if (!username || !password) {
+        showLoginFeedback('⚠️ Ingresa usuario y contraseña', 'error');
+        return;
+      }
+      
+      const identidadGuardada = localStorage.getItem('arv_identity');
+      if (identidadGuardada !== username) {
+        showLoginFeedback('⛔ Usuario incorrecto', 'error');
+        return;
+      }
+      
+      const storedHash = localStorage.getItem('arv_password_hash');
+      const salt = localStorage.getItem('arv_password_salt');
+      
+      if (!storedHash || !salt) {
+        showLoginFeedback('⛔ Error: Datos corruptos', 'error');
+        return;
+      }
+      
+      btnLogin.disabled = true;
+      btnLogin.textContent = '🔐 Verificando...';
+      
+      try {
+        const passwordValid = await verifyPassword(password, storedHash, salt);
+        
+        if (!passwordValid) {
+          showLoginFeedback('⛔ Contraseña incorrecta', 'error');
+          btnLogin.disabled = false;
+          btnLogin.textContent = '🔓 Entrar a Mi Bóveda';
+          return;
+        }
+        
+        showLoginFeedback('✅ ¡Bienvenido! Cargando tu bóveda...', 'success');
+        
+        const tipoUsuario = localStorage.getItem('arv_tipo') || 'freemium';
+        const datosUsuario = {
+          nombre: localStorage.getItem('arv_nombre') || username,
+          email: localStorage.getItem('arv_email'),
+          avatar: localStorage.getItem('arv_avatar'),
+          esSupremo: localStorage.getItem('arv_es_supremo') === 'true',
+          numeroUsuario: localStorage.getItem('arv_numero_usuario') || '1'
+        };
+        
+        setTimeout(() => {
+          mostrarVistaPorTipo(tipoUsuario, datosUsuario);
+        }, 800);
+        
+      } catch (err) {
+        showLoginFeedback('❌ Error: ' + err.message, 'error');
+        btnLogin.disabled = false;
+        btnLogin.textContent = '🔓 Entrar a Mi Bóveda';
+      }
+    });
+  }
+  
+  if (loginPassword) {
+    loginPassword.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && btnLogin) btnLogin.click();
+    });
+  }
+})();
+</script>
 </body>
 </html>
 
