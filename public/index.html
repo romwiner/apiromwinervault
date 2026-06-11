@@ -5118,6 +5118,34 @@ document.addEventListener('DOMContentLoaded', function() {
         const identityPanel = document.getElementById('digitalIdentityPanel');
         
         if (identityPanel) {
+              
+    // 7. Botón "Ya tengo cuenta" - Mostrar formulario de login
+    const btnShowLogin = document.getElementById('btnShowLogin');
+    if (btnShowLogin) {
+      btnShowLogin.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Ocultar landing
+        const landingView = document.getElementById('vistaLanding');
+        if (landingView) landingView.style.display = 'none';
+        
+        // Mostrar el formulario de login
+        const loginContainer = document.getElementById('loginContainer');
+        if (loginContainer) {
+          loginContainer.classList.remove('hidden');
+          loginContainer.style.display = 'block';
+          loginContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // Auto-rellenar el usuario si existe
+        const identidadGuardada = localStorage.getItem('arv_identity');
+        if (identidadGuardada) {
+          const loginUsername = document.getElementById('loginUsername');
+          if (loginUsername) loginUsername.value = identidadGuardada;
+        }
+      });
+    }
           // PASO 1: OCULTAR ABSOLUTAMENTE TODO en la página
           const todosLosElementos = document.querySelectorAll('body > *');
           todosLosElementos.forEach(el => {
