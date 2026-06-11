@@ -1592,6 +1592,34 @@ img, canvas, video, audio {
     width: 100%;
   }
 }
+  /* ============================================ */
+/* 🎯 CONTROL DE VISTAS POR ESTADO DE SESIÓN   */
+/* ============================================ */
+
+/* Cuando el usuario está en REGISTRO (hizo clic en Crear Cuenta) */
+body.registro-activo #vistaLanding,
+body.registro-activo #vistaFreemium,
+body.registro-activo #vistaNormal,
+body.registro-activo #vistaEmpresarial,
+body.registro-activo #vistaAdmin,
+body.registro-activo #vaultSection,
+body.registro-activo #socialFeedPanel,
+body.registro-activo #earningsCenter,
+body.registro-activo #marketplaceSection,
+body.registro-activo #enterpriseFeatures,
+body.registro-activo #affiliatesPanel,
+body.registro-activo #financialAnalyticsPanel,
+body.registro-activo #dashboardView {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* SOLO el panel de identidad es visible durante el registro */
+body.registro-activo #digitalIdentityPanel {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
 </style>
 
  </head>
