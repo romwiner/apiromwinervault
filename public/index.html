@@ -2332,13 +2332,13 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         Sin documento cargado
       </div>
 
-      <!-- 6. Selfie -->
-      <label for="regSelfie" style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">6. Selfie de verificación (rostro visible):</label>
-      <input type="file" id="regSelfie" name="selfie" accept="image/png,image/jpeg,image/webp" 
-        style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 8px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-      <div id="selfiePreview" style="margin-bottom: 16px; min-height: 40px; padding: 8px; background: #0a0e14; border-radius: 6px; font-size: 0.8rem; color: #64748b; text-align: center;">
-        Sin selfie cargada
-      </div>
+     <!-- 7. Avatar obligatorio -->
+<label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">7. Foto de perfil (avatar obligatorio):</label>
+<input type="file" id="regAvatar" accept="image/png,image/jpeg,image/webp" required
+  style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 8px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+<div id="avatarPreview" style="margin-bottom: 16px; min-height: 40px; padding: 8px; background: #0a0e14; border-radius: 6px; font-size: 0.8rem; color: #64748b; text-align: center;">
+  Sin avatar cargado (OBLIGATORIO)
+</div>
 
       <!-- Términos -->
       <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; color: #cbd5e1; cursor: pointer; margin-bottom: 16px; padding: 10px; background: rgba(56, 189, 248, 0.05); border-radius: 8px;">
