@@ -2227,23 +2227,46 @@ img, canvas, video, audio {
       <p style="margin: 4px 0 0 0; font-size: 1.1rem; font-weight: bold; color: #fbbf24;" id="identityStatus">⏳ No registrada</p>
     </div>
 
-    <!-- Formulario de Registro Seguro -->
-    <div id="registrationForm" style="margin-bottom: 24px;">
-      <h3 style="margin-top: 0; color: #38bdf8; font-size: 1.1rem;">📝 Registro de Identidad Única</h3>
-      
-      <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">Nombre de Identidad (Único):</label>
-      <input type="text" id="regIdentityName" placeholder="Ej: Juan_Perez_Vault" style="width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-      
-      <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">Correo de Recuperación:</label>
-      <input type="email" id="regEmail" placeholder="correo@seguro.com" style="width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-      
-      <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">Contraseña Maestra (Mín. 12 caracteres):</label>
-      <input type="password" id="regPassword" placeholder="••••••••••••" style="width: 100%; box-sizing: border-box; margin-bottom: 16px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-      
-      <button type="button" id="btnRegisterIdentity" style="width: 100%; padding: 14px; background: #059669; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: background 0.2s;">
-        🛡️ Registrar y Cifrar Identidad
-      </button>
-    </div>
+  <div id="registrationForm" style="margin-bottom: 24px;">
+  <h3 style="margin-top: 0; color: #38bdf8; font-size: 1.1rem;">📝 Registro de Identidad Única</h3>
+  
+  <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">1. Elige tu nombre de usuario único:</label>
+  <input type="text" id="regIdentityName" placeholder="ej: juan_perez" 
+    pattern="[a-z0-9_]+" minlength="3" maxlength="30"
+    style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; font-family: monospace;">
+  
+  <div id="identityPreview" style="margin-bottom: 12px; padding: 10px; background: #0a0e14; border-left: 3px solid #64748b; border-radius: 6px; font-family: monospace; color: #64748b; font-size: 0.9rem;">
+    tu_usuario@apiromwinervault.com
+  </div>
+  
+  <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">2. Tu nombre completo:</label>
+  <input type="text" id="regNombreCompleto" placeholder="Juan Pérez Martínez" minlength="3"
+    style="width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+  
+  <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">3. Contraseña Maestra (Mín. 12 caracteres):</label>
+  <input type="password" id="regPassword" placeholder="••••••••••••" minlength="12"
+    style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+  
+  <div id="passwordStrength" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 16px;">
+    Usa mayúsculas, números y símbolos para máxima seguridad
+  </div>
+  
+  <div style="padding: 12px; background: rgba(5, 150, 105, 0.1); border-radius: 8px; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 16px; border-left: 3px solid #059669;">
+    🔐 <strong>Zero-Knowledge:</strong> Tu identidad se cifra con AES-256-GCM. Ni nosotros podemos ver tu contraseña maestra.
+  </div>
+  
+  <!-- BOTÓN MEJORADO: Mantiene tu identidad original pero más profesional -->
+  <button type="button" id="btnRegisterIdentity" 
+    style="width: 100%; padding: 16px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: 2px solid #059669; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4); letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);"
+    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(5, 150, 105, 0.6)';"
+    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(5, 150, 105, 0.4)';">
+    🛡️ Registrar y Cifrar Identidad
+  </button>
+  
+  <div style="margin-top: 10px; text-align: center; font-size: 0.75rem; color: #64748b;">
+    ✨ Identidad única • Sin correos externos • Cero intermediarios
+  </div>
+</div>
 
     <!-- Panel de Identidad Registrada (Oculto hasta registrar) -->
     <div id="identityProfile" class="hidden">
@@ -23367,7 +23390,137 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 }); 
 </script>
+  
+<script>
+// 🆔 SISTEMA DE IDENTIDAD DIGITAL PROPIA (@apiromwinervault.com)
+(function() {
+  const inputName = document.getElementById('regIdentityName');
+  const preview = document.getElementById('identityPreview');
+  const passwordInput = document.getElementById('regPassword');
+  const passwordStrength = document.getElementById('passwordStrength');
+  const btnRegister = document.getElementById('btnRegisterIdentity');
+  const statusEl = document.getElementById('identityStatus');
+  const displayName = document.getElementById('displayName');
+  const displayEmail = document.getElementById('displayEmail');
+  const formContainer = document.getElementById('registrationForm');
+  const profileContainer = document.getElementById('identityProfile');
 
+  if (!inputName || !btnRegister) return;
+
+  // Vista previa del correo @apiromwinervault.com en tiempo real
+  inputName.addEventListener('input', function() {
+    const username = this.value.toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+    
+    this.value = username;
+    
+    if (username.length >= 3) {
+      preview.innerHTML = `📧 <strong style="color: #059669;">${username}@apiromwinervault.com</strong>`;
+      preview.style.borderLeftColor = '#059669';
+    } else {
+      preview.innerHTML = 'tu_usuario@apiromwinervault.com';
+      preview.style.borderLeftColor = '#64748b';
+    }
+  });
+
+  // Medidor de fuerza de contraseña
+  if (passwordInput) {
+    passwordInput.addEventListener('input', function() {
+      const pwd = this.value;
+      let strength = 0;
+      
+      if (pwd.length >= 12) strength++;
+      if (/[A-Z]/.test(pwd)) strength++;
+      if (/[0-9]/.test(pwd)) strength++;
+      if (/[^A-Za-z0-9]/.test(pwd)) strength++;
+      
+      const colors = ['#ef4444', '#f59e0b', '#eab308', '#059669'];
+      const labels = ['Muy débil', 'Débil', 'Buena', 'Excelente 🔐'];
+      
+      if (pwd.length > 0) {
+        passwordStrength.textContent = `Fuerza: ${labels[strength-1] || 'Muy débil'}`;
+        passwordStrength.style.color = colors[strength-1] || '#ef4444';
+      } else {
+        passwordStrength.textContent = 'Usa mayúsculas, números y símbolos para máxima seguridad';
+        passwordStrength.style.color = '#94a3b8';
+      }
+    });
+  }
+
+  // Envío del formulario
+  btnRegister.addEventListener('click', function() {
+    const username = inputName.value.trim().toLowerCase();
+    const nombre = document.getElementById('regNombreCompleto')?.value.trim();
+    const password = passwordInput?.value;
+    
+    // Validaciones
+    if (username.length < 3) {
+      alert('⚠️ El nombre de usuario debe tener al menos 3 caracteres');
+      return;
+    }
+    
+    if (!nombre || nombre.length < 3) {
+      alert('⚠️ Ingresa tu nombre completo');
+      return;
+    }
+    
+    if (!password || password.length < 12) {
+      alert('⚠️ La contraseña debe tener al menos 12 caracteres');
+      return;
+    }
+    
+    // Verificar si el nombre ya existe
+    const usuariosExistentes = JSON.parse(localStorage.getItem('arv_usuarios') || '[]');
+    if (usuariosExistentes.includes(username)) {
+      alert('⚠️ Ese nombre de usuario ya está tomado. Elige otro.');
+      return;
+    }
+    
+    // Generar correo único @apiromwinervault.com
+    const emailGenerado = username + '@apiromwinervault.com';
+    
+    // Guardar identidad digital
+    localStorage.setItem('arv_nombre', nombre);
+    localStorage.setItem('arv_email', emailGenerado);
+    localStorage.setItem('arv_tipo', 'freemium');
+    localStorage.setItem('arv_identity', username);
+    localStorage.setItem('arv_fecha_registro', new Date().toISOString());
+    
+    // Registrar usuario para evitar duplicados
+    usuariosExistentes.push(username);
+    localStorage.setItem('arv_usuarios', JSON.stringify(usuariosExistentes));
+    
+    // Mostrar mensaje de éxito
+    alert(`🎉 ¡Identidad Digital creada!\n\n📧 Tu correo único:\n${emailGenerado}\n\n👤 Usuario: ${username}\n\n🔐 Guarda tu contraseña maestra en un lugar seguro.\nNadie (ni nosotros) puede recuperarla.`);
+    
+    // Actualizar la UI
+    if (statusEl) statusEl.innerHTML = `<span style="color: #059669;">✅ Registrada</span>`;
+    if (displayName) displayName.textContent = nombre;
+    if (displayEmail) displayEmail.textContent = emailGenerado;
+    
+    // Ocultar formulario y mostrar perfil
+    if (formContainer) formContainer.classList.add('hidden');
+    if (profileContainer) profileContainer.classList.remove('hidden');
+    
+    console.log(`✅ [AUTH] Identidad Digital creada: ${emailGenerado}`);
+  });
+
+  // Auto-cargar si ya hay identidad guardada
+  const identidadGuardada = localStorage.getItem('arv_identity');
+  const emailGuardado = localStorage.getItem('arv_email');
+  const nombreGuardado = localStorage.getItem('arv_nombre');
+  
+  if (identidadGuardada && emailGuardado) {
+    if (statusEl) statusEl.innerHTML = `<span style="color: #059669;">✅ Registrada</span>`;
+    if (displayName) displayName.textContent = nombreGuardado || identidadGuardada;
+    if (displayEmail) displayEmail.textContent = emailGuardado;
+    if (formContainer) formContainer.classList.add('hidden');
+    if (profileContainer) profileContainer.classList.remove('hidden');
+  }
+})();
+</script>
 </body>
 </html>
 
