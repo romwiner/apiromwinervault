@@ -4695,25 +4695,44 @@ document.addEventListener('DOMContentLoaded', function() {
     const landingAIAudit = document.getElementById('landingAIAudit');
     const landingAuditContent = document.getElementById('landingAuditContent');
 
-    // 1. Botón "Crear Cuenta Gratis" - Desplazamiento suave al formulario
-    btnCreateAccount.addEventListener('click', function() {
-      // Buscar el formulario de autenticación (ajusta el ID según tu app)
-      const authSection = document.getElementById('authSection') || 
-                         document.getElementById('loginSection') || 
-                         document.getElementById('registerSection');
+  // 1. Botón "Crear Cuenta Gratis" - Mostrar panel de Identidad Digital KYC
+btnCreateAccount.addEventListener('click', function() {
+  // Buscar el panel de identidad digital (nuestro formulario KYC)
+  const identityPanel = document.getElementById('digitalIdentityPanel');
+  
+  if (identityPanel) {
+    // Mostrar el panel quitando la clase hidden
+    identityPanel.classList.remove('hidden');
+    
+    // Ocultar la landing actual
+    const landingView = document.getElementById('vistaLanding');
+    if (landingView) {
+      landingView.style.display = 'none';
+    }
+    
+    // Hacer scroll suave al panel de identidad
+    setTimeout(() => {
+      identityPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       
-      if (authSection) {
-        authSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        // Resaltar el formulario brevemente
-        authSection.style.transition = 'box-shadow 0.3s';
-        authSection.style.boxShadow = '0 0 30px rgba(5, 150, 105, 0.6)';
-        setTimeout(() => {
-          authSection.style.boxShadow = '';
-        }, 1500);
-      } else {
-        alert('🔓 Por favor, busca la sección de registro en la página.');
+      // Resaltar el panel brevemente con brillo verde
+      identityPanel.style.transition = 'box-shadow 0.3s';
+      identityPanel.style.boxShadow = '0 0 40px rgba(5, 150, 105, 0.8)';
+      setTimeout(() => {
+        identityPanel.style.boxShadow = '';
+      }, 2000);
+      
+      // Enfocar el primer campo automáticamente
+      const firstInput = document.getElementById('regIdentityName');
+      if (firstInput) {
+        firstInput.focus();
       }
-    });
+    }, 200);
+    
+    console.log('✅ [UI] Panel de Identidad Digital KYC mostrado');
+  } else {
+    alert('⚠️ Error: No se encontró el panel de registro. Recarga la página.');
+  }
+});
 
     // 2. Botón "Unirme por $25 USD" - Mostrar promoción
     btnShowPromo.addEventListener('click', function() {
