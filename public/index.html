@@ -2309,18 +2309,11 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         minlength="3" maxlength="100" required autocomplete="name"
         style="width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
 
-      <!-- 3. Contraseña maestra -->
-      <label for="regPassword" style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">3. Contraseña Maestra (mín. 12 caracteres):</label>
-      <div style="position: relative; margin-bottom: 8px;">
-        <input type="password" id="regPassword" name="password" placeholder="••••••••••••" 
-          minlength="12" maxlength="128" required autocomplete="new-password"
-          style="width: 100%; box-sizing: border-box; padding: 10px; padding-right: 45px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-        <button type="button" id="togglePwd" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem;" aria-label="Mostrar contraseña">👁️</button>
-      </div>
-      <div id="passwordStrength" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">
-        Usa mayúsculas, números y símbolos para máxima seguridad
-      </div>
-      <div id="passwordEntropy" style="font-size: 0.75rem; color: #64748b; margin-bottom: 16px;"></div>
+     <!-- 3. Contraseña maestra -->
+<label for="regPassword" style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">3. Contraseña Maestra (mín. 12 caracteres):</label>
+<input type="password" id="regPassword" name="password" placeholder="••••••••••••" 
+  minlength="12" maxlength="128" required autocomplete="new-password"
+  style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
 
       <!-- 4. Fecha de nacimiento -->
       <label for="regFechaNacimiento" style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">4. Fecha de nacimiento (18+ obligatorio):</label>
