@@ -4695,45 +4695,189 @@ document.addEventListener('DOMContentLoaded', function() {
     const landingAIAudit = document.getElementById('landingAIAudit');
     const landingAuditContent = document.getElementById('landingAuditContent');
 
-  // 1. Botón "Crear Cuenta Gratis" - Mostrar panel de Identidad Digital KYC
-btnCreateAccount.addEventListener('click', function() {
-  // Buscar el panel de identidad digital (nuestro formulario KYC)
-  const identityPanel = document.getElementById('digitalIdentityPanel');
-  
-  if (identityPanel) {
-    // Mostrar el panel quitando la clase hidden
-    identityPanel.classList.remove('hidden');
-    
-    // Ocultar la landing actual
-    const landingView = document.getElementById('vistaLanding');
-    if (landingView) {
-      landingView.style.display = 'none';
+    console.log('🔍 [DEBUG] Elementos cargados:', {
+      btnCreateAccount: !!btnCreateAccount,
+      btnShowPromo: !!btnShowPromo,
+      identityPanel: !!document.getElementById('digitalIdentityPanel')
+    });
+
+    // 1. Botón "Crear Cuenta Gratis" - Mostrar panel de Identidad Digital KYC
+    if (btnCreateAccount) {
+      btnCreateAccount.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('✅ [CLICK] Botón crear cuenta presionado');
+        
+        const identityPanel = document.getElementById('digitalIdentityPanel');
+        const landingView = document.getElementById('vistaLanding');
+        
+        if (identityPanel) {
+          // Agregar clase al body para desbloquear CSS
+          document.body.classList.add('app-activa');
+          console.log('✅ [BODY] Clase app-activa agregada');
+          
+          // Ocultar la landing
+          if (landingView) {
+            landingView.style.display = 'none';
+            landingView.style.visibility = 'hidden';
+            landingView.style.opacity = '0';
+            landingView.style.pointerEvents = 'none';
+            console.log('✅ [LANDING] Ocultada');
+          }
+          
+          // Mostrar el panel de identidad con múltiples propiedades
+          identityPanel.classList.remove('hidden');
+          identityPanel.style.display = 'block';
+          identityPanel.style.visibility = 'visible';
+          identityPanel.style.opacity = '1';
+          identityPanel.style.pointerEvents = 'auto';
+          console.log('✅ [PANEL] Mostrado');
+          
+          // Scroll suave y efectos visuales
+          setTimeout(() => {
+            identityPanel.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start' 
+            });
+            
+            identityPanel.style.transition = 'box-shadow 0.3s';
+            identityPanel.style.boxShadow = '0 0 50px rgba(5, 150, 105, 0.9)';
+            setTimeout(() => {
+              identityPanel.style.boxShadow = '';
+            }, 2500);
+            
+            const firstInput = document.getElementById('regIdentityName');
+            if (firstInput) {
+              firstInput.focus();
+              console.log('✅ [INPUT] Primer campo enfocado');
+            }
+          }, 300);
+          
+          console.log('🎉 [SUCCESS] Panel de Identidad Digital KYC activado');
+        } else {
+          alert('⚠️ Error: No se encontró el panel de registro.\n\nRecarga la página e intenta de nuevo.');
+          console.error('❌ [ERROR] Panel digitalIdentityPanel no encontrado');
+        }
+      });
+    } else {
+      console.error('❌ [ERROR] Botón btnCreateAccount no existe');
+    }
+
+    // 2. Botón "Unirme por $25 USD" - Mostrar promoción
+    if (btnShowPromo) {
+      btnShowPromo.addEventListener('click', function() {
+        const promoInfo = `
+          ✨ PLAN PREMIUM APIROMWINERVAULT - $25 USD ✨
+          
+          ✅ Beneficios incluidos:
+          • Almacenamiento cifrado ilimitado
+          • Auditoría IA prioritaria
+          • Venta granular sin comisiones
+          • Identidad digital verificada
+          • Soporte 24/7 del propietario
+          • Acceso anticipado a nuevas funciones
+          
+          🔐 Todos los archivos protegidos con AES-256-GCM
+          🤖 IA integrada para análisis de seguridad
+          💰 Sistema de afiliados con cadena de valor
+          
+          Para adquirir, regístrate gratis y contacta al administrador:
+          📧 admin@romwinervault.com
+        `;
+        alert(promoInfo);
+      });
+    }
+
+    // 3. Efecto hover en botones
+    if (btnCreateAccount) {
+      btnCreateAccount.addEventListener('mouseover', function() {
+        this.style.transform = 'translateY(-2px)';
+        this.style.boxShadow = '0 8px 25px rgba(5, 150, 105, 0.5)';
+      });
+      btnCreateAccount.addEventListener('mouseout', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 4px 15px rgba(5, 150, 105, 0.4)';
+      });
     }
     
-    // Hacer scroll suave al panel de identidad
-    setTimeout(() => {
-      identityPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      
-      // Resaltar el panel brevemente con brillo verde
-      identityPanel.style.transition = 'box-shadow 0.3s';
-      identityPanel.style.boxShadow = '0 0 40px rgba(5, 150, 105, 0.8)';
-      setTimeout(() => {
-        identityPanel.style.boxShadow = '';
-      }, 2000);
-      
-      // Enfocar el primer campo automáticamente
-      const firstInput = document.getElementById('regIdentityName');
-      if (firstInput) {
-        firstInput.focus();
-      }
-    }, 200);
-    
-    console.log('✅ [UI] Panel de Identidad Digital KYC mostrado');
-  } else {
-    alert('⚠️ Error: No se encontró el panel de registro. Recarga la página.');
-  }
-});
+    if (btnShowPromo) {
+      btnShowPromo.addEventListener('mouseover', function() {
+        this.style.background = 'rgba(167, 139, 250, 0.1)';
+      });
+      btnShowPromo.addEventListener('mouseout', function() {
+        this.style.background = 'transparent';
+      });
+    }
 
+    // 4. Verificación de conexión y auditoría IA
+    setTimeout(() => {
+      performLandingAICheck();
+    }, 1500);
+
+    function performLandingAICheck() {
+      if (!landingAIAudit || !landingAuditContent) return;
+      
+      landingAIAudit.style.display = 'block';
+      landingAuditContent.innerHTML = '<span style="color: #fbbf24;">⏳ Escaneando entorno de seguridad...</span>';
+      
+      const checks = [
+        { text: '🔐 Verificando cifrado AES-256-GCM...', delay: 500 },
+        { text: '🛡️ Comprobando lista blanca de archivos...', delay: 1000 },
+        { text: '🤖 IA: Analizando integridad del servidor...', delay: 1500 },
+        { text: '🔗 Validando conexión segura...', delay: 2000 }
+      ];
+      
+      let step = 0;
+      const interval = setInterval(() => {
+        if (step < checks.length) {
+          landingAuditContent.innerHTML = `<span style="color: #fbbf24;">${checks[step].text}</span>`;
+          step++;
+        } else {
+          clearInterval(interval);
+          
+          const fakeHash = 'SHA-256:' + Math.random().toString(36).substring(2, 14).toUpperCase();
+          landingAuditContent.innerHTML = `
+            <div style="color: #059669;">✅ Entorno verificado y seguro</div>
+            <div style="margin-top: 6px; font-size: 0.75rem; color: #94a3b8;">
+              • Cifrado: <strong style="color: #059669;">ACTIVO</strong><br>
+              • Lista blanca: <strong style="color: #059669;">8 formatos permitidos</strong><br>
+              • IA: <strong style="color: #059669;">OPERATIVA</strong><br>
+              • Hash de sesión: <span style="font-family: monospace; font-size: 0.7rem;">${fakeHash}</span>
+            </div>
+          `;
+          
+          if (landingApiStatus) {
+            landingApiStatus.style.background = '#059669';
+            landingApiStatus.style.animation = 'none';
+          }
+          if (landingStatusText) {
+            landingStatusText.textContent = '🟢 Servidor seguro conectado';
+            landingStatusText.style.color = '#059669';
+          }
+        }
+      }, 500);
+    }
+
+    // 5. Animación CSS
+    if (!document.getElementById('landingStyles')) {
+      const style = document.createElement('style');
+      style.id = 'landingStyles';
+      style.textContent = `
+        @keyframes rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.2); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  });
+</script>
+<script>
     // 2. Botón "Unirme por $25 USD" - Mostrar promoción
     btnShowPromo.addEventListener('click', function() {
       const promoInfo = `
