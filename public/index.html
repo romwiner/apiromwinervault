@@ -23656,7 +23656,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!form) return;
   
   const $ = id => document.getElementById(id);
-  let docBase64 = null, selfieBase64 = null;
+  let docBase64 = null, selfieBase64 = null, avatarBase64 = null;  
   let submitAttempts = 0;
   const MAX_ATTEMPTS = 5;
   const LOCKOUT_TIME = 300000; // 5 min
@@ -23927,8 +23927,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (edad > 120) errores.push('Fecha no válida');
     }
     
-    if (!docBase64) errores.push('Sube tu documento oficial');
-    if (!selfieBase64) errores.push('Sube tu selfie de verificación');
+    if (!avatarBase64) errores.push('Sube tu foto de perfil (avatar obligatorio)');
     if (!acceptTerms) errores.push('Debes aceptar los términos');
     
     const usuarios = JSON.parse(localStorage.getItem('arv_usuarios') || '[]');
@@ -24006,6 +24005,7 @@ document.addEventListener('DOMContentLoaded', function() {
       localStorage.setItem('arv_entropy', entropy);
       localStorage.setItem('arv_doc_cifrado', docCifrado);
       localStorage.setItem('arv_selfie_cifrada', selfieCifrada);
+      localStorage.setItem('arv_avatar', avatarBase64);
       localStorage.setItem('arv_kyc_status', 'verificado');
       localStorage.setItem('arv_kyc_fecha', new Date().toISOString());
       localStorage.setItem('arv_kyc_version', '2.0-military');
