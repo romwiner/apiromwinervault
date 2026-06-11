@@ -24907,6 +24907,39 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 1000);
 });
 </script>
+  <!-- 🤖 AGENTE DE IA INTERNA - ApiRomwiner Vault -->
+<div id="aiAgentContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 999999; font-family: system-ui, -apple-system, sans-serif;">
+  <!-- Botón Flotante -->
+  <button id="aiAgentToggle" style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 20px rgba(5, 150, 105, 0.5); display: flex; align-items: center; justify-content: center; transition: transform 0.2s;">
+    🤖
+  </button>
+
+  <!-- Ventana de Chat -->
+  <div id="aiAgentChat" style="display: none; position: absolute; bottom: 75px; right: 0; width: 340px; height: 450px; background: #0f172a; border: 1px solid #334155; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); flex-direction: column; overflow: hidden;">
+    
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #059669, #047857); padding: 15px; color: white; display: flex; align-items: center; gap: 10px;">
+      <div style="width: 35px; height: 35px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🧠</div>
+      <div>
+        <div style="font-weight: bold; font-size: 0.95rem;">IA Auditora v2.0</div>
+        <div style="font-size: 0.7rem; opacity: 0.8; display: flex; align-items: center; gap: 4px;">
+          <span style="width: 6px; height: 6px; background: #4ade80; border-radius: 50%; display: inline-block;"></span> En línea • Cifrado Local
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensajes -->
+    <div id="aiMessages" style="flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #0a0e14;">
+      <!-- Los mensajes se inyectan aquí -->
+    </div>
+
+    <!-- Input -->
+    <div style="padding: 12px; background: #0f172a; border-top: 1px solid #1e293b; display: flex; gap: 8px;">
+      <input type="text" id="aiInput" placeholder="Pregunta sobre tu bóveda, ventas, seguridad..." style="flex: 1; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; font-size: 0.85rem; outline: none;">
+      <button id="aiSend" style="padding: 0 15px; background: #059669; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">➤</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
 
