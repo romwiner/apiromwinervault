@@ -334,6 +334,15 @@ app.get('/api/status', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+// Endpoint para que el Agente IA sepa que el backend está vivo
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date(),
+    mensaje: 'Backend operativo ✅'
+  });
+});
 // 📁 UPLOADS
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdir(uploadDir, { recursive: true }).catch(err => logger.warn('⚠️ No se pudo crear uploads/: ' + err.message));
