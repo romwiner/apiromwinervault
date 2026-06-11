@@ -4730,53 +4730,74 @@ document.addEventListener('DOMContentLoaded', function() {
       identityPanel: !!document.getElementById('digitalIdentityPanel')
     });
 
-    // 1. Botón "Crear Cuenta Gratis" - SOLUCIÓN DEFINITIVA
+       // 1. Botón "Crear Cuenta Gratis" - SOLUCIÓN AGRESIVA
     if (btnCreateAccount) {
       btnCreateAccount.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         
         const identityPanel = document.getElementById('digitalIdentityPanel');
-        const landingView = document.getElementById('vistaLanding');
         
         if (identityPanel) {
-          // OCULTAR PANTALLA DE INICIO COMPLETAMENTE
-          if (landingView) {
-            landingView.style.display = 'none';
-            landingView.style.visibility = 'hidden';
-            landingView.style.opacity = '0';
-            landingView.style.height = '0';
-            landingView.style.overflow = 'hidden';
-            landingView.style.margin = '0';
-            landingView.style.padding = '0';
-          }
-          
-          // OCULTAR OTROS PANELES QUE PUEDAN APARECER
-          const otrosPaneles = ['vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 'vistaAdmin', 'vaultSection', 'socialFeedPanel', 'earningsCenter', 'marketplaceSection', 'dashboardView'];
-          otrosPaneles.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
+          // PASO 1: OCULTAR ABSOLUTAMENTE TODO en la página
+          const todosLosElementos = document.querySelectorAll('body > *');
+          todosLosElementos.forEach(el => {
+            if (el.id !== 'digitalIdentityPanel' && el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE') {
               el.style.display = 'none';
               el.style.visibility = 'hidden';
+              el.style.opacity = '0';
             }
           });
           
-          // ACTIVAR MODO REGISTRO
-          document.body.classList.add('registro-activo');
-          document.body.classList.remove('app-activa');
+          // PASO 2: Buscar y ocultar secciones específicas por ID
+          const idsAOcultar = [
+            'vistaLanding', 'vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 
+            'vistaAdmin', 'vaultSection', 'socialFeedPanel', 'earningsCenter',
+            'marketplaceSection', 'enterpriseFeatures', 'affiliatesPanel',
+            'financialAnalyticsPanel', 'dashboardView', 'authSection',
+            'notificationsAndTransparency', 'pwaBanner', 'autoPayBanner',
+            'collabPanel', 'analyticsPanel', 'aiAnalysisPanel', 'legalPanel',
+            'youtubePreviewSection', 'installShareSection', 'quickActionsAndIdentity',
+            'successView', 'portableFeatures', 'adsSection'
+          ];
           
-          // MOSTRAR FORMULARIO
+          idsAOcultar.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              el.style.setProperty('display', 'none', 'important');
+              el.style.setProperty('visibility', 'hidden', 'important');
+              el.style.setProperty('opacity', '0', 'important');
+              el.style.setProperty('height', '0', 'important');
+              el.style.setProperty('overflow', 'hidden', 'important');
+            }
+          });
+          
+          // PASO 3: FORZAR que SOLO el formulario de identidad sea visible
+          identityPanel.style.setProperty('display', 'block', 'important');
+          identityPanel.style.setProperty('visibility', 'visible', 'important');
+          identityPanel.style.setProperty('opacity', '1', 'important');
+          identityPanel.style.setProperty('height', 'auto', 'important');
+          identityPanel.style.setProperty('overflow', 'visible', 'important');
+          identityPanel.style.setProperty('position', 'relative', 'important');
+          identityPanel.style.setProperty('z-index', '99999', 'important');
           identityPanel.classList.remove('hidden');
-          identityPanel.style.display = 'block';
-          identityPanel.style.visibility = 'visible';
-          identityPanel.style.opacity = '1';
           
-          // SCROLL ARRIBA Y ENFOCAR
+          // PASO 4: Cambiar el fondo del body para que se vea limpio
+          document.body.style.background = '#0a0e14';
+          document.body.style.padding = '0';
+          document.body.style.margin = '0';
+          
+          // PASO 5: Scroll arriba y enfocar
           setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             const firstInput = document.getElementById('regIdentityName');
-            if (firstInput) firstInput.focus();
+            if (firstInput) {
+              firstInput.focus();
+              firstInput.style.border = '2px solid #059669';
+            }
           }, 300);
+          
+          console.log('✅ Solo formulario de identidad visible');
         }
       });
     }
