@@ -1620,6 +1620,33 @@ body.registro-activo #digitalIdentityPanel {
   visibility: visible !important;
   opacity: 1 !important;
 }
+  /* FORZAR que el formulario sea interactuable */
+body.registro-activo #digitalIdentityPanel,
+body.registro-activo #digitalIdentityPanel *,
+body.registro-activo #digitalIdentityPanel input,
+body.registro-activo #digitalIdentityPanel button,
+body.registro-activo #digitalIdentityPanel select,
+body.registro-activo #digitalIdentityPanel textarea,
+body.registro-activo #digitalIdentityPanel label {
+  pointer-events: auto !important;
+  cursor: auto !important;
+  position: relative !important;
+  z-index: 99999 !important;
+}
+
+body.registro-activo #registrationForm {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 99999 !important;
+}
+
+body.registro-activo #vistaLanding,
+body.registro-activo #landingOverlay,
+body.registro-activo .overlay,
+body.registro-activo .modal-backdrop {
+  pointer-events: none !important;
+  display: none !important;
+}
 body.registro-activo #vistaLanding { display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important; }  
 </style>
 
