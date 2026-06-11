@@ -175,3 +175,153 @@ function iniciarAgente() {
 
 // Ejecutar al cargar la página
 document.addEventListener("DOMContentLoaded", iniciarAgente);
+
+// ============================================
+// 🚀 MANEJO DE SESIÓN Y REDIRECCIÓN A LA BÓVEDA
+// ============================================
+
+// Función para guardar la sesión (token y usuario) al iniciar sesión
+function guardarSesion(token, usuario) {
+  localStorage.setItem('authToken', token);
+  localStorage.setItem('usuario', JSON.stringify(usuario));
+}
+
+// Función para cerrar sesión
+function cerrarSesion() {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('usuario');
+  window.location.reload(); // Recarga la página para mostrar la pantalla de bienvenida
+}
+
+// Función para verificar si hay una sesión activa
+function haySesionActiva() {
+  const token = localStorage.getItem('authToken');
+  const usuario = localStorage.getItem('usuario');
+  return token && usuario;
+}
+
+// Función para obtener el token (útil para peticiones fetch)
+function getAuthToken() {
+  return localStorage.getItem('authToken');
+}
+
+// Función para mostrar la bóveda (contenido privado) y ocultar el landing
+function mostrarBoveda() {
+  const landing = document.getElementById('vistaLanding');
+  if (landing) landing.style.display = 'none';
+  
+  // Si existe un contenedor para la bóveda, lo mostramos
+  let vaultContainer = document.getElementById('vaultContainer');
+  if (!vaultContainer) {
+    // Si no existe, lo creamos temporalmente para que se vea algo
+    vaultContainer = document.createElement('div');
+    vaultContainer.id = 'vaultContainer';
+    vaultContainer.style.padding = '20px';
+    vaultContainer.style.background = '#0f172a';
+    vaultContainer.style.color = 'white';
+    vaultContainer.innerHTML = '<h2>Mi Bóveda</h2><p>Cargando contenido...</p>';
+    document.body.appendChild(vaultContainer);
+  }
+  vaultContainer.style.display = 'block';
+  
+  // Opcional: ocultar botones de registro/login si existen
+  const btnRegistro = document.getElementById('btnShowRegistro');
+  if (btnRegistro) btnRegistro.style.display = 'none';
+  const btnLogin = document.getElementById('btnShowLogin');
+  if (btnLogin) btnLogin.style.display = 'none';
+  
+  // Mostrar nombre del usuario si está guardado
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+  const saludoElement = document.getElementById('userGreeting');
+  if (saludoElement) saludoElement.innerText = usuario.email || usuario.uid || 'Usuario';
+  
+  console.log('🔓 Bóveda mostrada para:', usuario.email);
+}
+
+// Función para mostrar el landing (pantalla de bienvenida) y ocultar la bóveda
+function mostrarLanding() {
+  const landing = document.getElementById('vistaLanding');
+  if (landing) landing.style.display = 'block';
+  const vault = document.getElementById('vaultContainer');
+  if (vault) vault.style.display = 'none';
+  
+  // Mostrar botones de registro/login si existen
+  const btnRegistro = document.getElementById('btnShowRegistro');
+  if (btnRegistro) btnRegistro.style.display = 'inline-block';
+  const btnLogin = document.getElementById('btnShowLogin');
+  if (btnLogin) btnLogin.style.display = 'inline-block';
+}
+
+// ============================================
+// INTERCEPTAR EL ENVÍO DEL FORMULARIO DE LOGIN
+// ============================================
+// Buscamos el formulario de login (ajusta el selector si tu HTML es diferente)
+document.addEventListener('DOMContentLoaded', function() {
+  // Suponiendo que tu formulario de login tiene un id "loginForm" o algo similar
+  // Si no tiene id, puedes seleccionarlo por clase o por el botón de enviar.
+  const loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail')?.value;
+      const password = document.getElementById('loginPassword')?.value;
+      if (!email || !password) {
+        alert('Por favor ingresa email y contraseña');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+        if (data.success) {
+          guardarSesion(data.token, data.user);
+          mostrarBoveda();
+          alert('✅ Inicio de sesión exitoso');
+        } else {
+          alert('❌ Error: ' + (data.error || 'Credenciales inválidas'));
+        }
+      } catch (err) {
+        console.error('Error en login:', err);
+        alert('Error de conexión');
+      }
+    });
+  }
+  
+  // Similar para registro: después de registrar, podríamos iniciar sesión automáticamente o pedir que inicie sesión.
+  // Por simplicidad, asumimos que después del registro se debe iniciar sesión manualmente.
+  // Pero si quieres auto-login después del registro, necesitarías modificar el endpoint /register para que devuelva token.
+  // Por ahora, dejamos que el usuario inicie sesión normalmente.
+  
+  // ============================================
+  // AL CARGAR LA PÁGINA, VERIFICAR SESIÓN
+  // ============================================
+  if (haySesionActiva()) {
+    mostrarBoveda();
+    // Opcional: validar que el token siga siendo válido con una llamada a /api/profile
+    fetch('/api/profile', {
+      headers: { 'Authorization': 'Bearer ' + getAuthToken() }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success && data.error) {
+        // Token inválido o expirado
+        cerrarSesion();
+        mostrarLanding();
+        alert('Tu sesión ha expirado. Inicia sesión nuevamente.');
+      } else {
+        console.log('Sesión válida');
+      }
+    })
+    .catch(() => {
+      // Si falla la validación, mejor cerrar sesión
+      cerrarSesion();
+      mostrarLanding();
+    });
+  } else {
+    mostrarLanding();
+  }
+});
