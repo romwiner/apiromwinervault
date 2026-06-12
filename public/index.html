@@ -4329,41 +4329,6 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
       }
-      
-      // Todos los intentos fallaron
-      responsePre.textContent = `❌ Error tras ${CONFIG.MAX_RETRIES} intentos: ${lastError.message}`;
-      responsePre.style.color = '#ff5252';
-      addSystemLog(`❌ API inaccesible tras ${CONFIG.MAX_RETRIES} intentos: ${lastError.message}`);
-      updateConnectionStatus('disconnected', 'Desconectado - Reintentando...');
-      
-      return { success: false, error: lastError };
-    }
-
-    async function checkAPIWithIndicator() {
-      let attempt = 0;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
-      
-      try {
-        const res = await fetch(CONFIG.API_ENDPOINT, {
-          method: 'GET',
-          signal: controller.signal,
-          cache: 'no-store'
-        });
-        clearTimeout(timeoutId);
-        
-        if (res.ok) {
-          updateConnectionStatus('connected', '🟢 Servidor conectado');
-          addSystemLog('✅ Conexión al servidor establecida');
-          return true;
-        }
-      } catch (e) {
-        clearTimeout(timeoutId);
-      }
-      
-      updateConnectionStatus('disconnected', '🔴 Sin conexión al servidor');
-      return false;
-    }
 
     // ============================================================
     // 🤖 AUDITORÍA IA INTEGRADA (Simulada pero funcional)
