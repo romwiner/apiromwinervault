@@ -2421,7 +2421,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     </div>
   </div>
 </section>
-<!-- 🛡️ SISTEMA UNIFICADO: Registro Militar + Funciones Post-Registro -->
+<!-- 🛡️ SISTEMA UNIFICADO: Registro Militar + Funciones Post-Registro (con Backend Real) -->
 <script>
 (function() {
   'use strict';
@@ -2431,7 +2431,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
   if (!form) return;
   
   const $ = id => document.getElementById(id);
-  let docBase64 = null, selfieBase64 = null, avatarBase64 = null;
+  let avatarBase64 = null;   // Solo avatar, los documentos se omiten por ahora (pueden añadirse después)
   
   // ========== UTILIDADES DE SEGURIDAD ==========
   
@@ -2439,29 +2439,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
-  }
-  
-  async function hashPassword(password, salt) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password + salt);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-  
-  function generateSalt() {
-    const array = new Uint8Array(16);
-    crypto.getRandomValues(array);
-    return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-  
-  function calcEntropy(pwd) {
-    let charset = 0;
-    if (/[a-z]/.test(pwd)) charset += 26;
-    if (/[A-Z]/.test(pwd)) charset += 26;
-    if (/[0-9]/.test(pwd)) charset += 10;
-    if (/[^A-Za-z0-9]/.test(pwd)) charset += 32;
-    return Math.floor(pwd.length * Math.log2(charset || 1));
   }
   
   function validateImage(file, maxMB = 5) {
@@ -2476,8 +2453,8 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       reader.onload = e => {
         const img = new Image();
         img.onload = () => {
-          if (img.width < 300 || img.height < 300) {
-            reject('Imagen muy pequeña (mín. 300x300 px)');
+          if (img.width < 100 || img.height < 100) {
+            reject('Imagen muy pequeña (mín. 100x100 px)');
           } else {
             resolve(e.target.result);
           }
@@ -2506,67 +2483,51 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     if (type === 'success') setTimeout(() => fb.style.display = 'none', 5000);
   }
   
-  // ========== EVENTOS DEL FORMULARIO DE REGISTRO ==========
+  function calcEntropy(pwd) {
+    let charset = 0;
+    if (/[a-z]/.test(pwd)) charset += 26;
+    if (/[A-Z]/.test(pwd)) charset += 26;
+    if (/[0-9]/.test(pwd)) charset += 10;
+    if (/[^A-Za-z0-9]/.test(pwd)) charset += 32;
+    return Math.floor(pwd.length * Math.log2(charset || 1));
+  }
   
-  // 1. Username
+  // ========== EVENTOS DEL FORMULARIO (igual que antes, solo visuales) ==========
+  
   if ($('regIdentityName')) {
     $('regIdentityName').addEventListener('input', function() {
-      const raw = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      let raw = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
       this.value = raw;
       const preview = $('identityPreview');
-      const status = $('usernameStatus');
-      
       if (raw.length < 3) {
         preview.innerHTML = 'tu_usuario@apiromwinervault.com';
         preview.style.borderLeftColor = '#64748b';
-        if (status) status.textContent = '';
       } else {
         preview.innerHTML = `📧 <strong style="color: #059669;">${sanitize(raw)}@apiromwinervault.com</strong>`;
         preview.style.borderLeftColor = '#059669';
-        const usuarios = JSON.parse(localStorage.getItem('arv_usuarios') || '[]');
-        if (status) {
-          status.innerHTML = usuarios.includes(raw) 
-            ? '⛔ <span style="color:#ef4444;">Nombre ya tomado</span>'
-            : '✅ <span style="color:#059669;">Disponible</span>';
-        }
       }
     });
   }
   
-  // 2. Toggle contraseña
-  if ($('togglePwd') && $('regPassword')) {
-    $('togglePwd').addEventListener('click', function() {
-      const pwd = $('regPassword');
-      pwd.type = pwd.type === 'password' ? 'text' : 'password';
-      this.textContent = pwd.type === 'password' ? '👁️' : '🙈';
-    });
-  }
-  
-  // 3. Medidor de contraseña
   if ($('regPassword')) {
     $('regPassword').addEventListener('input', function() {
       const pwd = this.value;
       const strength = $('passwordStrength');
       const entropy = $('passwordEntropy');
-      
+      if (!strength) return;
       if (pwd.length === 0) {
         strength.textContent = 'Usa mayúsculas, números y símbolos';
         strength.style.color = '#94a3b8';
         if (entropy) entropy.textContent = '';
         return;
       }
-      
       const bits = calcEntropy(pwd);
-      const list = ['123456', 'password', 'qwerty', 'admin'];
-      const isCommon = list.some(c => pwd.toLowerCase().includes(c));
-      
       let level, color;
-      if (isCommon || bits < 40) { level = '⛔ MUY DÉBIL'; color = '#ef4444'; }
+      if (bits < 40) { level = '⛔ MUY DÉBIL'; color = '#ef4444'; }
       else if (bits < 60) { level = '⚠️ DÉBIL'; color = '#f59e0b'; }
       else if (bits < 80) { level = '✓ BUENA'; color = '#eab308'; }
       else if (bits < 100) { level = '✓✓ FUERTE'; color = '#10b981'; }
       else { level = '🔐 MILITAR'; color = '#059669'; }
-      
       strength.textContent = `Fuerza: ${level}`;
       strength.style.color = color;
       if (entropy) {
@@ -2576,7 +2537,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     });
   }
   
-  // 4. Validación de edad
   if ($('regFechaNacimiento')) {
     $('regFechaNacimiento').addEventListener('change', function() {
       const hoy = new Date();
@@ -2584,7 +2544,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       let edad = hoy.getFullYear() - nac.getFullYear();
       const m = hoy.getMonth() - nac.getMonth();
       if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
-      
       const status = $('edadStatus');
       if (status) {
         if (edad < 18) {
@@ -2596,45 +2555,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     });
   }
   
-  // 5. Documento (opcional)
-  if ($('regDocumentoID')) {
-    $('regDocumentoID').addEventListener('change', async function(e) {
-      const file = e.target.files[0];
-      const preview = $('docPreview');
-      if (!file) return;
-      try {
-        docBase64 = await validateImage(file, 5);
-        preview.innerHTML = `✅ Documento cargado<br><img src="${docBase64}" style="max-width:100%; max-height:150px; border-radius:6px; margin-top:8px;">`;
-        preview.style.color = '#059669';
-      } catch (err) {
-        preview.innerHTML = `⛔ ${err}`;
-        preview.style.color = '#ef4444';
-        this.value = '';
-        docBase64 = null;
-      }
-    });
-  }
-  
-  // 6. Selfie (opcional)
-  if ($('regSelfie')) {
-    $('regSelfie').addEventListener('change', async function(e) {
-      const file = e.target.files[0];
-      const preview = $('selfiePreview');
-      if (!file) return;
-      try {
-        selfieBase64 = await validateImage(file, 5);
-        preview.innerHTML = `✅ Selfie cargada<br><img src="${selfieBase64}" style="max-width:100%; max-height:150px; border-radius:6px; margin-top:8px;">`;
-        preview.style.color = '#059669';
-      } catch (err) {
-        preview.innerHTML = `⛔ ${err}`;
-        preview.style.color = '#ef4444';
-        this.value = '';
-        selfieBase64 = null;
-      }
-    });
-  }
-  
-  // 7. Avatar (obligatorio)
+  // Avatar (obligatorio)
   if ($('regAvatar')) {
     $('regAvatar').addEventListener('change', async function(e) {
       const file = e.target.files[0];
@@ -2653,405 +2574,120 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     });
   }
   
-  // ========== SUBMIT DEL FORMULARIO ==========
+  // ========== ENVÍO DEL FORMULARIO AL BACKEND ==========
   
   form.addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const username = $('regIdentityName').value.trim().toLowerCase();
-    const nombre = $('regNombreCompleto').value.trim();
+    const nombreCompleto = $('regNombreCompleto').value.trim();
     const password = $('regPassword').value;
-    const fecha = $('regFechaNacimiento').value;
+    const fechaNacimiento = $('regFechaNacimiento').value;
     const acceptTerms = $('acceptTerms').checked;
     
+    // Validaciones
     const errores = [];
     if (username.length < 3) errores.push('Usuario: mínimo 3 caracteres');
     if (!/^[a-z0-9_]+$/.test(username)) errores.push('Usuario: solo minúsculas, números y _');
-    if (nombre.length < 3) errores.push('Nombre completo requerido');
-    if (password.length < 12) errores.push('Contraseña: mínimo 12 caracteres');
-    
+    if (nombreCompleto.length < 3) errores.push('Nombre completo requerido');
+    if (password.length < 8) errores.push('Contraseña: mínimo 8 caracteres');
     const entropy = calcEntropy(password);
-    if (entropy < 60) errores.push('Contraseña muy débil');
-    
-    if (!fecha) errores.push('Fecha de nacimiento requerida');
+    if (entropy < 40) errores.push('Contraseña muy débil');
+    if (!fechaNacimiento) errores.push('Fecha de nacimiento requerida');
     else {
       const hoy = new Date();
-      const nac = new Date(fecha);
+      const nac = new Date(fechaNacimiento);
       let edad = hoy.getFullYear() - nac.getFullYear();
       const m = hoy.getMonth() - nac.getMonth();
       if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
       if (edad < 18) errores.push('Debes tener 18+ años');
     }
-    
     if (!avatarBase64) errores.push('Sube tu foto de perfil (avatar obligatorio)');
     if (!acceptTerms) errores.push('Debes aceptar los términos');
-    
-    const usuarios = JSON.parse(localStorage.getItem('arv_usuarios') || '[]');
-    if (usuarios.includes(username)) errores.push('Ese usuario ya existe');
     
     if (errores.length > 0) {
       showFeedback('⚠️ ' + errores.join(' • '), 'error');
       return;
     }
     
-    showFeedback('🔐 Cifrando identidad...', 'info');
-    $('btnRegisterIdentity').disabled = true;
+    const btnSubmit = $('btnRegisterIdentity');
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Registrando en la nube...';
     
     try {
-      const salt = generateSalt();
-      const passwordHash = await hashPassword(password, salt);
+      // 1. Registrar en el backend
+      const registerRes = await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          nombreCompleto,
+          password,
+          fechaNacimiento,
+          refCode: ''
+        })
+      });
+      const registerData = await registerRes.json();
       
-      const hoy = new Date();
-      const nac = new Date(fecha);
-      let edad = hoy.getFullYear() - nac.getFullYear();
-      const m = hoy.getMonth() - nac.getMonth();
-      if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
-      
-      const emailGenerado = username + '@apiromwinervault.com';
-      
-      // Sistema Dueño Supremo
-      const usernamesSupremos = ['admin', 'owner', 'supremo', 'romwiner', 'master', 'root'];
-      const esSupremo = usernamesSupremos.includes(username);
-      const tipoUsuario = esSupremo ? 'supremo' : 'freemium';
-      
-      // Guardar en bóveda local
-      localStorage.setItem('arv_nombre', sanitize(nombre));
-      localStorage.setItem('arv_email', emailGenerado);
-      localStorage.setItem('arv_tipo', tipoUsuario);
-      localStorage.setItem('arv_es_supremo', esSupremo ? 'true' : 'false');
-      localStorage.setItem('arv_identity', username);
-      localStorage.setItem('arv_password_hash', passwordHash);
-      localStorage.setItem('arv_password_salt', salt);
-      localStorage.setItem('arv_fecha_registro', new Date().toISOString());
-      localStorage.setItem('arv_fecha_nacimiento', fecha);
-      localStorage.setItem('arv_edad', edad);
-      localStorage.setItem('arv_entropy', entropy);
-      localStorage.setItem('arv_avatar', avatarBase64);
-      if (docBase64) localStorage.setItem('arv_doc_cifrado', btoa(docBase64));
-      if (selfieBase64) localStorage.setItem('arv_selfie_cifrada', btoa(selfieBase64));
-      localStorage.setItem('arv_kyc_status', 'verificado');
-      localStorage.setItem('arv_kyc_fecha', new Date().toISOString());
-      
-      if (esSupremo) {
-        localStorage.setItem('arv_fecha_supremo', new Date().toISOString());
-        localStorage.setItem('arv_privilegios', 'total');
+      if (!registerData.success) {
+        throw new Error(registerData.error || 'Error en el registro');
       }
       
-      usuarios.push(username);
-      localStorage.setItem('arv_usuarios', JSON.stringify(usuarios));
+      // 2. Iniciar sesión automáticamente
+      const loginRes = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: username, password }) // el backend acepta username o email
+      });
+      const loginData = await loginRes.json();
       
-      showFeedback(`✅ ¡Identidad VERIFICADA! Correo: ${emailGenerado}`, 'success');
+      if (!loginData.success) {
+        throw new Error(loginData.error || 'Error al iniciar sesión');
+      }
       
+      // 3. Guardar sesión (usando las funciones del script.js global)
+      if (typeof window.guardarSesion === 'function') {
+        window.guardarSesion(loginData.token, loginData.user);
+      } else {
+        localStorage.setItem('authToken', loginData.token);
+        localStorage.setItem('usuario', JSON.stringify(loginData.user));
+      }
+      
+      // 4. Guardar avatar en localStorage (solo para mostrar, no es crítico)
+      if (avatarBase64) localStorage.setItem('arv_avatar', avatarBase64);
+      
+      showFeedback(`✅ ¡Registro exitoso! Redirigiendo a tu bóveda...`, 'success');
+      
+      // 5. Redirigir a la bóveda según el rol (usando función global o directamente)
       setTimeout(() => {
-        // Mensaje especial según tipo
-        if (esSupremo) {
-          alert(`👑 ¡BIENVENIDO, DUEÑO SUPREMO!\n\n🎖️ Eres el Usuario #1 de ApiRomwiner Vault\n📧 Correo único: ${emailGenerado}\n👤 Usuario: ${username}\n🎂 Edad: ${edad} años ✅\n🔐 Entropía: ${entropy} bits\n🆔 KYC: APROBADO (Nivel Supremo)\n\n✅ PRIVILEGIOS TOTALES:\n• Control total de la plataforma\n• Acceso al Panel de Administración\n• Gestión de todos los usuarios`);
+        if (typeof window.mostrarVistaSegunRol === 'function') {
+          window.mostrarVistaSegunRol(loginData.user);
         } else {
-          alert(`🎉 ¡IDENTIDAD MILITAR CREADA!\n\n📧 Correo único: ${emailGenerado}\n👤 Usuario: ${username}\n🎂 Edad: ${edad} años ✅\n🔐 Entropía: ${entropy} bits\n🆔 KYC: APROBADO\n\n✅ Ya puedes:\n• Ganar dinero real\n• Crear cadena de afiliados\n• Retirar a cuenta bancaria`);
+          // Si no existe la función, recargar la página para que el script.js la procese
+          window.location.reload();
         }
-        
-        // Actualizar UI
-        if ($('identityStatus')) {
-          $('identityStatus').innerHTML = esSupremo 
-            ? '<span style="color:#fbbf24;">👑 DUEÑO SUPREMO (Usuario #1)</span>'
-            : '<span style="color:#059669;">✅ VERIFICADA (KYC Militar)</span>';
-        }
-        if ($('displayName')) $('displayName').textContent = nombre + (esSupremo ? ' 👑' : ' ✓');
-        if ($('displayEmail')) $('displayEmail').textContent = emailGenerado;
-        
-        // Mostrar avatar en el perfil
-        if ($('userAvatar') && avatarBase64) {
-          $('userAvatar').src = avatarBase64;
-        }
-        
-        // OCULTAR FORMULARIO Y ENTRAR A LA BÓVEDA
-        form.classList.add('hidden');
-        $('identityProfile').classList.remove('hidden');
-        
-        // QUITAR MODO REGISTRO Y ENTRAR A LA APP
-        document.body.classList.remove('registro-activo');
-        document.body.classList.add('app-activa');
-        
-        // OCULTAR PANEL DE IDENTIDAD
+        // Ocultar el panel de identidad y mostrar la vista correspondiente
         const identityPanel = document.getElementById('digitalIdentityPanel');
-        if (identityPanel) {
-          identityPanel.classList.add('hidden');
-          identityPanel.style.display = 'none';
-        }
-        
-        // MOSTRAR VISTA FREEMIUM
-        const vistaFreemium = document.getElementById('vistaFreemium');
-        if (vistaFreemium) {
-          vistaFreemium.style.display = 'block';
-          vistaFreemium.style.visibility = 'visible';
-          vistaFreemium.style.opacity = '1';
-        }
-        
-        // SCROLL ARRIBA
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        
-      }, 500);
+        if (identityPanel) identityPanel.classList.add('hidden');
+        const landing = document.getElementById('vistaLanding');
+        if (landing) landing.style.display = 'none';
+        document.body.classList.remove('registro-activo');
+      }, 1500);
       
     } catch (err) {
-      showFeedback('❌ Error al cifrar: ' + err.message, 'error');
-      $('btnRegisterIdentity').disabled = false;
+      console.error('Error en registro:', err);
+      showFeedback('❌ ' + err.message, 'error');
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '🛡️ Registrar y Cifrar Identidad';
     }
   });
   
-  // ========== AUTO-CARGAR SI EXISTE ==========
-  
-  const identidadGuardada = localStorage.getItem('arv_identity');
-  const emailGuardado = localStorage.getItem('arv_email');
-  const nombreGuardado = localStorage.getItem('arv_nombre');
-  const kycStatus = localStorage.getItem('arv_kyc_status');
-  const esSupremo = localStorage.getItem('arv_es_supremo') === 'true';
-  const avatarGuardado = localStorage.getItem('arv_avatar');
-  
-  if (identidadGuardada && emailGuardado) {
-    if ($('identityStatus')) {
-      $('identityStatus').innerHTML = esSupremo 
-        ? '<span style="color:#fbbf24;">👑 DUEÑO SUPREMO</span>'
-        : '<span style="color:#059669;">✅ VERIFICADA</span>';
-    }
-    if ($('displayName')) $('displayName').textContent = (nombreGuardado || identidadGuardada) + (esSupremo ? ' 👑' : ' ✓');
-    if ($('displayEmail')) $('displayEmail').textContent = emailGuardado;
-    if ($('userAvatar') && avatarGuardado) $('userAvatar').src = avatarGuardado;
-    form.classList.add('hidden');
-    $('identityProfile').classList.remove('hidden');
-  }
-  
-  // ========== FUNCIONES POST-REGISTRO (Del script viejo) ==========
-  
-  // 2. Cambio de Avatar
-  const btnChangeAvatar = $('btnChangeAvatar');
-  const avatarInput = $('avatarInput');
-  const userAvatar = $('userAvatar');
-  
-  if (btnChangeAvatar && avatarInput && userAvatar) {
-    btnChangeAvatar.addEventListener('click', () => avatarInput.click());
-    
-    avatarInput.addEventListener('change', function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('⛔ Solo se permiten imágenes .png, .jpg o .webp');
-        avatarInput.value = '';
-        return;
-      }
-      
-      if (file.size > 2 * 1024 * 1024) {
-        alert('⛔ La imagen no puede superar los 2MB.');
-        avatarInput.value = '';
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        userAvatar.src = e.target.result;
-        localStorage.setItem('arv_avatar', e.target.result);
-        alert('✅ Avatar actualizado.');
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-  
-  // 3. Firma Digital con Canvas
-  const sigCanvas = $('sigCanvas');
-  const btnClearSig = $('btnClearSig');
-  const btnSaveSig = $('btnSaveSig');
-  const sigStatus = $('sigStatus');
-  
-  if (sigCanvas && btnClearSig && btnSaveSig) {
-    const ctx = sigCanvas.getContext('2d');
-    let isDrawing = false;
-    let lastX = 0;
-    let lastY = 0;
-    
-    function getMousePos(canvas, evt) {
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: (evt.clientX - rect.left) * (canvas.width / rect.width),
-        y: (evt.clientY - rect.top) * (canvas.height / rect.height)
-      };
-    }
-    
-    sigCanvas.addEventListener('mousedown', function(e) {
-      isDrawing = true;
-      const pos = getMousePos(sigCanvas, e);
-      lastX = pos.x;
-      lastY = pos.y;
-    });
-    
-    sigCanvas.addEventListener('mousemove', function(e) {
-      if (!isDrawing) return;
-      const pos = getMousePos(sigCanvas, e);
-      ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.strokeStyle = '#059669';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-      lastX = pos.x;
-      lastY = pos.y;
-    });
-    
-    sigCanvas.addEventListener('mouseup', () => isDrawing = false);
-    sigCanvas.addEventListener('mouseout', () => isDrawing = false);
-    
-    btnClearSig.addEventListener('click', function() {
-      ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
-      if (sigStatus) {
-        sigStatus.textContent = 'Firma no guardada';
-        sigStatus.style.color = '#64748b';
-      }
-    });
-    
-    btnSaveSig.addEventListener('click', function() {
-      const imageData = ctx.getImageData(0, 0, sigCanvas.width, sigCanvas.height);
-      let hasDrawing = false;
-      for (let i = 3; i < imageData.data.length; i += 4) {
-        if (imageData.data[i] !== 0) {
-          hasDrawing = true;
-          break;
-        }
-      }
-      
-      if (!hasDrawing) {
-        alert('⚠️ Debes dibujar tu firma primero.');
-        return;
-      }
-      
-      btnSaveSig.disabled = true;
-      btnSaveSig.innerHTML = '🔄 Cifrando firma...';
-      
-      setTimeout(() => {
-        if (sigStatus) {
-          sigStatus.textContent = '✅ Firma cifrada y guardada';
-          sigStatus.style.color = '#059669';
-        }
-        btnSaveSig.disabled = false;
-        btnSaveSig.innerHTML = '💾 Cifrar y Guardar Firma';
-        localStorage.setItem('arv_firma', sigCanvas.toDataURL());
-        alert('✅ Firma digital guardada.');
-      }, 1500);
-    });
-  }
-  
-  // 4. Contactos de Recuperación
-  const contactsList = $('contactsList');
-  const contactEmail = $('contactEmail');
-  const btnAddContact = $('btnAddContact');
-  let contacts = JSON.parse(localStorage.getItem('arv_contactos') || '[]');
-  
-  function updateContactsList() {
-    if (!contactsList) return;
-    contactsList.innerHTML = '';
-    contacts.forEach((contact, index) => {
-      const div = document.createElement('div');
-      div.style.cssText = 'background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;';
-      div.innerHTML = `<span style="color: #e2e8f0; font-size: 0.85rem;">${contact}</span>`;
-      
-      const btnRemove = document.createElement('button');
-      btnRemove.type = 'button';
-      btnRemove.textContent = '🗑️';
-      btnRemove.style.cssText = 'background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 1rem;';
-      btnRemove.addEventListener('click', () => {
-        contacts.splice(index, 1);
-        localStorage.setItem('arv_contactos', JSON.stringify(contacts));
-        updateContactsList();
-      });
-      
-      div.appendChild(btnRemove);
-      contactsList.appendChild(div);
-    });
-  }
-  
-  if (btnAddContact && contactEmail) {
-    btnAddContact.addEventListener('click', function() {
-      const email = contactEmail.value.trim();
-      if (!email || !email.includes('@')) {
-        alert('⚠️ Ingresa un correo válido.');
-        return;
-      }
-      if (contacts.length >= 3) {
-        alert('⚠️ Máximo 3 contactos de recuperación.');
-        return;
-      }
-      contacts.push(email);
-      localStorage.setItem('arv_contactos', JSON.stringify(contacts));
-      updateContactsList();
-      contactEmail.value = '';
-    });
-    updateContactsList();
-  }
-  
-  // 5. QR Generado Internamente
-  const qrContainer = $('qrContainer');
-  const btnGenQR = $('btnGenQR');
-  
-  function generateSimpleQRPattern(data) {
-    const size = 21;
-    const cellSize = 8;
-    let svg = `<svg width="${size * cellSize}" height="${size * cellSize}" xmlns="http://www.w3.org/2000/svg">`;
-    svg += `<rect width="100%" height="100%" fill="white"/>`;
-    
-    for (let i = 0; i < size; i++) {
-      for (let j = 0; j < size; j++) {
-        const charCode = data.charCodeAt((i * size + j) % data.length);
-        if (charCode % 2 === 0) {
-          svg += `<rect x="${j * cellSize}" y="${i * cellSize}" width="${cellSize}" height="${cellSize}" fill="black"/>`;
-        }
-      }
-    }
-    
-    svg += `<rect x="0" y="0" width="${cellSize * 7}" height="${cellSize * 7}" fill="black"/>`;
-    svg += `<rect x="${cellSize}" y="${cellSize}" width="${cellSize * 5}" height="${cellSize * 5}" fill="white"/>`;
-    svg += `<rect x="${cellSize * 2}" y="${cellSize * 2}" width="${cellSize * 3}" height="${cellSize * 3}" fill="black"/>`;
-    svg += `<rect x="${(size - 7) * cellSize}" y="0" width="${cellSize * 7}" height="${cellSize * 7}" fill="black"/>`;
-    svg += `<rect x="${(size - 6) * cellSize}" y="${cellSize}" width="${cellSize * 5}" height="${cellSize * 5}" fill="white"/>`;
-    svg += `<rect x="${(size - 5) * cellSize}" y="${cellSize * 2}" width="${cellSize * 3}" height="${cellSize * 3}" fill="black"/>`;
-    svg += `<rect x="0" y="${(size - 7) * cellSize}" width="${cellSize * 7}" height="${cellSize * 7}" fill="black"/>`;
-    svg += `<rect x="${cellSize}" y="${(size - 6) * cellSize}" width="${cellSize * 5}" height="${cellSize * 5}" fill="white"/>`;
-    svg += `<rect x="${cellSize * 2}" y="${(size - 5) * cellSize}" width="${cellSize * 3}" height="${cellSize * 3}" fill="black"/>`;
-    svg += `</svg>`;
-    return svg;
-  }
-  
-  if (btnGenQR && qrContainer) {
-    btnGenQR.addEventListener('click', function() {
-      btnGenQR.disabled = true;
-      btnGenQR.textContent = '🔄 Generando QR...';
-      
-      setTimeout(() => {
-        const displayNameEl = $('displayName');
-        const identityHash = btoa((displayNameEl ? displayNameEl.textContent : 'user') + Date.now()).substring(0, 20);
-        const qrSVG = generateSimpleQRPattern(identityHash);
-        qrContainer.innerHTML = qrSVG;
-        btnGenQR.disabled = false;
-        btnGenQR.textContent = '🔄 Generar QR Cifrado';
-        alert('✅ QR de identidad generado.');
-      }, 1500);
-    });
-  }
-  
-  // 6. Multifirma
-  const multisigToggle = $('multisigToggle');
-  const multisigStatus = $('multisigStatus');
-  
-  if (multisigToggle && multisigStatus) {
-    const estado = localStorage.getItem('arv_multifirma') === 'true';
-    multisigToggle.checked = estado;
-    multisigStatus.textContent = estado ? 'Multifirma: ACTIVADA' : 'Multifirma: DESACTIVADA';
-    multisigStatus.style.color = estado ? '#a78bfa' : '#64748b';
-    
-    multisigToggle.addEventListener('change', function() {
-      localStorage.setItem('arv_multifirma', this.checked);
-      multisigStatus.textContent = this.checked ? 'Multifirma: ACTIVADA' : 'Multifirma: DESACTIVADA';
-      multisigStatus.style.color = this.checked ? '#a78bfa' : '#64748b';
-    });
+  // ========== AUTO-CARGAR SI YA HAY SESIÓN ==========
+  // Si ya hay sesión (por ejemplo, si el usuario recarga después de loguearse), ocultamos el panel de identidad.
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    const identityPanel = document.getElementById('digitalIdentityPanel');
+    if (identityPanel) identityPanel.classList.add('hidden');
   }
   
 })();
