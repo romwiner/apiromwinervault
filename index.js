@@ -633,62 +633,208 @@ app.post('/api/ai/command', authenticate, async(req, res) => {
     res.status(500).json({ error: 'Error procesando comando: ' + e.message });
   }
 });
-// 🔐 REGISTER
+// 🔐 REGISTER - Solo con dominio @apiromwinervault.com, sin email externo
 app.post('/register', async(req, res) => {
   try {
-    const { email, password, refCode } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
-    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) return res.status(400).json({ error: 'Contraseña débil' });
-    if (!mongoReady) return res.status(201).json({ success: true, message: 'Registrado (demo)', demo: true });
-    if (await usersCollection.findOne({ email })) return res.status(400).json({ error: 'Correo ya registrado' });
+    let { username, password, nombreCompleto, fechaNacimiento, refCode } = req.body;
+    
+    // Validaciones estrictas
+    if (!username || !password || !nombreCompleto || !fechaNacimiento) {
+      return res.status(400).json({ error: 'Usuario, contraseña, nombre real y fecha de nacimiento son obligatorios' });
+    }
+    
+    // Validar nombre de usuario (solo letras minúsculas, números, guión bajo, punto, mínimo 3, máximo 30)
+    if (!/^[a-z0-9._]{3,30}$/.test(username)) {
+      return res.status(400).json({ error: 'Usuario inválido (solo minúsculas, números, . y _, 3-30 caracteres)' });
+    }
+    
+    // Validar contraseña fuerte
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Contraseña débil (mín. 8 caracteres, mayúscula, número, símbolo)' });
+    }
+    
+    // Validar mayoría de edad (18 años o más)
+    const birthDate = new Date(fechaNacimiento);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      return res.status(400).json({ error: 'Debes ser mayor de 18 años para registrarte' });
+    }
+    
+    // Generar email con dominio propio
+    const email = `${username}@apiromwinervault.com`;
+    
+    if (!mongoReady) {
+      return res.status(201).json({ success: true, message: 'Registrado (demo)', demo: true, user: { email, username } });
+    }
+    
+    // Verificar si el email o username ya existen
+    const existingEmail = await usersCollection.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ error: 'El nombre de usuario ya está registrado' });
+    }
+    const existingUsername = await usersCollection.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({ error: 'Nombre de usuario no disponible' });
+    }
+    
     const hashed = await bcrypt.hash(password, 10);
-    const newUser = { email, password: hashed, uid: 'rom_' + crypto.randomBytes(8).toString('hex'), refCode: 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase(), referredBy: refCode || null, isAdmin: ADMIN_EMAILS.includes(email), tier: 'personal', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
-    const r = await usersCollection.insertOne(newUser);
-    await profilesCollection.insertOne({ userId: r.insertedId, uid: newUser.uid, displayName: '', avatarUrl: '', bio: '', isPublic: false, createdAt: new Date() });
-    await walletCollection.insertOne({ userId: r.insertedId, balance: 0, currency: 'USD', history: [], createdAt: new Date() });
-    await affiliatesCollection.insertOne({ userId: r.insertedId, refCode: newUser.refCode, level: 'bronce', createdAt: new Date() });
-    await logAudit('register', { email });
-    res.status(201).json({ success: true, message: 'Registrado. Inicia sesión.' });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
+    const refCodeGenerated = 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase();
+    
+    const newUser = {
+      uid,
+      email,
+      username,
+      nombreCompleto,
+      fechaNacimiento: birthDate,
+      password: hashed,
+      refCode: refCodeGenerated,
+      referredBy: refCode || null,
+      isAdmin: ADMIN_EMAILS.includes(email),
+      tier: 'personal',
+      createdAt: new Date(),
+      lastLogin: null,
+      kycStatus: 'pendiente',
+      avatar: null,
+      documentoUrl: null,
+      affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 }
+    };
+    
+    const result = await usersCollection.insertOne(newUser);
+    const userId = result.insertedId;
+    
+    // Crear perfil público
+    await profilesCollection.insertOne({
+      userId,
+      uid,
+      displayName: username,
+      avatarUrl: null,
+      bio: '',
+      isPublic: false,
+      createdAt: new Date()
+    });
+    
+    // Crear wallet
+    await walletCollection.insertOne({
+      userId,
+      balance: 0,
+      currency: 'USD',
+      history: [],
+      createdAt: new Date()
+    });
+    
+    // Crear registro de afiliado
+    await affiliatesCollection.insertOne({
+      userId,
+      refCode: refCodeGenerated,
+      level: 'bronce',
+      createdAt: new Date()
+    });
+    
+    await logAudit('register', { email, uid, username });
+    
+    const userData = {
+      uid,
+      email,
+      username,
+      isAdmin: newUser.isAdmin,
+      tier: newUser.tier,
+      refCode: refCodeGenerated,
+      kycStatus: 'pendiente'
+    };
+    
+    res.status(201).json({ success: true, message: 'Registrado correctamente', user: userData });
+  } catch (e) {
+    console.error('❌ Register error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
-// 🔐 LOGIN
+// 🔐 LOGIN - Acepta email (con dominio propio) o nombre de usuario
 app.post('/login', async(req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'Credenciales requeridas' });
-    if (!mongoReady) { const t = jwt.sign({ email }, JWT_SECRET, { expiresIn: '7d' }); return res.json({ success: true, token: t, user: { email, isAdmin: ADMIN_EMAILS.includes(email) }, demo: true }); }
-    const user = await usersCollection.findOne({ email });
-    if (!user || !await bcrypt.compare(password, user.password)) return res.status(401).json({ error: 'Credenciales inválidas' });
+    const identifier = email; // puede ser email o username
+    if (!identifier || !password) return res.status(400).json({ error: 'Credenciales requeridas' });
+    
+    if (!mongoReady) {
+      const t = jwt.sign({ email: identifier }, JWT_SECRET, { expiresIn: '7d' });
+      return res.json({ success: true, token: t, user: { email: identifier, isAdmin: ADMIN_EMAILS.includes(identifier) }, demo: true });
+    }
+    
+    // Buscar primero por email (el email generado)
+    let user = await usersCollection.findOne({ email: identifier });
+    // Si no existe, buscar por nombre de usuario
+    if (!user) {
+      user = await usersCollection.findOne({ username: identifier });
+    }
+    
+    if (!user || !await bcrypt.compare(password, user.password)) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+    
     await usersCollection.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
-    const token = jwt.sign({ uid: user.uid, email, isAdmin: (user.isAdmin || ADMIN_EMAILS.includes(email)), tier: (user.tier || 'personal') }, JWT_SECRET, { expiresIn: '7d' });
-    await logAudit('login', { email });
-    res.json({ success: true, token, user: { uid: user.uid, email, isAdmin: (user.isAdmin || ADMIN_EMAILS.includes(email)), refCode: user.refCode, tier: (user.tier || 'personal') } });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    
+    const token = jwt.sign(
+      {
+        uid: user.uid,
+        email: user.email,
+        username: user.username,
+        isAdmin: user.isAdmin || ADMIN_EMAILS.includes(user.email),
+        tier: user.tier || 'personal'
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    await logAudit('login', { email: user.email, username: user.username, uid: user.uid });
+    
+    res.json({
+      success: true,
+      token,
+      user: {
+        uid: user.uid,
+        email: user.email,
+        username: user.username,
+        isAdmin: user.isAdmin || ADMIN_EMAILS.includes(user.email),
+        refCode: user.refCode,
+        tier: user.tier || 'personal'
+      }
+    });
+  } catch (e) {
+    console.error('❌ Login error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
-// 👤 PROFILE
+// 👤 PROFILE - Obtener perfil público (sin datos sensibles)
 app.get('/api/profile', authenticate, async(req, res) => {
   try {
-    if (!mongoReady) return res.json({ success: true, profile: { displayName: 'Demo' }, demo: true });
+    if (!mongoReady) return res.json({ success: true, profile: { displayName: 'Demo', username: 'demo' }, demo: true });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const p = await profilesCollection.findOne({ userId: user._id });
-    res.json({ success: true, profile: {...p, tier: user.tier }, user: { uid: user.uid, email: user.email, tier: user.tier, isAdmin: ADMIN_EMAILS.includes(user.email) } });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.post('/api/profile', authenticate, upload.single('avatar'), async(req, res) => {
-  try {
-    const { displayName, bio, isPublic } = req.body;
-    if (!mongoReady) return res.json({ success: true, message: 'Actualizado (demo)', demo: true });
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const up = {};
-    if (displayName) up.displayName = displayName;
-    if (bio) up.bio = bio;
-    if (isPublic !== undefined) up.isPublic = isPublic === 'true';
-    if (req.file) up.avatarUrl = '/uploads/' + path.basename(req.file.filename);
-    await profilesCollection.updateOne({ userId: user._id }, { $set: up, updatedAt: new Date() }, { upsert: true });
-    res.json({ success: true, message: 'Perfil actualizado correctamente' });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    
+    // Datos seguros para mostrar en el frontend
+    const safeProfile = {
+      username: user.username,
+      email: user.email,        // el email es el username@dominio, puede ser público
+      displayName: p?.displayName || user.username,
+      avatarUrl: p?.avatarUrl || null,
+      bio: p?.bio || '',
+      tier: user.tier,
+      isAdmin: user.isAdmin || ADMIN_EMAILS.includes(user.email),
+      kycStatus: user.kycStatus || 'pendiente'  // solo el estado, no los documentos
+    };
+    
+    res.json({ success: true, profile: safeProfile });
+  } catch (e) {
+    console.error('❌ Profile error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 // 💰 WALLET
 app.get('/api/wallet', authenticate, async(req, res) => {
@@ -737,12 +883,13 @@ app.post('/api/wallet/auto-subscribe', authenticate, async(req, res) => {
     res.json({ success: true, message: `✅ Suscripción a ${nextTier} activada. Se renovará automáticamente cada mes.`, newTier: nextTier, nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), remainingBalance: (wallet.balance - price).toFixed(2) });
   } catch (e) { logger.error('❌ Auto-subscribe error: ' + e.message); res.status(500).json({ error: 'Error procesando auto-suscripción: ' + e.message }); }
 });
-// 🎁 PROGRAMA DE REFERIDOS: Generar código y registrar referido
+// 🎁 PROGRAMA DE REFERIDOS: Registrar referido (usando refCode)
 app.post('/api/referrals/register', authenticate, async(req, res) => {
   try {
     const { referralCode } = req.body;
     if (!referralCode) return res.status(400).json({ error: 'Código de referido requerido' });
-    const referrer = await usersCollection.findOne({ referralCode: referralCode.toUpperCase() });
+    // Buscar al referente por el campo 'refCode' (el que se genera en el registro)
+    const referrer = await usersCollection.findOne({ refCode: referralCode.toUpperCase() });
     if (!referrer) return res.status(400).json({ error: 'Código de referido inválido' });
     if (referrer.uid === req.user.uid) return res.status(400).json({ error: 'No puedes referirte a ti mismo' });
     
@@ -767,34 +914,28 @@ async function rewardReferral(referrerUid, amount = 5.00) {
   logger.info(`🎁 Recompensa de referido: $${amount} para ${referrer.email}`);
 }
 
-// 🎁 GET: Mis referidos y ganancias
+// 🎁 GET: Mis referidos y ganancias (usando refCode)
 app.get('/api/referrals/me', authenticate, async(req, res) => {
   try {
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const myCode = user.referralCode || `ROM-${user.uid.slice(-6).toUpperCase()}`;
-    if (!user.referralCode) await usersCollection.updateOne({ _id: user._id }, { $set: { referralCode: myCode } });
+    
+    // Usar refCode (el campo correcto)
+    let myCode = user.refCode;
+    if (!myCode) {
+      // Si por alguna razón no tiene, lo generamos (solo para compatibilidad)
+      myCode = 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase();
+      await usersCollection.updateOne({ _id: user._id }, { $set: { refCode: myCode } });
+    }
     
     const referredUsers = await usersCollection.countDocuments({ referredBy: user.uid });
     const rewards = await walletCollection.findOne({ userId: user._id }, { projection: { history: { $elemMatch: { type: 'referral_reward' } } } });
     const totalEarned = rewards?.history?.reduce((sum, h) => sum + h.amount, 0) || 0;
     
     res.json({ success: true, code: myCode, link: `${process.env.APP_URL || 'https://tu-api.onrender.com'}/?ref=${myCode}`, referred: referredUsers, earned: totalEarned });
-  } catch (e) { res.status(500).json({ error: 'Error cargando referidos: ' + e.message }); }
-});
-
-app.post('/api/wallet/withdraw', authenticate, async(req, res) => {
-  try {
-    const amount = parseFloat(req.body.amount), method = req.body.method || 'bank';
-    if (!mongoReady || !walletCollection) return res.json({ success: true, message: 'Retiro demo: configura wallet real', demo: true });
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const w = await walletCollection.findOne({ userId: user._id });
-    if (!w || w.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente. Saldo actual: $' + ((w && w.balance) || 0).toFixed(2) });
-    await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -amount }, $push: { history: { type: 'withdraw', amount, method, date: new Date() } } });
-    await transactionsCollection.insertOne({ userId: user._id, type: 'withdrawal', amount, method, status: 'pending', createdAt: new Date() });
-    res.json({ success: true, message: 'Solicitud de retiro enviada. Te contactaremos para confirmar.' });
-  } catch (e) { res.status(500).json({ error: 'Error al procesar retiro: ' + e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: 'Error cargando referidos: ' + e.message });
+  }
 });
 // ✅ AUTO-PAY: Usar saldo para renovar suscripción
 app.post('/api/wallet/auto-subscribe', authenticate, async(req, res) => {
