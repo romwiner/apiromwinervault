@@ -16294,12 +16294,8 @@ async function exportFinancialData(format = 'csv') {
   </div>
   <div style="color:#8b95a5; font-size:0.85rem; margin-top:10px;">🔐 Reproducción segura • No se permite descarga</div>
 </div>
-
-<!-- 🎥 JAVASCRIPT DEL REPRODUCTOR (CORREGIDO) -->  
-<script>
-let currentBlobUrl = null;
-let securePlayerActive = false;
-
+  
+<style>
 // ✅ Validar que la URL sea interna (relativa o same-origin)
 function isValidInternalUrl(url) {
   if (!url) return false;
