@@ -2421,49 +2421,21 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     </div>
   </div>
 </section>
-<!-- 🛡️ SISTEMA UNIFICADO: Registro Militar + Funciones Post-Registro (con Backend Real) -->
+<!-- 🛡️ SISTEMA UNIFICADO: Registro Militar + Funciones Post-Registro (BACKEND REAL) -->
 <script>
 (function() {
   'use strict';
   
-  // ========== REFERENCIAS DEL FORMULARIO DE REGISTRO ==========
   const form = document.getElementById('registrationForm');
   if (!form) return;
-  
   const $ = id => document.getElementById(id);
-  let avatarBase64 = null;   // Solo avatar, los documentos se omiten por ahora (pueden añadirse después)
+  let avatarBase64 = null;
   
-  // ========== UTILIDADES DE SEGURIDAD ==========
-  
+  // ========== UTILIDADES ==========
   function sanitize(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
-  }
-  
-  function validateImage(file, maxMB = 5) {
-    return new Promise((resolve, reject) => {
-      if (!file.type.match(/^image\/(png|jpeg|webp)$/)) {
-        return reject('Solo se permiten PNG, JPG o WEBP');
-      }
-      if (file.size > maxMB * 1024 * 1024) {
-        return reject(`Tamaño máximo: ${maxMB}MB`);
-      }
-      const reader = new FileReader();
-      reader.onload = e => {
-        const img = new Image();
-        img.onload = () => {
-          if (img.width < 100 || img.height < 100) {
-            reject('Imagen muy pequeña (mín. 100x100 px)');
-          } else {
-            resolve(e.target.result);
-          }
-        };
-        img.onerror = () => reject('Archivo de imagen corrupto');
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
   }
   
   function showFeedback(msg, type = 'error') {
@@ -2492,8 +2464,32 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     return Math.floor(pwd.length * Math.log2(charset || 1));
   }
   
-  // ========== EVENTOS DEL FORMULARIO (igual que antes, solo visuales) ==========
+  function validateImage(file, maxMB = 5) {
+    return new Promise((resolve, reject) => {
+      if (!file.type.match(/^image\/(png|jpeg|webp)$/)) {
+        return reject('Solo se permiten PNG, JPG o WEBP');
+      }
+      if (file.size > maxMB * 1024 * 1024) {
+        return reject(`Tamaño máximo: ${maxMB}MB`);
+      }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          if (img.width < 100 || img.height < 100) {
+            reject('Imagen muy pequeña (mín. 100x100 px)');
+          } else {
+            resolve(e.target.result);
+          }
+        };
+        img.onerror = () => reject('Archivo de imagen corrupto');
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
   
+  // ========== EVENTOS VISUALES ==========
   if ($('regIdentityName')) {
     $('regIdentityName').addEventListener('input', function() {
       let raw = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -2555,7 +2551,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     });
   }
   
-  // Avatar (obligatorio)
   if ($('regAvatar')) {
     $('regAvatar').addEventListener('change', async function(e) {
       const file = e.target.files[0];
@@ -2574,8 +2569,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     });
   }
   
-  // ========== ENVÍO DEL FORMULARIO AL BACKEND ==========
-  
+  // ========== ENVÍO DEL FORMULARIO ==========
   form.addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -2585,111 +2579,67 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     const fechaNacimiento = $('regFechaNacimiento').value;
     const acceptTerms = $('acceptTerms').checked;
     
-    // Validaciones
     const errores = [];
     if (username.length < 3) errores.push('Usuario: mínimo 3 caracteres');
     if (!/^[a-z0-9_]+$/.test(username)) errores.push('Usuario: solo minúsculas, números y _');
     if (nombreCompleto.length < 3) errores.push('Nombre completo requerido');
     if (password.length < 8) errores.push('Contraseña: mínimo 8 caracteres');
-    const entropy = calcEntropy(password);
-    if (entropy < 40) errores.push('Contraseña muy débil');
+    if (calcEntropy(password) < 40) errores.push('Contraseña muy débil');
     if (!fechaNacimiento) errores.push('Fecha de nacimiento requerida');
     else {
-      const hoy = new Date();
-      const nac = new Date(fechaNacimiento);
+      const hoy = new Date(), nac = new Date(fechaNacimiento);
       let edad = hoy.getFullYear() - nac.getFullYear();
       const m = hoy.getMonth() - nac.getMonth();
       if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
       if (edad < 18) errores.push('Debes tener 18+ años');
     }
-    if (!avatarBase64) errores.push('Sube tu foto de perfil (avatar obligatorio)');
-    if (!acceptTerms) errores.push('Debes aceptar los términos');
+    if (!avatarBase64) errores.push('Sube tu foto de perfil');
+    if (!acceptTerms) errores.push('Acepta los términos');
     
     if (errores.length > 0) {
       showFeedback('⚠️ ' + errores.join(' • '), 'error');
       return;
     }
     
-    const btnSubmit = $('btnRegisterIdentity');
-    btnSubmit.disabled = true;
-    btnSubmit.textContent = 'Registrando en la nube...';
+    const btn = $('btnRegisterIdentity');
+    btn.disabled = true;
+    btn.textContent = 'Registrando...';
     
     try {
-      // 1. Registrar en el backend
-      const registerRes = await fetch('/register', {
+      const regRes = await fetch('/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username,
-          nombreCompleto,
-          password,
-          fechaNacimiento,
-          refCode: ''
-        })
+        body: JSON.stringify({ username, nombreCompleto, password, fechaNacimiento, refCode: '' })
       });
-      const registerData = await registerRes.json();
+      const regData = await regRes.json();
+      if (!regData.success) throw new Error(regData.error || 'Error en registro');
       
-      if (!registerData.success) {
-        throw new Error(registerData.error || 'Error en el registro');
-      }
-      
-      // 2. Iniciar sesión automáticamente
       const loginRes = await fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: username, password }) // el backend acepta username o email
+        body: JSON.stringify({ email: username, password })
       });
       const loginData = await loginRes.json();
+      if (!loginData.success) throw new Error(loginData.error || 'Error en login automático');
       
-      if (!loginData.success) {
-        throw new Error(loginData.error || 'Error al iniciar sesión');
-      }
-      
-      // 3. Guardar sesión (usando las funciones del script.js global)
-      if (typeof window.guardarSesion === 'function') {
-        window.guardarSesion(loginData.token, loginData.user);
-      } else {
-        localStorage.setItem('authToken', loginData.token);
-        localStorage.setItem('usuario', JSON.stringify(loginData.user));
-      }
-      
-      // 4. Guardar avatar en localStorage (solo para mostrar, no es crítico)
+      localStorage.setItem('authToken', loginData.token);
+      localStorage.setItem('usuario', JSON.stringify(loginData.user));
       if (avatarBase64) localStorage.setItem('arv_avatar', avatarBase64);
       
-      showFeedback(`✅ ¡Registro exitoso! Redirigiendo a tu bóveda...`, 'success');
+      showFeedback('✅ Registro exitoso. Redirigiendo...', 'success');
       
-      // 5. Redirigir a la bóveda según el rol (usando función global o directamente)
       setTimeout(() => {
-        if (typeof window.mostrarVistaSegunRol === 'function') {
-          window.mostrarVistaSegunRol(loginData.user);
-        } else {
-          // Si no existe la función, recargar la página para que el script.js la procese
-          window.location.reload();
-        }
-        // Ocultar el panel de identidad y mostrar la vista correspondiente
-        const identityPanel = document.getElementById('digitalIdentityPanel');
-        if (identityPanel) identityPanel.classList.add('hidden');
-        const landing = document.getElementById('vistaLanding');
-        if (landing) landing.style.display = 'none';
-        document.body.classList.remove('registro-activo');
+        // Forzar recarga completa de la página para que script.js procese la sesión
+        window.location.href = '/';
       }, 1500);
       
     } catch (err) {
       console.error('Error en registro:', err);
       showFeedback('❌ ' + err.message, 'error');
-      btnSubmit.disabled = false;
-      btnSubmit.textContent = '🛡️ Registrar y Cifrar Identidad';
+      btn.disabled = false;
+      btn.textContent = '🛡️ Registrar y Cifrar Identidad';
     }
   });
-  
-  // ========== AUTO-CARGAR SI YA HAY SESIÓN ==========
-  // Si ya hay sesión (por ejemplo, si el usuario recarga después de loguearse), ocultamos el panel de identidad.
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    const identityPanel = document.getElementById('digitalIdentityPanel');
-    if (identityPanel) identityPanel.classList.add('hidden');
-  }
-  
 })();
 </script>
 
