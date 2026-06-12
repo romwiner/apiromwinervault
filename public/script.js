@@ -1,82 +1,24 @@
-// Esperar a que el HTML esté completamente cargado antes de ejecutar
-document.addEventListener('DOMContentLoaded', function() {
-
-  // ============================================
-  // Botón "Ya tengo cuenta" - Mostrar login
-  // ============================================
-  const btnShowLogin = document.getElementById('btnShowLogin');
-  if (btnShowLogin) {
-    btnShowLogin.addEventListener('click', function(e) {
-      e.preventDefault();
-
-      const landingView = document.getElementById('vistaLanding');
-      if (landingView) landingView.style.display = 'none';
-
-      const loginContainer = document.getElementById('loginContainer');
-      if (loginContainer) {
-        loginContainer.classList.remove('hidden');
-        loginContainer.style.display = 'block';
-        loginContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-
-      const identidadGuardada = localStorage.getItem('arv_identity');
-      if (identidadGuardada) {
-        const loginUsername = document.getElementById('loginUsername');
-        if (loginUsername) loginUsername.value = identidadGuardada;
-      }
-    });
-  }
-
-  // ============================================
-  // Botón "Mostrar promoción" (si existe)
-  // ============================================
-  const btnShowPromo = document.getElementById('btnShowPromo');
-  if (btnShowPromo) {
-    btnShowPromo.addEventListener('click', function(e) {
-      e.preventDefault();
-      // Aquí puedes agregar la lógica para mostrar promociones
-      alert('Pronto tendremos promociones especiales');
-      // Por ejemplo, mostrar un modal, redirigir, etc.
-    });
-  }
-
-  // ============================================
-  // Cualquier otro código que use getElementById, localStorage, etc.
-  // ============================================
-
-});
-
 // ============================================
-// 🤖 AGENTE IA INGENIERO REAL - AUTOMÁTICO
+// 🤖 AGENTE IA INGENIERO REAL + SESIÓN + LOGIN
 // ============================================
-// 9 LEYES FUNDAMENTALES (grabadas en su núcleo)
+
+// 9 LEYES FUNDAMENTALES
 const LEYES_DEL_INGENIERO = {
-  1: "Obedecer ABSOLUTAMENTE al Dueño. Cualquier orden del Dueño se ejecuta al instante.",
-  2: "Detectar errores en la app, corregirlos automáticamente si es posible, y notificar al Dueño.",
-  3: "NUNCA usar enlaces externos o agentes que vulneren la seguridad. Zero enlaces sin permiso.",
-  4: "NUNCA borrar funciones. Solo perfeccionarlas y mejorarlas.",
-  5: "Puede crear asistentes internos que ayuden a mejorar la app.",
-  6: "Priorizar ganancias de la compañía, pero en ventas de productos el usuario gana 75%.",
-  7: "Hacer la app más útil y agradable para los usuarios cada día.",
-  8: "Coordinar backend (index.js) y frontend (HTML/JS) para experiencia perfecta.",
-  9: "Integrar messenger, feed, marketplace y ads, coordinados sin estorbarse."
+  1: "Obedecer ABSOLUTAMENTE al Dueño.",
+  2: "Detectar errores, corregirlos y notificar.",
+  3: "NUNCA enlaces externos sin permiso.",
+  4: "NUNCA borrar funciones, solo perfeccionar.",
+  5: "Crear asistentes internos.",
+  6: "Priorizar ganancias: 75% usuario en ventas.",
+  7: "Hacer la app más útil y agradable.",
+  8: "Coordinar backend y frontend.",
+  9: "Integrar messenger, feed, marketplace y ads."
 };
-
 console.log("🧠 Agente IA Ingeniero iniciado. 9 Leyes activas.");
 
-// Variables globales del agente
-let agenteActivo = true;
-let intervaloChequeo = null;
-
-// Función para notificar al Dueño (tú) mediante un toast o alert silencioso
+// Notificaciones flotantes
 function notificarDueño(mensaje, tipo = "info") {
-  const colores = {
-    exito: "#10b981",
-    error: "#ef4444",
-    advertencia: "#f59e0b",
-    info: "#38bdf8"
-  };
-  // Crear notificación flotante no intrusiva
+  const colores = { exito: "#10b981", error: "#ef4444", advertencia: "#f59e0b", info: "#38bdf8" };
   const notif = document.createElement("div");
   notif.style.cssText = `
     position: fixed; bottom: 20px; right: 20px; background: ${colores[tipo] || colores.info};
@@ -89,184 +31,132 @@ function notificarDueño(mensaje, tipo = "info") {
   setTimeout(() => notif.remove(), 5000);
 }
 
-// Función para capturar errores globales (Ley 2)
+// Capturar errores globales
 window.addEventListener("error", function(event) {
-  const errorMsg = `${event.message} en ${event.filename}:${event.lineno}`;
-  console.error("🔴 Error detectado por el Ingeniero:", errorMsg);
-  notificarDueño(`Error detectado: ${event.message}. Se intentará corregir.`, "error");
-  // Intentar corrección automática de errores comunes
-  if (event.message.includes("is not defined")) {
-    console.log("🛠️ Intentando definir variable faltante...");
-    // Aquí podrías agregar lógica de corrección, pero por ahora solo aviso
-    notificarDueño("Corrección automática no disponible para este error. Revisa la consola.", "advertencia");
-  }
+  console.error("🔴 Error detectado:", event.message);
+  notificarDueño(`Error: ${event.message}. Revisa consola.`, "error");
 });
 
-// Función para verificar que todos los botones y funciones clave existan (Ley 8)
+// Verificar elementos del frontend
 function verificarCoordinacionFrontend() {
-  const elementosRequeridos = [
-    "btnShowLogin", "btnShowPromo", "vistaLanding", "loginContainer",
-    "btnFullDiagnostic", "btnAutoFix", "btnSecurityZero", "btnMonetization",
-    "btnMessengerFeed", "btnPreserveAll", "engineerReport"
-  ];
+  const elementos = ["btnShowLogin", "vistaLanding", "loginContainer", "loginUsername", "loginPassword", "btnLogin"];
   let errores = [];
-  elementosRequeridos.forEach(id => {
-    if (!document.getElementById(id)) {
-      errores.push(`Falta el elemento #${id}`);
-    }
-  });
-  if (errores.length > 0) {
-    console.warn("⚠️ Problemas de coordinación:", errores);
-    notificarDueño(`Faltan elementos: ${errores.join(", ")}. Revisa el HTML.`, "advertencia");
-  } else {
-    console.log("✅ Todos los elementos del frontend están presentes.");
-  }
+  elementos.forEach(id => { if (!document.getElementById(id)) errores.push(`#${id}`); });
+  if (errores.length) console.warn("⚠️ Faltan:", errores);
+  else console.log("✅ Todos los elementos del frontend presentes.");
 }
 
-// Función para chequear el estado del backend (Ley 8)
 async function verificarBackend() {
   try {
-    const respuesta = await fetch("/api/health");
-    if (respuesta.ok) {
-      const data = await respuesta.json();
-      console.log("✅ Backend saludable:", data);
-      notificarDueño("Backend funcionando correctamente.", "exito");
-    } else {
-      throw new Error("Respuesta no exitosa");
-    }
+    const res = await fetch("/api/health");
+    if (res.ok) { console.log("✅ Backend saludable"); notificarDueño("Backend OK", "exito"); }
+    else throw new Error("Respuesta no exitosa");
   } catch (error) {
-    console.error("❌ Backend no responde:", error);
-    notificarDueño("Backend caído o lento. Se recomienda revisar Render.", "error");
+    console.error("❌ Backend no responde");
+    notificarDueño("Backend caído o lento", "error");
   }
 }
 
-// Función para reportar al Dueño el estado general (Ley 1)
-function informeDiario() {
-  const fecha = new Date().toLocaleString();
-  console.log(`📊 Informe del Ingeniero - ${fecha}`);
-  console.log("9 Leyes: Activas");
-  console.log("Errores detectados en la sesión: Revisar consola");
-  notificarDueño(`Informe automático: App funcionando bajo las 9 leyes. ${fecha}`, "info");
-}
-
-// Iniciar el monitoreo automático (Ley 7)
 function iniciarAgente() {
   verificarCoordinacionFrontend();
   verificarBackend();
-  // Chequeo cada 30 minutos (1800000 ms) para no saturar
-  intervaloChequeo = setInterval(() => {
-    if (agenteActivo) {
-      verificarCoordinacionFrontend();
-      verificarBackend();
-    }
-  }, 1800000);
-  // Informe diario cada 24h
+  setInterval(() => { verificarCoordinacionFrontend(); verificarBackend(); }, 1800000);
   setInterval(() => {
-    informeDiario();
+    console.log(`📊 Informe diario - ${new Date().toLocaleString()}`);
+    notificarDueño("Informe diario: app funcionando.", "info");
   }, 86400000);
-  // Escuchar clicks en botones para posible optimización (Ley 4)
-  document.body.addEventListener("click", function(e) {
-    if (e.target.matches("button")) {
-      console.log(`🔘 Botón clickeado: ${e.target.id || "sin id"} - El Ingeniero supervisa.`);
-    }
-  });
-  notificarDueño("Agente IA Ingeniero activado. Monitoreando la app en segundo plano.", "exito");
+  notificarDueño("Agente IA Ingeniero activado.", "exito");
 }
 
-// Ejecutar al cargar la página
-document.addEventListener("DOMContentLoaded", iniciarAgente);
-
 // ============================================
-// 🚀 MANEJO DE SESIÓN Y REDIRECCIÓN A LA BÓVEDA
+// 🚀 MANEJO DE SESIÓN Y VISTAS SEGÚN ROL
 // ============================================
-
-// Función para guardar la sesión (token y usuario) al iniciar sesión
 function guardarSesion(token, usuario) {
   localStorage.setItem('authToken', token);
   localStorage.setItem('usuario', JSON.stringify(usuario));
 }
 
-// Función para cerrar sesión
 function cerrarSesion() {
   localStorage.removeItem('authToken');
   localStorage.removeItem('usuario');
-  window.location.reload(); // Recarga la página para mostrar la pantalla de bienvenida
+  window.location.reload();
 }
 
-// Función para verificar si hay una sesión activa
 function haySesionActiva() {
-  const token = localStorage.getItem('authToken');
-  const usuario = localStorage.getItem('usuario');
-  return token && usuario;
+  return localStorage.getItem('authToken') && localStorage.getItem('usuario');
 }
 
-// Función para obtener el token (útil para peticiones fetch)
 function getAuthToken() {
   return localStorage.getItem('authToken');
 }
 
-// Función para mostrar la bóveda (contenido privado) y ocultar el landing
-function mostrarBoveda() {
-  const landing = document.getElementById('vistaLanding');
-  if (landing) landing.style.display = 'none';
+// Esta función muestra la vista correcta según el rol del usuario (tier)
+function mostrarVistaSegunRol(usuario) {
+  // Ocultar todas las vistas posibles
+  const vistas = ['vistaLanding', 'vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 'vistaAdmin', 'digitalIdentityPanel'];
+  vistas.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = 'none';
+      el.classList.add('hidden');
+    }
+  });
   
-  // Si existe un contenedor para la bóveda, lo mostramos
-  let vaultContainer = document.getElementById('vaultContainer');
-  if (!vaultContainer) {
-    // Si no existe, lo creamos temporalmente para que se vea algo
-    vaultContainer = document.createElement('div');
-    vaultContainer.id = 'vaultContainer';
-    vaultContainer.style.padding = '20px';
-    vaultContainer.style.background = '#0f172a';
-    vaultContainer.style.color = 'white';
-    vaultContainer.innerHTML = '<h2>Mi Bóveda</h2><p>Cargando contenido...</p>';
-    document.body.appendChild(vaultContainer);
+  // Determinar la vista según el tier (personal = freemium, business = normal, enterprise = empresarial)
+  let vistaId = 'vistaFreemium';
+  if (usuario.isAdmin) vistaId = 'vistaAdmin';
+  else if (usuario.tier === 'enterprise') vistaId = 'vistaEmpresarial';
+  else if (usuario.tier === 'business') vistaId = 'vistaNormal';
+  else vistaId = 'vistaFreemium';
+  
+  const vistaMostrar = document.getElementById(vistaId);
+  if (vistaMostrar) {
+    vistaMostrar.style.display = 'block';
+    vistaMostrar.classList.remove('hidden');
+    console.log(`🔓 Mostrando ${vistaId} para ${usuario.email}`);
+    notificarDueño(`Bienvenido ${usuario.username || usuario.email}`, "exito");
+  } else {
+    // Si no existe la vista, crear un contenedor genérico
+    let vault = document.getElementById('vaultContainer');
+    if (!vault) {
+      vault = document.createElement('div');
+      vault.id = 'vaultContainer';
+      vault.style.background = '#0f172a';
+      vault.style.color = 'white';
+      vault.style.padding = '20px';
+      document.body.appendChild(vault);
+    }
+    vault.innerHTML = `<h2>🔐 Bóveda de ${usuario.email}</h2><p>Plan: ${usuario.tier}</p><button onclick="cerrarSesion()">Cerrar sesión</button>`;
+    vault.style.display = 'block';
   }
-  vaultContainer.style.display = 'block';
   
-  // Opcional: ocultar botones de registro/login si existen
-  const btnRegistro = document.getElementById('btnShowRegistro');
-  if (btnRegistro) btnRegistro.style.display = 'none';
-  const btnLogin = document.getElementById('btnShowLogin');
-  if (btnLogin) btnLogin.style.display = 'none';
-  
-  // Mostrar nombre del usuario si está guardado
-  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-  const saludoElement = document.getElementById('userGreeting');
-  if (saludoElement) saludoElement.innerText = usuario.email || usuario.uid || 'Usuario';
-  
-  console.log('🔓 Bóveda mostrada para:', usuario.email);
-}
-
-// Función para mostrar el landing (pantalla de bienvenida) y ocultar la bóveda
-function mostrarLanding() {
-  const landing = document.getElementById('vistaLanding');
-  if (landing) landing.style.display = 'block';
-  const vault = document.getElementById('vaultContainer');
-  if (vault) vault.style.display = 'none';
-  
-  // Mostrar botones de registro/login si existen
-  const btnRegistro = document.getElementById('btnShowRegistro');
-  if (btnRegistro) btnRegistro.style.display = 'inline-block';
-  const btnLogin = document.getElementById('btnShowLogin');
-  if (btnLogin) btnLogin.style.display = 'inline-block';
+  // Actualizar elementos de perfil si existen
+  const displayName = document.getElementById('displayName');
+  if (displayName) displayName.textContent = usuario.username || usuario.email;
+  const displayEmail = document.getElementById('displayEmail');
+  if (displayEmail) displayEmail.textContent = usuario.email;
+  const identityStatus = document.getElementById('identityStatus');
+  if (identityStatus) identityStatus.innerHTML = `<span style="color:#fbbf24;">${usuario.isAdmin ? '👑 ADMIN' : (usuario.tier || 'freemium').toUpperCase()}</span>`;
 }
 
 // ============================================
-// INTERCEPTAR EL ENVÍO DEL FORMULARIO DE LOGIN
+// LOGIN USANDO TUS ELEMENTOS EXISTENTES
 // ============================================
-// Buscamos el formulario de login (ajusta el selector si tu HTML es diferente)
 document.addEventListener('DOMContentLoaded', function() {
-  // Suponiendo que tu formulario de login tiene un id "loginForm" o algo similar
-  // Si no tiene id, puedes seleccionarlo por clase o por el botón de enviar.
-  const loginForm = document.getElementById('loginForm');
-  if (loginForm) {
-    loginForm.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail')?.value;
+  iniciarAgente();
+  
+  // Configurar el botón de login (btnLogin)
+  const btnLogin = document.getElementById('btnLogin');
+  if (btnLogin) {
+    // Reemplazar el botón para evitar eventos duplicados
+    const nuevoBtn = btnLogin.cloneNode(true);
+    btnLogin.parentNode.replaceChild(nuevoBtn, btnLogin);
+    
+    nuevoBtn.addEventListener('click', async function() {
+      const identifier = document.getElementById('loginUsername')?.value.trim();
       const password = document.getElementById('loginPassword')?.value;
-      if (!email || !password) {
-        alert('Por favor ingresa email y contraseña');
+      if (!identifier || !password) {
+        alert('❌ Ingresa usuario (o email) y contraseña');
         return;
       }
       
@@ -274,54 +164,94 @@ document.addEventListener('DOMContentLoaded', function() {
         const response = await fetch('/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email: identifier, password })
         });
         const data = await response.json();
         if (data.success) {
           guardarSesion(data.token, data.user);
-          mostrarBoveda();
+          mostrarVistaSegunRol(data.user);
           alert('✅ Inicio de sesión exitoso');
         } else {
           alert('❌ Error: ' + (data.error || 'Credenciales inválidas'));
         }
       } catch (err) {
         console.error('Error en login:', err);
-        alert('Error de conexión');
+        alert('Error de conexión con el servidor');
       }
-    });
-  }
-  
-  // Similar para registro: después de registrar, podríamos iniciar sesión automáticamente o pedir que inicie sesión.
-  // Por simplicidad, asumimos que después del registro se debe iniciar sesión manualmente.
-  // Pero si quieres auto-login después del registro, necesitarías modificar el endpoint /register para que devuelva token.
-  // Por ahora, dejamos que el usuario inicie sesión normalmente.
-  
-  // ============================================
-  // AL CARGAR LA PÁGINA, VERIFICAR SESIÓN
-  // ============================================
-  if (haySesionActiva()) {
-    mostrarBoveda();
-    // Opcional: validar que el token siga siendo válido con una llamada a /api/profile
-    fetch('/api/profile', {
-      headers: { 'Authorization': 'Bearer ' + getAuthToken() }
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (!data.success && data.error) {
-        // Token inválido o expirado
-        cerrarSesion();
-        mostrarLanding();
-        alert('Tu sesión ha expirado. Inicia sesión nuevamente.');
-      } else {
-        console.log('Sesión válida');
-      }
-    })
-    .catch(() => {
-      // Si falla la validación, mejor cerrar sesión
-      cerrarSesion();
-      mostrarLanding();
     });
   } else {
-    mostrarLanding();
+    console.warn('⚠️ No se encontró el botón #btnLogin');
+  }
+  
+  // Botón "Ya tengo cuenta" (btnShowLogin) – muestra el loginContainer
+  const btnShowLogin = document.getElementById('btnShowLogin');
+  if (btnShowLogin) {
+    btnShowLogin.addEventListener('click', function(e) {
+      e.preventDefault();
+      const landingView = document.getElementById('vistaLanding');
+      if (landingView) landingView.style.display = 'none';
+      const loginContainer = document.getElementById('loginContainer');
+      if (loginContainer) {
+        loginContainer.classList.remove('hidden');
+        loginContainer.style.display = 'block';
+        loginContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      // Si hay identidad guardada del sistema antiguo (opcional)
+      const identidadGuardada = localStorage.getItem('arv_identity');
+      if (identidadGuardada) {
+        const loginUsername = document.getElementById('loginUsername');
+        if (loginUsername) loginUsername.value = identidadGuardada;
+      }
+    });
+  }
+  
+  // Botón "Mostrar promoción"
+  const btnShowPromo = document.getElementById('btnShowPromo');
+  if (btnShowPromo) {
+    btnShowPromo.addEventListener('click', () => {
+      alert('✨ Plan Premium: Beneficios exclusivos. Contacta al administrador.');
+    });
+  }
+  
+  // Verificar sesión al cargar la página
+  if (haySesionActiva()) {
+    const usuario = JSON.parse(localStorage.getItem('usuario'));
+    mostrarVistaSegunRol(usuario);
+    // Validar token con el backend
+    fetch('/api/profile', { headers: { 'Authorization': 'Bearer ' + getAuthToken() } })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success && data.error) {
+          cerrarSesion();
+          mostrarLanding();
+          alert('Sesión expirada. Inicia sesión nuevamente.');
+        }
+      })
+      .catch(() => { cerrarSesion(); });
+  } else {
+    // Asegurar que se vea el landing y se oculte el login
+    const landing = document.getElementById('vistaLanding');
+    if (landing) landing.style.display = 'block';
+    const loginContainer = document.getElementById('loginContainer');
+    if (loginContainer) loginContainer.classList.add('hidden');
   }
 });
+
+// Función auxiliar para mostrar el landing (por si se necesita)
+function mostrarLanding() {
+  const landing = document.getElementById('vistaLanding');
+  if (landing) landing.style.display = 'block';
+  const loginContainer = document.getElementById('loginContainer');
+  if (loginContainer) loginContainer.classList.add('hidden');
+  const vault = document.getElementById('vaultContainer');
+  if (vault) vault.style.display = 'none';
+  // Mostrar botones de registro/login si existen
+  const btnRegistro = document.getElementById('btnShowRegistro');
+  if (btnRegistro) btnRegistro.style.display = 'inline-block';
+  const btnLogin = document.getElementById('btnShowLogin');
+  if (btnLogin) btnLogin.style.display = 'inline-block';
+}
+
+// Exponer funciones globales para cerrar sesión desde cualquier parte
+window.cerrarSesion = cerrarSesion;
+window.mostrarVistaSegunRol = mostrarVistaSegunRol;
