@@ -1,5 +1,5 @@
 // ============================================
-// 🤖 AGENTE IA INGENIERO REAL + SESIÓN + LOGIN
+// 🤖 AGENTE IA INGENIERO REAL + SESIÓN + LOGIN + QR REFERIDOS
 // ============================================
 
 // 9 LEYES FUNDAMENTALES
@@ -90,9 +90,7 @@ function getAuthToken() {
   return localStorage.getItem('authToken');
 }
 
-// Esta función muestra la vista correcta según el rol del usuario (tier)
 function mostrarVistaSegunRol(usuario) {
-  // Ocultar todas las vistas posibles
   const vistas = ['vistaLanding', 'vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 'vistaAdmin', 'digitalIdentityPanel'];
   vistas.forEach(id => {
     const el = document.getElementById(id);
@@ -102,7 +100,6 @@ function mostrarVistaSegunRol(usuario) {
     }
   });
   
-  // Determinar la vista según el tier (personal = freemium, business = normal, enterprise = empresarial)
   let vistaId = 'vistaFreemium';
   if (usuario.isAdmin) vistaId = 'vistaAdmin';
   else if (usuario.tier === 'enterprise') vistaId = 'vistaEmpresarial';
@@ -115,8 +112,11 @@ function mostrarVistaSegunRol(usuario) {
     vistaMostrar.classList.remove('hidden');
     console.log(`🔓 Mostrando ${vistaId} para ${usuario.email}`);
     notificarDueño(`Bienvenido ${usuario.username || usuario.email}`, "exito");
+    // Si el usuario está logueado y estamos mostrando la vista de identidad, actualizar QR
+    if (vistaId === 'vistaFreemium' || vistaId === 'vistaNormal' || vistaId === 'vistaEmpresarial' || vistaId === 'vistaAdmin') {
+      setTimeout(() => mostrarQRIdentidad(), 500);
+    }
   } else {
-    // Si no existe la vista, crear un contenedor genérico
     let vault = document.getElementById('vaultContainer');
     if (!vault) {
       vault = document.createElement('div');
@@ -128,15 +128,87 @@ function mostrarVistaSegunRol(usuario) {
     }
     vault.innerHTML = `<h2>🔐 Bóveda de ${usuario.email}</h2><p>Plan: ${usuario.tier}</p><button onclick="cerrarSesion()">Cerrar sesión</button>`;
     vault.style.display = 'block';
+    setTimeout(() => mostrarQRIdentidad(), 500);
   }
   
-  // Actualizar elementos de perfil si existen
   const displayName = document.getElementById('displayName');
   if (displayName) displayName.textContent = usuario.username || usuario.email;
   const displayEmail = document.getElementById('displayEmail');
   if (displayEmail) displayEmail.textContent = usuario.email;
   const identityStatus = document.getElementById('identityStatus');
   if (identityStatus) identityStatus.innerHTML = `<span style="color:#fbbf24;">${usuario.isAdmin ? '👑 ADMIN' : (usuario.tier || 'freemium').toUpperCase()}</span>`;
+}
+
+// ============================================
+// 📱 CÓDIGO QR PARA REFERIDOS (LOCAL)
+// ============================================
+
+// Función auxiliar para dibujar un QR en un canvas
+function dibujarQR(canvasId, texto, infoDivId = null, mensajeExtra = '') {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return false;
+  try {
+    const qr = qrcode(0, 'M');
+    qr.addData(texto);
+    qr.make();
+    const size = 200;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const cells = qr.getModuleCount();
+    const cellSize = size / cells;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#000000';
+    for (let row = 0; row < cells; row++) {
+      for (let col = 0; col < cells; col++) {
+        if (qr.isDark(row, col)) {
+          ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+    if (infoDivId) {
+      const infoDiv = document.getElementById(infoDivId);
+      if (infoDiv) infoDiv.innerHTML = mensajeExtra;
+    }
+    return true;
+  } catch(e) {
+    console.error(`Error dibujando QR en ${canvasId}:`, e);
+    return false;
+  }
+}
+
+// Generar QR con el código de referido del usuario logueado (dentro de la bóveda/perfil)
+async function mostrarQRIdentidad() {
+  const token = localStorage.getItem('authToken');
+  if (!token) return;
+  try {
+    const resp = await fetch('/api/identity/qr', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await resp.json();
+    if (!data.success || !data.qrData || !data.qrData.ref) return;
+    const refCode = data.qrData.ref;
+    const registerUrl = `${window.location.origin}/?ref=${refCode}`;
+    const mensaje = `<strong>Tu código de referido:</strong> ${refCode}<br>
+                     <strong>Enlace:</strong> <a href="${registerUrl}" target="_blank">${registerUrl}</a><br>
+                     <strong>Escanea este QR para registrarte y ser mi referido</strong>`;
+    dibujarQR('qrCanvas', registerUrl, 'qrIdentityInfo', mensaje);
+  } catch (err) {
+    console.error('Error generando QR de identidad:', err);
+  }
+}
+
+// Mostrar QR en la landing (página de inicio) – sin necesidad de login
+// Usa el código de referido del Dueño Supremo (puedes cambiarlo por el que quieras)
+function mostrarQRReferidoPublico() {
+  // Si ya hay sesión, no mostrar el QR público (ya se mostrará el personal en la bóveda)
+  if (localStorage.getItem('authToken')) return;
+  // Cambia este código por el del Dueño Supremo o el que quieras que aparezca en la landing
+  const defaultRefCode = 'ROM0000';  // ← REEMPLAZA POR EL CÓDIGO REAL DEL DUEÑO SUPREMO
+  const registerUrl = `${window.location.origin}/?ref=${defaultRefCode}`;
+  const mensaje = `🎁 Regístrate con mi código: <strong>${defaultRefCode}</strong><br>¡Obtén beneficios!`;
+  dibujarQR('qrCanvasLanding', registerUrl, 'qrLandingInfo', mensaje);
 }
 
 // ============================================
@@ -148,7 +220,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Configurar el botón de login (btnLogin)
   const btnLogin = document.getElementById('btnLogin');
   if (btnLogin) {
-    // Reemplazar el botón para evitar eventos duplicados
     const nuevoBtn = btnLogin.cloneNode(true);
     btnLogin.parentNode.replaceChild(nuevoBtn, btnLogin);
     
@@ -159,7 +230,6 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('❌ Ingresa usuario (o email) y contraseña');
         return;
       }
-      
       try {
         const response = await fetch('/login', {
           method: 'POST',
@@ -196,7 +266,6 @@ document.addEventListener('DOMContentLoaded', function() {
         loginContainer.style.display = 'block';
         loginContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      // Si hay identidad guardada del sistema antiguo (opcional)
       const identidadGuardada = localStorage.getItem('arv_identity');
       if (identidadGuardada) {
         const loginUsername = document.getElementById('loginUsername');
@@ -217,7 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
   if (haySesionActiva()) {
     const usuario = JSON.parse(localStorage.getItem('usuario'));
     mostrarVistaSegunRol(usuario);
-    // Validar token con el backend
     fetch('/api/profile', { headers: { 'Authorization': 'Bearer ' + getAuthToken() } })
       .then(res => res.json())
       .then(data => {
@@ -234,6 +302,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (landing) landing.style.display = 'block';
     const loginContainer = document.getElementById('loginContainer');
     if (loginContainer) loginContainer.classList.add('hidden');
+    // Mostrar QR público en la landing (si existe el canvas)
+    setTimeout(() => mostrarQRReferidoPublico(), 500);
   }
 });
 
@@ -245,13 +315,15 @@ function mostrarLanding() {
   if (loginContainer) loginContainer.classList.add('hidden');
   const vault = document.getElementById('vaultContainer');
   if (vault) vault.style.display = 'none';
-  // Mostrar botones de registro/login si existen
   const btnRegistro = document.getElementById('btnShowRegistro');
   if (btnRegistro) btnRegistro.style.display = 'inline-block';
   const btnLogin = document.getElementById('btnShowLogin');
   if (btnLogin) btnLogin.style.display = 'inline-block';
+  // También actualizar QR público si es necesario
+  setTimeout(() => mostrarQRReferidoPublico(), 100);
 }
 
-// Exponer funciones globales para cerrar sesión desde cualquier parte
+// Exponer funciones globales para cerrar sesión y mostrar QR desde cualquier parte
 window.cerrarSesion = cerrarSesion;
 window.mostrarVistaSegunRol = mostrarVistaSegunRol;
+window.mostrarQRIdentidad = mostrarQRIdentidad;
