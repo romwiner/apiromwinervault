@@ -3971,6 +3971,141 @@ app.get('/api/company/members', authenticate, async (req, res) => {
 // Puedes agregar una función similar a auto-subscribe pero para organizaciones.
 
 // ============================================
+// 📢 PUBLICIDAD INTERNA (DESTACAR PRODUCTOS)
+// ============================================
+
+// Crear un anuncio para un producto (pagar desde wallet)
+app.post('/api/ads/create', authenticate, async (req, res) => {
+  try {
+    const { productId, budget, durationDays } = req.body;
+    if (!productId || !budget || budget < 5) {
+      return res.status(400).json({ error: 'Producto, presupuesto mínimo $5 y duración en días son requeridos' });
+    }
+    const duration = parseInt(durationDays) || 7;
+
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // Verificar que el producto pertenezca al usuario
+    const product = await secretsCollection.findOne({ _id: new ObjectId(productId), userId: user._id });
+    if (!product) {
+      return res.status(404).json({ error: 'Producto no encontrado o no eres el dueño' });
+    }
+
+    // Verificar saldo en wallet
+    const wallet = await walletCollection.findOne({ userId: user._id });
+    if (!wallet || wallet.balance < budget) {
+      return res.status(400).json({ error: `Saldo insuficiente. Necesitas $${budget}. Saldo actual: $${wallet?.balance || 0}` });
+    }
+
+    // Descontar el presupuesto
+    await walletCollection.updateOne(
+      { userId: user._id },
+      {
+        $inc: { balance: -budget },
+        $push: { history: { type: 'ad_payment', amount: -budget, productId, duration, date: new Date() } }
+      }
+    );
+
+    // Calcular fecha de expiración
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + duration);
+
+    // Crear el anuncio en la colección ads
+    const ad = {
+      advertiserId: user._id,
+      productId: new ObjectId(productId),
+      budget: budget,
+      spent: 0,
+      durationDays: duration,
+      expiresAt: expiresAt,
+      active: true,
+      createdAt: new Date(),
+      productSnapshot: {
+        titulo: product.titulo,
+        price: product.price,
+        categoria: product.categoria,
+        fileName: product.fileName
+      }
+    };
+    const result = await adsCollection.insertOne(ad);
+
+    await logAudit('ad_created', { userId: user.uid, productId, budget, duration });
+    res.json({ success: true, message: '✅ Anuncio creado. Tu producto aparecerá destacado en el marketplace.', adId: result.insertedId });
+  } catch (e) {
+    console.error('Error creando anuncio:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Listar anuncios activos (para mostrar en el marketplace como productos destacados)
+app.get('/api/ads/active', async (req, res) => {
+  try {
+    const now = new Date();
+    const activeAds = await adsCollection.find({ active: true, expiresAt: { $gt: now } })
+      .sort({ budget: -1 }) // Los de mayor presupuesto primero
+      .limit(20)
+      .toArray();
+
+    // Obtener los productos completos de cada anuncio (sin exponer datos sensibles)
+    const products = [];
+    for (const ad of activeAds) {
+      const product = await secretsCollection.findOne(
+        { _id: ad.productId, isForSale: true },
+        { projection: { titulo: 1, price: 1, categoria: 1, fileName: 1, userUid: 1, sales: 1, createdAt: 1 } }
+      );
+      if (product) {
+        products.push({
+          ...product,
+          isAd: true,
+          adBudget: ad.budget,
+          adExpiresAt: ad.expiresAt
+        });
+      }
+    }
+    res.json({ success: true, ads: products });
+  } catch (e) {
+    console.error('Error listando anuncios:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// (Opcional) Cancelar un anuncio (reembolsar saldo no gastado)
+app.post('/api/ads/cancel/:adId', authenticate, async (req, res) => {
+  try {
+    const adId = req.params.adId;
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const ad = await adsCollection.findOne({ _id: new ObjectId(adId) });
+    if (!ad) return res.status(404).json({ error: 'Anuncio no encontrado' });
+    if (ad.advertiserId.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'No eres el propietario de este anuncio' });
+    }
+    if (!ad.active) return res.status(400).json({ error: 'El anuncio ya está inactivo o expirado' });
+
+    // Calcular reembolso (presupuesto total menos lo gastado; aquí no llevamos contabilidad de gastos por clic, así que reembolsamos todo)
+    // En un sistema más avanzado, podrías descontar por impresiones/clics. Simplificamos: reembolso total.
+    const refund = ad.budget - (ad.spent || 0);
+    if (refund > 0) {
+      await walletCollection.updateOne(
+        { userId: user._id },
+        {
+          $inc: { balance: refund },
+          $push: { history: { type: 'ad_refund', amount: refund, adId, date: new Date() } }
+        }
+      );
+    }
+    await adsCollection.updateOne({ _id: ad._id }, { $set: { active: false, cancelledAt: new Date() } });
+    await logAudit('ad_cancelled', { userId: user.uid, adId, refund });
+    res.json({ success: true, message: `Anuncio cancelado. Se reembolsaron $${refund} a tu wallet.` });
+  } catch (e) {
+    console.error('Error cancelando anuncio:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL ABSOLUTO
 // ============================================
 async function startServer() {
