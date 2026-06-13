@@ -689,7 +689,7 @@ app.post('/register', async(req, res) => {
     
     const hashed = await bcrypt.hash(password, 10);
     const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
-    const refCodeGenerated = 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase();
+   const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
     
     const newUser = {
       uid,
