@@ -1112,40 +1112,164 @@ app.delete('/vault/:id', authenticate, async(req, res) => {
     res.json({ success: true, message: 'Contenido eliminado permanentemente' });
   } catch (e) { res.status(500).json({ error: 'Error al eliminar: ' + e.message }); }
 });
- // 💰 BUY
+// 💰 COMPRA CON REPARTO REALISTA (75% vendedor, 15% plataforma, 8% afiliados, 2% fondo solidario)
 app.post('/api/buy/:id', authenticate, async(req, res) => {
   try {
-    if (!mongoReady || !secretsCollection || !walletCollection) return res.json({ success: true, message: 'Compra demo: configura MongoDB y wallet', demo: true });
+    if (!mongoReady || !secretsCollection || !walletCollection) {
+      return res.json({ success: true, message: 'Compra demo: configura MongoDB y wallet', demo: true });
+    }
+
     const buyer = await usersCollection.findOne({ uid: req.user.uid });
     if (!buyer) return res.status(404).json({ error: 'Usuario no encontrado' });
+
     const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), isForSale: true });
     if (!secret) return res.status(404).json({ error: 'Contenido no disponible para venta' });
+
     const hasBought = Array.isArray(secret.buyers) && secret.buyers.includes(buyer.uid);
-    if (hasBought) return res.status(400).json({ error: 'Ya compraste este contenido. Revisa tu Vault.' });
-    const price = secret.price || 10;
+    if (hasBought) return res.status(400).json({ error: 'Ya compraste este contenido' });
+
+    const price = parseFloat(secret.price) || 10;
     const bWallet = await walletCollection.findOne({ userId: buyer._id });
-    if (!bWallet || bWallet.balance < price) return res.status(400).json({ error: 'Saldo insuficiente. Necesitas $' + price + ' USD. Saldo actual: $' + ((bWallet && bWallet.balance) || 0).toFixed(2) });
+    if (!bWallet || bWallet.balance < price) {
+      return res.status(400).json({ error: `Saldo insuficiente. Necesitas $${price}. Saldo: $${bWallet?.balance || 0}` });
+    }
+
     const seller = await usersCollection.findOne({ _id: secret.userId });
-    const sWallet = await walletCollection.findOne({ userId: seller._id });
-    let affCommission = 0;
-    if (buyer.referredBy) { const referrer = await usersCollection.findOne({ refCode: buyer.referredBy }); if (referrer && referrer._id.toString() !== secret.userId.toString()) affCommission = price * 0.15; }
-    const sellerAmount = price - affCommission;
-    await walletCollection.updateOne({ userId: buyer._id }, { $inc: { balance: -price }, $push: { history: { type: 'purchase', amount: -price, item: secret.titulo, date: new Date() } } });
-    if (sWallet) await walletCollection.updateOne({ _id: sWallet._id }, { $inc: { balance: sellerAmount }, $push: { history: { type: 'sale', amount: sellerAmount, item: secret.titulo, date: new Date() } } });
-    if (affCommission > 0) { const ref = await usersCollection.findOne({ refCode: buyer.referredBy }); if (ref) { const rWallet = await walletCollection.findOne({ userId: ref._id }); if (rWallet) await walletCollection.updateOne({ _id: rWallet._id }, { $inc: { balance: affCommission }, $push: { history: { type: 'affiliate', amount: affCommission, item: 'Ref: ' + secret.titulo, date: new Date() } } }); } }
-    await secretsCollection.updateOne({ _id: secret._id }, { $inc: { sales: 1 }, $push: { buyers: buyer.uid } });
-    await transactionsCollection.insertOne({ 
-      type: 'sale', 
-      amount: price, 
-      seller: secret.userUid, 
-      buyer: buyer.uid, 
+    if (!seller) return res.status(404).json({ error: 'Vendedor no encontrado' });
+
+    // =====================================================
+    // MODELO ECONÓMICO REALISTA:
+    // - Vendedor: 75% del precio
+    // - Plataforma: 15%
+    // - Cadena afiliados (3 niveles): 8% total (5%+2%+1%)
+    // - Fondo solidario: 2%
+    // =====================================================
+    const sellerPercent = 0.75;
+    const platformPercent = 0.15;
+    const affiliatePercentLevel1 = 0.05;
+    const affiliatePercentLevel2 = 0.02;
+    const affiliatePercentLevel3 = 0.01;
+    const solidaryPercent = 0.02;
+
+    const sellerAmount = price * sellerPercent;
+    const platformAmount = price * platformPercent;
+    const solidaryAmount = price * solidaryPercent;
+
+    let affiliateLevel1Amount = 0, affiliateLevel2Amount = 0, affiliateLevel3Amount = 0;
+    let affiliateLevel1User = null, affiliateLevel2User = null, affiliateLevel3User = null;
+
+    // Cadena de referidos del comprador (requiere campos referredBy, referredBy2, referredBy3 en registro)
+    if (buyer.referredBy) {
+      const referrer1 = await usersCollection.findOne({ uid: buyer.referredBy });
+      if (referrer1) {
+        affiliateLevel1User = referrer1;
+        affiliateLevel1Amount = price * affiliatePercentLevel1;
+        if (referrer1.referredBy) {
+          const referrer2 = await usersCollection.findOne({ uid: referrer1.referredBy });
+          if (referrer2) {
+            affiliateLevel2User = referrer2;
+            affiliateLevel2Amount = price * affiliatePercentLevel2;
+            if (referrer2.referredBy) {
+              const referrer3 = await usersCollection.findOne({ uid: referrer2.referredBy });
+              if (referrer3) {
+                affiliateLevel3User = referrer3;
+                affiliateLevel3Amount = price * affiliatePercentLevel3;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // =====================================================
+    // ACTUALIZAR WALLETS
+    // =====================================================
+    // Comprador
+    await walletCollection.updateOne(
+      { userId: buyer._id },
+      { $inc: { balance: -price }, $push: { history: { type: 'purchase', amount: -price, item: secret.titulo, date: new Date() } } }
+    );
+
+    // Vendedor (75%)
+    if (sellerAmount > 0) {
+      await walletCollection.updateOne(
+        { userId: seller._id },
+        { $inc: { balance: sellerAmount }, $push: { history: { type: 'sale', amount: sellerAmount, item: secret.titulo, date: new Date() } } }
+      );
+    }
+
+    // Afiliados
+    if (affiliateLevel1Amount > 0 && affiliateLevel1User) {
+      await walletCollection.updateOne(
+        { userId: affiliateLevel1User._id },
+        { $inc: { balance: affiliateLevel1Amount }, $push: { history: { type: 'affiliate_level1', amount: affiliateLevel1Amount, item: secret.titulo, date: new Date() } } }
+      );
+    }
+    if (affiliateLevel2Amount > 0 && affiliateLevel2User) {
+      await walletCollection.updateOne(
+        { userId: affiliateLevel2User._id },
+        { $inc: { balance: affiliateLevel2Amount }, $push: { history: { type: 'affiliate_level2', amount: affiliateLevel2Amount, item: secret.titulo, date: new Date() } } }
+      );
+    }
+    if (affiliateLevel3Amount > 0 && affiliateLevel3User) {
+      await walletCollection.updateOne(
+        { userId: affiliateLevel3User._id },
+        { $inc: { balance: affiliateLevel3Amount }, $push: { history: { type: 'affiliate_level3', amount: affiliateLevel3Amount, item: secret.titulo, date: new Date() } } }
+      );
+    }
+
+    // Fondo solidario (2%)
+    if (solidaryAmount > 0) {
+      await db.collection('community_funds').updateOne(
+        { _id: 'solidarity_fund' },
+        { $inc: { balance: solidaryAmount }, $push: { history: { type: 'contribution', amount: solidaryAmount, from: buyer.uid, date: new Date() } } },
+        { upsert: true }
+      );
+    }
+
+    // =====================================================
+    // REGISTRAR TRANSACCIÓN Y ACTUALIZAR SECRET
+    // =====================================================
+    await secretsCollection.updateOne(
+      { _id: secret._id },
+      { $inc: { sales: 1 }, $push: { buyers: buyer.uid } }
+    );
+
+    await transactionsCollection.insertOne({
+      type: 'sale',
+      amount: price,
+      seller: secret.userUid,
+      buyer: buyer.uid,
       item: secret.titulo,
-      status: 'pending_confirmation', // ← AGREGADO: estado inicial para escrow suave
-      deliveredAt: new Date(),        // ← AGREGADO: se considera entregado al comprar (contenido digital)
-      confirmedAt: null,              // ← AGREGADO: pendiente de confirmación
-      createdAt: new Date() 
+      status: 'pending_confirmation',   // ← Escrow suave
+      deliveredAt: new Date(),
+      confirmedAt: null,
+      breakdown: {
+        sellerAmount,
+        platformAmount,
+        solidaryAmount,
+        affiliates: {
+          level1: { uid: affiliateLevel1User?.uid, amount: affiliateLevel1Amount },
+          level2: { uid: affiliateLevel2User?.uid, amount: affiliateLevel2Amount },
+          level3: { uid: affiliateLevel3User?.uid, amount: affiliateLevel3Amount }
+        }
+      },
+      createdAt: new Date()
     });
+
     await logAudit('purchase', { buyer: buyer.uid, item: secret.titulo, price, seller: secret.userUid });
+
+    // Recompensa adicional al referidor nivel 1 (opcional)
+    if (buyer.referredBy) {
+      await rewardReferral(buyer.referredBy, 4.00);
+    }
+
+    res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault. Por favor confirma recepción en 24h.', nextStep: 'confirm_delivery' });
+  } catch (e) {
+    console.error('Error en compra:', e);
+    res.status(500).json({ error: 'Error procesando compra: ' + e.message });
+  }
+});
         // 🎁 Recompensar referidor si el comprador fue referido
     if (buyer.referredBy) await rewardReferral(buyer.referredBy, 4.00);
     res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault. Por favor confirma recepción en 24h.', nextStep: 'confirm_delivery' });
