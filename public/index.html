@@ -4290,36 +4290,52 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
- <script>
-    // ============================================================
-    // 📱 SERVICE WORKER (Modo Seguro - Solo si existe localmente)
-    // ============================================================
-    function registerServiceWorkerSecure() {
-      if (!('serviceWorker' in navigator)) {
-        console.log('[apiromwinervault] Service Worker no soportado en este navegador.');
-        return;
-      }
+<script>
+  // ============================================================
+  // 📱 SERVICE WORKER (Modo Seguro - Solo si existe localmente)
+  // ============================================================
+  function addSystemLog(msg) {
+    // Función segura para logs (si ya existe, no la sobreescribe)
+    if (typeof window.addSystemLog === 'function') {
+      window.addSystemLog(msg);
+    } else {
+      console.log('[apiromwinervault]', msg);
+    }
+  }
 
-      // Verificación de seguridad: solo registrar si el archivo existe localmente
-      fetch('/sw.js', { method: 'HEAD', cache: 'no-store' })
-        .then(response => {
-          if (response.ok) {
-            return navigator.serviceWorker.register('/sw.js');
-          } else {
-            throw new Error('SW no encontrado localmente');
-          }
-        })
-        .then(reg => {
-          console.log('[apiromwinervault] ✅ PWA registrado de forma segura:', reg.scope);
-          addSystemLog('📱 PWA registrado localmente con éxito');
-        })
-        .catch(err => {
-          // Fallo silencioso - no es crítico, la app sigue funcionando
-          console.warn('[apiromwinervault] ⚠️ PWA omitido (archivo local no disponible):', err.message);
-          addSystemLog('⚠️ PWA omitido - modo offline no disponible');
-        });
+  function registerServiceWorkerSecure() {
+    if (!('serviceWorker' in navigator)) {
+      console.log('[apiromwinervault] Service Worker no soportado en este navegador.');
+      return;
     }
 
+    fetch('/sw.js', { method: 'HEAD', cache: 'no-store' })
+      .then(response => {
+        if (response.ok) {
+          return navigator.serviceWorker.register('/sw.js');
+        } else {
+          throw new Error('SW no encontrado localmente');
+        }
+      })
+      .then(reg => {
+        console.log('[apiromwinervault] ✅ PWA registrado de forma segura:', reg.scope);
+        addSystemLog('📱 PWA registrado localmente con éxito');
+      })
+      .catch(err => {
+        console.warn('[apiromwinervault] ⚠️ PWA omitido (archivo local no disponible):', err.message);
+        addSystemLog('⚠️ PWA omitido - modo offline no disponible');
+      });
+  }
+
+  // Ejecutar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', registerServiceWorkerSecure);
+  } else {
+    registerServiceWorkerSecure();
+  }
+</script>
+  
+  <script>
     // ============================================================
     // 🔍 VERIFICACIÓN DE API CON AUDITORÍA IA (Mejorada)
     // ============================================================
