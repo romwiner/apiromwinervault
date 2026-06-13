@@ -4652,12 +4652,15 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </section>
-
-<!-- 🧠 LÓGICA SEGURA DE LANDING (Cero onclick, IA integrada) -->
+<!-- 🧠 LÓGICA SEGURA DE LANDING (Cero onclick, IA integrada) - CORREGIDA -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // ============================================
+    // 1. Referencias a elementos
+    // ============================================
     const btnCreateAccount = document.getElementById('btnCreateAccount');
     const btnShowPromo = document.getElementById('btnShowPromo');
+    const btnShowLogin = document.getElementById('btnShowLogin');
     const landingApiStatus = document.getElementById('landingApiStatus');
     const landingStatusText = document.getElementById('landingStatusText');
     const landingAIAudit = document.getElementById('landingAIAudit');
@@ -4666,21 +4669,86 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🔍 [DEBUG] Elementos cargados:', {
       btnCreateAccount: !!btnCreateAccount,
       btnShowPromo: !!btnShowPromo,
+      btnShowLogin: !!btnShowLogin,
       identityPanel: !!document.getElementById('digitalIdentityPanel')
     });
 
-       // 1. Botón "Crear Cuenta Gratis" - SOLUCIÓN AGRESIVA
+    // ============================================
+    // 2. Botón "Crear Cuenta Gratis" - Mostrar panel de identidad
+    // ============================================
     if (btnCreateAccount) {
       btnCreateAccount.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         
         const identityPanel = document.getElementById('digitalIdentityPanel');
+        if (!identityPanel) return;
+
+        // OCULTAR ABSOLUTAMENTE TODO en la página excepto el panel de identidad
+        const todosLosElementos = document.querySelectorAll('body > *');
+        todosLosElementos.forEach(el => {
+          if (el.id !== 'digitalIdentityPanel' && el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE') {
+            el.style.display = 'none';
+            el.style.visibility = 'hidden';
+            el.style.opacity = '0';
+          }
+        });
         
-        if (identityPanel) {
-              
-    // 7. Botón "Ya tengo cuenta" - Mostrar formulario de login
-    const btnShowLogin = document.getElementById('btnShowLogin');
+        // Ocultar secciones específicas por ID
+        const idsAOcultar = [
+          'vistaLanding', 'vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 
+          'vistaAdmin', 'vaultSection', 'socialFeedPanel', 'earningsCenter',
+          'marketplaceSection', 'enterpriseFeatures', 'affiliatesPanel',
+          'financialAnalyticsPanel', 'dashboardView', 'authSection',
+          'notificationsAndTransparency', 'pwaBanner', 'autoPayBanner',
+          'collabPanel', 'analyticsPanel', 'aiAnalysisPanel', 'legalPanel',
+          'youtubePreviewSection', 'installShareSection', 'quickActionsAndIdentity',
+          'successView', 'portableFeatures', 'adsSection'
+        ];
+        
+        idsAOcultar.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.style.setProperty('display', 'none', 'important');
+            el.style.setProperty('visibility', 'hidden', 'important');
+            el.style.setProperty('opacity', '0', 'important');
+            el.style.setProperty('height', '0', 'important');
+            el.style.setProperty('overflow', 'hidden', 'important');
+          }
+        });
+        
+        // FORZAR que SOLO el formulario de identidad sea visible
+        identityPanel.style.setProperty('display', 'block', 'important');
+        identityPanel.style.setProperty('visibility', 'visible', 'important');
+        identityPanel.style.setProperty('opacity', '1', 'important');
+        identityPanel.style.setProperty('height', 'auto', 'important');
+        identityPanel.style.setProperty('overflow', 'visible', 'important');
+        identityPanel.style.setProperty('position', 'relative', 'important');
+        identityPanel.style.setProperty('z-index', '99999', 'important');
+        identityPanel.classList.remove('hidden');
+        
+        // Cambiar fondo del body
+        document.body.style.background = '#0a0e14';
+        document.body.style.padding = '0';
+        document.body.style.margin = '0';
+        
+        // Scroll arriba y enfocar el primer input
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          const firstInput = document.getElementById('regIdentityName');
+          if (firstInput) {
+            firstInput.focus();
+            firstInput.style.border = '2px solid #059669';
+          }
+        }, 300);
+        
+        console.log('✅ Solo formulario de identidad visible');
+      });
+    }
+
+    // ============================================
+    // 3. Botón "Ya tengo cuenta" - Mostrar formulario de login
+    // ============================================
     if (btnShowLogin) {
       btnShowLogin.addEventListener('click', function(e) {
         e.preventDefault();
@@ -4698,7 +4766,7 @@ document.addEventListener('DOMContentLoaded', function() {
           loginContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
         
-        // Auto-rellenar el usuario si existe
+        // Auto-rellenar el usuario si existe (del sistema antiguo)
         const identidadGuardada = localStorage.getItem('arv_identity');
         if (identidadGuardada) {
           const loginUsername = document.getElementById('loginUsername');
@@ -4706,69 +4774,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
     }
-          // PASO 1: OCULTAR ABSOLUTAMENTE TODO en la página
-          const todosLosElementos = document.querySelectorAll('body > *');
-          todosLosElementos.forEach(el => {
-            if (el.id !== 'digitalIdentityPanel' && el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE') {
-              el.style.display = 'none';
-              el.style.visibility = 'hidden';
-              el.style.opacity = '0';
-            }
-          });
-          
-          // PASO 2: Buscar y ocultar secciones específicas por ID
-          const idsAOcultar = [
-            'vistaLanding', 'vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 
-            'vistaAdmin', 'vaultSection', 'socialFeedPanel', 'earningsCenter',
-            'marketplaceSection', 'enterpriseFeatures', 'affiliatesPanel',
-            'financialAnalyticsPanel', 'dashboardView', 'authSection',
-            'notificationsAndTransparency', 'pwaBanner', 'autoPayBanner',
-            'collabPanel', 'analyticsPanel', 'aiAnalysisPanel', 'legalPanel',
-            'youtubePreviewSection', 'installShareSection', 'quickActionsAndIdentity',
-            'successView', 'portableFeatures', 'adsSection'
-          ];
-          
-          idsAOcultar.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-              el.style.setProperty('display', 'none', 'important');
-              el.style.setProperty('visibility', 'hidden', 'important');
-              el.style.setProperty('opacity', '0', 'important');
-              el.style.setProperty('height', '0', 'important');
-              el.style.setProperty('overflow', 'hidden', 'important');
-            }
-          });
-          
-          // PASO 3: FORZAR que SOLO el formulario de identidad sea visible
-          identityPanel.style.setProperty('display', 'block', 'important');
-          identityPanel.style.setProperty('visibility', 'visible', 'important');
-          identityPanel.style.setProperty('opacity', '1', 'important');
-          identityPanel.style.setProperty('height', 'auto', 'important');
-          identityPanel.style.setProperty('overflow', 'visible', 'important');
-          identityPanel.style.setProperty('position', 'relative', 'important');
-          identityPanel.style.setProperty('z-index', '99999', 'important');
-          identityPanel.classList.remove('hidden');
-          
-          // PASO 4: Cambiar el fondo del body para que se vea limpio
-          document.body.style.background = '#0a0e14';
-          document.body.style.padding = '0';
-          document.body.style.margin = '0';
-          
-          // PASO 5: Scroll arriba y enfocar
-          setTimeout(() => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            const firstInput = document.getElementById('regIdentityName');
-            if (firstInput) {
-              firstInput.focus();
-              firstInput.style.border = '2px solid #059669';
-            }
-          }, 300);
-          
-          console.log('✅ Solo formulario de identidad visible');
-        }
-      });
-    }
-    // 2. Botón "Unirme por $25 USD" - Mostrar promoción
+
+    // ============================================
+    // 4. Botón "Unirme por $25 USD" - Mostrar promoción
+    // ============================================
     if (btnShowPromo) {
       btnShowPromo.addEventListener('click', function() {
         const promoInfo = `
@@ -4793,7 +4802,9 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
-    // 3. Efecto hover en botones
+    // ============================================
+    // 5. Efectos hover en botones
+    // ============================================
     if (btnCreateAccount) {
       btnCreateAccount.addEventListener('mouseover', function() {
         this.style.transform = 'translateY(-2px)';
@@ -4814,7 +4825,9 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
-    // 4. Verificación de conexión y auditoría IA
+    // ============================================
+    // 6. Verificación de conexión y auditoría IA (simulada)
+    // ============================================
     setTimeout(() => {
       performLandingAICheck();
     }, 1500);
@@ -4863,7 +4876,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 500);
     }
 
-    // 5. Animación CSS
+    // ============================================
+    // 7. Estilos de animación (si no existen)
+    // ============================================
     if (!document.getElementById('landingStyles')) {
       const style = document.createElement('style');
       style.id = 'landingStyles';
@@ -4881,110 +4896,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 </script>
-<script>
-    // 2. Botón "Unirme por $25 USD" - Mostrar promoción
-    btnShowPromo.addEventListener('click', function() {
-      const promoInfo = `
-        ✨ PLAN PREMIUM APIROMWINERVAULT - $25 USD ✨
-        
-        ✅ Beneficios incluidos:
-        • Almacenamiento cifrado ilimitado
-        • Auditoría IA prioritaria
-        • Venta granular sin comisiones
-        • Identidad digital verificada
-        • Soporte 24/7 del propietario
-        • Acceso anticipado a nuevas funciones
-        
-        🔐 Todos los archivos protegidos con AES-256-GCM
-        🤖 IA integrada para análisis de seguridad
-        💰 Sistema de afiliados con cadena de valor
-        
-        Para adquirir, regístrate gratis y contacta al administrador:
-        📧 admin@romwinervault.com
-      `;
-      alert(promoInfo);
-    });
 
-    // 3. Efecto hover en botones
-    btnCreateAccount.addEventListener('mouseover', function() {
-      this.style.transform = 'translateY(-2px)';
-      this.style.boxShadow = '0 8px 25px rgba(5, 150, 105, 0.5)';
-    });
-    btnCreateAccount.addEventListener('mouseout', function() {
-      this.style.transform = 'translateY(0)';
-      this.style.boxShadow = '0 4px 15px rgba(5, 150, 105, 0.4)';
-    });
-    
-    btnShowPromo.addEventListener('mouseover', function() {
-      this.style.background = 'rgba(167, 139, 250, 0.1)';
-    });
-    btnShowPromo.addEventListener('mouseout', function() {
-      this.style.background = 'transparent';
-    });
-
-    // 4. Verificación de conexión y auditoría IA
-    setTimeout(() => {
-      performLandingAICheck();
-    }, 1500);
-
-    function performLandingAICheck() {
-      landingAIAudit.style.display = 'block';
-      landingAuditContent.innerHTML = '<span style="color: #fbbf24;">⏳ Escaneando entorno de seguridad...</span>';
-      
-      const checks = [
-        { text: '🔐 Verificando cifrado AES-256-GCM...', delay: 500 },
-        { text: '🛡️ Comprobando lista blanca de archivos...', delay: 1000 },
-        { text: '🤖 IA: Analizando integridad del servidor...', delay: 1500 },
-        { text: '🔗 Validando conexión segura...', delay: 2000 }
-      ];
-      
-      let step = 0;
-      const interval = setInterval(() => {
-        if (step < checks.length) {
-          landingAuditContent.innerHTML = `<span style="color: #fbbf24;">${checks[step].text}</span>`;
-          step++;
-        } else {
-          clearInterval(interval);
-          
-          // Mostrar resultados finales
-          const fakeHash = 'SHA-256:' + Math.random().toString(36).substring(2, 14).toUpperCase();
-          landingAuditContent.innerHTML = `
-            <div style="color: #059669;">✅ Entorno verificado y seguro</div>
-            <div style="margin-top: 6px; font-size: 0.75rem; color: #94a3b8;">
-              • Cifrado: <strong style="color: #059669;">ACTIVO</strong><br>
-              • Lista blanca: <strong style="color: #059669;">8 formatos permitidos</strong><br>
-              • IA: <strong style="color: #059669;">OPERATIVA</strong><br>
-              • Hash de sesión: <span style="font-family: monospace; font-size: 0.7rem;">${fakeHash}</span>
-            </div>
-          `;
-          
-          // Actualizar indicador de conexión
-          landingApiStatus.style.background = '#059669';
-          landingApiStatus.style.animation = 'none';
-          landingStatusText.textContent = '🟢 Servidor seguro conectado';
-          landingStatusText.style.color = '#059669';
-        }
-      }, 500);
-    }
-
-    // 5. Animación CSS
-    if (!document.getElementById('landingStyles')) {
-      const style = document.createElement('style');
-      style.id = 'landingStyles';
-      style.textContent = `
-        @keyframes rotate {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.6; transform: scale(1.2); }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  });
-</script> 
 
 <!-- 💰 CENTRO DE MONETIZACIÓN: apiromwinervault (Gana dinero con IA integrada) -->
 <section id="earningsCenter" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 0 auto; padding: 20px;">
