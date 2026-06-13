@@ -929,7 +929,7 @@ app.get('/api/referrals/me', authenticate, async(req, res) => {
     let myCode = user.refCode;
     if (!myCode) {
       // Si por alguna razón no tiene, lo generamos (solo para compatibilidad)
-      myCode = 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase();
+     myCode = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
       await usersCollection.updateOne({ _id: user._id }, { $set: { refCode: myCode } });
     }
     
