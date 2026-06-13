@@ -4256,6 +4256,256 @@ app.get('/api/gamification/badges', (req, res) => {
 // Por ahora, dejamos las funciones listas para ser integradas en /api/buy/:id y /api/referrals/register, etc.
 
 // ============================================
+// 🎮 STREAMING Y CURSOS EN LÍNEA (para Gamers/Streamers)
+// ============================================
+
+// Colecciones implícitas: streams, courses, lessons, enrollments.
+
+// ========== 1. STREAMING EN VIVO ==========
+
+// Iniciar una transmisión (solo usuarios con plan business o superior)
+app.post('/api/stream/start', authenticate, async (req, res) => {
+  try {
+    const { title, game, productId } = req.body;
+    if (!title) return res.status(400).json({ error: 'El título es obligatorio' });
+
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (user.tier === 'personal') {
+      return res.status(403).json({ error: 'Solo usuarios Business o Enterprise pueden transmitir' });
+    }
+
+    // Crear una transmisión
+    const stream = {
+      userId: user._id,
+      title,
+      game: game || 'General',
+      active: true,
+      startedAt: new Date(),
+      viewers: 0,
+      productId: productId ? new ObjectId(productId) : null,
+      chat: [] // para almacenar mensajes (limitados)
+    };
+    const result = await db.collection('streams').insertOne(stream);
+    await logAudit('stream_started', { userId: user.uid, streamId: result.insertedId, title });
+
+    res.json({ success: true, streamId: result.insertedId, message: 'Stream iniciado. Puedes compartir el enlace: /stream/' + result.insertedId });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Obtener información de un stream activo (para verlo)
+app.get('/api/stream/:streamId', async (req, res) => {
+  try {
+    const stream = await db.collection('streams').findOne({ _id: new ObjectId(req.params.streamId), active: true });
+    if (!stream) return res.status(404).json({ error: 'Stream no encontrado o finalizado' });
+
+    // Incrementar contador de espectadores (simulado, en realidad se haría con websockets)
+    await db.collection('streams').updateOne({ _id: stream._id }, { $inc: { viewers: 1 } });
+    const creator = await usersCollection.findOne({ _id: stream.userId });
+    res.json({
+      success: true,
+      stream: {
+        id: stream._id,
+        title: stream.title,
+        game: stream.game,
+        creator: creator?.username || 'Usuario',
+        creatorId: creator?.uid,
+        startedAt: stream.startedAt,
+        viewers: (stream.viewers || 0) + 1,
+        productId: stream.productId
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Finalizar transmisión
+app.post('/api/stream/end', authenticate, async (req, res) => {
+  try {
+    const { streamId } = req.body;
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const result = await db.collection('streams').updateOne(
+      { _id: new ObjectId(streamId), userId: user._id, active: true },
+      { $set: { active: false, endedAt: new Date() } }
+    );
+    if (result.matchedCount === 0) return res.status(404).json({ error: 'No tienes un stream activo con ese ID' });
+
+    await logAudit('stream_ended', { userId: user.uid, streamId });
+    res.json({ success: true, message: 'Stream finalizado' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ========== 2. CURSOS EN LÍNEA ==========
+
+// Crear un curso (solo usuarios verificados o empresas)
+app.post('/api/courses/create', authenticate, async (req, res) => {
+  try {
+    const { title, description, price, category, thumbnail } = req.body;
+    if (!title || !description || !price) return res.status(400).json({ error: 'Faltan datos obligatorios' });
+
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (user.tier === 'personal' && !user.companyId) {
+      return res.status(403).json({ error: 'Debes ser Business, Enterprise o pertenecer a una empresa para crear cursos' });
+    }
+
+    const course = {
+      userId: user._id,
+      title,
+      description,
+      price,
+      category: category || 'general',
+      thumbnail: thumbnail || null,
+      totalStudents: 0,
+      rating: 0,
+      lessons: [],
+      createdAt: new Date(),
+      isPublished: false
+    };
+    const result = await db.collection('courses').insertOne(course);
+    await logAudit('course_created', { userId: user.uid, courseId: result.insertedId, title });
+    res.json({ success: true, courseId: result.insertedId, message: 'Curso creado. Ahora puedes agregar lecciones.' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Agregar lección a un curso
+app.post('/api/courses/:courseId/lessons', authenticate, async (req, res) => {
+  try {
+    const { title, content, videoUrl, duration } = req.body;
+    if (!title || !content) return res.status(400).json({ error: 'Título y contenido requeridos' });
+
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const course = await db.collection('courses').findOne({ _id: new ObjectId(req.params.courseId), userId: user._id });
+    if (!course) return res.status(404).json({ error: 'Curso no encontrado o no eres el dueño' });
+
+    const lesson = {
+      lessonId: new ObjectId(),
+      title,
+      content,      // puede ser texto cifrado o URL de video interno (sin enlaces externos)
+      videoUrl: videoUrl || null,
+      duration: duration || 0,
+      order: (course.lessons?.length || 0) + 1,
+      createdAt: new Date()
+    };
+    await db.collection('courses').updateOne(
+      { _id: course._id },
+      { $push: { lessons: lesson } }
+    );
+    await logAudit('lesson_added', { userId: user.uid, courseId: course._id, lessonTitle: title });
+    res.json({ success: true, message: 'Lección agregada', lessonId: lesson.lessonId });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Publicar curso (ponerlo a la venta)
+app.post('/api/courses/:courseId/publish', authenticate, async (req, res) => {
+  try {
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const course = await db.collection('courses').findOne({ _id: new ObjectId(req.params.courseId), userId: user._id });
+    if (!course) return res.status(404).json({ error: 'Curso no encontrado' });
+    if (!course.lessons || course.lessons.length === 0) {
+      return res.status(400).json({ error: 'El curso debe tener al menos una lección para publicarse' });
+    }
+    await db.collection('courses').updateOne({ _id: course._id }, { $set: { isPublished: true } });
+    res.json({ success: true, message: 'Curso publicado y disponible para compra' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Listar cursos disponibles (marketplace de cursos)
+app.get('/api/courses', async (req, res) => {
+  try {
+    const courses = await db.collection('courses').find({ isPublished: true }).sort({ createdAt: -1 }).limit(50).toArray();
+    res.json({ success: true, courses });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Comprar un curso (usa wallet, igual que compra de archivos)
+app.post('/api/courses/buy/:courseId', authenticate, async (req, res) => {
+  try {
+    const course = await db.collection('courses').findOne({ _id: new ObjectId(req.params.courseId), isPublished: true });
+    if (!course) return res.status(404).json({ error: 'Curso no disponible' });
+
+    const buyer = await usersCollection.findOne({ uid: req.user.uid });
+    if (!buyer) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const price = course.price;
+    const bWallet = await walletCollection.findOne({ userId: buyer._id });
+    if (!bWallet || bWallet.balance < price) {
+      return res.status(400).json({ error: `Saldo insuficiente. Necesitas $${price}.` });
+    }
+
+    // Verificar si ya compró
+    const enrollment = await db.collection('enrollments').findOne({ userId: buyer._id, courseId: course._id });
+    if (enrollment) return res.status(400).json({ error: 'Ya compraste este curso' });
+
+    // Descontar saldo (aplicando comisiones 75/15/8/2 igual que en ventas)
+    const seller = await usersCollection.findOne({ _id: course.userId });
+    const platformPercent = 0.15;
+    const sellerPercent = 0.75;
+    const sellerAmount = price * sellerPercent;
+    const platformAmount = price * platformPercent;
+    const solidaryAmount = price * 0.02;
+    const affiliateAmount = price * 0.08; // simplificado, asumiendo que hay referido
+
+    await walletCollection.updateOne({ userId: buyer._id }, { $inc: { balance: -price } });
+    await walletCollection.updateOne({ userId: seller._id }, { $inc: { balance: sellerAmount } });
+    // Aquí podrías acreditar a afiliados (si aplica) y al fondo solidario (ya lo hace otro código)
+
+    // Registrar inscripción
+    await db.collection('enrollments').insertOne({
+      userId: buyer._id,
+      courseId: course._id,
+      enrolledAt: new Date(),
+      progress: 0,
+      lastAccessed: new Date()
+    });
+
+    await db.collection('courses').updateOne({ _id: course._id }, { $inc: { totalStudents: 1 } });
+    await logAudit('course_purchased', { buyer: buyer.uid, course: course.title, price });
+    res.json({ success: true, message: 'Curso comprado exitosamente. Ya puedes acceder a las lecciones.' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Obtener lecciones de un curso (solo si el usuario lo compró)
+app.get('/api/courses/:courseId/lessons', authenticate, async (req, res) => {
+  try {
+    const course = await db.collection('courses').findOne({ _id: new ObjectId(req.params.courseId), isPublished: true });
+    if (!course) return res.status(404).json({ error: 'Curso no encontrado' });
+
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const enrollment = await db.collection('enrollments').findOne({ userId: user._id, courseId: course._id });
+    if (!enrollment && course.userId.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'No tienes acceso a este curso. Cómpralo primero.' });
+    }
+
+    res.json({ success: true, lessons: course.lessons });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL ABSOLUTO
 // ============================================
 async function startServer() {
