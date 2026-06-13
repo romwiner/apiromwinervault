@@ -1638,62 +1638,102 @@ app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
   }
 });
 
+// ============================================
 // 🆔 IDENTITY: REGISTER APP
+// ============================================
 app.post('/api/identity/register-app', authenticate, async(req, res) => {
   try {
-    const appName = req.body.appName, redirectUri = req.body.redirectUri;
+    const { appName, redirectUri } = req.body;
     if (!appName || !redirectUri) return res.status(400).json({ error: 'Nombre de app y URL de redirección requeridos' });
     if (!mongoReady || !identityCollection) return res.json({ success: true, appId: 'demo', appSecret: 'demo', demo: true });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const appId = 'app_' + crypto.randomBytes(6).toString('hex');
     const appSecret = crypto.randomBytes(32).toString('hex');
-    await identityCollection.insertOne({ appId, appSecret, appName, redirectUri, ownerUid: user.uid, scopes: ['profile', 'email'], active: true, createdAt: new Date() });
+    await identityCollection.insertOne({
+      appId,
+      appSecret,
+      appName,
+      redirectUri,
+      ownerUid: user.uid,
+      scopes: ['profile', 'email'],
+      active: true,
+      createdAt: new Date()
+    });
+    await logAudit('app_registered', { userId: user.uid, appId, appName });
     res.json({ success: true, appId, appSecret, message: 'App registrada. Guarda appSecret de forma segura.' });
-  } catch (e) { res.status(500).json({ error: 'Error al registrar app: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error al registrar app: ' + e.message);
+    res.status(500).json({ error: 'Error al registrar app: ' + e.message });
+  }
 });
+
+// ============================================
+// 🆔 IDENTITY: AUTHORIZE APP
+// ============================================
 app.post('/api/identity/authorize', authenticate, async(req, res) => {
   try {
-    const appId = req.body.appId, scopes = req.body.scopes;
+    const { appId, scopes } = req.body;
     if (!appId) return res.status(400).json({ error: 'App ID requerido' });
     if (!mongoReady || !identityCollection) return res.json({ success: true, token: 'demo_token', demo: true });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const app = await identityCollection.findOne({ appId });
     if (!app || !app.active) return res.status(404).json({ error: 'App no encontrada o inactiva' });
-    const token = jwt.sign({ uid: user.uid, appId, scopes: scopes || app.scopes }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign(
+      { uid: user.uid, appId, scopes: scopes || app.scopes },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    await logAudit('app_authorized', { userId: user.uid, appId });
     res.json({ success: true, token, expiresIn: 86400, message: 'Token de autorización generado' });
-  } catch (e) { res.status(500).json({ error: 'Error al autorizar app: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error al autorizar app: ' + e.message);
+    res.status(500).json({ error: 'Error al autorizar app: ' + e.message });
+  }
 });
+
+// ============================================
+// 🆔 IDENTITY: REVOKE ALL APPS
+// ============================================
 app.delete('/api/identity/revoke/all', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !identityCollection) return res.json({ success: true, message: 'Revocado en modo demo', demo: true });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    await identityCollection.updateMany({ ownerUid: user.uid }, { $set: { active: false, updatedAt: new Date() } });
+    const result = await identityCollection.updateMany(
+      { ownerUid: user.uid },
+      { $set: { active: false, updatedAt: new Date() } }
+    );
+    await logAudit('apps_revoked', { userId: user.uid, count: result.modifiedCount });
     res.json({ success: true, message: 'Todos los accesos de apps revocados exitosamente' });
-  } catch (e) { res.status(500).json({ error: 'Error al revocar accesos: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error al revocar accesos: ' + e.message);
+    res.status(500).json({ error: 'Error al revocar accesos: ' + e.message });
+  }
 });
-// ✅ FIX: Endpoint QR corregido - sin duplicación, sin SVG truncado
+
+// ============================================
+// 📱 ENDPOINT QR (sin enlaces externos, QR generado por frontend)
+// ============================================
 app.get('/api/identity/qr', authenticate, async(req, res) => {
   try {
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     
-    // ✅ Solo devolver los datos, NO la URL del QR
-    // El frontend genera el QR localmente con generarQRLocal()
+    // Solo datos, el frontend genera el QR localmente (sin dependencias externas)
     const qrData = {
       uid: user.uid,
       email: user.email,
+      username: user.username,
       ref: user.refCode,
       ts: Date.now()
     };
     
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       qrPayload: JSON.stringify(qrData),
-      qrData: qrData,  // ✅ Objeto para que el frontend lo use directamente
-      // ✅ Instrucciones de instalación para PC y móvil
+      qrData: qrData,
       installGuide: {
         mobile: "1. Escanea con la cámara\n2. Toca 'Agregar a pantalla de inicio'\n3. Abre la app desde tu pantalla",
         desktop: "1. Abre en Chrome/Edge/Firefox\n2. Haz clic en el ícono 📥 de la barra de direcciones\n3. Confirma la instalación\n4. ¡Listo! Usa la app desde tu escritorio"
@@ -1704,7 +1744,10 @@ app.get('/api/identity/qr', authenticate, async(req, res) => {
     res.status(500).json({ error: 'Error al generar QR: ' + e.message });
   }
 });
+
+// ============================================
 // 📊 DASHBOARD
+// ============================================
 app.get('/api/dashboard', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !secretsCollection) return res.json({ success: true, dashboard: { revenue: 0, sales: 0, active: 0, forSale: 0 }, demo: true });
@@ -1713,144 +1756,237 @@ app.get('/api/dashboard', authenticate, async(req, res) => {
     const totalSecrets = await secretsCollection.countDocuments({ userId: user._id });
     const forSale = await secretsCollection.countDocuments({ userId: user._id, isForSale: true });
     const totalSales = await transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' });
-    res.json({ success: true, dashboard: { revenue: 0, sales: totalSales, active: totalSecrets, forSale, tier: user.tier } });
-  } catch (e) { res.status(500).json({ error: 'Error al cargar dashboard: ' + e.message }); }
+    res.json({
+      success: true,
+      dashboard: {
+        revenue: 0, // Se podría calcular sumando transacciones, pero se deja para mejora futura
+        sales: totalSales,
+        active: totalSecrets,
+        forSale,
+        tier: user.tier
+      }
+    });
+  } catch (e) {
+    logger.error('❌ Error al cargar dashboard: ' + e.message);
+    res.status(500).json({ error: 'Error al cargar dashboard: ' + e.message });
+  }
 });
-// 📋 AUDIT EXPORT
+
+// ============================================
+// 📋 AUDIT EXPORT (GDPR / SOC2)
+// ============================================
 app.get('/api/audit/export', authenticate, requireTier('business', 'enterprise'), async(req, res) => {
   try {
     const { type, startDate, endDate, organizationId } = req.query;
     if (!mongoReady || !auditCollection) return res.json({ success: true, logs: [], demo: true });
-    if (type === 'gdpr') { const report = await generateGDPRReport(req.user.uid, startDate || new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), endDate || new Date()); return res.json({ success: true, reportType: 'GDPR', data: report }); }
-    if (type === 'soc2' && req.userTier === 'enterprise') { const report = await generateSOC2Report(organizationId || req.user.uid, startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), endDate || new Date()); return res.json({ success: true, reportType: 'SOC2', data: report }); }
-    const logs = await auditCollection.find({ userId: req.user.uid }).sort({ timestamp: -1 }).limit(100).toArray();
+    
+    const start = startDate ? new Date(startDate) : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate) : new Date();
+    
+    if (type === 'gdpr') {
+      const report = await generateGDPRReport(req.user.uid, start, end);
+      return res.json({ success: true, reportType: 'GDPR', data: report });
+    }
+    if (type === 'soc2' && req.userTier === 'enterprise') {
+      const report = await generateSOC2Report(organizationId || req.user.uid, start, end);
+      return res.json({ success: true, reportType: 'SOC2', data: report });
+    }
+    const logs = await auditCollection.find({ userId: req.user.uid })
+      .sort({ timestamp: -1 })
+      .limit(100)
+      .toArray();
     res.json({ success: true, logs });
-  } catch (e) { res.status(500).json({ error: 'Error al exportar auditoría: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error al exportar auditoría: ' + e.message);
+    res.status(500).json({ error: 'Error al exportar auditoría: ' + e.message });
+  }
 });
-// 🔑 ROTATE KEYS
+
+// ============================================
+// 🔑 ROTATE KEYS (ADMIN)
+// ============================================
 app.post('/api/admin/rotate-keys', authenticate, requireAdmin, requireTier('enterprise'), async(req, res) => {
   try {
     const { userId } = req.body;
-    if (userId) { const result = await KeyRotationService.rotateUserKey(userId); return res.json(result); } else { await KeyRotationService.scheduleRotations(); return res.json({ success: true, message: 'Rotación de claves programada para usuarios elegibles' }); }
-  } catch (e) { res.status(500).json({ error: 'Error rotando claves: ' + e.message }); }
+    if (userId) {
+      const result = await KeyRotationService.rotateUserKey(userId);
+      return res.json(result);
+    } else {
+      await KeyRotationService.scheduleRotations();
+      return res.json({ success: true, message: 'Rotación de claves programada para usuarios elegibles' });
+    }
+  } catch (e) {
+    logger.error('❌ Error rotando claves: ' + e.message);
+    res.status(500).json({ error: 'Error rotando claves: ' + e.message });
+  }
 });
+
+// ============================================
 // 🔗 WEBHOOKS ADMIN
+// ============================================
 app.post('/api/admin/webhooks', authenticate, requireAdmin, async(req, res) => {
   try {
     const { userId, url, events, secret } = req.body;
     if (!url || !events) return res.status(400).json({ error: 'URL y eventos requeridos' });
-    const result = await AlertWebhookService.registerWebhook(userId || req.user.uid, { url, events, secret: secret || crypto.randomBytes(32).toString('hex') });
+    const finalSecret = secret || crypto.randomBytes(32).toString('hex');
+    const result = await AlertWebhookService.registerWebhook(userId || req.user.uid, {
+      url,
+      events,
+      secret: finalSecret
+    });
+    await logAudit('webhook_created', { userId: req.user.uid, url });
     res.json(result);
-  } catch (e) { res.status(500).json({ error: 'Error registrando webhook: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error registrando webhook: ' + e.message);
+    res.status(500).json({ error: 'Error registrando webhook: ' + e.message });
+  }
 });
+
 app.delete('/api/admin/webhooks/:url', authenticate, requireAdmin, async(req, res) => {
   try {
     if (!mongoReady) return res.json({ success: true, message: 'Demo: webhook eliminado', demo: true });
+    let decodedUrl;
     try {
-      const decodedUrl = decodeURIComponent(req.params.url);
-      await webhooksCollection.deleteOne({ userId: req.user.uid, url: decodedUrl });
+      decodedUrl = decodeURIComponent(req.params.url);
     } catch (e) {
       return res.status(400).json({ error: 'URL inválida' });
     }
+    const result = await webhooksCollection.deleteOne({ userId: req.user.uid, url: decodedUrl });
+    if (result.deletedCount === 0) return res.status(404).json({ error: 'Webhook no encontrado' });
+    await logAudit('webhook_deleted', { userId: req.user.uid, url: decodedUrl });
     res.json({ success: true, message: 'Webhook eliminado' });
-  } catch (e) { res.status(500).json({ error: 'Error eliminando webhook: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error eliminando webhook: ' + e.message);
+    res.status(500).json({ error: 'Error eliminando webhook: ' + e.message });
+  }
 });
-// 💳 STRIPE WEBHOOK
-app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async(req, res) => {
+
+// ============================================
+// 💳 STRIPE WEBHOOK (con verificación de firma)
+// ============================================
+app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  // Si no hay secreto configurado, solo modo demo
+  if (!webhookSecret || webhookSecret === 'placeholder') {
+    logger.warn('⚠️ Stripe webhook secret no configurado. Modo demo.');
+    return res.json({ received: true, demo: true });
+  }
+
+  let event;
   try {
-    const event = JSON.parse(req.body.toString());
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err) {
+    logger.error(`❌ Webhook signature verification failed: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  try {
     if (event.type === 'payment_intent.succeeded') {
-      const meta = JSON.parse(event.data.object.metadata || '{}');
-      const amount = event.data.object.amount_received / 100;
-      if (meta.type === 'deposit' && meta.uid && mongoReady && walletCollection) {
-        const user = await usersCollection.findOne({ uid: meta.uid });
-        if (user) await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: amount }, $push: { history: { type: 'deposit_stripe', amount, stripeId: event.data.object.id, date: new Date() } } });
+      const paymentIntent = event.data.object;
+      const metadata = paymentIntent.metadata || {};
+      const amount = paymentIntent.amount_received / 100;
+      const uid = metadata.uid;
+
+      if (metadata.type === 'deposit' && uid && mongoReady && walletCollection) {
+        const user = await usersCollection.findOne({ uid });
+        if (user) {
+          await walletCollection.updateOne(
+            { userId: user._id },
+            {
+              $inc: { balance: amount },
+              $push: { history: { type: 'deposit_stripe', amount, stripeId: paymentIntent.id, date: new Date() } }
+            },
+            { upsert: true }
+          );
+          await logAudit('deposit_stripe_confirmed', { uid, amount, stripeId: paymentIntent.id });
+        }
       }
     }
     res.json({ received: true });
   } catch (e) {
-    logger.error('❌ Webhook error: ' + e.message);
-    res.status(400).send('Webhook Error: ' + e.message);
+    logger.error('❌ Webhook processing error: ' + e.message);
+    res.status(500).send('Webhook processing failed');
   }
 });
+
+// ============================================
 // 👥 ADMIN: SET TIER
-app.patch('/api/admin/set-tier', authenticate, requireAdmin, async(req, res) => {
+// ============================================
+app.patch('/api/admin/set-tier', authenticate, requireAdmin, async (req, res) => {
   try {
     const { targetEmail, tier } = req.body;
-    if (!targetEmail || !['personal', 'business', 'enterprise'].includes(tier)) return res.status(400).json({ error: 'Email y tier válidos requeridos' });
-    if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo: tier actualizado', demo: true });
-    const result = await usersCollection.updateOne({ email: targetEmail }, { $set: { tier, updatedAt: new Date() } });
-    if (result.matchedCount === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
-    await logAudit('admin.set_tier', { admin: req.admin.uid, target: targetEmail, newTier: tier });
-    res.json({ success: true, message: `Tier de ${targetEmail} actualizado a ${tier}` });
-  } catch (e) { res.status(500).json({ error: 'Error al actualizar tier: ' + e.message }); }
-});
-// ✅ SELLER PREMIUM: Suscribirse como vendedor premium
-app.post('/api/marketplace/seller/premium/subscribe', authenticate, async(req, res) => {
-  try {
-    if (!mongoReady) return res.json({ success: true, message: 'Demo: Seller Premium activado', demo: true });
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const wallet = await walletCollection.findOne({ userId: user._id });
-    const price = 19.99;
-    if (wallet && wallet.balance >= price) {
-      await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -price }, $push: { history: { type: 'seller_premium', amount: -price, date: new Date() } } });
-    } else {
-      return res.status(400).json({ error: 'Saldo insuficiente. Agrega fondos para Seller Premium', currentBalance: wallet?.balance || 0, required: price });
+    const allowedTiers = ['personal', 'business', 'enterprise'];
+    if (!targetEmail || !allowedTiers.includes(tier)) {
+      return res.status(400).json({ error: 'Email y tier válidos requeridos (personal, business, enterprise)' });
     }
-    await profilesCollection.updateOne({ userId: user._id }, { $set: { sellerPremium: true, premiumSince: new Date(), premiumExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), commissionRate: 0.10, storageBonusGB: 50 } });
-    await logAudit('seller_premium_subscribed', { userId: user.uid, amount: price });
-    res.json({ success: true, message: '✅ Seller Premium activado', benefits: ['📊 Analytics avanzado', '🎯 Productos destacados', '🏷️ Cupones personalizados', '📦 +50 GB almacenamiento', '🤝 Soporte prioritario', '💰 Comisión 10%'], expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() });
-  } catch (e) { logger.error('❌ Seller premium error: ' + e.message); res.status(500).json({ error: 'Error activando Seller Premium: ' + e.message }); }
+    if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo: tier actualizado', demo: true });
+
+    const user = await usersCollection.findOne({ email: targetEmail });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const oldTier = user.tier;
+    await usersCollection.updateOne({ email: targetEmail }, { $set: { tier, updatedAt: new Date() } });
+    await logAudit('admin.set_tier', { admin: req.admin?.uid || req.user.uid, target: targetEmail, oldTier, newTier: tier });
+    res.json({ success: true, message: `Tier de ${targetEmail} actualizado de ${oldTier} a ${tier}` });
+  } catch (e) {
+    logger.error('❌ Error al actualizar tier: ' + e.message);
+    res.status(500).json({ error: 'Error al actualizar tier: ' + e.message });
+  }
 });
-// 🤖 IA INTEGRADA: Auto-etiquetado, recomendación de precio y detección de fraude
-app.post('/api/ai/analyze', authenticate, async(req, res) => {
+
+// ============================================
+// 🤖 IA INTEGRADA: Auto-etiquetado, precio, fraude
+// ============================================
+app.post('/api/ai/analyze', authenticate, async (req, res) => {
   try {
     const { fileName, fileType, fileSize, sellerUid } = req.body;
     if (!fileName) return res.status(400).json({ error: 'Nombre de archivo requerido' });
 
-    // 🏷️ 1. Auto-etiquetado por reglas
     const name = fileName.toLowerCase();
     const ext = fileType?.split('/')[1] || name.split('.').pop();
     const tags = new Set();
-    
-    // Reglas básicas por extensión y nombre
-    if (['mp4','mov','avi','webm'].includes(ext)) tags.add('video');
-    if (['mp3','wav','flac','ogg'].includes(ext)) tags.add('audio');
-    if (['pdf','doc','docx','txt','md'].includes(ext)) tags.add('documento');
-    if (['zip','rar','7z','tar'].includes(ext)) tags.add('comprimido');
-    if (['jpg','png','svg','webp','gif'].includes(ext)) tags.add('imagen');
-    
-    // Palabras clave por contexto en el nombre
-    const keywords = ['tutorial','curso','plantilla','reporte','diseño','foto','música','ebook','código','datos','template','pack'];
+
+    // Auto-etiquetado por extensión
+    const extMap = {
+      'mp4': 'video', 'mov': 'video', 'avi': 'video', 'webm': 'video',
+      'mp3': 'audio', 'wav': 'audio', 'flac': 'audio', 'ogg': 'audio',
+      'pdf': 'documento', 'doc': 'documento', 'docx': 'documento', 'txt': 'documento', 'md': 'documento',
+      'zip': 'comprimido', 'rar': 'comprimido', '7z': 'comprimido', 'tar': 'comprimido',
+      'jpg': 'imagen', 'png': 'imagen', 'svg': 'imagen', 'webp': 'imagen', 'gif': 'imagen'
+    };
+    if (extMap[ext]) tags.add(extMap[ext]);
+
+    // Palabras clave en nombre
+    const keywords = ['tutorial', 'curso', 'plantilla', 'reporte', 'diseño', 'foto', 'música', 'ebook', 'código', 'datos', 'template', 'pack'];
     keywords.forEach(k => { if (name.includes(k)) tags.add(k); });
 
-    // 💰 2. Recomendación de precio (basada en histórico)
-    let suggestedPrice = 5.00; // Base
-    if (fileSize > 100 * 1024 * 1024) suggestedPrice += 3; // >100MB
-    if (['video','curso','tutorial'].some(t => tags.has(t))) suggestedPrice += 7;
-    if (['plantilla','diseño','código'].some(t => tags.has(t))) suggestedPrice += 5;
-    
-    // Ajuste por reputación del vendedor (si existe)
+    // Precio sugerido
+    let suggestedPrice = 5.0;
+    if (fileSize > 100 * 1024 * 1024) suggestedPrice += 3;
+    if (['video', 'curso', 'tutorial'].some(t => tags.has(t))) suggestedPrice += 7;
+    if (['plantilla', 'diseño', 'código'].some(t => tags.has(t))) suggestedPrice += 5;
+
+    // Reputación del vendedor
     if (sellerUid && mongoReady) {
       const seller = await usersCollection.findOne({ uid: sellerUid });
       if (seller) {
         const profile = await profilesCollection.findOne({ userId: seller._id });
         const rep = parseFloat(profile?.reputation) || 0;
-        if (rep >= 4.5) suggestedPrice *= 1.2; // +20% para vendedores top
+        if (rep >= 4.5) suggestedPrice *= 1.2;
       }
     }
 
-    // 🔍 3. Detección de duplicados/fraude
+    // Detección de fraude
     const fraudFlags = [];
     if (mongoReady && secretsCollection) {
-      const existing = await secretsCollection.countDocuments({ fileName: fileName, userUid: sellerUid });
+      const existing = await secretsCollection.countDocuments({ fileName, userUid: sellerUid });
       if (existing > 0) fraudFlags.push('posible_duplicado_exacto');
-      
-      // Patrón sospechoso: mismo nombre en múltiples cuentas en <24h
-      const recentSameName = await secretsCollection.countDocuments({ 
-        fileName, 
-        createdAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } 
+
+      const recentSameName = await secretsCollection.countDocuments({
+        fileName,
+        createdAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
       });
       if (recentSameName >= 3) fraudFlags.push('subida_masiva_sospechosa');
     }
@@ -1860,116 +1996,234 @@ app.post('/api/ai/analyze', authenticate, async(req, res) => {
       tags: Array.from(tags),
       suggestedPrice: Math.max(1, suggestedPrice).toFixed(2),
       fraudFlags,
-      message: fraudFlags.length > 0 ? '⚠️ Revisión de seguridad activada' : '✅ Archivo verificado'
+      message: fraudFlags.length ? '⚠️ Revisión de seguridad activada' : '✅ Archivo verificado'
     });
-  } catch (e) { res.status(500).json({ error: 'Error en análisis IA: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error en análisis IA: ' + e.message);
+    res.status(500).json({ error: 'Error en análisis IA: ' + e.message });
+  }
 });
-// ✅ SELLER PREMIUM: Suscribirse como vendedor premium
-app.post('/api/marketplace/seller/premium/subscribe', authenticate, async(req, res) => {
+
+// ============================================
+// 💎 SELLER PREMIUM (SUSCRIPCIÓN)
+// ============================================
+app.post('/api/marketplace/seller/premium/subscribe', authenticate, async (req, res) => {
   try {
     if (!mongoReady) return res.json({ success: true, message: 'Demo: Seller Premium activado', demo: true });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // Verificar si ya es premium activo
+    const profile = await profilesCollection.findOne({ userId: user._id });
+    if (profile?.sellerPremium && profile?.premiumExpires > new Date()) {
+      return res.status(400).json({ error: 'Ya tienes Seller Premium activo hasta ' + profile.premiumExpires.toISOString() });
+    }
+
     const wallet = await walletCollection.findOne({ userId: user._id });
     const price = 19.99;
-    if (wallet && wallet.balance >= price) {
-      await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -price }, $push: { history: { type: 'seller_premium', amount: -price, date: new Date() } } });
-    } else {
-      return res.status(400).json({ error: 'Saldo insuficiente. Agrega fondos para Seller Premium', currentBalance: wallet?.balance || 0, required: price });
+    if (!wallet || wallet.balance < price) {
+      return res.status(400).json({
+        error: 'Saldo insuficiente. Agrega fondos para Seller Premium',
+        currentBalance: wallet?.balance || 0,
+        required: price
+      });
     }
-    await profilesCollection.updateOne({ userId: user._id }, { $set: { sellerPremium: true, premiumSince: new Date(), premiumExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), commissionRate: 0.10, storageBonusGB: 50 } });
-    await logAudit('seller_premium_subscribed', { userId: user.uid, amount: price });
-    res.json({ success: true, message: '✅ Seller Premium activado', benefits: ['📊 Analytics avanzado', '🎯 Productos destacados', '🏷️ Cupones personalizados', '📦 +50 GB almacenamiento', '🤝 Soporte prioritario', '💰 Comisión 10%'], expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() });
-  } catch (e) { logger.error('❌ Seller premium error: ' + e.message); res.status(500).json({ error: 'Error activando Seller Premium: ' + e.message }); }
+
+    // Descontar pago
+    await walletCollection.updateOne(
+      { userId: user._id },
+      {
+        $inc: { balance: -price },
+        $push: { history: { type: 'seller_premium', amount: -price, date: new Date() } }
+      }
+    );
+
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await profilesCollection.updateOne(
+      { userId: user._id },
+      {
+        $set: {
+          sellerPremium: true,
+          premiumSince: new Date(),
+          premiumExpires: expiresAt,
+          commissionRate: 0.10,
+          storageBonusGB: 50
+        }
+      },
+      { upsert: true }
+    );
+
+    await logAudit('seller_premium_subscribed', { userId: user.uid, amount: price, expiresAt });
+    res.json({
+      success: true,
+      message: '✅ Seller Premium activado',
+      benefits: [
+        '📊 Analytics avanzado',
+        '🎯 Productos destacados',
+        '🏷️ Cupones personalizados',
+        '📦 +50 GB almacenamiento',
+        '🤝 Soporte prioritario',
+        '💰 Comisión 10%'
+      ],
+      expiresAt: expiresAt.toISOString()
+    });
+  } catch (e) {
+    logger.error('❌ Seller premium error: ' + e.message);
+    res.status(500).json({ error: 'Error activando Seller Premium: ' + e.message });
+  }
 });
-// === FUNCIONES EXISTENTES: SHARE, THUMBNAIL, VERSIONS, COMMENTS, ADMIN ===
-// 🔗 SHARE LINKS
-app.post('/api/vault/:id/share', authenticate, async(req, res) => {
+
+// ============================================
+// 🔗 SHARE LINKS (enlaces compartidos)
+// ============================================
+app.post('/api/vault/:id/share', authenticate, async (req, res) => {
   try {
     const { expiresInHours = 24, password, permissions = ['view'] } = req.body;
-    const userCheck = await usersCollection.findOne({ uid: req.user.uid });
-    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
     if (!secret) return res.status(404).json({ error: 'Archivo no encontrado' });
+
     const token = crypto.randomBytes(16).toString('hex');
     const expiresAt = new Date(Date.now() + expiresInHours * 3600000);
-    const doc = { fileId: secret._id, token, createdBy: req.user.uid, permissions, expiresAt, createdAt: new Date() };
+    const doc = {
+      fileId: secret._id,
+      token,
+      createdBy: req.user.uid,
+      permissions,
+      expiresAt,
+      createdAt: new Date()
+    };
     if (password) doc.passwordHash = await bcrypt.hash(password, 10);
     await sharedLinksCollection.insertOne(doc);
     await logAudit('share_link', { fileId: req.params.id, token, expiresAt });
-    res.json({ success: true, link: `${APP_URL}/s/${token}`, expiresAt });
-  } catch (e) { res.status(500).json({ error: 'Error creando enlace: ' + e.message }); }
+    res.json({ success: true, link: `${process.env.APP_URL || 'https://apiromwinervault.onrender.com'}/s/${token}`, expiresAt });
+  } catch (e) {
+    logger.error('❌ Error creando enlace: ' + e.message);
+    res.status(500).json({ error: 'Error creando enlace: ' + e.message });
+  }
 });
-app.get('/s/:token', async(req, res) => {
+
+app.get('/s/:token', async (req, res) => {
   try {
     const link = await sharedLinksCollection.findOne({ token: req.params.token });
-    if (!link || new Date() > link.expiresAt) return res.status(404).json({ error: 'Enlace expirado' });
+    if (!link) return res.status(404).json({ error: 'Enlace no válido' });
+    if (new Date() > link.expiresAt) return res.status(410).json({ error: 'Enlace expirado' });
     const secret = await secretsCollection.findOne({ _id: link.fileId });
     if (!secret) return res.status(404).json({ error: 'Contenido eliminado' });
-    res.json({ success: true, title: secret.titulo, isFile: secret.tipo === 'archivo', requiresPassword: !!link.passwordHash });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    res.json({
+      success: true,
+      title: secret.titulo,
+      isFile: secret.tipo === 'archivo',
+      requiresPassword: !!link.passwordHash
+    });
+  } catch (e) {
+    logger.error('❌ Error accediendo a enlace: ' + e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
-// 🖼️ THUMBNAILS ✅ FIX: Eliminada duplicación de validación y userDEK
-app.post('/api/vault/:id/thumbnail', authenticate, async(req, res) => {
+
+// ============================================
+// 🖼️ THUMBNAILS
+// ============================================
+app.post('/api/vault/:id/thumbnail', authenticate, async (req, res) => {
   try {
-    const userCheck = await usersCollection.findOne({ uid: req.user.uid });
-    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
-    if (!(secret && secret.encrypted)) return res.status(400).json({ error: 'Archivo no soporta thumbnail' });
     const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user || !user.encryptedUserKey) return res.status(400).json({ error: 'Clave de cifrado no disponible' });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
+    if (!secret || !secret.encrypted) return res.status(400).json({ error: 'Archivo no soporta thumbnail' });
+    if (!user.encryptedUserKey) return res.status(400).json({ error: 'Clave de cifrado no disponible' });
+
     const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
     const img = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64');
     const thumb = await sharp(img).resize(300, 300, { fit: 'inside' }).png().toBuffer();
     const encThumb = EnvelopeEncryption.seal(thumb.toString('base64'), userDEK);
-    await thumbnailsCollection.updateOne({ fileId: secret._id }, { $set: { encrypted: encThumb, updatedAt: new Date() } }, { upsert: true });
+    await thumbnailsCollection.updateOne(
+      { fileId: secret._id },
+      { $set: { encrypted: encThumb, updatedAt: new Date() } },
+      { upsert: true }
+    );
+    await logAudit('thumbnail_generated', { fileId: req.params.id, userId: user.uid });
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: 'Error thumbnail: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error thumbnail: ' + e.message);
+    res.status(500).json({ error: 'Error generando thumbnail: ' + e.message });
+  }
 });
-app.get('/api/vault/:id/thumbnail', authenticate, async(req, res) => {
+
+app.get('/api/vault/:id/thumbnail', authenticate, async (req, res) => {
   try {
     const thumb = await thumbnailsCollection.findOne({ fileId: new ObjectId(req.params.id) });
     if (!thumb) return res.status(404).json({ error: 'Thumbnail no disponible' });
     const user = await usersCollection.findOne({ uid: req.user.uid });
-    const userDEK = EnvelopeEncryption.unwrapDEK(user && user.encryptedUserKey);
+    if (!user || !user.encryptedUserKey) return res.status(400).json({ error: 'Clave de cifrado no disponible' });
+    const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
     const dec = EnvelopeEncryption.open(thumb.encrypted, userDEK);
     res.type('image/png').send(Buffer.from(dec, 'base64'));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    logger.error('❌ Error obteniendo thumbnail: ' + e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
-// 📜 VERSIONS + DIFF
-app.post('/api/vault/:id/version', authenticate, async(req, res) => {
+
+// ============================================
+// 📜 VERSIONES Y DIFF
+// ============================================
+app.post('/api/vault/:id/version', authenticate, async (req, res) => {
   try {
     const { content } = req.body;
     if (!content) return res.status(400).json({ error: 'Contenido requerido' });
-    const userCheck = await usersCollection.findOne({ uid: req.user.uid });
-    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
-    if (!secret) return res.status(404).json({ error: 'No encontrado' });
     const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user || !user.encryptedUserKey) return res.status(400).json({ error: 'Clave de cifrado no disponible' });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
+    if (!secret) return res.status(404).json({ error: 'No encontrado' });
+    if (!user.encryptedUserKey) return res.status(400).json({ error: 'Clave de cifrado no disponible' });
+
     const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
     const last = await versionsCollection.findOne({ fileId: secret._id }, { sort: { versionNumber: -1 } });
-    const next = ((last && last.versionNumber) || 0) + 1;
-    await versionsCollection.insertOne({ fileId: secret._id, versionNumber: next, content: EnvelopeEncryption.seal(content, userDEK), createdBy: req.user.uid, createdAt: new Date() });
-    res.json({ success: true, version: next });
-  } catch (e) { res.status(500).json({ error: 'Error versión: ' + e.message }); }
+    const nextVersion = (last?.versionNumber || 0) + 1;
+    await versionsCollection.insertOne({
+      fileId: secret._id,
+      versionNumber: nextVersion,
+      content: EnvelopeEncryption.seal(content, userDEK),
+      createdBy: req.user.uid,
+      createdAt: new Date()
+    });
+    await logAudit('version_created', { fileId: req.params.id, version: nextVersion, userId: user.uid });
+    res.json({ success: true, version: nextVersion });
+  } catch (e) {
+    logger.error('❌ Error creando versión: ' + e.message);
+    res.status(500).json({ error: 'Error creando versión: ' + e.message });
+  }
 });
-app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async(req, res) => {
+
+app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async (req, res) => {
   try {
-    const userCheck = await usersCollection.findOne({ uid: req.user.uid });
-    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: (userCheck && userCheck._id) });
-    if (!secret) return res.status(404).json({ error: 'No encontrado' });
     const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user || !user.encryptedUserKey) return res.status(400).json({ error: 'Clave de cifrado no disponible' });
-    const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
+    if (!secret) return res.status(404).json({ error: 'No encontrado' });
+    if (!user.encryptedUserKey) return res.status(400).json({ error: 'Clave de cifrado no disponible' });
+
     const v1Num = parseInt(req.params.v1);
     const v2Num = parseInt(req.params.v2);
-    if (isNaN(v1Num) || isNaN(v2Num) || v1Num < 1 || v2Num < 1) return res.status(400).json({ error: 'Versión inválida. Usa números enteros positivos' });
+    if (isNaN(v1Num) || isNaN(v2Num) || v1Num < 1 || v2Num < 1) {
+      return res.status(400).json({ error: 'Versión inválida. Usa números enteros positivos' });
+    }
+
+    const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
     const v1 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: v1Num });
     const v2 = await versionsCollection.findOne({ fileId: secret._id, versionNumber: v2Num });
     if (!v1 || !v2) return res.status(404).json({ error: 'Versión no encontrada' });
+
     const c1 = EnvelopeEncryption.open(v1.content, userDEK);
     const c2 = EnvelopeEncryption.open(v2.content, userDEK);
-    const patch = diffLib.createPatch('doc', c1, c2, 'v' + req.params.v1, 'v' + req.params.v2);
+    const patch = diffLib.createPatch('doc', c1, c2, `v${v1Num}`, `v${v2Num}`);
     res.json({ success: true, diff: patch });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    logger.error('❌ Error calculando diff: ' + e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 // 👑 SUPER ADMIN FUNCTIONS
 app.delete('/api/admin/users/:email', authenticate, requireAdmin, async(req, res) => {
