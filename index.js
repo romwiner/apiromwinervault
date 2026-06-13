@@ -13,8 +13,8 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs').promises;
 const pino = require('pino');
-const pino = require('pino');
 const logger = pino({ level: 'info' }); // Crea una instancia del logger
+const fetch = require('node-fetch');
 const sharp = require('sharp');
 const diffLib = require('diff');
 const fileType = require('file-type');
@@ -44,7 +44,8 @@ const FEATURES = {
   LOCAL_SYNC: process.env.ENABLE_LOCAL_SYNC === 'true',
   WEB3_LOGIN: process.env.ENABLE_WEB3 === 'true',
   IPFS_BACKUP: process.env.ENABLE_IPFS === 'true',
-  AI_INTERNAL: process.env.ENABLE_AI !== 'false'
+  AI_INTERNAL: process.env.ENABLE_AI !== 'false',
+  ENABLE_YOUTUBE_PREVIEW: process.env.ENABLE_YOUTUBE_PREVIEW === 'true'
 };
 // 🤖 IA: DICCIONARIO DE SINÓNIMOS Y PATRONES
 const AI_PATTERNS = {
