@@ -3824,6 +3824,138 @@ app.post('/api/admin/funds/grant', authenticate, requireAdmin, async (req, res) 
 });
 
 // ============================================
+// 🏢 SUSCRIPCIONES EMPRESARIALES (MULTIUSUARIO)
+// ============================================
+
+// Crear la colección organizations si no existe (MongoDB la crea al insertar)
+
+// Registrar una nueva empresa (organización)
+app.post('/api/company/register', authenticate, async (req, res) => {
+  try {
+    const { companyName, taxId, address, plan } = req.body;
+    if (!companyName || !taxId) return res.status(400).json({ error: 'Nombre de empresa y RFC son obligatorios' });
+
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // Verificar si el usuario ya pertenece a una organización
+    const existingOrg = await db.collection('organizations').findOne({ 'members.userId': user._id });
+    if (existingOrg) return res.status(400).json({ error: 'Ya perteneces a una organización' });
+
+    // Definir precio según plan (puedes ajustar)
+    const planPrices = { basic: 49.99, professional: 99.99, enterprise: 249.99 };
+    const selectedPlan = plan || 'basic';
+    const price = planPrices[selectedPlan] || 49.99;
+
+    // Verificar saldo del usuario para pagar la suscripción
+    const wallet = await walletCollection.findOne({ userId: user._id });
+    if (!wallet || wallet.balance < price) {
+      return res.status(400).json({ error: `Saldo insuficiente. Necesitas $${price} para crear la empresa.` });
+    }
+
+    // Descontar el pago
+    await walletCollection.updateOne(
+      { userId: user._id },
+      { $inc: { balance: -price }, $push: { history: { type: 'company_registration', amount: -price, companyName, date: new Date() } } }
+    );
+
+    // Crear la organización
+    const organization = {
+      name: companyName,
+      taxId,
+      address: address || '',
+      plan: selectedPlan,
+      createdBy: user._id,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
+      members: [
+        {
+          userId: user._id,
+          role: 'owner',
+          joinedAt: new Date(),
+          email: user.email
+        }
+      ],
+      settings: { autoRenew: true }
+    };
+    const result = await db.collection('organizations').insertOne(organization);
+
+    // Asignar el rol de administrador de empresa al usuario (puedes agregar un campo `companyId` en el usuario)
+    await usersCollection.updateOne(
+      { _id: user._id },
+      { $set: { companyId: result.insertedId, companyRole: 'owner' } }
+    );
+
+    await logAudit('company_registered', { userId: user.uid, companyName, plan: selectedPlan });
+    res.json({ success: true, message: `Empresa "${companyName}" registrada correctamente.`, organizationId: result.insertedId });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Invitar a un nuevo miembro a la organización (solo owner o admin de la empresa)
+app.post('/api/company/invite', authenticate, async (req, res) => {
+  try {
+    const { email, role } = req.body;
+    if (!email || !role) return res.status(400).json({ error: 'Email y rol son requeridos' });
+    if (!['admin', 'member', 'viewer'].includes(role)) return res.status(400).json({ error: 'Rol inválido' });
+
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (!user.companyId) return res.status(400).json({ error: 'No perteneces a ninguna empresa' });
+
+    const organization = await db.collection('organizations').findOne({ _id: user.companyId });
+    if (!organization) return res.status(404).json({ error: 'Organización no encontrada' });
+
+    // Verificar que el usuario actual sea owner o admin
+    const currentMember = organization.members.find(m => m.userId.equals(user._id));
+    if (!currentMember || (currentMember.role !== 'owner' && currentMember.role !== 'admin')) {
+      return res.status(403).json({ error: 'No tienes permiso para invitar miembros' });
+    }
+
+    // Buscar al usuario invitado
+    const invitedUser = await usersCollection.findOne({ email });
+    if (!invitedUser) return res.status(404).json({ error: 'El usuario no existe en la plataforma' });
+
+    // Verificar que no sea ya miembro
+    const alreadyMember = organization.members.some(m => m.userId.equals(invitedUser._id));
+    if (alreadyMember) return res.status(400).json({ error: 'El usuario ya es miembro de la organización' });
+
+    // Agregar miembro
+    await db.collection('organizations').updateOne(
+      { _id: organization._id },
+      { $push: { members: { userId: invitedUser._id, role, joinedAt: new Date(), email } } }
+    );
+    await usersCollection.updateOne({ _id: invitedUser._id }, { $set: { companyId: organization._id, companyRole: role } });
+
+    await logAudit('company_invite', { from: user.uid, to: invitedUser.uid, role });
+    res.json({ success: true, message: `Invitación enviada a ${email} con rol ${role}` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Listar miembros de la organización
+app.get('/api/company/members', authenticate, async (req, res) => {
+  try {
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (!user.companyId) return res.status(400).json({ error: 'No perteneces a ninguna empresa' });
+
+    const organization = await db.collection('organizations').findOne({ _id: user.companyId });
+    if (!organization) return res.status(404).json({ error: 'Organización no encontrada' });
+
+    // Opcional: mostrar solo los miembros si el usuario tiene rol adecuado
+    res.json({ success: true, members: organization.members });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// (Opcional) Renovar suscripción empresarial automáticamente
+// Puedes agregar una función similar a auto-subscribe pero para organizaciones.
+
+// ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL ABSOLUTO
 // ============================================
 async function startServer() {
