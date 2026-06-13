@@ -638,7 +638,7 @@ app.post('/api/ai/command', authenticate, async(req, res) => {
     res.status(500).json({ error: 'Error procesando comando: ' + e.message });
   }
 });
-// 🔐 REGISTER - Solo con dominio @apiromwinervault.com, sin email externo
+// 🔐 REGISTER - Solo con dominio @apiromwinervault.com, sin email externo (con cadena de referidos 3 niveles)
 app.post('/register', async(req, res) => {
   try {
     let { username, password, nombreCompleto, fechaNacimiento, refCode } = req.body;
@@ -648,7 +648,7 @@ app.post('/register', async(req, res) => {
       return res.status(400).json({ error: 'Usuario, contraseña, nombre real y fecha de nacimiento son obligatorios' });
     }
     
-    // Validar nombre de usuario (solo letras minúsculas, números, guión bajo, punto, mínimo 3, máximo 30)
+    // Validar nombre de usuario
     if (!/^[a-z0-9._]{3,30}$/.test(username)) {
       return res.status(400).json({ error: 'Usuario inválido (solo minúsculas, números, . y _, 3-30 caracteres)' });
     }
@@ -658,14 +658,12 @@ app.post('/register', async(req, res) => {
       return res.status(400).json({ error: 'Contraseña débil (mín. 8 caracteres, mayúscula, número, símbolo)' });
     }
     
-    // Validar mayoría de edad (18 años o más)
+    // Validar mayoría de edad (18+)
     const birthDate = new Date(fechaNacimiento);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
     if (age < 18) {
       return res.status(400).json({ error: 'Debes ser mayor de 18 años para registrarte' });
     }
@@ -687,9 +685,29 @@ app.post('/register', async(req, res) => {
       return res.status(400).json({ error: 'Nombre de usuario no disponible' });
     }
     
+    // =====================================================
+    // CADENA DE REFERIDOS (3 niveles)
+    // =====================================================
+    let referredBy = null;
+    let referredBy2 = null;
+    let referredBy3 = null;
+    if (refCode) {
+      const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
+      if (referrer) {
+        referredBy = referrer.uid;
+        if (referrer.referredBy) {
+          referredBy2 = referrer.referredBy;
+          const referrer2 = await usersCollection.findOne({ uid: referrer.referredBy });
+          if (referrer2 && referrer2.referredBy) {
+            referredBy3 = referrer2.referredBy;
+          }
+        }
+      }
+    }
+    
     const hashed = await bcrypt.hash(password, 10);
     const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
-   const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
     
     const newUser = {
       uid,
@@ -699,7 +717,10 @@ app.post('/register', async(req, res) => {
       fechaNacimiento: birthDate,
       password: hashed,
       refCode: refCodeGenerated,
-      referredBy: refCode || null,
+      referredBy,
+      referredBy2,
+      referredBy3,
+      referralRewarded: false,   // para controlar bono de bienvenida al referidor
       isAdmin: ADMIN_EMAILS.includes(email),
       tier: 'personal',
       createdAt: new Date(),
@@ -741,7 +762,7 @@ app.post('/register', async(req, res) => {
       createdAt: new Date()
     });
     
-    await logAudit('register', { email, uid, username });
+    await logAudit('register', { email, uid, username, referredBy, referredBy2, referredBy3 });
     
     const userData = {
       uid,
@@ -759,6 +780,7 @@ app.post('/register', async(req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
 // 🔐 LOGIN - Acepta email (con dominio propio) o nombre de usuario
 app.post('/login', async(req, res) => {
   try {
