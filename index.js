@@ -4106,6 +4106,62 @@ app.post('/api/ads/cancel/:adId', authenticate, async (req, res) => {
 });
 
 // ============================================
+// 💝 DONATIVOS VOLUNTARIOS (Apoyar la plataforma)
+// ============================================
+
+// Crear donativo (el usuario envía saldo desde su wallet)
+app.post('/api/donate', authenticate, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || amount < 1) {
+      return res.status(400).json({ error: 'El monto mínimo es $1 USD' });
+    }
+
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const wallet = await walletCollection.findOne({ userId: user._id });
+    if (!wallet || wallet.balance < amount) {
+      return res.status(400).json({ error: `Saldo insuficiente. Necesitas $${amount}. Saldo actual: $${wallet?.balance || 0}` });
+    }
+
+    // Descontar del usuario
+    await walletCollection.updateOne(
+      { userId: user._id },
+      {
+        $inc: { balance: -amount },
+        $push: { history: { type: 'donation', amount: -amount, date: new Date() } }
+      }
+    );
+
+    // Acreditar a una cuenta de sistema (por ejemplo, "platform_donations")
+    await db.collection('system_wallets').updateOne(
+      { _id: 'platform_donations' },
+      {
+        $inc: { balance: amount },
+        $push: { history: { type: 'donation', amount, from: user.uid, date: new Date() } }
+      },
+      { upsert: true }
+    );
+
+    await logAudit('donation', { userId: user.uid, amount });
+    res.json({ success: true, message: `❤️ ¡Gracias por tu donativo de $${amount}! Nos ayudas a mejorar.` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// (Opcional) Consultar saldo del fondo de donaciones (solo admin)
+app.get('/api/admin/donations', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const fund = await db.collection('system_wallets').findOne({ _id: 'platform_donations' });
+    res.json({ success: true, balance: fund?.balance || 0 });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL ABSOLUTO
 // ============================================
 async function startServer() {
