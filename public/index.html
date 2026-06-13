@@ -2427,7 +2427,7 @@ if (btnOpenPublish) {
     </div>
   </div>
 </section>
-<!-- 🛡️ SISTEMA UNIFICADO: Registro Militar + Funciones Post-Registro (BACKEND REAL) -->
+<!-- 🛡️ SISTEMA UNIFICADO: Registro Militar + Funciones Post-Registro (BACKEND REAL + CONFIRMAR PASSWORD) -->
 <script>
 (function() {
   'use strict';
@@ -2495,6 +2495,56 @@ if (btnOpenPublish) {
     });
   }
   
+  // ========== AÑADIR CAMPO "CONFIRMAR CONTRASEÑA" ==========
+  const passwordField = $('#regPassword');
+  const confirmContainer = document.createElement('div');
+  confirmContainer.style.marginBottom = '16px';
+  
+  const confirmLabel = document.createElement('label');
+  confirmLabel.htmlFor = 'regConfirmPassword';
+  confirmLabel.textContent = 'Confirmar Contraseña:';
+  confirmLabel.style.cssText = 'font-size:0.85rem; color:#94a3b8; display:block; margin-bottom:6px; font-weight:600;';
+  
+  const confirmInput = document.createElement('input');
+  confirmInput.type = 'password';
+  confirmInput.id = 'regConfirmPassword';
+  confirmInput.placeholder = 'Vuelve a escribir tu contraseña';
+  confirmInput.required = true;
+  confirmInput.style.cssText = passwordField.style.cssText;
+  
+  confirmContainer.appendChild(confirmLabel);
+  confirmContainer.appendChild(confirmInput);
+  passwordField.parentNode.insertBefore(confirmContainer, passwordField.nextSibling);
+  
+  // Botones para mostrar/ocultar contraseña (en ambos campos)
+  function addTogglePassword(inputField, btnId) {
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'relative';
+    inputField.parentNode.insertBefore(wrapper, inputField);
+    wrapper.appendChild(inputField);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = '👁️';
+    btn.style.position = 'absolute';
+    btn.style.right = '8px';
+    btn.style.top = '50%';
+    btn.style.transform = 'translateY(-50%)';
+    btn.style.background = 'transparent';
+    btn.style.border = 'none';
+    btn.style.cursor = 'pointer';
+    btn.style.color = '#94a3b8';
+    btn.style.fontSize = '1.1rem';
+    wrapper.appendChild(btn);
+    btn.addEventListener('click', () => {
+      const type = inputField.getAttribute('type') === 'password' ? 'text' : 'password';
+      inputField.setAttribute('type', type);
+      btn.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+  }
+  
+  addTogglePassword(passwordField, 'togglePwd');
+  addTogglePassword(confirmInput, 'toggleConfirm');
+  
   // ========== EVENTOS VISUALES ==========
   if ($('regIdentityName')) {
     $('regIdentityName').addEventListener('input', function() {
@@ -2511,8 +2561,8 @@ if (btnOpenPublish) {
     });
   }
   
-  if ($('regPassword')) {
-    $('regPassword').addEventListener('input', function() {
+  if (passwordField) {
+    passwordField.addEventListener('input', function() {
       const pwd = this.value;
       const strength = $('passwordStrength');
       const entropy = $('passwordEntropy');
@@ -2575,22 +2625,28 @@ if (btnOpenPublish) {
     });
   }
   
-  // ========== ENVÍO DEL FORMULARIO ==========
+  // ========== ENVÍO DEL FORMULARIO (BACKEND REAL) ==========
   form.addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const username = $('regIdentityName').value.trim().toLowerCase();
     const nombreCompleto = $('regNombreCompleto').value.trim();
-    const password = $('regPassword').value;
+    const password = passwordField.value;
+    const confirm = confirmInput.value;
     const fechaNacimiento = $('regFechaNacimiento').value;
     const acceptTerms = $('acceptTerms').checked;
     
+    // Validaciones
     const errores = [];
     if (username.length < 3) errores.push('Usuario: mínimo 3 caracteres');
     if (!/^[a-z0-9_]+$/.test(username)) errores.push('Usuario: solo minúsculas, números y _');
     if (nombreCompleto.length < 3) errores.push('Nombre completo requerido');
     if (password.length < 8) errores.push('Contraseña: mínimo 8 caracteres');
-    if (calcEntropy(password) < 40) errores.push('Contraseña muy débil');
+    if (!/[A-Z]/.test(password)) errores.push('Contraseña: al menos una mayúscula');
+    if (!/[0-9]/.test(password)) errores.push('Contraseña: al menos un número');
+    if (!/[^a-zA-Z0-9]/.test(password)) errores.push('Contraseña: al menos un símbolo');
+    if (password !== confirm) errores.push('Las contraseñas no coinciden');
+    if (calcEntropy(password) < 40) errores.push('Contraseña demasiado débil');
     if (!fechaNacimiento) errores.push('Fecha de nacimiento requerida');
     else {
       const hoy = new Date(), nac = new Date(fechaNacimiento);
@@ -2612,6 +2668,7 @@ if (btnOpenPublish) {
     btn.textContent = 'Registrando...';
     
     try {
+      // Registrar en MongoDB
       const regRes = await fetch('/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2620,6 +2677,7 @@ if (btnOpenPublish) {
       const regData = await regRes.json();
       if (!regData.success) throw new Error(regData.error || 'Error en registro');
       
+      // Iniciar sesión automáticamente
       const loginRes = await fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2628,6 +2686,7 @@ if (btnOpenPublish) {
       const loginData = await loginRes.json();
       if (!loginData.success) throw new Error(loginData.error || 'Error en login automático');
       
+      // Guardar sesión
       localStorage.setItem('authToken', loginData.token);
       localStorage.setItem('usuario', JSON.stringify(loginData.user));
       if (avatarBase64) localStorage.setItem('arv_avatar', avatarBase64);
@@ -2635,7 +2694,6 @@ if (btnOpenPublish) {
       showFeedback('✅ Registro exitoso. Redirigiendo...', 'success');
       
       setTimeout(() => {
-        // Forzar recarga completa de la página para que script.js procese la sesión
         window.location.href = '/';
       }, 1500);
       
