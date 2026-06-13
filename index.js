@@ -1044,11 +1044,15 @@ app.get('/api/referrals/me', authenticate, async(req, res) => {
 // ============================================
 // 👑 ADMIN: REGALAR CUENTA (GIFT ACCOUNT)
 // ============================================
-app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) => {
+app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res) => {
   try {
     const { recipientEmail, initialBalance, note, tier } = req.body;
     if (!recipientEmail) return res.status(400).json({ error: 'Email del destinatario requerido' });
     if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo regalo: configura MongoDB', demo: true });
+
+    // Validar tier permitido
+    const allowedTiers = ['personal', 'business', 'enterprise'];
+    const finalTier = tier && allowedTiers.includes(tier) ? tier : 'personal';
 
     let user = await usersCollection.findOne({ email: recipientEmail });
     let tempPassword = null;
@@ -1059,10 +1063,13 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
       const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
       const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
+      // Username único para evitar colisiones
+      const uniqueUsername = 'gifted_' + uid.slice(-8);
+
       const newUser = {
         uid,
         email: recipientEmail,
-        username: recipientEmail.split('@')[0], // nombre de usuario temporal
+        username: uniqueUsername,
         nombreCompleto: 'Usuario Regalado',
         fechaNacimiento: new Date('2000-01-01'),
         password: hashed,
@@ -1072,9 +1079,9 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
         referredBy3: null,
         referralRewarded: false,
         isAdmin: false,
-        tier: tier || 'personal',
+        tier: finalTier,
         isGifted: true,
-        giftedBy: req.admin.uid,
+        giftedBy: req.supremo?.uid || req.admin?.uid,
         giftedAt: new Date(),
         giftedNote: note || '',
         createdAt: new Date(),
@@ -1113,8 +1120,8 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
 
       user = newUser;
     } else {
-      if (tier && ['personal', 'business', 'enterprise'].includes(tier)) {
-        await usersCollection.updateOne({ _id: user._id }, { $set: { tier, updatedAt: new Date() } });
+      if (finalTier && allowedTiers.includes(finalTier)) {
+        await usersCollection.updateOne({ _id: user._id }, { $set: { tier: finalTier, updatedAt: new Date() } });
       }
     }
 
@@ -1129,7 +1136,7 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
         { userId: user._id },
         {
           $inc: { balance: bal },
-          $push: { history: { type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() } }
+          $push: { history: { type: 'admin_gift', amount: bal, from: req.supremo?.email || req.admin?.email, date: new Date() } }
         }
       );
     } else {
@@ -1137,20 +1144,20 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
         userId: user._id,
         balance: bal,
         currency: 'USD',
-        history: [{ type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() }]
+        history: [{ type: 'admin_gift', amount: bal, from: req.supremo?.email || req.admin?.email, date: new Date() }]
       });
     }
 
     await transactionsCollection.insertOne({
       type: 'admin_gift',
       amount: bal,
-      admin: req.admin.uid,
+      admin: req.supremo?.uid || req.admin?.uid,
       recipient: user.email,
       note: note || '',
       createdAt: new Date()
     });
 
-    await logAudit('gift', { recipientEmail, bal, by: req.admin.uid, tier: tier || user.tier });
+    await logAudit('gift', { recipientEmail, bal, by: req.supremo?.uid || req.admin?.uid, tier: finalTier });
 
     res.json({
       success: true,
@@ -1158,23 +1165,40 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
       uid: user.uid,
       tempPassword,
       balance: bal,
-      tier: tier || user.tier,
+      tier: finalTier,
       message: tempPassword ? 'Cuenta creada con contraseña temporal' : 'Saldo agregado a cuenta existente'
     });
   } catch (e) {
+    logger.error('❌ Error en gift-account: ' + e.message);
     res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message });
   }
 });
-// 📦 VAULT CREATE (CON IA: AUTO-TAGS) ✅ FIX: Agregado upload.single('archivo')
+
+// ============================================
+// 📦 VAULT CREATE (CON IA: AUTO-TAGS)
+// ============================================
 app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async(req, res) => {
   try {
     const { titulo, categoria = 'general', folderId = 'general', contenido, price = 0, forSale = false, licenseDays = null, tags: userTags } = req.body;
     if (!titulo) return res.status(400).json({ error: 'Título requerido para el contenido' });
+    
+    // Validación de precio si se pone en venta
+    if (forSale && (isNaN(price) || price <= 0)) {
+      return res.status(400).json({ error: 'El precio debe ser mayor a 0 para poner en venta' });
+    }
+    
+    // Validar licenseDays (si se proporciona, debe ser número positivo)
+    if (licenseDays !== null && (isNaN(licenseDays) || licenseDays <= 0)) {
+      return res.status(400).json({ error: 'Los días de licencia deben ser un número positivo' });
+    }
+    
     if (!mongoReady || !secretsCollection) return res.status(201).json({ success: true, message: 'Guardado en modo demo', id: 'demo', demo: true });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
     const suggestedTags = FEATURES.AI_INTERNAL ? suggestTags(titulo, req.file?.originalname) : [];
     const finalTags = userTags ? (Array.isArray(userTags) ? userTags : [userTags]) : suggestedTags;
+    
     const data = {
       userId: user._id,
       userUid: user.uid,
@@ -1188,19 +1212,21 @@ app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async(req
       fileSize: req.file ? req.file.size : null,
       encrypted: null,
       isForSale: forSale,
-      price: forSale ? price : 0,
-      licenseDays,
+      price: forSale ? parseFloat(price) : 0,
+      licenseDays: licenseDays ? parseInt(licenseDays) : null,
       sales: 0,
       buyers: [],
       tags: finalTags,
       createdAt: new Date()
     };
+    
     let wrappedDEK = user.encryptedUserKey;
     if (!wrappedDEK) {
       const dek = EnvelopeEncryption.generateDEK();
       wrappedDEK = EnvelopeEncryption.wrapDEK(dek);
       await usersCollection.updateOne({ _id: user._id }, { $set: { encryptedUserKey: wrappedDEK } });
     }
+    
     let userDEK;
     try {
       userDEK = EnvelopeEncryption.unwrapDEK(wrappedDEK);
@@ -1208,16 +1234,21 @@ app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async(req
       logger.error('❌ Error desencriptando DEK: ' + e.message);
       return res.status(500).json({ error: 'Error de cifrado: clave de usuario inválida' });
     }
+    
     if (req.file) {
       data.fileName = path.basename(req.file.filename);
       data.fileType = req.file.mimetype;
       data.fileSize = req.file.size;
       const fileContent = await fs.readFile(req.file.path);
       data.encrypted = EnvelopeEncryption.seal(fileContent.toString('base64'), userDEK);
-      await fs.unlink(req.file.path).catch(function(e) { logger.warn('⚠️ No se pudo eliminar archivo temporal: ' + e.message); });
-    } else if (contenido) { data.contenido = EnvelopeEncryption.seal(contenido, userDEK); }
+      await fs.unlink(req.file.path).catch(e => logger.warn('⚠️ No se pudo eliminar archivo temporal: ' + e.message));
+    } else if (contenido) {
+      data.contenido = EnvelopeEncryption.seal(contenido, userDEK);
+    }
+    
     const result = await secretsCollection.insertOne(data);
     await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale, tags: finalTags });
+    
     const response = {
       success: true,
       message: 'Contenido guardado y cifrado en Vault (clave única por usuario)',
@@ -1233,21 +1264,34 @@ app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async(req
     res.status(500).json({ error: 'Error al guardar en Vault: ' + e.message });
   }
 });
+
+// ============================================
 // 📦 VAULT LIST (CON BÚSQUEDA INTELIGENTE)
+// ============================================
 app.get('/vault', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !secretsCollection) return res.json({ success: true, items: [], total: 0 });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const { q } = req.query;
-    let items = await secretsCollection.find({ $or: [{ userId: user._id }, { isForSale: true }] }).sort({ createdAt: -1 }).limit(50).project({ encrypted: 0, contenido: 0 }).toArray();
+    let items = await secretsCollection.find({ $or: [{ userId: user._id }, { isForSale: true }] })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .project({ encrypted: 0, contenido: 0 })
+      .toArray();
     if (FEATURES.AI_INTERNAL && q) {
       items = smartSearch(q, items);
     }
     res.json({ success: true, items, total: items.length, aiSearch: FEATURES.AI_INTERNAL && q ? { query: q, resultsCount: items.length } : undefined });
-  } catch (e) { res.status(500).json({ error: 'Error al listar Vault: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Vault list error: ' + e.message);
+    res.status(500).json({ error: 'Error al listar Vault: ' + e.message });
+  }
 });
+
+// ============================================
 // 📦 VAULT READ
+// ============================================
 app.get('/vault/:id', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !secretsCollection) return res.json({ success: true, secret: { id: req.params.id, titulo: 'Demo' }, demo: true });
@@ -1255,32 +1299,65 @@ app.get('/vault/:id', authenticate, async(req, res) => {
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
     if (!secret) return res.status(404).json({ error: 'Contenido no encontrado' });
+    
     const hasBought = Array.isArray(secret.buyers) && secret.buyers.includes(user.uid);
-    if (secret.userId.toString() !== user._id.toString() && !hasBought && !secret.isForSale) return res.status(403).json({ error: 'Acceso denegado: no tienes permiso para este contenido' });
+    if (secret.userId.toString() !== user._id.toString() && !hasBought && !secret.isForSale) {
+      return res.status(403).json({ error: 'Acceso denegado: no tienes permiso para este contenido' });
+    }
+    
     let contenido = null;
     if (user.encryptedUserKey) {
       try {
         const userDEK = EnvelopeEncryption.unwrapDEK(user.encryptedUserKey);
-        if (secret.tipo === 'texto' && secret.contenido) contenido = EnvelopeEncryption.open(secret.contenido, userDEK);
-        else if (secret.tipo === 'archivo' && secret.encrypted) contenido = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64').toString('base64');
-      } catch (fallback) {
-        if (secret.tipo === 'texto' && secret.contenido) contenido = decryptPII({ iv: (secret.encrypted && secret.encrypted.iv), data: secret.contenido, tag: (secret.encrypted && secret.encrypted.tag) });
-        else if (secret.tipo === 'archivo' && secret.encrypted) {
+        if (secret.tipo === 'texto' && secret.contenido) {
+          contenido = EnvelopeEncryption.open(secret.contenido, userDEK);
+        } else if (secret.tipo === 'archivo' && secret.encrypted) {
+          contenido = Buffer.from(EnvelopeEncryption.open(secret.encrypted, userDEK), 'base64').toString('base64');
+        }
+      } catch (e) {
+        logger.warn('⚠️ Fallback decryption used: ' + e.message);
+        // Intentar con el método antiguo (decryptPII) por compatibilidad
+        if (secret.tipo === 'texto' && secret.contenido) {
+          contenido = decryptPII({ iv: (secret.encrypted && secret.encrypted.iv), data: secret.contenido, tag: (secret.encrypted && secret.encrypted.tag) });
+        } else if (secret.tipo === 'archivo' && secret.encrypted) {
           const decrypted = decryptPII(secret.encrypted);
           contenido = Buffer.from(decrypted, 'base64').toString('base64');
         }
       }
     } else {
-      if (secret.tipo === 'texto' && secret.contenido) contenido = decryptPII({ iv: (secret.encrypted && secret.encrypted.iv), data: secret.contenido, tag: (secret.encrypted && secret.encrypted.tag) });
-      else if (secret.tipo === 'archivo' && secret.encrypted) {
+      // Sin clave de usuario, usar decryptPII (compatibilidad)
+      if (secret.tipo === 'texto' && secret.contenido) {
+        contenido = decryptPII({ iv: (secret.encrypted && secret.encrypted.iv), data: secret.contenido, tag: (secret.encrypted && secret.encrypted.tag) });
+      } else if (secret.tipo === 'archivo' && secret.encrypted) {
         const decrypted = decryptPII(secret.encrypted);
         contenido = Buffer.from(decrypted, 'base64').toString('base64');
       }
     }
-    res.json({ success: true, secret: { id: secret._id.toString(), titulo: secret.titulo, contenido, isForSale: secret.isForSale, price: secret.price, sales: secret.sales, licenseDays: secret.licenseDays, fileName: secret.fileName, fileType: secret.fileType, tags: secret.tags } });
-  } catch (e) { res.status(500).json({ error: 'Error al obtener contenido: ' + e.message }); }
+    
+    res.json({
+      success: true,
+      secret: {
+        id: secret._id.toString(),
+        titulo: secret.titulo,
+        contenido,
+        isForSale: secret.isForSale,
+        price: secret.price,
+        sales: secret.sales,
+        licenseDays: secret.licenseDays,
+        fileName: secret.fileName,
+        fileType: secret.fileType,
+        tags: secret.tags
+      }
+    });
+  } catch (e) {
+    logger.error('❌ Vault read error: ' + e.message);
+    res.status(500).json({ error: 'Error al obtener contenido: ' + e.message });
+  }
 });
+
+// ============================================
 // 📦 VAULT DELETE
+// ============================================
 app.delete('/vault/:id', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !secretsCollection) return res.json({ success: true, message: 'Eliminado en modo demo', demo: true });
@@ -1290,9 +1367,15 @@ app.delete('/vault/:id', authenticate, async(req, res) => {
     if (result.deletedCount === 0) return res.status(404).json({ error: 'No autorizado: solo puedes eliminar tu propio contenido' });
     await logAudit('vault_delete', { id: req.params.id, userId: user.uid });
     res.json({ success: true, message: 'Contenido eliminado permanentemente' });
-  } catch (e) { res.status(500).json({ error: 'Error al eliminar: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Vault delete error: ' + e.message);
+    res.status(500).json({ error: 'Error al eliminar: ' + e.message });
+  }
 });
+
+// ============================================
 // 💰 COMPRA CON REPARTO REALISTA (75% vendedor, 15% plataforma, 8% afiliados, 2% fondo solidario)
+// ============================================
 app.post('/api/buy/:id', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !secretsCollection || !walletCollection) {
@@ -1308,7 +1391,11 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
     const hasBought = Array.isArray(secret.buyers) && secret.buyers.includes(buyer.uid);
     if (hasBought) return res.status(400).json({ error: 'Ya compraste este contenido' });
 
-    const price = parseFloat(secret.price) || 10;
+    const price = parseFloat(secret.price);
+    if (isNaN(price) || price <= 0) {
+      return res.status(400).json({ error: 'Precio de producto inválido' });
+    }
+
     const bWallet = await walletCollection.findOne({ userId: buyer._id });
     if (!bWallet || bWallet.balance < price) {
       return res.status(400).json({ error: `Saldo insuficiente. Necesitas $${price}. Saldo: $${bWallet?.balance || 0}` });
@@ -1338,7 +1425,7 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
     let affiliateLevel1Amount = 0, affiliateLevel2Amount = 0, affiliateLevel3Amount = 0;
     let affiliateLevel1User = null, affiliateLevel2User = null, affiliateLevel3User = null;
 
-    // Cadena de referidos del comprador (requiere campos referredBy, referredBy2, referredBy3 en registro)
+    // Cadena de referidos del comprador
     if (buyer.referredBy) {
       const referrer1 = await usersCollection.findOne({ uid: buyer.referredBy });
       if (referrer1) {
@@ -1375,6 +1462,15 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
       await walletCollection.updateOne(
         { userId: seller._id },
         { $inc: { balance: sellerAmount }, $push: { history: { type: 'sale', amount: sellerAmount, item: secret.titulo, date: new Date() } } }
+      );
+    }
+
+    // Comisión de plataforma (15%) - acumular en wallet de sistema
+    if (platformAmount > 0) {
+      await db.collection('system_wallets').updateOne(
+        { _id: 'platform_revenue' },
+        { $inc: { balance: platformAmount }, $push: { history: { type: 'platform_fee', amount: platformAmount, from: buyer.uid, item: secret.titulo, date: new Date() } } },
+        { upsert: true }
       );
     }
 
@@ -1415,13 +1511,15 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
       { $inc: { sales: 1 }, $push: { buyers: buyer.uid } }
     );
 
+    // Insertar transacción con secretId para poder confirmar después
     await transactionsCollection.insertOne({
       type: 'sale',
       amount: price,
+      secretId: secret._id,
       seller: secret.userUid,
       buyer: buyer.uid,
       item: secret.titulo,
-      status: 'pending_confirmation',   // ← Escrow suave
+      status: 'pending_confirmation',
       deliveredAt: new Date(),
       confirmedAt: null,
       breakdown: {
@@ -1439,27 +1537,26 @@ app.post('/api/buy/:id', authenticate, async(req, res) => {
 
     await logAudit('purchase', { buyer: buyer.uid, item: secret.titulo, price, seller: secret.userUid });
 
-    // Recompensa adicional al referidor nivel 1 (opcional)
+    // Recompensa adicional al referidor nivel 1
     if (buyer.referredBy) {
       await rewardReferral(buyer.referredBy, 4.00);
     }
 
     res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault. Por favor confirma recepción en 24h.', nextStep: 'confirm_delivery' });
   } catch (e) {
-    console.error('Error en compra:', e);
+    logger.error('❌ Error en compra:', e);
     res.status(500).json({ error: 'Error procesando compra: ' + e.message });
   }
 });
-        // 🎁 Recompensar referidor si el comprador fue referido
-    if (buyer.referredBy) await rewardReferral(buyer.referredBy, 4.00);
-    res.json({ success: true, message: '✅ Compra exitosa. Contenido desbloqueado en tu Vault. Por favor confirma recepción en 24h.', nextStep: 'confirm_delivery' });
-  } catch (e) { res.status(500).json({ error: 'Error procesando compra: ' + e.message }); }
-}); 
+
+// ============================================
 // ✅ POST /api/buy/:id/confirm (CONFIRMAR RECEPCIÓN - ESCROW SUAVE)
+// ============================================
 app.post('/api/buy/:id/confirm', authenticate, async(req, res) => {
   try {
+    // Buscar transacción por secretId (el ID del producto) y comprador
     const tx = await transactionsCollection.findOne({ 
-      itemId: new ObjectId(req.params.id), 
+      secretId: new ObjectId(req.params.id), 
       buyer: req.user.uid,
       status: { $in: ['pending_confirmation', 'completed'] }
     });
@@ -1467,12 +1564,12 @@ app.post('/api/buy/:id/confirm', authenticate, async(req, res) => {
     if (!tx) return res.status(400).json({ error: 'Transacción no encontrada o ya confirmada' });
     if (tx.status === 'completed') return res.json({ success: true, message: '✅ Ya confirmada anteriormente', alreadyConfirmed: true });
     
-    // ✅ Actualizar a completado
+    // Actualizar a completado
     await transactionsCollection.updateOne({ _id: tx._id }, {
       $set: { status: 'completed', confirmedAt: new Date() }
     });
     
-    // ✅ Opcional: bonificación por entrega rápida (menos de 24h)
+    // Bonificación por entrega rápida (menos de 24h)
     if (tx.deliveredAt) {
       const hours = (new Date() - new Date(tx.deliveredAt)) / 36e5;
       if (hours < 24) {
@@ -1490,7 +1587,10 @@ app.post('/api/buy/:id/confirm', authenticate, async(req, res) => {
     res.status(500).json({ error: 'Error confirmando entrega: ' + e.message }); 
   }
 });
+
+// ============================================
 // 🤝 AFFILIATES DASHBOARD
+// ============================================
 app.get('/api/affiliates/dashboard', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !affiliatesCollection) return res.json({ success: true, dashboard: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0, referralLink: APP_URL + '?ref=DEMO', refCode: 'DEMO' }, demo: true });
@@ -1498,8 +1598,15 @@ app.get('/api/affiliates/dashboard', authenticate, async(req, res) => {
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const aff = await affiliatesCollection.findOne({ userId: user._id }) || {};
     res.json({ success: true, dashboard: { level: aff.level || 'bronce', totalReferrals: aff.totalReferrals || 0, pendingBalance: aff.pendingBalance || 0, availableBalance: aff.availableBalance || 0, withdrawnBalance: aff.withdrawnBalance || 0, referralLink: APP_URL + '?ref=' + user.refCode, refCode: user.refCode } });
-  } catch (e) { res.status(500).json({ error: 'Error al cargar dashboard de afiliados: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Affiliates dashboard error: ' + e.message);
+    res.status(500).json({ error: 'Error al cargar dashboard de afiliados: ' + e.message });
+  }
 });
+
+// ============================================
+// 🤝 AFFILIATES WITHDRAW (retirar saldo de afiliados a wallet principal)
+// ============================================
 app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
   try {
     const method = req.body.method || 'bank';
@@ -1507,15 +1614,30 @@ app.post('/api/affiliates/withdraw', authenticate, async(req, res) => {
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const aff = await affiliatesCollection.findOne({ userId: user._id });
-    if (!aff || isNaN(aff.availableBalance) || aff.availableBalance < 10) {
-      return res.status(400).json({ error: 'Mínimo $10 USD para retiro de afiliados. Balance actual: $' + ((aff && !isNaN(aff.availableBalance) ? aff.availableBalance : 0) || 0).toFixed(2) });
+    if (!aff || aff.availableBalance < 10) {
+      return res.status(400).json({ error: `Mínimo $10 USD para retiro de afiliados. Balance actual: $${aff?.availableBalance || 0}` });
     }
-    const w = await walletCollection.findOne({ userId: user._id });
-    if (w) await walletCollection.updateOne({ _id: w._id }, { $inc: { availableBalance: -aff.availableBalance, withdrawnBalance: aff.availableBalance }, $push: { history: { type: 'affiliate_withdraw', amount: aff.availableBalance, method, date: new Date() } } });
-    await transactionsCollection.insertOne({ userId: user._id, type: 'affiliate_payout', amount: aff.availableBalance, method, status: 'pending', createdAt: new Date() });
-    res.json({ success: true, message: 'Retiro de afiliados solicitado. Procesaremos en 24-48h.' });
-  } catch (e) { res.status(500).json({ error: 'Error al procesar retiro de afiliados: ' + e.message }); }
+    const amount = aff.availableBalance;
+    // Mover saldo de la colección affiliates a la wallet principal del usuario
+    await walletCollection.updateOne(
+      { userId: user._id },
+      { $inc: { balance: amount }, $push: { history: { type: 'affiliate_withdraw', amount, method, date: new Date() } } },
+      { upsert: true }
+    );
+    // Actualizar la cuenta de afiliados (poner availableBalance a 0 y aumentar withdrawnBalance)
+    await affiliatesCollection.updateOne(
+      { userId: user._id },
+      { $set: { availableBalance: 0, pendingBalance: 0 }, $inc: { withdrawnBalance: amount } }
+    );
+    await transactionsCollection.insertOne({ userId: user._id, type: 'affiliate_payout', amount, method, status: 'completed', createdAt: new Date() });
+    await logAudit('affiliate_withdraw', { userId: user.uid, amount, method });
+    res.json({ success: true, message: `Retiro de $${amount} procesado. Los fondos se han añadido a tu wallet principal.` });
+  } catch (e) {
+    logger.error('❌ Affiliates withdraw error: ' + e.message);
+    res.status(500).json({ error: 'Error al procesar retiro de afiliados: ' + e.message });
+  }
 });
+
 // 🆔 IDENTITY: REGISTER APP
 app.post('/api/identity/register-app', authenticate, async(req, res) => {
   try {
