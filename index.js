@@ -2225,167 +2225,420 @@ app.get('/api/vault/:id/diff/:v1/:v2', authenticate, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// ============================================
 // 👑 SUPER ADMIN FUNCTIONS
-app.delete('/api/admin/users/:email', authenticate, requireAdmin, async(req, res) => {
+// ============================================
+
+// Eliminar usuario (solo super admin, evitando autoeliminación)
+app.delete('/api/admin/users/:email', authenticate, requireAdmin, async (req, res) => {
   try {
-    const targetUser = await usersCollection.findOne({ email: req.params.email });
+    const targetEmail = req.params.email;
+    const adminEmail = req.admin?.email || req.user.email;
+    if (targetEmail === adminEmail) {
+      return res.status(400).json({ error: 'No puedes eliminarte a ti mismo' });
+    }
+    const targetUser = await usersCollection.findOne({ email: targetEmail });
     if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
+
     await usersCollection.deleteOne({ _id: targetUser._id });
     await profilesCollection.deleteOne({ userId: targetUser._id });
     await walletCollection.deleteOne({ userId: targetUser._id });
     await affiliatesCollection.deleteOne({ userId: targetUser._id });
     await secretsCollection.deleteMany({ userId: targetUser._id });
     await auditCollection.deleteMany({ userId: targetUser._id });
-    await logAudit('admin.delete_user', { admin: req.admin.uid, deletedUser: req.params.email });
-    res.json({ success: true, message: `Usuario ${req.params.email} eliminado completamente` });
-  } catch (e) { res.status(500).json({ error: 'Error eliminando usuario: ' + e.message }); }
+    await logAudit('admin.delete_user', { admin: adminEmail, deletedUser: targetEmail });
+    res.json({ success: true, message: `Usuario ${targetEmail} eliminado completamente` });
+  } catch (e) {
+    logger.error('❌ Error eliminando usuario: ' + e.message);
+    res.status(500).json({ error: 'Error eliminando usuario: ' + e.message });
+  }
 });
-app.get('/api/admin/users', authenticate, requireAdmin, async(req, res) => {
+
+// Listar usuarios (sin datos sensibles)
+app.get('/api/admin/users', authenticate, requireAdmin, async (req, res) => {
   try {
     const users = await usersCollection.find({}, { projection: { password: 0, encryptedUserKey: 0 } }).toArray();
-    res.json({ success: true, users: users.map(u => ({ uid: u.uid, email: u.email, tier: u.tier, isAdmin: ADMIN_EMAILS.includes(u.email), createdAt: u.createdAt })) });
-  } catch (e) { res.status(500).json({ error: 'Error listando usuarios: ' + e.message }); }
+    res.json({
+      success: true,
+      users: users.map(u => ({
+        uid: u.uid,
+        email: u.email,
+        username: u.username,
+        tier: u.tier,
+        isAdmin: ADMIN_EMAILS.includes(u.email),
+        isSupremo: u.esSupremo || false,
+        createdAt: u.createdAt
+      }))
+    });
+  } catch (e) {
+    logger.error('❌ Error listando usuarios: ' + e.message);
+    res.status(500).json({ error: 'Error listando usuarios: ' + e.message });
+  }
 });
-app.post('/api/admin/reset-password/:email', authenticate, requireAdmin, async(req, res) => {
+
+// Resetear contraseña (admin)
+app.post('/api/admin/reset-password/:email', authenticate, requireAdmin, async (req, res) => {
   try {
     const { newPassword } = req.body;
-    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'Contraseña nueva debe tener 8+ caracteres' });
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ error: 'Contraseña nueva debe tener 8+ caracteres' });
+    }
     const targetUser = await usersCollection.findOne({ email: req.params.email });
     if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
     const hashed = await bcrypt.hash(newPassword, 10);
     await usersCollection.updateOne({ _id: targetUser._id }, { $set: { password: hashed, updatedAt: new Date() } });
-    await logAudit('admin.reset_password', { admin: req.admin.uid, target: req.params.email });
+    await logAudit('admin.reset_password', { admin: req.admin?.uid || req.user.uid, target: req.params.email });
     res.json({ success: true, message: `Contraseña de ${req.params.email} actualizada` });
-  } catch (e) { res.status(500).json({ error: 'Error reseteando contraseña: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error reseteando contraseña: ' + e.message);
+    res.status(500).json({ error: 'Error reseteando contraseña: ' + e.message });
+  }
 });
-app.post('/api/admin/invalidate-all-tokens', authenticate, requireAdmin, async(req, res) => {
+
+// Invalidar todos los tokens (incrementa versión de token)
+app.post('/api/admin/invalidate-all-tokens', authenticate, requireAdmin, async (req, res) => {
   try {
-    await logAudit('admin.invalidate_all_tokens', { admin: req.admin.uid, timestamp: new Date() });
+    // Incrementar tokenVersion para todos los usuarios (invalidando tokens existentes)
+    await usersCollection.updateMany({}, { $inc: { tokenVersion: 1 } });
+    await logAudit('admin.invalidate_all_tokens', { admin: req.admin?.uid || req.user.uid, timestamp: new Date() });
     res.json({ success: true, message: 'Tokens invalidados. Los usuarios deberán reiniciar sesión.' });
-  } catch (e) { res.status(500).json({ error: 'Error invalidando tokens: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error invalidando tokens: ' + e.message);
+    res.status(500).json({ error: 'Error invalidando tokens: ' + e.message });
+  }
 });
-app.get('/api/admin/export-user/:email', authenticate, requireAdmin, async(req, res) => {
+
+// Exportar datos de usuario (admin)
+app.get('/api/admin/export-user/:email', authenticate, requireAdmin, async (req, res) => {
   try {
     const targetUser = await usersCollection.findOne({ email: req.params.email });
     if (!targetUser) return res.status(404).json({ error: 'Usuario no encontrado' });
     const profile = await profilesCollection.findOne({ userId: targetUser._id });
     const wallet = await walletCollection.findOne({ userId: targetUser._id });
     const affiliates = await affiliatesCollection.findOne({ userId: targetUser._id });
-    const secrets = await secretsCollection.find({ userId: targetUser._id }).project({ encrypted: 0, contenido: 0 }).toArray();
-    const auditLogs = await auditCollection.find({ userId: targetUser._id }).limit(100).toArray();
-    res.json({ success: true, data: { user: targetUser, profile, wallet, affiliates, secretsCount: secrets.length, auditLogsCount: auditLogs.length, exportedAt: new Date() } });
-  } catch (e) { res.status(500).json({ error: 'Error exportando datos: ' + e.message }); }
+    const secrets = await secretsCollection.find({ userId: targetUser._id }).project({ encrypted: 0, contenido: 0 }).limit(500).toArray();
+    const auditLogs = await auditCollection.find({ userId: targetUser._id }).sort({ timestamp: -1 }).limit(1000).toArray();
+    res.json({
+      success: true,
+      data: {
+        user: { ...targetUser, password: undefined, encryptedUserKey: undefined },
+        profile,
+        wallet,
+        affiliates,
+        secretsCount: secrets.length,
+        auditLogsCount: auditLogs.length,
+        exportedAt: new Date()
+      }
+    });
+  } catch (e) {
+    logger.error('❌ Error exportando datos: ' + e.message);
+    res.status(500).json({ error: 'Error exportando datos: ' + e.message });
+  }
 });
-// 🔐 CRYPTO-AUTH (WEBAUTHN/FIDO2)
-app.post('/api/crypto-auth/register-start', authenticate, async(req, res) => {
+
+// ============================================
+// 🔐 CRYPTO-AUTH (WEBAUTHN / FIDO2)
+// ============================================
+
+// Inicio de registro de credencial (usuario autenticado)
+app.post('/api/crypto-auth/register-start', authenticate, async (req, res) => {
   try {
-    const { email } = req.body;
-    const user = email ? await usersCollection.findOne({ email }) : null;
-    const userId = (user && user.uid) || crypto.randomUUID();
-    const options = await generateRegistrationOptions({ rpName: 'ApiRomwiner Vault', rpID: new URL(APP_URL).hostname, userID: Buffer.from(userId), userName: email || 'anonymous', attestationType: 'none', authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' } });
-    await cryptoKeysCollection.updateOne({ userId }, { $set: { challenge: options.challenge, createdAt: new Date() } }, { upsert: true });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const userId = user.uid;
+    const rpID = new URL(APP_URL).hostname;
+    const options = await generateRegistrationOptions({
+      rpName: 'ApiRomwiner Vault',
+      rpID,
+      userID: Buffer.from(userId),
+      userName: user.email,
+      attestationType: 'none',
+      authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' }
+    });
+    // Guardar desafío con expiración (5 minutos)
+    await cryptoKeysCollection.updateOne(
+      { userId },
+      { $set: { challenge: options.challenge, challengeExpires: new Date(Date.now() + 5 * 60 * 1000), createdAt: new Date() } },
+      { upsert: true }
+    );
     res.json({ success: true, options, userId });
-  } catch (e) { res.status(500).json({ error: 'Error iniciando registro criptográfico: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error iniciando registro criptográfico: ' + e.message);
+    res.status(500).json({ error: 'Error iniciando registro: ' + e.message });
+  }
 });
-app.post('/api/crypto-auth/register-finish', authenticate, async(req, res) => {
+
+// Finalización de registro de credencial
+app.post('/api/crypto-auth/register-finish', authenticate, async (req, res) => {
   try {
-    const { userId, response } = req.body;
-    const record = await cryptoKeysCollection.findOne({ userId });
-    if (!(record && record.challenge)) return res.status(400).json({ error: 'Registro no iniciado o expirado' });
-    const verification = await verifyRegistrationResponse({ response, expectedChallenge: record.challenge, expectedOrigin: APP_URL, expectedRPID: new URL(APP_URL).hostname });
+    const { response } = req.body;
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const record = await cryptoKeysCollection.findOne({ userId: user.uid });
+    if (!record || !record.challenge) return res.status(400).json({ error: 'Registro no iniciado o expirado' });
+    if (record.challengeExpires && new Date() > record.challengeExpires) {
+      return res.status(400).json({ error: 'El desafío ha expirado. Inicia nuevamente el registro.' });
+    }
+    const rpID = new URL(APP_URL).hostname;
+    const verification = await verifyRegistrationResponse({
+      response,
+      expectedChallenge: record.challenge,
+      expectedOrigin: new URL(APP_URL).origin,
+      expectedRPID: rpID
+    });
     if (!verification.verified) return res.status(400).json({ error: 'Verificación fallida' });
-    await cryptoKeysCollection.updateOne({ userId }, { $set: { publicKey: (verification.registrationInfo && verification.registrationInfo.credentialPublicKey), credentialID: (verification.registrationInfo && verification.registrationInfo.credentialID), counter: (verification.registrationInfo && verification.registrationInfo.counter), registeredAt: new Date() }, $unset: { challenge: 1 } }, { upsert: true });
-    await logAudit('crypto_register', { userId, verified: true });
+    const { credentialPublicKey, credentialID, counter } = verification.registrationInfo || {};
+    if (!credentialPublicKey || !credentialID) {
+      return res.status(400).json({ error: 'Datos de credencial incompletos' });
+    }
+    await cryptoKeysCollection.updateOne(
+      { userId: user.uid },
+      {
+        $set: {
+          publicKey: credentialPublicKey,
+          credentialID,
+          counter,
+          registeredAt: new Date()
+        },
+        $unset: { challenge: 1, challengeExpires: 1 }
+      },
+      { upsert: true }
+    );
+    await logAudit('crypto_register', { userId: user.uid, verified: true });
     res.json({ success: true, message: 'Clave pública registrada exitosamente' });
-  } catch (e) { res.status(500).json({ error: 'Error verificando registro: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error verificando registro: ' + e.message);
+    res.status(500).json({ error: 'Error verificando registro: ' + e.message });
+  }
 });
-app.post('/api/crypto-auth/login-start', async(req, res) => {
+
+// Inicio de login criptográfico (sin autenticación previa)
+app.post('/api/crypto-auth/login-start', async (req, res) => {
   try {
     const { credentialID } = req.body;
     const allowCredentials = credentialID ? [{ id: credentialID, type: 'public-key' }] : [];
-    const options = await generateAuthenticationOptions({ rpID: new URL(APP_URL).hostname, userVerification: 'preferred', allowCredentials });
-    await cryptoKeysCollection.updateOne({ credentialID }, { $set: { challenge: options.challenge, lastLoginAttempt: new Date() } }, { upsert: true });
+    const rpID = new URL(APP_URL).hostname;
+    const options = await generateAuthenticationOptions({
+      rpID,
+      userVerification: 'preferred',
+      allowCredentials
+    });
+    await cryptoKeysCollection.updateOne(
+      { credentialID },
+      { $set: { challenge: options.challenge, challengeExpires: new Date(Date.now() + 5 * 60 * 1000), lastLoginAttempt: new Date() } },
+      { upsert: true }
+    );
     res.json({ success: true, options });
-  } catch (e) { res.status(500).json({ error: 'Error iniciando login criptográfico: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error iniciando login criptográfico: ' + e.message);
+    res.status(500).json({ error: 'Error iniciando login: ' + e.message });
+  }
 });
-app.post('/api/crypto-auth/login-finish', async(req, res) => {
+
+// Finalización de login criptográfico
+app.post('/api/crypto-auth/login-finish', async (req, res) => {
   try {
     const { credentialID, response } = req.body;
     const record = await cryptoKeysCollection.findOne({ credentialID });
-    if (!(record && record.challenge)) return res.status(400).json({ error: 'Login no iniciado o credencial no encontrada' });
-    const verification = await verifyAuthenticationResponse({ response, expectedChallenge: record.challenge, expectedOrigin: APP_URL, expectedRPID: new URL(APP_URL).hostname, authenticator: { credentialPublicKey: record.publicKey, counter: record.counter || 0 } });
+    if (!record || !record.challenge) return res.status(400).json({ error: 'Login no iniciado o credencial no encontrada' });
+    if (record.challengeExpires && new Date() > record.challengeExpires) {
+      return res.status(400).json({ error: 'El desafío ha expirado. Inicia nuevamente el login.' });
+    }
+    const rpID = new URL(APP_URL).hostname;
+    const verification = await verifyAuthenticationResponse({
+      response,
+      expectedChallenge: record.challenge,
+      expectedOrigin: new URL(APP_URL).origin,
+      expectedRPID: rpID,
+      authenticator: { credentialPublicKey: record.publicKey, counter: record.counter || 0 }
+    });
     if (!verification.verified) return res.status(401).json({ error: 'Autenticación fallida' });
-    await cryptoKeysCollection.updateOne({ credentialID }, { $set: { counter: (verification.authenticationInfo && verification.authenticationInfo.newCounter), lastLogin: new Date() }, $unset: { challenge: 1 } });
-    const token = jwt.sign({ uid: record.userId, scopes: ['vault:read:own'], authMethod: 'crypto' }, JWT_SECRET, { expiresIn: '24h' });
-    await logAudit('crypto_login', { userId: record.userId, verified: true });
-    res.json({ success: true, token, consentRequired: true, availableScopes: ['vault:read:own', 'vault:read:shared', 'wallet:read', 'identity:verify'], message: 'Autenticación exitosa. Aprueba permisos para acceder a funciones adicionales.' });
-  } catch (e) { res.status(500).json({ error: 'Error verificando login: ' + e.message }); }
+    const newCounter = verification.authenticationInfo?.newCounter || record.counter;
+    await cryptoKeysCollection.updateOne(
+      { credentialID },
+      {
+        $set: { counter: newCounter, lastLogin: new Date() },
+        $unset: { challenge: 1, challengeExpires: 1 }
+      }
+    );
+    const user = await usersCollection.findOne({ uid: record.userId });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    // Generar token con versión actual
+    const token = jwt.sign(
+      { uid: user.uid, email: user.email, tokenVersion: user.tokenVersion || 0, authMethod: 'crypto' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    await logAudit('crypto_login', { userId: user.uid, verified: true });
+    res.json({
+      success: true,
+      token,
+      consentRequired: true,
+      availableScopes: ['vault:read:own', 'vault:read:shared', 'wallet:read', 'identity:verify'],
+      message: 'Autenticación exitosa. Aprueba permisos para acceder a funciones adicionales.'
+    });
+  } catch (e) {
+    logger.error('❌ Error verificando login: ' + e.message);
+    res.status(500).json({ error: 'Error verificando login: ' + e.message });
+  }
 });
-app.post('/api/crypto-auth/consent', authenticate, async(req, res) => {
+
+// Consentimiento de alcances
+app.post('/api/crypto-auth/consent', authenticate, async (req, res) => {
   try {
     const { scopes } = req.body;
     const validScopes = ['vault:read:own', 'vault:read:shared', 'vault:write', 'wallet:read', 'wallet:write', 'identity:verify', 'audit:read'];
     const approved = scopes.filter(s => validScopes.includes(s));
     if (approved.length === 0) return res.status(400).json({ error: 'Al menos un scope válido requerido' });
-    const newToken = jwt.sign({ uid: req.user.uid, scopes: approved, authMethod: req.user.authMethod || 'crypto' }, JWT_SECRET, { expiresIn: '24h' });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    const newToken = jwt.sign(
+      { uid: req.user.uid, email: user.email, tokenVersion: user.tokenVersion || 0, scopes: approved, authMethod: req.user.authMethod || 'crypto' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
     await logAudit('consent_granted', { userId: req.user.uid, scopes: approved });
     res.json({ success: true, token: newToken, grantedScopes: approved });
-  } catch (e) { res.status(500).json({ error: 'Error procesando consentimiento: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error procesando consentimiento: ' + e.message);
+    res.status(500).json({ error: 'Error procesando consentimiento: ' + e.message });
+  }
 });
-// 📋 IDENTITY LEGAL VERIFIED
-app.post('/api/admin/verify-identity', authenticate, requireAdmin, async(req, res) => {
+
+// ============================================
+// 📋 IDENTITY LEGAL VERIFIED (KYC)
+// ============================================
+
+// Admin verifica identidad de un usuario
+app.post('/api/admin/verify-identity', authenticate, requireAdmin, async (req, res) => {
   try {
     const { targetUserId, fullName, address, legalId, entityType = 'person', documents, verifiedBy } = req.body;
-    if (!targetUserId || !fullName || !address) return res.status(400).json({ error: 'userId, fullName y address son requeridos' });
+    if (!targetUserId || !fullName || !address) {
+      return res.status(400).json({ error: 'targetUserId, fullName y address son requeridos' });
+    }
     const encryptedAddress = encryptPII(address);
     const encryptedLegalId = legalId ? encryptPII(legalId) : null;
-    const encryptedDocuments = documents ? documents.map(d => ({...d, content: encryptPII(d.content) })) : [];
-    const identityData = { userId: targetUserId, fullName, address: encryptedAddress, legalId: encryptedLegalId, entityType, documents: encryptedDocuments, verifiedBy: verifiedBy || req.admin.uid, verifiedAt: new Date(), status: 'verified', metadata: req.body.metadata || {} };
+    const encryptedDocuments = documents ? documents.map(d => ({ ...d, content: encryptPII(d.content) })) : [];
+    const identityData = {
+      userId: targetUserId,
+      fullName,
+      address: encryptedAddress,
+      legalId: encryptedLegalId,
+      entityType,
+      documents: encryptedDocuments,
+      verifiedBy: verifiedBy || req.admin?.uid || req.user.uid,
+      verifiedAt: new Date(),
+      status: 'verified',
+      metadata: req.body.metadata || {}
+    };
     await verifiedIdentitiesCollection.updateOne({ userId: targetUserId }, { $set: identityData }, { upsert: true });
-    await logAudit('admin.verify_identity', { admin: req.admin.uid, targetUser: targetUserId, entityType, verified: true });
+    await logAudit('admin.verify_identity', { admin: req.admin?.uid || req.user.uid, targetUser: targetUserId, entityType, verified: true });
     res.json({ success: true, message: `Identidad de ${targetUserId} verificada exitosamente`, userId: targetUserId, entityType, verifiedAt: identityData.verifiedAt });
   } catch (e) {
     logger.error('❌ Error verificando identidad: ' + e.message);
     res.status(500).json({ error: 'Error al verificar identidad: ' + e.message });
   }
 });
-app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async(req, res) => {
+
+// Obtener identidad verificada de un usuario (admin)
+app.get('/api/admin/identity/:userId', authenticate, requireAdmin, async (req, res) => {
   try {
     const identity = await verifiedIdentitiesCollection.findOne({ userId: req.params.userId });
     if (!identity) return res.status(404).json({ error: 'Identidad verificada no encontrada para este usuario' });
-    const decrypted = {...identity, address: decryptPII(identity.address), legalId: identity.legalId ? decryptPII(identity.legalId) : null, documents: identity.documents ? identity.documents.map(d => ({...d, content: decryptPII(d.content) })) : [] };
-    delete decrypted.address.iv; delete decrypted.address.data; delete decrypted.address.tag;
-    if (decrypted.legalId) { delete decrypted.legalId.iv; delete decrypted.legalId.data; delete decrypted.legalId.tag; }
+    // Descifrar campos PII
+    const decrypted = {
+      ...identity,
+      address: decryptPII(identity.address),
+      legalId: identity.legalId ? decryptPII(identity.legalId) : null,
+      documents: identity.documents ? identity.documents.map(d => ({ ...d, content: decryptPII(d.content) })) : []
+    };
     res.json({ success: true, identity: decrypted });
-  } catch (e) { res.status(500).json({ error: 'Error obteniendo identidad: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error obteniendo identidad: ' + e.message);
+    res.status(500).json({ error: 'Error obteniendo identidad: ' + e.message });
+  }
 });
-app.get('/api/admin/search-identities', authenticate, requireAdmin, async(req, res) => {
+
+// Búsqueda de identidades verificadas (admin)
+app.get('/api/admin/search-identities', authenticate, requireAdmin, async (req, res) => {
   try {
     const { query, entityType } = req.query;
     if (!query || query.length < 2) return res.status(400).json({ error: 'Búsqueda requiere al menos 2 caracteres' });
-    const filter = { $or: [{ fullName: { $regex: query, $options: 'i' } }, { 'metadata.email': { $regex: query, $options: 'i' } }] };
+    const filter = {
+      $or: [
+        { fullName: { $regex: query, $options: 'i' } },
+        { 'metadata.email': { $regex: query, $options: 'i' } }
+      ]
+    };
     if (entityType) filter.entityType = entityType;
-    const results = await verifiedIdentitiesCollection.find(filter).project({ userId: 1, fullName: 1, entityType: 1, verifiedAt: 1, status: 1, 'metadata.email': 1 }).limit(50).toArray();
+    const results = await verifiedIdentitiesCollection.find(filter)
+      .project({ userId: 1, fullName: 1, entityType: 1, verifiedAt: 1, status: 1, 'metadata.email': 1 })
+      .limit(50)
+      .toArray();
     res.json({ success: true, count: results.length, results });
-  } catch (e) { res.status(500).json({ error: 'Error en búsqueda: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error en búsqueda: ' + e.message);
+    res.status(500).json({ error: 'Error en búsqueda: ' + e.message });
+  }
 });
-app.post('/api/identity/verify-request', authenticate, async(req, res) => {
+
+// Usuario solicita verificación de identidad
+app.post('/api/identity/verify-request', authenticate, async (req, res) => {
   try {
     const { fullName, address, legalId, entityType = 'person', documents } = req.body;
     if (!fullName || !address) return res.status(400).json({ error: 'Nombre completo y dirección son requeridos' });
-    const request = { userId: req.user.uid, fullName, address: encryptPII(address), legalId: legalId ? encryptPII(legalId) : null, entityType, documents: documents ? documents.map(d => ({...d, content: encryptPII(d.content) })) : [], status: 'pending', requestedAt: new Date(), metadata: { submittedVia: 'api', userAgent: req.headers['user-agent'] } };
-    await verifiedIdentitiesCollection.updateOne({ userId: req.user.uid }, { $set: request }, { upsert: true });
-    await logAudit('identity_verification_requested', { userId: req.user.uid, entityType, requested: true });
+    const encryptedAddress = encryptPII(address);
+    const encryptedLegalId = legalId ? encryptPII(legalId) : null;
+    const encryptedDocuments = documents ? documents.map(d => ({ ...d, content: encryptPII(d.content) })) : [];
+    const requestData = {
+      userId: req.user.uid,
+      fullName,
+      address: encryptedAddress,
+      legalId: encryptedLegalId,
+      entityType,
+      documents: encryptedDocuments,
+      status: 'pending',
+      requestedAt: new Date(),
+      metadata: { submittedVia: 'api', userAgent: req.headers['user-agent'] }
+    };
+    await verifiedIdentitiesCollection.updateOne({ userId: req.user.uid }, { $set: requestData }, { upsert: true });
+    await logAudit('identity_verification_requested', { userId: req.user.uid, entityType });
     res.json({ success: true, message: 'Solicitud de verificación enviada. Un administrador la revisará en 24-48h.', status: 'pending', referenceId: req.user.uid });
-  } catch (e) { res.status(500).json({ error: 'Error al enviar solicitud: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Error al enviar solicitud: ' + e.message);
+    res.status(500).json({ error: 'Error al enviar solicitud: ' + e.message });
+  }
 });
-app.get('/api/identity/verification-status', authenticate, async(req, res) => {
+
+// Consultar estado de verificación de identidad del usuario autenticado
+app.get('/api/identity/verification-status', authenticate, async (req, res) => {
   try {
-    const identity = await verifiedIdentitiesCollection.findOne({ userId: req.user.uid }, { projection: { userId: 1, fullName: 1, entityType: 1, status: 1, verifiedAt: 1, rejectedReason: 1, 'metadata.email': 1 } });
-    if (!identity) return res.json({ success: true, status: 'not_submitted', message: 'No has enviado una solicitud de verificación aún' });
-    res.json({ success: true, status: identity.status, fullName: identity.fullName, entityType: identity.entityType, verifiedAt: identity.verifiedAt, rejectedReason: identity.status === 'rejected' ? identity.rejectedReason : null, message: identity.status === 'verified' ? '✅ Tu identidad ha sido verificada exitosamente' : identity.status === 'rejected' ? '❌ Solicitud rechazada: ' + identity.rejectedReason : '⏳ Tu solicitud está en revisión' });
-  } catch (e) { res.status(500).json({ error: 'Error consultando estado: ' + e.message }); }
+    const identity = await verifiedIdentitiesCollection.findOne(
+      { userId: req.user.uid },
+      { projection: { userId: 1, fullName: 1, entityType: 1, status: 1, verifiedAt: 1, rejectedReason: 1, 'metadata.email': 1 } }
+    );
+    if (!identity) {
+      return res.json({ success: true, status: 'not_submitted', message: 'No has enviado una solicitud de verificación aún' });
+    }
+    let message = '';
+    if (identity.status === 'verified') message = '✅ Tu identidad ha sido verificada exitosamente';
+    else if (identity.status === 'rejected') message = `❌ Solicitud rechazada: ${identity.rejectedReason || 'Sin motivo especificado'}`;
+    else message = '⏳ Tu solicitud está en revisión';
+    res.json({
+      success: true,
+      status: identity.status,
+      fullName: identity.fullName,
+      entityType: identity.entityType,
+      verifiedAt: identity.verifiedAt,
+      rejectedReason: identity.status === 'rejected' ? identity.rejectedReason : null,
+      message
+    });
+  } catch (e) {
+    logger.error('❌ Error consultando estado: ' + e.message);
+    res.status(500).json({ error: 'Error consultando estado: ' + e.message });
+  }
 });
+
 // === 🚀 NUEVAS FUNCIONES: EXPORT/IMPORT/SYNC (PORTABLE) ===
 app.get('/api/vault/export/:token', authenticate, async(req, res) => {
   try {
