@@ -4162,6 +4162,100 @@ app.get('/api/admin/donations', authenticate, requireAdmin, async (req, res) => 
 });
 
 // ============================================
+// 🏆 GAMIFICACIÓN: NIVELES E INSIGNIAS
+// ============================================
+
+// Configuración de niveles (XP necesario, beneficios)
+const LEVELS = [
+  { level: 1, name: 'Bronce', xpRequired: 0, benefits: 'Comisión base 75%' },
+  { level: 2, name: 'Plata', xpRequired: 500, benefits: 'Comisión base 78%' },
+  { level: 3, name: 'Oro', xpRequired: 2000, benefits: 'Comisión base 81%' },
+  { level: 4, name: 'Diamante', xpRequired: 8000, benefits: 'Comisión base 85%' }
+];
+
+// Insignias posibles
+const BADGES = {
+  first_sale: { name: '🎖️ Primera Venta', description: 'Completaste tu primera venta', xpReward: 100 },
+  first_referral: { name: '🤝 Primer Referido', description: 'Registraste tu primer referido', xpReward: 50 },
+  seller_10: { name: '💪 Vendedor 10', description: 'Realizaste 10 ventas', xpReward: 200 },
+  referrer_5: { name: '🌟 Referidor 5', description: 'Trajiste 5 referidos', xpReward: 150 },
+  active_30: { name: '🔥 Activo 30 días', description: '30 días de actividad', xpReward: 300 },
+  buyer_10: { name: '🛒 Comprador 10', description: 'Compraste 10 productos', xpReward: 100 },
+  enterprise: { name: '🏢 Empresarial', description: 'Registró una empresa', xpReward: 500 },
+  ad_creator: { name: '📢 Anunciante', description: 'Creó su primer anuncio', xpReward: 50 }
+};
+
+// Función auxiliar para agregar XP y actualizar nivel
+async function addXP(userId, xpAmount, badgeKey = null) {
+  if (!mongoReady) return;
+  const user = await usersCollection.findOne({ _id: userId });
+  if (!user) return;
+
+  let newXP = (user.xp || 0) + xpAmount;
+  let newLevel = user.level || 1;
+  let unlockedBadges = user.badges || [];
+
+  if (badgeKey && !unlockedBadges.includes(badgeKey)) {
+    unlockedBadges.push(badgeKey);
+    newXP += (BADGES[badgeKey]?.xpReward || 0);
+    await logAudit('badge_unlocked', { userId: user.uid, badge: badgeKey, xpReward: BADGES[badgeKey]?.xpReward });
+  }
+
+  // recalcular nivel según XP
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (newXP >= LEVELS[i].xpRequired) {
+      newLevel = LEVELS[i].level;
+      break;
+    }
+  }
+
+  await usersCollection.updateOne(
+    { _id: userId },
+    { $set: { xp: newXP, level: newLevel, badges: unlockedBadges, lastGamificationUpdate: new Date() } }
+  );
+  return { xp: newXP, level: newLevel, badges: unlockedBadges };
+}
+
+// Endpoint para consultar mi progreso de gamificación
+app.get('/api/gamification/me', authenticate, async (req, res) => {
+  try {
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const currentLevelInfo = LEVELS.find(l => l.level === (user.level || 1));
+    const nextLevel = LEVELS.find(l => l.level === (user.level || 1) + 1);
+    const xpToNext = nextLevel ? nextLevel.xpRequired - (user.xp || 0) : 0;
+    const badgesList = (user.badges || []).map(b => ({ key: b, ...BADGES[b] }));
+
+    res.json({
+      success: true,
+      level: user.level || 1,
+      levelName: currentLevelInfo.name,
+      xp: user.xp || 0,
+      xpToNext,
+      nextLevelName: nextLevel ? nextLevel.name : 'Máximo',
+      badges: badgesList,
+      benefits: currentLevelInfo.benefits
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Endpoint para listar todas las insignias posibles (público)
+app.get('/api/gamification/badges', (req, res) => {
+  const badgesList = Object.keys(BADGES).map(key => ({ key, ...BADGES[key] }));
+  res.json({ success: true, badges: badgesList });
+});
+
+// === AUTOMATIZACIÓN: se debe llamar a addXP en eventos clave ===
+// Ejemplo: dentro del endpoint de compra, después de una venta exitosa, agregar:
+//   await addXP(seller._id, price * 10, 'first_sale'); // 10 XP por cada dólar de venta
+//   if (seller.sales >= 10) await addXP(seller._id, 0, 'seller_10');
+// Pero eso lo haremos en el frontend o en los endpoints ya existentes.
+// Por ahora, dejamos las funciones listas para ser integradas en /api/buy/:id y /api/referrals/register, etc.
+
+// ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL ABSOLUTO
 // ============================================
 async function startServer() {
