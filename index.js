@@ -203,18 +203,21 @@ const decryptPII = (encrypted) => {
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 10000;
+
 // 🔐 MONGODB
 const MONGODB_URI = process.env.MONGODB_URI;
 // ✅ Declaración de TODAS las colecciones (incluyendo nuevas)
 let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
-let reviewsCollection, favoritesCollection, commitsCollection, adsCollection, adImpressionsCollection;
+let reviewsCollection, favoritesCollection, commitsCollection, adsCollection, adImpressionsCollection, organizationsCollection;
 let mongoReady = false;
+
 async function connectToMongo() {
   try {
     const client = new MongoClient(MONGODB_URI);
     await client.connect();
     db = client.db('apiromwinervault');
+    
     // ✅ Asignar TODAS las colecciones
     usersCollection = db.collection('users');
     secretsCollection = db.collection('secrets');
@@ -235,19 +238,30 @@ async function connectToMongo() {
     reviewsCollection = db.collection('reviews');
     favoritesCollection = db.collection('favorites');
     commitsCollection = db.collection('vaultCommits');
-    // ✅ NUEVO: Colecciones para publicidad
+    
+    // ✅ NUEVO: Colecciones para publicidad y organizaciones
     adsCollection = db.collection('ads');
     adImpressionsCollection = db.collection('adImpressions');
+    organizationsCollection = db.collection('organizations');
+    
+    // ✅ Índices para organizaciones (empresas)
+    await organizationsCollection.createIndex({ name: 1 }, { unique: true });
+    await organizationsCollection.createIndex({ taxId: 1 }, { unique: true, sparse: true });
+    await organizationsCollection.createIndex({ 'members.userId': 1 });
+    await organizationsCollection.createIndex({ expiresAt: 1 });
+    
     // ✅ Índices para publicidad
     await adsCollection.createIndex({ active: 1, budget: -1, startDate: 1, endDate: 1 });
     await adsCollection.createIndex({ advertiserId: 1, createdAt: -1 });
     await adImpressionsCollection.createIndex({ userId: 1, watchedAt: -1 });
     await adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 });
-    // ✅ Índices existentes
+    
+    // ✅ Índices existentes (más uno nuevo para companyId)
     await usersCollection.createIndex({ email: 1 }, { unique: true });
     await usersCollection.createIndex({ username: 1 }, { unique: true });
     await usersCollection.createIndex({ uid: 1 }, { unique: true });
     await usersCollection.createIndex({ tier: 1 });
+    await usersCollection.createIndex({ companyId: 1 });  // 👈 Relacionar usuarios con empresas
     await secretsCollection.createIndex({ userId: 1 });
     await secretsCollection.createIndex({ isForSale: 1 });
     await secretsCollection.createIndex({ titulo: 'text' });
@@ -268,6 +282,7 @@ async function connectToMongo() {
     await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true });
     await reviewsCollection.createIndex({ itemId: 1, createdAt: -1 });
     await favoritesCollection.createIndex({ userId: 1, itemId: 1 }, { unique: true });
+    
     mongoReady = true;
     logger.info('✅ MongoDB Atlas conectado');
   } catch (err) {
