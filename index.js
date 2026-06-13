@@ -245,6 +245,7 @@ async function connectToMongo() {
     await adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 });
     // ✅ Índices existentes
     await usersCollection.createIndex({ email: 1 }, { unique: true });
+    await usersCollection.createIndex({ username: 1 }, { unique: true });
     await usersCollection.createIndex({ uid: 1 }, { unique: true });
     await usersCollection.createIndex({ tier: 1 });
     await secretsCollection.createIndex({ userId: 1 });
