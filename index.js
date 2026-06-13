@@ -3635,6 +3635,51 @@ res.status(500).json({ error: 'Error verificando estado: ' + e.message });
 }
 });
 
+// 👑 ADMIN: Consultar fondo solidario
+app.get('/api/admin/funds', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const fund = await db.collection('community_funds').findOne({ _id: 'solidarity_fund' });
+    res.json({
+      success: true,
+      balance: fund?.balance || 0,
+      totalContributions: fund?.history?.length || 0,
+      lastUpdated: fund?.updatedAt || null
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 👑 ADMIN: Otorgar bono desde el fondo solidario
+app.post('/api/admin/funds/grant', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { userId, amount, reason } = req.body;
+    if (!userId || !amount || amount <= 0) return res.status(400).json({ error: 'Datos inválidos' });
+
+    const user = await usersCollection.findOne({ uid: userId });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const fund = await db.collection('community_funds').findOne({ _id: 'solidarity_fund' });
+    if (!fund || fund.balance < amount) return res.status(400).json({ error: 'Fondo insuficiente' });
+
+    await db.collection('community_funds').updateOne(
+      { _id: 'solidarity_fund' },
+      { $inc: { balance: -amount }, $push: { history: { type: 'grant', amount: -amount, to: userId, reason, date: new Date() } } }
+    );
+
+    await walletCollection.updateOne(
+      { userId: user._id },
+      { $inc: { balance: amount }, $push: { history: { type: 'solidarity_grant', amount, reason, date: new Date() } } },
+      { upsert: true }
+    );
+
+    await logAudit('solidarity_grant', { by: req.admin.uid, to: userId, amount, reason });
+    res.json({ success: true, message: `Se han otorgado $${amount} al usuario ${userId}.` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ============================================
 // 🚀 START SERVER - SOLO UNA VEZ, AL FINAL ABSOLUTO
 // ============================================
@@ -3681,13 +3726,12 @@ async function startServer() {
     if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
     if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA');
   });
-} // ← ✅ ESTA LLAVE CIERRA startServer()
+} // ← cierra startServer()
 
-// ✅ LLAMAR startServer() UNA SOLA VEZ (FUERA de la función, al final absoluto)
+// ✅ LLAMAR startServer() UNA SOLA VEZ
 startServer().catch(function(err) {
   logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
   process.exit(1);
 });
-
 
 // === FIN: index.js ===
