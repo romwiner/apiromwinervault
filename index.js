@@ -13,6 +13,8 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs').promises;
 const pino = require('pino');
+const pino = require('pino');
+const logger = pino({ level: 'info' }); // Crea una instancia del logger
 const sharp = require('sharp');
 const diffLib = require('diff');
 const fileType = require('file-type');
@@ -128,20 +130,27 @@ function processCommand(cmd, userData) {
   }
   return "❓ No entendí. Prueba: 'ganancias', 'fotos', 'ventas', 'ayuda'";
 }
-// 🌐 HELIA (IPFS) INIT
+// 🌐 HELIA (IPFS) INIT - DESACTIVADO POR SEGURIDAD (cero enlaces externos)
 let heliaFs = null;
-const initHelia = async() => {
-  if (heliaFs) return heliaFs;
+const initHelia = async () => {
+  // Por ahora, IPFS está desactivado para evitar llamadas a ipfs.io
+  // Si deseas activarlo, configura un gateway local (ej. http://localhost:8080)
+  // y establece ENABLE_IPFS=true en las variables de entorno.
+  logger.warn('⚠️ IPFS desactivado: se requiere un gateway local sin enlaces externos.');
+  return null;
+  
+  /* Código original comentado por usar gateway externo:
   try {
     const gatewayUrl = process.env.IPFS_GATEWAY || 'https://ipfs.io';
     const helia = createFromURL(gatewayUrl);
     heliaFs = unixfs(helia);
-    pino().info(`🌐 Helia initialized: ${gatewayUrl}`);
+    logger.info(`🌐 Helia initialized: ${gatewayUrl}`);
     return heliaFs;
   } catch (e) {
-    pino().warn('⚠️ Helia init failed: ' + e.message);
+    logger.warn('⚠️ Helia init failed: ' + e.message);
     return null;
   }
+  */
 };
 // 🔐 ZERO-KNOWLEDGE UTILS
 const ZeroKnowledgeUtils = {
@@ -190,7 +199,6 @@ const decryptPII = (encrypted) => {
   decipher.setAuthTag(Buffer.from(encrypted.tag, 'hex'));
   return decipher.update(encrypted.data, 'hex', 'utf8') + decipher.final('utf8');
 };
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 10000;
