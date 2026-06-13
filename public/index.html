@@ -1762,6 +1762,12 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     // Referencias seguras a los elementos (Reemplaza los peligrosos "onclick")
     const vaultContainer = document.getElementById('vaultContainer');
     const btnOpenUpload = document.getElementById('btnOpenUpload');
+    const btnOpenPublish = document.getElementById('btnOpenPublish');
+if (btnOpenPublish) {
+  btnOpenPublish.addEventListener('click', function() {
+    uploadModal.classList.remove('hidden');
+  });
+}
     const vaultSection = document.getElementById('vaultSection');
     const uploadModal = document.getElementById('uploadModal');
     const btnSecureSave = document.getElementById('btnSecureSave');
