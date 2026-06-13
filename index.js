@@ -863,7 +863,11 @@ app.get('/api/profile', authenticate, async(req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-// 💰 WALLET
+// ============================================
+// 💰 WALLET Y REFERIDOS - CÓDIGO CORREGIDO Y MEJORADO
+// ============================================
+
+// Consultar saldo de wallet
 app.get('/api/wallet', authenticate, async(req, res) => {
   try {
     if (!mongoReady) return res.json({ success: true, wallet: { balance: 0, currency: 'USD' }, demo: true });
@@ -871,8 +875,12 @@ app.get('/api/wallet', authenticate, async(req, res) => {
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const w = await walletCollection.findOne({ userId: user._id });
     res.json({ success: true, wallet: w || { balance: 0, currency: 'USD' } });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
+
+// Depósito con Stripe
 app.post('/api/wallet/deposit', authenticate, async(req, res) => {
   try {
     const amount = parseFloat(req.body.amount);
@@ -883,13 +891,20 @@ app.post('/api/wallet/deposit', authenticate, async(req, res) => {
       }
       return res.json({ success: true, message: 'Modo demo: configura STRIPE_SECRET_KEY en .env', demo: true, clientSecret: 'demo' });
     }
-    const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', { method: 'POST', headers: { 'Authorization': 'Bearer ' + STRIPE_SECRET_KEY, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ amount: Math.round(amount * 100), currency: 'usd', metadata: JSON.stringify({ uid: req.user.uid, type: 'deposit' }) }) });
+    const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + STRIPE_SECRET_KEY, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ amount: Math.round(amount * 100), currency: 'usd', metadata: JSON.stringify({ uid: req.user.uid, type: 'deposit' }) })
+    });
     const data = await stripeRes.json();
     if (!data.client_secret) return res.status(500).json({ error: 'Error de Stripe: ' + ((data.error && data.error.message) || 'Cliente secreto no generado') });
     res.json({ success: true, clientSecret: data.client_secret, paymentId: data.id });
-  } catch (e) { res.status(500).json({ error: 'Error procesando pago con Stripe: ' + e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: 'Error procesando pago con Stripe: ' + e.message });
+  }
 });
-// ✅ AUTO-PAY: Usar saldo para renovar suscripción
+
+// Auto-suscripción (usar saldo para cambiar de plan)
 app.post('/api/wallet/auto-subscribe', authenticate, async(req, res) => {
   try {
     if (!mongoReady || !usersCollection || !walletCollection) {
@@ -908,92 +923,200 @@ app.post('/api/wallet/auto-subscribe', authenticate, async(req, res) => {
     await usersCollection.updateOne({ _id: user._id }, { $set: { tier: nextTier, autoRenew: true, updatedAt: new Date() } });
     await logAudit('auto_subscribe', { userId: user.uid, tier: nextTier, amount: price });
     res.json({ success: true, message: `✅ Suscripción a ${nextTier} activada. Se renovará automáticamente cada mes.`, newTier: nextTier, nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), remainingBalance: (wallet.balance - price).toFixed(2) });
-  } catch (e) { logger.error('❌ Auto-subscribe error: ' + e.message); res.status(500).json({ error: 'Error procesando auto-suscripción: ' + e.message }); }
+  } catch (e) {
+    logger.error('❌ Auto-subscribe error: ' + e.message);
+    res.status(500).json({ error: 'Error procesando auto-suscripción: ' + e.message });
+  }
 });
-// 🎁 PROGRAMA DE REFERIDOS: Registrar referido (usando refCode)
+
+// ============================================
+// 🎁 PROGRAMA DE REFERIDOS (MEJORADO)
+// ============================================
+
+// Registrar código de referido (solo si no tiene ya uno)
 app.post('/api/referrals/register', authenticate, async(req, res) => {
   try {
     const { referralCode } = req.body;
     if (!referralCode) return res.status(400).json({ error: 'Código de referido requerido' });
-    // Buscar al referente por el campo 'refCode' (el que se genera en el registro)
+
+    // Verificar si el usuario ya tiene un referido asignado
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (user.referredBy) {
+      return res.status(400).json({ error: 'Ya tienes un referido asignado. No puedes cambiarlo.' });
+    }
+
     const referrer = await usersCollection.findOne({ refCode: referralCode.toUpperCase() });
     if (!referrer) return res.status(400).json({ error: 'Código de referido inválido' });
     if (referrer.uid === req.user.uid) return res.status(400).json({ error: 'No puedes referirte a ti mismo' });
-    
-    await usersCollection.updateOne({ uid: req.user.uid }, { $set: { referredBy: referrer.uid, referredAt: new Date() } });
+
+    // Asignar solo el nivel 1; los niveles 2 y 3 se calcularán en el registro de nuevos usuarios
+    await usersCollection.updateOne(
+      { uid: req.user.uid },
+      { $set: { referredBy: referrer.uid, referredAt: new Date() } }
+    );
     await logAudit('referral_registered', { referrer: referrer.uid, referred: req.user.uid });
-    res.json({ success: true, message: '✅ Referido registrado correctamente' });
-  } catch (e) { res.status(500).json({ error: 'Error registrando referido: ' + e.message }); }
+    res.json({ success: true, message: '✅ Código de referido registrado correctamente.' });
+  } catch (e) {
+    res.status(500).json({ error: 'Error registrando referido: ' + e.message });
+  }
 });
 
-// 🎁 RECOMPENSAR AL REFERIDOR (se llama tras primera compra o depósito del referido)
+// Recompensa al referidor (por ejemplo, al primer depósito del referido)
 async function rewardReferral(referrerUid, amount = 5.00) {
   if (!mongoReady || !usersCollection || !walletCollection) return;
   const referrer = await usersCollection.findOne({ uid: referrerUid });
   if (!referrer) return;
-  const refWallet = await walletCollection.findOne({ userId: referrer._id }) || { balance: 0 };
-  
-  await walletCollection.updateOne({ userId: referrer._id }, { 
-    $inc: { balance: amount }, 
-    $push: { history: { type: 'referral_reward', amount, date: new Date() } } 
-  });
+  await walletCollection.updateOne(
+    { userId: referrer._id },
+    {
+      $inc: { balance: amount },
+      $push: { history: { type: 'referral_reward', amount, date: new Date() } }
+    },
+    { upsert: true }
+  );
   await logAudit('referral_rewarded', { referrer: referrerUid, amount });
   logger.info(`🎁 Recompensa de referido: $${amount} para ${referrer.email}`);
 }
 
-// 🎁 GET: Mis referidos y ganancias (usando refCode)
+// Consultar mis referidos y ganancias (recompensas + comisiones por niveles)
 app.get('/api/referrals/me', authenticate, async(req, res) => {
   try {
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    
-    // Usar refCode (el campo correcto)
+
+    // Código de referido propio (generar si no existe)
     let myCode = user.refCode;
     if (!myCode) {
-      // Si por alguna razón no tiene, lo generamos (solo para compatibilidad)
-     myCode = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
+      myCode = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
       await usersCollection.updateOne({ _id: user._id }, { $set: { refCode: myCode } });
     }
-    
+
+    // Cantidad de referidos directos (nivel 1)
     const referredUsers = await usersCollection.countDocuments({ referredBy: user.uid });
-    const rewards = await walletCollection.findOne({ userId: user._id }, { projection: { history: { $elemMatch: { type: 'referral_reward' } } } });
-    const totalEarned = rewards?.history?.reduce((sum, h) => sum + h.amount, 0) || 0;
-    
-    res.json({ success: true, code: myCode, link: `${process.env.APP_URL || 'https://tu-api.onrender.com'}/?ref=${myCode}`, referred: referredUsers, earned: totalEarned });
+
+    // Ganancias por recompensas de registro (rewardReferral)
+    const rewardsHistory = await walletCollection.findOne(
+      { userId: user._id },
+      { projection: { history: { $elemMatch: { type: 'referral_reward' } } } }
+    );
+    const totalRewards = rewardsHistory?.history?.reduce((sum, h) => sum + h.amount, 0) || 0;
+
+    // Ganancias por comisiones de afiliación (niveles 1, 2, 3) – provienen del endpoint de compra
+    const affiliateHistory = await walletCollection.findOne(
+      { userId: user._id },
+      { projection: { history: { $elemMatch: { type: { $in: ['affiliate_level1', 'affiliate_level2', 'affiliate_level3'] } } } } }
+    );
+    const totalAffiliateCommissions = affiliateHistory?.history?.reduce((sum, h) => sum + h.amount, 0) || 0;
+
+    const totalEarned = totalRewards + totalAffiliateCommissions;
+
+    res.json({
+      success: true,
+      code: myCode,
+      link: `${process.env.APP_URL || 'https://apiromwinervault.onrender.com'}/?ref=${myCode}`,
+      referredUsers,
+      totalEarned,
+      breakdown: {
+        referralRewards: totalRewards,
+        affiliateCommissions: totalAffiliateCommissions
+      }
+    });
   } catch (e) {
     res.status(500).json({ error: 'Error cargando referidos: ' + e.message });
   }
 });
 
-// 👑 ADMIN: GIFT ACCOUNT
+// ============================================
+// 👑 ADMIN: REGALAR CUENTA (GIFT ACCOUNT)
+// ============================================
 app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) => {
   try {
     const { recipientEmail, initialBalance, note, tier } = req.body;
     if (!recipientEmail) return res.status(400).json({ error: 'Email del destinatario requerido' });
     if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo regalo: configura MongoDB', demo: true });
+
     let user = await usersCollection.findOne({ email: recipientEmail });
     let tempPassword = null;
+
     if (!user) {
       tempPassword = 'Gift_' + crypto.randomBytes(4).toString('hex').toUpperCase();
       const hashed = await bcrypt.hash(tempPassword, 10);
-      const newUser = { email: recipientEmail, password: hashed, uid: 'rom_' + crypto.randomBytes(8).toString('hex'), refCode: 'ROM' + Math.random().toString(36).substr(2, 6).toUpperCase(), isAdmin: false, tier: tier || 'personal', isGifted: true, giftedBy: req.admin.uid, giftedAt: new Date(), giftedNote: note || '', createdAt: new Date(), affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 } };
-      const r = await usersCollection.insertOne(newUser);
-      await profilesCollection.insertOne({ userId: r.insertedId, uid: newUser.uid, displayName: 'Usuario Regalado', bio: note || '', isPublic: false, createdAt: new Date() });
-      await affiliatesCollection.insertOne({ userId: r.insertedId, refCode: newUser.refCode, level: 'bronce', createdAt: new Date() });
+      const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
+      const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
+
+      const newUser = {
+        uid,
+        email: recipientEmail,
+        username: recipientEmail.split('@')[0], // nombre de usuario temporal
+        nombreCompleto: 'Usuario Regalado',
+        fechaNacimiento: new Date('2000-01-01'),
+        password: hashed,
+        refCode: refCodeGenerated,
+        referredBy: null,
+        referredBy2: null,
+        referredBy3: null,
+        referralRewarded: false,
+        isAdmin: false,
+        tier: tier || 'personal',
+        isGifted: true,
+        giftedBy: req.admin.uid,
+        giftedAt: new Date(),
+        giftedNote: note || '',
+        createdAt: new Date(),
+        kycStatus: 'pendiente',
+        avatar: null,
+        documentoUrl: null,
+        affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 }
+      };
+      const result = await usersCollection.insertOne(newUser);
+      const userId = result.insertedId;
+
+      await profilesCollection.insertOne({
+        userId,
+        uid,
+        displayName: 'Usuario Regalado',
+        avatarUrl: null,
+        bio: note || '',
+        isPublic: false,
+        createdAt: new Date()
+      });
+
+      await affiliatesCollection.insertOne({
+        userId,
+        refCode: refCodeGenerated,
+        level: 'bronce',
+        createdAt: new Date()
+      });
+
+      await walletCollection.insertOne({
+        userId,
+        balance: 0,
+        currency: 'USD',
+        history: [],
+        createdAt: new Date()
+      });
+
       user = newUser;
     } else {
-      if (tier && ['personal', 'business', 'enterprise'].includes(tier)) await usersCollection.updateOne({ _id: user._id }, { $set: { tier, updatedAt: new Date() } });
+      if (tier && ['personal', 'business', 'enterprise'].includes(tier)) {
+        await usersCollection.updateOne({ _id: user._id }, { $set: { tier, updatedAt: new Date() } });
+      }
     }
+
     const bal = parseFloat(initialBalance);
     if (isNaN(bal) || bal < 0) {
       return res.status(400).json({ error: 'Monto inicial debe ser un número válido no negativo' });
     }
+
     const existingWallet = await walletCollection.findOne({ userId: user._id });
     if (existingWallet) {
-      await walletCollection.updateOne({ userId: user._id }, {
-        $inc: { balance: bal },
-        $push: { history: { type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() } }
-      });
+      await walletCollection.updateOne(
+        { userId: user._id },
+        {
+          $inc: { balance: bal },
+          $push: { history: { type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() } }
+        }
+      );
     } else {
       await walletCollection.insertOne({
         userId: user._id,
@@ -1002,10 +1125,30 @@ app.post('/api/admin/gift-account', authenticate, requireAdmin, async(req, res) 
         history: [{ type: 'admin_gift', amount: bal, from: req.admin.email, date: new Date() }]
       });
     }
-    await transactionsCollection.insertOne({ type: 'admin_gift', amount: bal, admin: req.admin.uid, recipient: user.email, note: note || '', createdAt: new Date() });
+
+    await transactionsCollection.insertOne({
+      type: 'admin_gift',
+      amount: bal,
+      admin: req.admin.uid,
+      recipient: user.email,
+      note: note || '',
+      createdAt: new Date()
+    });
+
     await logAudit('gift', { recipientEmail, bal, by: req.admin.uid, tier: tier || user.tier });
-    res.json({ success: true, recipientEmail: user.email, uid: user.uid, tempPassword, balance: bal, tier: tier || user.tier, message: tempPassword ? 'Cuenta creada con contraseña temporal' : 'Saldo agregado a cuenta existente' });
-  } catch (e) { res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message }); }
+
+    res.json({
+      success: true,
+      recipientEmail: user.email,
+      uid: user.uid,
+      tempPassword,
+      balance: bal,
+      tier: tier || user.tier,
+      message: tempPassword ? 'Cuenta creada con contraseña temporal' : 'Saldo agregado a cuenta existente'
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message });
+  }
 });
 // 📦 VAULT CREATE (CON IA: AUTO-TAGS) ✅ FIX: Agregado upload.single('archivo')
 app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async(req, res) => {
