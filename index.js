@@ -2639,173 +2639,199 @@ app.get('/api/identity/verification-status', authenticate, async (req, res) => {
   }
 });
 
-// === 🚀 NUEVAS FUNCIONES: EXPORT/IMPORT/SYNC (PORTABLE) ===
-app.get('/api/vault/export/:token', authenticate, async(req, res) => {
+// ============================================
+// 🚀 EXPORT / IMPORT / SYNC (PORTABLE) - REAL
+// ============================================
+
+// Exportar metadatos de la bóveda (sin contenido cifrado)
+app.get('/api/vault/export', authenticate, async (req, res) => {
   try {
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const items = await secretsCollection.find({ userId: user._id }, { projection: { encrypted: 0, contenido: 0, _id: 1, titulo: 1, categoria: 1, fileName: 1, createdAt: 1 } }).toArray();
-    const exportData = { version: '1.0', exportedAt: new Date().toISOString(), userId: user.uid, email: user.email, items: items.map(i => ({ id: i._id.toString(), titulo: i.titulo, categoria: i.categoria, fileName: i.fileName, createdAt: i.createdAt })) };
-    res.send(JSON.stringify(exportData, null, 2));
-    await logAudit('vault_export_download', { userId: user.uid, token: req.params.token.slice(0, 8) + '...' });
-  } catch (e) { logger.error('❌ Export download error: ' + e.message); res.status(500).json({ error: 'Error descargando exportación: ' + e.message }); }
+    const items = await secretsCollection.find({ userId: user._id }, { projection: { encrypted: 0, contenido: 0 } }).toArray();
+    const exportData = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      userId: user.uid,
+      email: user.email,
+      items: items.map(i => ({
+        id: i._id.toString(),
+        titulo: i.titulo,
+        categoria: i.categoria,
+        fileName: i.fileName,
+        fileType: i.fileType,
+        fileSize: i.fileSize,
+        isForSale: i.isForSale,
+        price: i.price,
+        tags: i.tags,
+        createdAt: i.createdAt
+      }))
+    };
+    await logAudit('vault_export', { userId: user.uid, count: items.length });
+    res.json({ success: true, exportData });
+  } catch (e) {
+    logger.error('❌ Export error: ' + e.message);
+    res.status(500).json({ error: 'Error exportando bóveda: ' + e.message });
+  }
 });
-app.post('/api/vault/import', authenticate, async(req, res) => {
+
+// Importar metadatos (el contenido cifrado debe subirse por separado)
+app.post('/api/vault/import', authenticate, async (req, res) => {
   try {
     const { exportData, options = {} } = req.body;
-    if (!exportData || !exportData.version || !Array.isArray(exportData.items)) return res.status(400).json({ error: 'Datos de exportación inválidos. Falta "version" o "items" array.', expected: { version: '1.0', items: 'array' } });
-    if (!FEATURES.PORTABLE_EXPORT || !mongoReady || !secretsCollection) return res.json({ success: true, message: 'Modo demo: importación simulada', demo: true, imported: exportData.items.length });
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    if (exportData.userId && exportData.userId !== user.uid && !options.forceImport) return res.status(403).json({ error: 'Exportación pertenece a otro usuario.', exportUserId: exportData.userId, yourUserId: user.uid, solution: 'Usa forceImport:true para importar como nueva bóveda' });
-    let importedCount = 0; const errors = []; const skipped = [];
-    for (const item of (exportData.items || [])) {
-      try {
-        if (!item.titulo) { skipped.push({ reason: 'missing titulo', item }); continue; }
-        const newItem = { userId: user._id, userUid: user.uid, titulo: item.titulo, categoria: item.categoria || 'imported', folderId: 'imported', tipo: item.tipo || (item.fileName ? 'archivo' : 'texto'), fileName: item.fileName || null, fileType: item.fileType || null, fileSize: item.fileSize || 0, encrypted: null, contenido: null, isForSale: false, price: 0, sales: 0, buyers: [], createdAt: new Date(item.createdAt) || new Date(), importedFrom: exportData.exportedAt || new Date().toISOString(), originalId: item.id, metadata: { imported: true, importDate: new Date().toISOString() } };
-        await secretsCollection.insertOne(newItem); importedCount++;
-      } catch (itemError) { errors.push({ itemId: item.id, titulo: item.titulo, error: itemError.message }); logger.warn(`⚠️ Import item failed: ${item.id} - ${itemError.message}`); }
+    if (!exportData || !exportData.version || !Array.isArray(exportData.items)) {
+      return res.status(400).json({ error: 'Datos de exportación inválidos' });
     }
-    await logAudit('vault_import', { userId: user.uid, importedCount, errorCount: errors.length, skippedCount: skipped.length, sourceExport: exportData.exportedAt, zeroKnowledge: FEATURES.ZERO_KNOWLEDGE });
-    res.json({ success: true, message: `Importación completada: ${importedCount} items restaurados`, summary: { imported: importedCount, errors: errors.length, skipped: skipped.length, total: exportData.items.length }, errors: errors.length > 0 ? errors : undefined, skipped: skipped.length > 0 ? skipped : undefined, nextSteps: ['Sube el contenido cifrado de cada archivo vía POST /vault normal', 'O usa el frontend con zero-knowledge para restaurar contenido completo', 'Verifica tus archivos en GET /vault'] });
-  } catch (e) { logger.error('❌ Import error: ' + e.message); res.status(500).json({ error: 'Error importando bóveda: ' + e.message }); }
-});
-app.get('/api/vault/sync/check', authenticate, async(req, res) => {
-  try {
-    const { lastSync } = req.query;
-    if (!FEATURES.LOCAL_SYNC || !mongoReady) return res.json({ success: true, hasChanges: false, demo: true, message: 'Sync offline no habilitado. Configura ENABLE_LOCAL_SYNC=true' });
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const query = { userId: user._id };
-    if (lastSync) { const lastSyncDate = new Date(lastSync); if (!isNaN(lastSyncDate.getTime())) query.$or = [{ createdAt: { $gt: lastSyncDate } }, { updatedAt: { $gt: lastSyncDate } }]; }
-    const changes = await secretsCollection.find(query, { projection: { _id: 1, titulo: 1, categoria: 1, fileName: 1, updatedAt: 1, createdAt: 1, tipo: 1, fileSize: 1 } }).sort({ updatedAt: -1 }).limit(100).toArray();
-    res.json({ success: true, hasChanges: changes.length > 0, changesCount: changes.length, lastServerSync: new Date().toISOString(), clientLastSync: lastSync || null, changes: changes.map(c => ({ id: c._id.toString(), titulo: c.titulo, categoria: c.categoria, tipo: c.tipo, fileName: c.fileName, fileSize: c.fileSize, updatedAt: c.updatedAt || c.createdAt, createdAt: c.createdAt })), instructions: { pull: 'GET /vault/:id para contenido completo de cada cambio', push: 'POST /api/vault/sync/push para subir cambios locales', zeroKnowledge: FEATURES.ZERO_KNOWLEDGE ? 'Contenido viene cifrado - descifra en frontend con tu clave' : null } });
-  } catch (e) { logger.error('❌ Sync check error: ' + e.message); res.status(500).json({ error: 'Error verificando sync: ' + e.message }); }
-});
-app.post('/api/vault/sync/push', authenticate, async(req, res) => {
-  try {
-    const { changes = [], options = {} } = req.body;
-    if (!Array.isArray(changes)) return res.status(400).json({ error: '"changes" debe ser un array de objetos' });
-    if (!FEATURES.LOCAL_SYNC || !mongoReady || !secretsCollection) return res.json({ success: true, synced: changes.length, demo: true, message: 'Modo demo: cambios simulados como sincronizados' });
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    let syncedCount = 0; const errors = []; const created = []; const updated = [];
-    for (const change of changes) {
-      try {
-        if (!change.titulo) { errors.push({ change: change.id || 'unknown', error: 'titulo requerido' }); continue; }
-        const updateData = { titulo: change.titulo, categoria: change.categoria, fileName: change.fileName, fileType: change.fileType, fileSize: change.fileSize, updatedAt: new Date(), metadata: {...(change.metadata || {}), lastSynced: new Date().toISOString(), syncedFrom: options.source || 'client' } };
-        if (change.id && ObjectId.isValid(change.id)) {
-          const result = await secretsCollection.updateOne({ _id: new ObjectId(change.id), userId: user._id }, { $set: updateData });
-          if (result.matchedCount > 0) { updated.push(change.id); syncedCount++; }
-          else { await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date(), originalId: change.id }); created.push(change.id); syncedCount++; }
-        } else {
-          await secretsCollection.insertOne({...updateData, userId: user._id, userUid: user.uid, tipo: change.tipo || (change.fileName ? 'archivo' : 'texto'), encrypted: null, contenido: null, createdAt: new Date(change.createdAt) || new Date() }); created.push(change.id || 'new'); syncedCount++;
-        }
-      } catch (itemError) { errors.push({ changeId: change.id, titulo: change.titulo, error: itemError.message }); logger.warn(`⚠️ Sync push failed: ${change.id} - ${itemError.message}`); }
+    if (!FEATURES.PORTABLE_EXPORT || !mongoReady || !secretsCollection) {
+      return res.json({ success: true, message: 'Modo demo', demo: true });
     }
-    await logAudit('vault_sync_push', { userId: user.uid, synced: syncedCount, created: created.length, updated: updated.length, errors: errors.length, source: options.source || 'client' });
-    res.json({ success: true, message: `${syncedCount} cambios sincronizados`, summary: { synced: syncedCount, created: created.length, updated: updated.length, errors: errors.length, total: changes.length }, created: created.length > 0 ? created : undefined, updated: updated.length > 0 ? updated : undefined, errors: errors.length > 0 ? errors : undefined, nextSteps: ['Sube el contenido cifrado de nuevos archivos vía POST /vault', 'Verifica sincronización con GET /api/vault/sync/check', FEATURES.ZERO_KNOWLEDGE ? 'Contenido local debe cifrarse con tu clave antes de subir' : null].filter(Boolean) });
-  } catch (e) { logger.error('❌ Sync push error: ' + e.message); res.status(500).json({ error: 'Error sincronizando cambios: ' + e.message }); }
-});
-// ============================================
-// 🛍️ MARKETPLACE INTEGRADO + RECOMENDACIONES
-// ============================================
-
-// 🌟 FUNCIÓN AUXILIAR: Metadatos públicos de un ítem (definida PRIMERO para usarla después)
-const getPublicItemMetadata = (secret, sellerProfile = null) => ({
-  id: secret._id.toString(), 
-  titulo: secret.titulo,
-  descripcion: secret.descripcion?.substring(0, 300) + (secret.descripcion?.length > 300 ? '...' : ''),
-  categoria: secret.categoria || 'general', 
-  tags: secret.tags || [], 
-  precio: secret.price || 0, 
-  moneda: 'USD',
-  vendedor: { 
-    uid: secret.userUid, 
-    displayName: sellerProfile?.displayName || 'Creador', 
-    avatarUrl: sellerProfile?.avatarUrl || null, 
-    rating: sellerProfile?.rating?.average || 0, 
-    totalVentas: sellerProfile?.totalVentas || 0, 
-    verificado: sellerProfile?.identityVerified || false 
-  },
-  estadisticas: { 
-    ventas: secret.sales || 0, 
-    rating: secret.rating?.average || 0, 
-    reseñasCount: secret.rating?.count || 0, 
-    vistas: secret.views || 0 
-  },
-  licencia: secret.licenseDays ? `${secret.licenseDays} días` : 'Permanente', 
-  tipo: secret.tipo, 
-  fileName: secret.fileName, 
-  fileType: secret.fileType, 
-  fileSize: secret.fileSize, 
-  createdAt: secret.createdAt, 
-  thumbnailUrl: secret.thumbnailUrl || null
-});
-// 🌟 FUNCIÓN: Calcular y actualizar reputación del vendedor
-async function updateSellerReputation(sellerUserId) {
-  if (!mongoReady || !reviewsCollection || !secretsCollection || !profilesCollection) return;
-  try {
-    const sellerSecrets = await secretsCollection.find({ userId: new ObjectId(sellerUserId) }, { projection: { _id: 1 } }).toArray();
-    if (sellerSecrets.length === 0) return;
-    const secretIds = sellerSecrets.map(s => s._id);
-    const reviews = await reviewsCollection.find({ itemId: { $in: secretIds }, verifiedPurchase: true }).toArray();
-    const avg = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
-    const newRep = Math.min(5, Math.max(0, avg)).toFixed(2);
-    await profilesCollection.updateOne({ userId: new ObjectId(sellerUserId) }, { $set: { reputation: newRep, reputationUpdatedAt: new Date() } });
-  } catch (e) { 
-    logger.warn('⚠️ Error actualizando reputación: ' + e.message); 
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (exportData.userId && exportData.userId !== user.uid && !options.forceImport) {
+      return res.status(403).json({ error: 'Esta exportación pertenece a otro usuario. Usa forceImport:true para importar como nueva bóveda.' });
+    }
+    let importedCount = 0, errors = [], skipped = [];
+    for (const item of exportData.items) {
+      try {
+        if (!item.titulo) { skipped.push(item); continue; }
+        const newItem = {
+          userId: user._id, userUid: user.uid,
+          titulo: item.titulo, categoria: item.categoria || 'imported',
+          folderId: 'imported', tipo: item.fileName ? 'archivo' : 'texto',
+          fileName: item.fileName || null, fileType: item.fileType || null, fileSize: item.fileSize || 0,
+          encrypted: null, contenido: null, isForSale: item.isForSale || false, price: item.price || 0,
+          sales: 0, buyers: [], tags: item.tags || [], createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
+          importedFrom: exportData.exportedAt, originalId: item.id
+        };
+        await secretsCollection.insertOne(newItem);
+        importedCount++;
+      } catch (err) {
+        errors.push({ item: item.titulo, error: err.message });
+      }
+    }
+    await logAudit('vault_import', { userId: user.uid, imported: importedCount, errors: errors.length });
+    res.json({ success: true, message: `${importedCount} items importados`, importedCount, errors });
+  } catch (e) {
+    logger.error('❌ Import error: ' + e.message);
+    res.status(500).json({ error: 'Error importando: ' + e.message });
   }
-}
+});
 
+// ============================================
+// 👥 SEGUIDORES (FOLLOWS) - REAL
+// ============================================
 
-// 📱 FEED SOCIAL: Productos en tiempo real (como el muro de Facebook)
-app.get('/api/feed', authenticate, async(req, res) => {
+// Seguir a un usuario
+app.post('/api/follow/:userId', authenticate, async (req, res) => {
   try {
-    if (!mongoReady || !secretsCollection) return res.json({ success: true, posts: [], demo: true });
-    
+    const follower = await usersCollection.findOne({ uid: req.user.uid });
+    const following = await usersCollection.findOne({ uid: req.params.userId });
+    if (!follower || !following) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (follower.uid === following.uid) return res.status(400).json({ error: 'No puedes seguirte a ti mismo' });
+
+    await followsCollection.updateOne(
+      { followerId: follower._id, followingId: following._id },
+      { $setOnInsert: { createdAt: new Date() } },
+      { upsert: true }
+    );
+    await logAudit('follow', { follower: follower.uid, following: following.uid });
+    res.json({ success: true, message: `Ahora sigues a ${following.username}` });
+  } catch (e) {
+    logger.error('❌ Follow error: ' + e.message);
+    res.status(500).json({ error: 'Error al seguir usuario' });
+  }
+});
+
+// Dejar de seguir
+app.delete('/api/follow/:userId', authenticate, async (req, res) => {
+  try {
+    const follower = await usersCollection.findOne({ uid: req.user.uid });
+    const following = await usersCollection.findOne({ uid: req.params.userId });
+    if (!follower || !following) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const result = await followsCollection.deleteOne({ followerId: follower._id, followingId: following._id });
+    if (result.deletedCount === 0) return res.status(404).json({ error: 'No seguías a este usuario' });
+    await logAudit('unfollow', { follower: follower.uid, following: following.uid });
+    res.json({ success: true, message: `Dejaste de seguir a ${following.username}` });
+  } catch (e) {
+    logger.error('❌ Unfollow error: ' + e.message);
+    res.status(500).json({ error: 'Error al dejar de seguir' });
+  }
+});
+
+// Obtener a quién sigue un usuario
+app.get('/api/following', authenticate, async (req, res) => {
+  try {
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    
+    const follows = await followsCollection.find({ followerId: user._id }).toArray();
+    const followingIds = follows.map(f => f.followingId);
+    const followingUsers = await usersCollection.find({ _id: { $in: followingIds } }, { projection: { username: 1, avatar: 1, uid: 1 } }).toArray();
+    res.json({ success: true, following: followingUsers });
+  } catch (e) {
+    logger.error('❌ Get following error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando seguidos' });
+  }
+});
+
+// Obtener seguidores
+app.get('/api/followers', authenticate, async (req, res) => {
+  try {
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const followers = await followsCollection.find({ followingId: user._id }).toArray();
+    const followerIds = followers.map(f => f.followerId);
+    const followerUsers = await usersCollection.find({ _id: { $in: followerIds } }, { projection: { username: 1, avatar: 1, uid: 1 } }).toArray();
+    res.json({ success: true, followers: followerUsers });
+  } catch (e) {
+    logger.error('❌ Get followers error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando seguidores' });
+  }
+});
+
+// ============================================
+// 📱 FEED SOCIAL REAL (con likes y comentarios persistentes)
+// ============================================
+
+// Obtener feed de productos (solo los que están en venta, ordenados por fecha)
+app.get('/api/feed', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady) return res.json({ success: true, posts: [], demo: true });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
     const { page = 1, limit = 20, filter = 'all', followedOnly = 'false' } = req.query;
-    
     let filterQuery = { isForSale: true };
-    
+
     if (followedOnly === 'true') {
-      const followed = await favoritesCollection?.find({ userId: user._id }, { projection: { itemId: 1 } }).toArray() || [];
-      const followedCreators = await secretsCollection?.find({ _id: { $in: followed.map(f => f.itemId) } }, { projection: { userId: 1 } }).toArray() || [];
-      filterQuery.userId = { $in: followedCreators.map(c => c.userId) };
+      const following = await followsCollection.find({ followerId: user._id }).toArray();
+      const followingIds = following.map(f => f.followingId);
+      if (followingIds.length) filterQuery.userId = { $in: followingIds };
+      else return res.json({ success: true, posts: [], pagination: { total: 0 } });
     }
-    
     if (filter && filter !== 'all') filterQuery.categoria = filter;
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
     const posts = await secretsCollection.find(filterQuery)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))
       .project({ encrypted: 0, contenido: 0, buyers: 0 })
       .toArray();
-    
     const total = await secretsCollection.countDocuments(filterQuery);
-    
+
     const enrichedPosts = [];
     for (const post of posts) {
-      const sellerProfile = await profilesCollection.findOne({ userId: post.userId }, { 
-        projection: { displayName: 1, avatarUrl: 1, reputation: 1, identityVerified: 1 } 
-      });
-      
-      const likes = Math.floor(Math.random() * 50);
-      const comments = Math.floor(Math.random() * 20);
-      
+      const sellerProfile = await profilesCollection.findOne({ userId: post.userId });
+      const likesCount = await postLikesCollection.countDocuments({ postId: post._id });
+      const commentsCount = await commentsCollection.countDocuments({ postId: post._id });
+      const userLiked = await postLikesCollection.findOne({ userId: user._id, postId: post._id });
+
       enrichedPosts.push({
         id: post._id.toString(),
         titulo: post.titulo,
         descripcion: post.descripcion?.substring(0, 300),
         categoria: post.categoria,
         precio: post.price,
-        moneda: 'USD',
         vendedor: {
           uid: post.userUid,
           displayName: sellerProfile?.displayName || 'Creador',
@@ -2816,227 +2842,243 @@ app.get('/api/feed', authenticate, async(req, res) => {
         multimedia: {
           tipo: post.tipo,
           fileName: post.fileName,
-          fileType: post.fileType,
-          fileSize: post.fileSize,
           thumbnailUrl: post.thumbnailUrl || null
         },
         engagement: {
-          likes,
-          comments,
+          likes: likesCount,
+          comments: commentsCount,
           views: post.views || 0,
-          sales: post.sales || 0
+          sales: post.sales || 0,
+          userLiked: !!userLiked
         },
         createdAt: post.createdAt,
-        actions: {
-          comprar: `/api/buy/${post._id}`,
-          like: `/api/feed/${post._id}/like`,
-          comentar: `/api/feed/${post._id}/comment`,
-          compartir: `${APP_URL}/marketplace/item/${post._id}`
-        }
+        actions: { comprar: `/api/buy/${post._id}` }
       });
     }
-    
+
     res.json({
       success: true,
       posts: enrichedPosts,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit),
-        hasNext: skip + parseInt(limit) < total
-      },
-      filters: { applied: filter, followedOnly: followedOnly === 'true' }
+      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }
     });
   } catch (e) {
     logger.error('❌ Feed error: ' + e.message);
-    res.status(500).json({ error: 'Error cargando feed: ' + e.message });
+    res.status(500).json({ error: 'Error cargando feed' });
   }
 });
 
-// ❤️ LIKE / REACCIÓN A PRODUCTO
-app.post('/api/feed/:id/like', authenticate, async(req, res) => {
+// Dar/quitar like a un producto
+app.post('/api/feed/:id/like', authenticate, async (req, res) => {
   try {
-    if (!mongoReady) return res.json({ success: true, liked: true, demo: true });
-    
     const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const post = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
-    
     if (!post) return res.status(404).json({ error: 'Producto no encontrado' });
-    
-    await secretsCollection.updateOne({ _id: post._id }, { $inc: { views: 1 } });
-    
-    res.json({ success: true, liked: true, message: '¡Te gusta este producto!' });
+
+    const existingLike = await postLikesCollection.findOne({ userId: user._id, postId: post._id });
+    if (existingLike) {
+      await postLikesCollection.deleteOne({ _id: existingLike._id });
+      await secretsCollection.updateOne({ _id: post._id }, { $inc: { views: -1 } });
+      await logAudit('feed_unlike', { userId: user.uid, postId: req.params.id });
+      return res.json({ success: true, liked: false, message: 'Like eliminado' });
+    } else {
+      await postLikesCollection.insertOne({ userId: user._id, postId: post._id, createdAt: new Date() });
+      await secretsCollection.updateOne({ _id: post._id }, { $inc: { views: 1 } });
+      await logAudit('feed_like', { userId: user.uid, postId: req.params.id });
+      return res.json({ success: true, liked: true, message: 'Te gusta este producto' });
+    }
   } catch (e) {
     logger.error('❌ Like error: ' + e.message);
-    res.status(500).json({ error: 'Error procesando like: ' + e.message });
+    res.status(500).json({ error: 'Error procesando like' });
   }
 });
-// 💬 COMENTARIO EN PRODUCTO (versión única y corregida)
-app.post('/api/feed/:id/comment', authenticate, async(req, res) => {
+
+// Obtener comentarios de un producto
+app.get('/api/feed/:id/comments', async (req, res) => {
+  try {
+    const comments = await commentsCollection.find({ postId: new ObjectId(req.params.id) })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .toArray();
+    // Enriquecer con nombre de usuario
+    const userIds = comments.map(c => c.userId);
+    const users = await usersCollection.find({ _id: { $in: userIds } }, { projection: { username: 1, avatar: 1 } }).toArray();
+    const userMap = Object.fromEntries(users.map(u => [u._id.toString(), u]));
+    const enriched = comments.map(c => ({
+      id: c._id,
+      user: userMap[c.userId.toString()] || { username: 'Anónimo' },
+      text: c.text,
+      createdAt: c.createdAt
+    }));
+    res.json({ success: true, comments: enriched });
+  } catch (e) {
+    logger.error('❌ Get comments error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando comentarios' });
+  }
+});
+
+// Publicar comentario
+app.post('/api/feed/:id/comment', authenticate, async (req, res) => {
   try {
     const { comment } = req.body;
-    if (!comment || comment.trim().length < 2) return res.status(400).json({ error: 'Comentario muy corto' });
-    
-    if (!mongoReady) return res.json({ success: true, message: 'Comentario guardado (demo)', demo: true });
-    
+    if (!comment || comment.trim().length < 2) return res.status(400).json({ error: 'Comentario muy corto (mínimo 2 caracteres)' });
     const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const post = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
-    
     if (!post) return res.status(404).json({ error: 'Producto no encontrado' });
-    
-    await logAudit('feed_comment', { userId: user.uid, postId: req.params.id, comment: comment.substring(0, 100) });
-    
-    res.json({
-      success: true,
-      message: '✅ Comentario publicado',
-      comment: {
-        id: 'demo_' + Date.now(),
-        user: { displayName: (await profilesCollection.findOne({ userId: user._id }))?.displayName || 'Usuario' },
-        text: comment.substring(0, 500),
-        createdAt: new Date()
-      }
+
+    await commentsCollection.insertOne({
+      postId: post._id,
+      userId: user._id,
+      text: comment.substring(0, 500),
+      createdAt: new Date()
     });
+    await logAudit('feed_comment', { userId: user.uid, postId: req.params.id, comment: comment.substring(0, 100) });
+    res.json({ success: true, message: 'Comentario publicado', comment: { user: { username: user.username }, text: comment, createdAt: new Date() } });
   } catch (e) {
     logger.error('❌ Comment error: ' + e.message);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Error publicando comentario: ' + e.message });
-    }
+    res.status(500).json({ error: 'Error publicando comentario' });
   }
 });
 
-// 🌟 FUNCIÓN: Calcular y actualizar reputación del vendedor (definida correctamente)
-async function updateSellerReputation(sellerUserId) {
-  if (!mongoReady || !reviewsCollection || !secretsCollection || !profilesCollection) return;
-  try {
-    const sellerSecrets = await secretsCollection.find({ userId: new ObjectId(sellerUserId) }, { projection: { _id: 1 } }).toArray();
-    if (sellerSecrets.length === 0) return;
-    const secretIds = sellerSecrets.map(s => s._id);
-    const reviews = await reviewsCollection.find({ itemId: { $in: secretIds }, verifiedPurchase: true }).toArray();
-    const avg = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
-    const newRep = Math.min(5, Math.max(0, avg)).toFixed(2);
-    await profilesCollection.updateOne({ userId: new ObjectId(sellerUserId) }, { $set: { reputation: newRep, reputationUpdatedAt: new Date() } });
-  } catch (e) { 
-    logger.warn('⚠️ Error actualizando reputación: ' + e.message); 
-  }
-}
+// ============================================
+// 🛍️ MARKETPLACE REAL (CATÁLOGO + DETALLE)
+// ============================================
 
-// 📦 CATÁLOGO DEL MARKETPLACE
-app.get('/api/marketplace', async(req, res) => {
+// Metadatos públicos (función auxiliar)
+const getPublicItemMetadata = (secret, sellerProfile = null) => ({
+  id: secret._id.toString(),
+  titulo: secret.titulo,
+  descripcion: secret.descripcion?.substring(0, 300),
+  categoria: secret.categoria || 'general',
+  tags: secret.tags || [],
+  precio: secret.price || 0,
+  moneda: 'USD',
+  vendedor: {
+    uid: secret.userUid,
+    displayName: sellerProfile?.displayName || 'Creador',
+    avatarUrl: sellerProfile?.avatarUrl || null,
+    rating: sellerProfile?.reputation || 0,
+    totalVentas: sellerProfile?.totalVentas || 0,
+    verificado: sellerProfile?.identityVerified || false
+  },
+  estadisticas: {
+    ventas: secret.sales || 0,
+    rating: secret.rating?.average || 0,
+    reseñasCount: secret.rating?.count || 0,
+    vistas: secret.views || 0
+  },
+  licencia: secret.licenseDays ? `${secret.licenseDays} días` : 'Permanente',
+  tipo: secret.tipo,
+  fileName: secret.fileName,
+  fileType: secret.fileType,
+  fileSize: secret.fileSize,
+  createdAt: secret.createdAt,
+  thumbnailUrl: secret.thumbnailUrl || null
+});
+
+// Listar productos en venta (con filtros)
+app.get('/api/marketplace', async (req, res) => {
   try {
-    if (!mongoReady || !secretsCollection) return res.json({ success: true, items: [], total: 0, page: 1, demo: true });
+    if (!mongoReady) return res.json({ success: true, items: [], demo: true });
     const { categoria, maxPrice, minPrice, sortBy = 'popularity', page = 1, limit = 20, q, tags, verifiedOnly } = req.query;
     const filter = { isForSale: true };
     if (categoria) filter.categoria = categoria;
-    if (maxPrice) filter.price = {...filter.price, $lte: parseFloat(maxPrice) };
-    if (minPrice) filter.price = {...filter.price, $gte: parseFloat(minPrice) };
-    if (verifiedOnly === 'true') { 
-      const verifiedUsers = await profilesCollection.find({ identityVerified: true }, { projection: { userId: 1 } }).toArray(); 
-      filter.userId = { $in: verifiedUsers.map(p => p.userId) }; 
+    if (maxPrice) filter.price = { $lte: parseFloat(maxPrice) };
+    if (minPrice) filter.price = { ...filter.price, $gte: parseFloat(minPrice) };
+    if (verifiedOnly === 'true') {
+      const verifiedUsers = await profilesCollection.find({ identityVerified: true }, { projection: { userId: 1 } }).toArray();
+      filter.userId = { $in: verifiedUsers.map(p => p.userId) };
     }
-    if (tags) { 
-      const tagList = tags.split(',').map(t => t.trim()); 
-      filter.tags = { $in: tagList }; 
-    }
+    if (tags) filter.tags = { $in: tags.split(',').map(t => t.trim()) };
     if (q) filter.$text = { $search: q };
-    
+
     let sort = {};
-    switch(sortBy) {
+    switch (sortBy) {
       case 'price_asc': sort = { price: 1 }; break;
       case 'price_desc': sort = { price: -1 }; break;
       case 'newest': sort = { createdAt: -1 }; break;
-      case 'rating': sort = { 'rating.average': -1, sales: -1 }; break;
       default: sort = { sales: -1, 'rating.average': -1, createdAt: -1 };
     }
-    
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [items, total] = await Promise.all([
-      secretsCollection.find(filter).sort(sort).skip(skip).limit(parseInt(limit)).project({ encrypted: 0, contenido: 0, buyers: 0 }).toArray(), 
+      secretsCollection.find(filter).sort(sort).skip(skip).limit(parseInt(limit)).project({ encrypted: 0, contenido: 0, buyers: 0 }).toArray(),
       secretsCollection.countDocuments(filter)
     ]);
-    
-    const enrichedItems = [];
-    for (const item of items) { 
-      const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, { projection: { displayName: 1, avatarUrl: 1, rating: 1, totalVentas: 1, identityVerified: 1 } }); 
-      enrichedItems.push(getPublicItemMetadata(item, sellerProfile)); 
+    const enriched = [];
+    for (const item of items) {
+      const sellerProfile = await profilesCollection.findOne({ userId: item.userId });
+      enriched.push(getPublicItemMetadata(item, sellerProfile));
     }
-    
-    res.json({ 
-      success: true, 
-      items: enrichedItems, 
-      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }, 
-      filters: { categoria, maxPrice, minPrice, sortBy, q, tags } 
+    res.json({
+      success: true,
+      items: enriched,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }
     });
-  } catch (e) { 
-    logger.error('❌ Marketplace catalog error: ' + e.message); 
-    res.status(500).json({ error: 'Error cargando catálogo: ' + e.message }); 
+  } catch (e) {
+    logger.error('❌ Marketplace error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando catálogo' });
   }
 });
 
-// 🔍 BÚSQUEDA EN MARKETPLACE
-app.get('/api/marketplace/search', async(req, res) => {
+// Búsqueda
+app.get('/api/marketplace/search', async (req, res) => {
   try {
     const { q, categoria, limit = 10 } = req.query;
-    if (!q || q.length < 2) return res.status(400).json({ error: 'Término de búsqueda debe tener al menos 2 caracteres' });
+    if (!q || q.length < 2) return res.status(400).json({ error: 'Búsqueda requiere al menos 2 caracteres' });
     if (!mongoReady) return res.json({ success: true, results: [], demo: true });
-    
     const filter = { isForSale: true, $text: { $search: q } };
     if (categoria) filter.categoria = categoria;
-    
     const results = await secretsCollection.find(filter, { score: { $meta: 'textScore' }, projection: { encrypted: 0, contenido: 0, buyers: 0 } })
       .sort({ score: { $meta: 'textScore' } })
       .limit(parseInt(limit))
       .toArray();
-    
     const enriched = [];
-    for (const item of results) { 
-      const sellerProfile = await profilesCollection.findOne({ userId: item.userId }, { projection: { displayName: 1, avatarUrl: 1 } }); 
-      enriched.push({...getPublicItemMetadata(item, sellerProfile), relevanceScore: item.score }); 
+    for (const item of results) {
+      const sellerProfile = await profilesCollection.findOne({ userId: item.userId });
+      enriched.push({ ...getPublicItemMetadata(item, sellerProfile), relevanceScore: item.score });
     }
-    
     res.json({ success: true, query: q, results: enriched, count: enriched.length });
-  } catch (e) { 
-    logger.error('❌ Marketplace search error: ' + e.message); 
-    res.status(500).json({ error: 'Error en búsqueda: ' + e.message }); 
+  } catch (e) {
+    logger.error('❌ Search error: ' + e.message);
+    res.status(500).json({ error: 'Error en búsqueda' });
   }
 });
 
-// 📄 DETALLE DE PRODUCTO
-app.get('/api/marketplace/item/:id', async(req, res) => {
+// Detalle de producto
+app.get('/api/marketplace/item/:id', async (req, res) => {
   try {
     if (!mongoReady) return res.json({ success: true, item: { id: req.params.id, titulo: 'Demo' }, demo: true });
-    
     const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), isForSale: true }, { projection: { encrypted: 0, contenido: 0, buyers: 0 } });
-    if (!secret) return res.status(404).json({ error: 'Producto no encontrado o no disponible' });
-    
-    const sellerProfile = await profilesCollection.findOne({ userId: secret.userId }, { projection: { displayName: 1, avatarUrl: 1, bio: 1, rating: 1, totalVentas: 1, identityVerified: 1, createdAt: 1 } });
-    const recentReviews = await reviewsCollection?.find({ itemId: secret._id, createdAt: { $gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }).sort({ createdAt: -1 }).limit(3).toArray() || [];
-    
-    res.json({ 
-      success: true, 
+    if (!secret) return res.status(404).json({ error: 'Producto no encontrado' });
+    const sellerProfile = await profilesCollection.findOne({ userId: secret.userId });
+    const recentComments = await commentsCollection.find({ postId: secret._id }).sort({ createdAt: -1 }).limit(3).toArray();
+    const commentUsers = await usersCollection.find({ _id: { $in: recentComments.map(c => c.userId) } }, { projection: { username: 1, avatar: 1 } }).toArray();
+    const userMap = Object.fromEntries(commentUsers.map(u => [u._id.toString(), u]));
+    const comments = recentComments.map(c => ({
+      id: c._id,
+      user: userMap[c.userId.toString()] || { username: 'Anónimo' },
+      text: c.text,
+      createdAt: c.createdAt
+    }));
+
+    res.json({
+      success: true,
       item: {
-        ...getPublicItemMetadata(secret, sellerProfile), 
-        descripcionCompleta: secret.descripcion, 
-        requisitos: secret.requisitos || null, 
-        preview: secret.preview || null, 
-        reseñasRecientes: recentReviews.map(r => ({ 
-          id: r._id, 
-          rating: r.rating, 
-          comment: r.comment?.substring(0, 200), 
-          buyerName: r.buyerName || 'Comprador', 
-          date: r.createdAt, 
-          verified: r.verifiedPurchase 
-        })) 
-      }, 
-      acciones: { 
-        comprar: '/api/buy/' + req.params.id, 
-        agregarFavoritos: req.user ? '/api/marketplace/favorites' : null, 
-        compartir: APP_URL + '/marketplace/item/' + req.params.id 
-      } 
+        ...getPublicItemMetadata(secret, sellerProfile),
+        descripcionCompleta: secret.descripcion,
+        requisitos: secret.requisitos || null,
+        preview: secret.preview || null,
+        reseñasRecientes: comments
+      },
+      acciones: {
+        comprar: `/api/buy/${secret._id}`,
+        compartir: `${APP_URL}/marketplace/item/${secret._id}`
+      }
     });
-  } catch (e) { 
-    logger.error('❌ Marketplace item detail error: ' + e.message); 
-    res.status(500).json({ error: 'Error cargando producto: ' + e.message }); 
+  } catch (e) {
+    logger.error('❌ Item detail error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando producto' });
   }
 });
 
