@@ -1057,6 +1057,27 @@ app.get('/api/referrals/me', authenticate, async(req, res) => {
 });
 
 // ============================================
+// 👑 MIDDLEWARE: DUEÑO SUPREMO
+// ============================================
+const requireSupremo = async (req, res, next) => {
+  try {
+    if (!mongoReady || !usersCollection) {
+      // Modo demo: solo permite si el email está en ADMIN_EMAILS
+      if (ADMIN_EMAILS.includes(req.user.email)) return next();
+      return res.status(403).json({ error: 'Acceso denegado: solo el Dueño Supremo puede realizar esta acción' });
+    }
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user || !user.esSupremo) {
+      return res.status(403).json({ error: 'Acceso denegado: solo el Dueño Supremo puede realizar esta acción' });
+    }
+    req.supremo = user;
+    next();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ============================================
 // 👑 ADMIN: REGALAR CUENTA (GIFT ACCOUNT)
 // ============================================
 app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res) => {
