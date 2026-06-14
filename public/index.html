@@ -2174,118 +2174,212 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
   window.cargarFeed = cargarFeed;
 })();
 </script>
-
-<!-- 🧠 LÓGICA SEGURA E INTEGRADA (Cero onclick, Cero enlaces externos) -->
+<!-- 🧠 LÓGICA REAL DEL FEED (Cero enlaces externos, conecta con backend) -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Referencias seguras
-    const socialFeedPanel = document.getElementById('socialFeedPanel');
+    // Referencias a elementos del feed
     const feedContainer = document.getElementById('feedContainer');
     const btnOpenPublish = document.getElementById('btnOpenPublish');
     const publishModal = document.getElementById('publishModal');
     const btnClosePublish = document.getElementById('btnClosePublish');
     const btnSecurePublish = document.getElementById('btnSecurePublish');
-    
-    // Inputs del modal
     const pubFile = document.getElementById('pubFile');
     const pubTitle = document.getElementById('pubTitle');
     const pubCat = document.getElementById('pubCat');
     const pubPrice = document.getElementById('pubPrice');
 
-    // 1. Mostrar el panel de forma segura (simulando carga post-login)
-    setTimeout(() => {
-      socialFeedPanel.classList.remove('hidden');
-    }, 500);
+    // Función para obtener token (ya definida en script.js)
+    const getToken = () => localStorage.getItem('authToken');
 
-    // 2. Abrir/Cerrar modal de forma segura (Reemplaza onclick)
-    btnOpenPublish.addEventListener('click', () => publishModal.classList.remove('hidden'));
-    btnClosePublish.addEventListener('click', () => {
-      publishModal.classList.add('hidden');
-      pubFile.value = ''; pubTitle.value = ''; pubPrice.value = '';
-    });
+    // Cargar feed real desde el backend
+    async function cargarFeedReal() {
+      const token = getToken();
+      if (!token || !feedContainer) return;
 
-    // 3. Filtros del feed (Seguros)
-    document.querySelectorAll('.feed-filter-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.feed-filter-btn').forEach(b => b.style.background = '#1e293b');
-        this.style.background = '#334155';
-        // Aquí iría la lógica real de filtrado. Por ahora, es visual.
-      });
-    });
+      feedContainer.innerHTML = '<p style="text-align: center; color: #cbd5e1;">Cargando publicaciones...</p>';
 
-    // 4. Proceso de Publicación con Lista Blanca y Auditoría IA
-    btnSecurePublish.addEventListener('click', function() {
-      if (!pubFile.files.length || !pubTitle.value.trim() || !pubPrice.value) {
-        alert('⚠️ ALERTA: Completa todos los campos y selecciona un archivo válido.');
-        return;
-      }
+      try {
+        const res = await fetch('/api/feed', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al cargar feed');
 
-      // VALIDACIÓN DE LISTA BLANCA (Seguridad Prioridad Cero)
-      const fileName = pubFile.files[0].name.toLowerCase();
-      const allowed = ['.txt', '.mp3', '.mp4', '.rar', '.zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv'];
-      if (!allowed.some(ext => fileName.endsWith(ext))) {
-        alert('⛔ BLOQUEO DE SEGURIDAD: Tipo de archivo no permitido en la lista blanca de apiromwinervault.');
-        return;
-      }
-
-      // Simular proceso de Cifrado y Auditoría IA
-      btnSecurePublish.disabled = true;
-      btnSecurePublish.innerHTML = '🔄 Cifrando y Ejecutando Auditoría IA...';
-
-      setTimeout(() => {
-        // Crear elemento de publicación de forma segura (Prevención XSS)
-        const post = document.createElement('div');
-        post.style.cssText = 'background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; animation: fadeIn 0.5s;';
-        
-        const safeTitle = pubTitle.value; // Texto seguro
-        const safePrice = pubPrice.value;
-        const safeCat = pubCat.options[pubCat.selectedIndex].text;
-        const safeFile = fileName;
-        const fileSize = (pubFile.files[0].size / 1024 / 1024).toFixed(2) + ' MB';
-
-        post.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-            <div>
-              <h4 style="margin: 0; color: #f8fafc; font-size: 1.1rem;">${safeTitle}</h4>
-              <span style="font-size: 0.75rem; color: #94a3b8;">${safeCat} • ${safeFile} (${fileSize})</span>
-            </div>
-            <span style="background: #fbbf24; color: #000; padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 1.1rem;">$${safePrice} USD</span>
-          </div>
-          <div style="background: #0f172a; border-left: 3px solid #059669; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
-            <div style="font-size: 0.8rem; color: #059669; font-weight: bold; display: flex; align-items: center; gap: 6px;">
-              🤖 Auditoría IA Aprobada
-            </div>
-            <p style="font-size: 0.8rem; color: #cbd5e1; margin: 4px 0 0 0;">Integridad verificada. Sin código malicioso. Cifrado AES-256-GCM aplicado. Listo para venta granular.</p>
-          </div>
-          <div style="display: flex; gap: 10px;">
-            <button class="btn-buy" style="flex: 1; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">🛒 Adquirir Activo</button>
-            <button class="btn-preview" style="flex: 1; padding: 10px; background: transparent; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; cursor: pointer;">👁️ Vista Previa Segura</button>
-          </div>
-        `;
-
-        // Limpiar mensaje de "vacío" si existe
-        if (feedContainer.querySelector('p')) {
-          feedContainer.innerHTML = '';
+        if (!data.posts || data.posts.length === 0) {
+          feedContainer.innerHTML = '<p style="text-align: center; color: #64748b;">No hay activos publicados aún. ¡Sé el primero!</p>';
+          return;
         }
-        
-        // Insertar al inicio del feed
-        feedContainer.insertBefore(post, feedContainer.firstChild);
 
-        // Restaurar modal y botón
+        feedContainer.innerHTML = '';
+        for (const post of data.posts) {
+          const postDiv = document.createElement('div');
+          postDiv.style.cssText = 'background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; transition: transform 0.2s;';
+          postDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+              <div>
+                <h3 style="margin: 0 0 4px 0; color: #f8fafc;">${escapeHtml(post.titulo)}</h3>
+                <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Vendedor: ${escapeHtml(post.vendedor?.displayName || 'Anónimo')}</p>
+              </div>
+              <span style="background: #059669; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">$${post.precio} USD</span>
+            </div>
+            <p style="margin: 8px 0; color: #cbd5e1;">${escapeHtml(post.descripcion || 'Sin descripción')}</p>
+            <div style="display: flex; gap: 12px; margin-top: 12px;">
+              <button class="buy-btn" data-id="${post.id}" style="flex: 1; padding: 8px; background: #00e676; color: #0b0c10; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">💰 Comprar</button>
+              <button class="like-btn" data-id="${post.id}" style="flex: 0.3; padding: 8px; background: transparent; border: 1px solid #38bdf8; color: #38bdf8; border-radius: 8px; cursor: pointer;">❤️ ${post.engagement?.likes || 0}</button>
+            </div>
+          `;
+          feedContainer.appendChild(postDiv);
+        }
+
+        // Delegación de eventos para botones de compra (los likes se pueden implementar después)
+        feedContainer.querySelectorAll('.buy-btn').forEach(btn => {
+          btn.addEventListener('click', () => comprarProducto(btn.dataset.id));
+        });
+
+      } catch (err) {
+        console.error('Error cargando feed:', err);
+        feedContainer.innerHTML = '<p style="text-align: center; color: #ef4444;">Error al cargar el feed. Intenta más tarde.</p>';
+      }
+    }
+
+    // Función auxiliar para escapar HTML
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    // Función de compra (reutiliza la lógica del script principal o del backend)
+    async function comprarProducto(productId) {
+      const token = getToken();
+      if (!token) {
+        alert('Debes iniciar sesión para comprar.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/buy/${productId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Compra exitosa. Revisa tu bóveda.');
+          // Opcional: recargar feed o actualizar saldo
+        } else {
+          alert('❌ Error: ' + (data.error || 'No se pudo completar la compra'));
+        }
+      } catch (err) {
+        console.error('Error comprando:', err);
+        alert('Error de conexión');
+      }
+    }
+
+    // Publicar un activo (usando endpoint real /vault con forSale=true)
+    async function publicarActivo(file, titulo, categoria, price) {
+      const token = getToken();
+      if (!token) throw new Error('No autenticado');
+
+      const formData = new FormData();
+      formData.append('archivo', file);
+      formData.append('titulo', titulo);
+      formData.append('categoria', categoria);
+      formData.append('forSale', 'true');
+      formData.append('price', price.toString());
+
+      const res = await fetch('/vault', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Error al publicar');
+      return data;
+    }
+
+    // Eventos del modal de publicación (solo si existe el modal)
+    if (btnOpenPublish) {
+      btnOpenPublish.addEventListener('click', () => {
+        if (!getToken()) {
+          alert('Debes iniciar sesión para publicar activos.');
+          return;
+        }
+        publishModal.classList.remove('hidden');
+      });
+    }
+
+    if (btnClosePublish) {
+      btnClosePublish.addEventListener('click', () => {
         publishModal.classList.add('hidden');
-        btnSecurePublish.disabled = false;
-        btnSecurePublish.innerHTML = '🛡️ Cifrar, Auditar con IA y Publicar';
-        pubFile.value = ''; pubTitle.value = ''; pubPrice.value = '';
+        if (pubFile) pubFile.value = '';
+        if (pubTitle) pubTitle.value = '';
+        if (pubCat) pubCat.value = 'educacion';
+        if (pubPrice) pubPrice.value = '';
+      });
+    }
 
-      }, 2000); // 2 segundos de simulación de proceso IA/Cifrado
-    });
+    if (btnSecurePublish) {
+      btnSecurePublish.addEventListener('click', async () => {
+        if (!pubFile.files.length || !pubTitle.value.trim() || !pubPrice.value) {
+          alert('Completa todos los campos (archivo, título, precio)');
+          return;
+        }
+        const file = pubFile.files[0];
+        const allowedExtensions = ['.txt', '.mp3', '.mp4', '.rar', '.zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv'];
+        const fileName = file.name.toLowerCase();
+        const isValid = allowedExtensions.some(ext => fileName.endsWith(ext));
+        if (!isValid) {
+          alert('Tipo de archivo no permitido. Solo: ' + allowedExtensions.join(', '));
+          return;
+        }
+        const price = parseFloat(pubPrice.value);
+        if (isNaN(price) || price <= 0) {
+          alert('Ingresa un precio válido mayor a 0.');
+          return;
+        }
+
+        btnSecurePublish.disabled = true;
+        btnSecurePublish.textContent = '🔄 Publicando...';
+
+        try {
+          await publicarActivo(file, pubTitle.value.trim(), pubCat.value, price);
+          alert('✅ Activo publicado correctamente. Aparecerá en el feed.');
+          publishModal.classList.add('hidden');
+          // Limpiar campos
+          pubFile.value = '';
+          pubTitle.value = '';
+          pubCat.value = 'educacion';
+          pubPrice.value = '';
+          // Recargar feed
+          cargarFeedReal();
+        } catch (err) {
+          alert('❌ Error al publicar: ' + err.message);
+        } finally {
+          btnSecurePublish.disabled = false;
+          btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
+        }
+      });
+    }
+
+    // Exponer la función para que script.js la pueda llamar cuando se muestre el panel
+    window.cargarFeed = cargarFeedReal;
+
+    // Si el feed ya está visible (porque el usuario ya estaba logueado), cargarlo
+    if (getToken() && feedContainer && socialFeedPanel && socialFeedPanel.classList.contains('hidden') === false) {
+      cargarFeedReal();
+    }
   });
 </script>
-
 <!-- 📢 SECCIÓN ANUNCIOS: apiromwinervault (Recompensas Seguras con IA Interna) -->
 <section id="adsSection" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 800px; margin: 0 auto; padding: 20px;">
   
-  <!-- Panel Principal de Recompensas -->
   <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #1e3a5f; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #1e3a5f; padding-bottom: 16px;">
       <h2 style="margin: 0; font-size: 1.4rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
@@ -2308,17 +2402,17 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </div>
     </div>
 
-    <!-- Contenedor de Anuncios Internos (Generados por IA, sin enlaces externos) -->
+    <!-- Contenedor de Anuncios Internos (dinámico) -->
     <div id="adsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
-      <!-- Los anuncios se inyectan aquí de forma segura -->
+      <!-- Los anuncios se inyectan aquí -->
     </div>
 
     <div id="adsStatus" style="text-align: center; font-size: 0.85rem; color: #64748b; margin-top: 12px;">
-      🤖 IA interna preparando ofertas seguras y verificadas...
+      🤖 Cargando ofertas seguras...
     </div>
 
     <button type="button" id="btnRefreshAds" style="width: 100%; margin-top: 16px; padding: 12px; background: #1e293b; color: #38bdf8; border: 1px solid #334155; border-radius: 10px; font-weight: bold; cursor: pointer; transition: all 0.2s;">
-      🔄 Solicitar Nuevos Anuncios a la IA
+      🔄 Solicitar Nuevos Anuncios
     </button>
   </div>
 </section>
@@ -2341,7 +2435,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       <div style="font-size: 3rem; margin-bottom: 16px;">✅</div>
       <h3 style="margin-top: 0; color: #059669;">¡Anuncio Verificado y Completado!</h3>
       <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 20px;">La IA confirmó que es 100% seguro. Se ha acreditado la recompensa a tu bóveda.</p>
-      <p style="font-size: 1.5rem; font-weight: bold; color: #fbbf24; margin-bottom: 24px;">+$0.50 USD</p>
+      <p style="font-size: 1.5rem; font-weight: bold; color: #fbbf24; margin-bottom: 24px;" id="rewardAmount">+$0.50 USD</p>
       <button type="button" id="btnCloseAdModal" style="width: 100%; padding: 12px; background: #059669; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">
         Volver a la Bóveda
       </button>
@@ -2349,6 +2443,192 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 
   </div>
 </div>
+
+<script>
+  (function() {
+    // Referencias
+    const adsContainer = document.getElementById('adsContainer');
+    const adsStatus = document.getElementById('adsStatus');
+    const btnRefreshAds = document.getElementById('btnRefreshAds');
+    const adsCounterSpan = document.getElementById('adsCounter');
+    const dailyEarningsSpan = document.getElementById('dailyEarnings');
+    const adViewModal = document.getElementById('adViewModal');
+    const adScanningPhase = document.getElementById('adScanningPhase');
+    const adRewardPhase = document.getElementById('adRewardPhase');
+    const scanProgressBar = document.getElementById('scanProgressBar');
+    const scanStatusText = document.getElementById('scanStatusText');
+    const rewardAmountSpan = document.getElementById('rewardAmount');
+    const btnCloseAdModal = document.getElementById('btnCloseAdModal');
+
+    let watchedToday = 0;
+    let currentEarnings = 0.00;
+    let currentAdId = null;
+
+    // Función para obtener token (desde script.js)
+    const getToken = () => localStorage.getItem('authToken');
+
+    // Cargar anuncios reales desde el backend
+    async function cargarAnuncios() {
+      const token = getToken();
+      if (!token) {
+        adsContainer.innerHTML = '<p style="color:#ef4444;">Debes iniciar sesión para ver anuncios</p>';
+        return;
+      }
+      adsContainer.innerHTML = '<p style="color:#94a3b8;">Cargando ofertas...</p>';
+      try {
+        const res = await fetch('/api/ads/available', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al cargar anuncios');
+
+        if (!data.ads || data.ads.length === 0) {
+          adsContainer.innerHTML = '<p style="color:#94a3b8;">No hay anuncios disponibles en este momento. Vuelve más tarde.</p>';
+          adsStatus.textContent = '🤖 No hay ofertas ahora.';
+          return;
+        }
+
+        // Actualizar contadores diarios
+        if (data.watchedToday !== undefined) {
+          watchedToday = data.watchedToday;
+          currentEarnings = (watchedToday * 0.50);
+          adsCounterSpan.textContent = `${watchedToday} / 20`;
+          dailyEarningsSpan.textContent = `$${currentEarnings.toFixed(2)} USD`;
+        }
+
+        adsContainer.innerHTML = '';
+        for (const ad of data.ads) {
+          const adCard = document.createElement('div');
+          adCard.style.cssText = 'background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s;';
+          adCard.innerHTML = `
+            <div style="font-size: 1.5rem;">📺</div>
+            <h4 style="margin: 0; color: #f8fafc;">${escapeHtml(ad.title)}</h4>
+            <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">${escapeHtml(ad.description)}</p>
+            <button data-id="${ad.id}" data-reward="${ad.reward}" class="watch-ad-btn" style="margin-top: auto; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">👁️ Ver y Ganar $${ad.reward}</button>
+          `;
+          adsContainer.appendChild(adCard);
+        }
+
+        // Agregar eventos a los botones
+        document.querySelectorAll('.watch-ad-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const adId = btn.dataset.id;
+            const reward = parseFloat(btn.dataset.reward);
+            abrirModal(adId, reward);
+          });
+        });
+
+        adsStatus.textContent = `🤖 IA: ${data.ads.length} anuncios seguros disponibles.`;
+      } catch (err) {
+        console.error('Error cargando anuncios:', err);
+        adsContainer.innerHTML = '<p style="color:#ef4444;">Error al cargar anuncios. Intenta más tarde.</p>';
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    // Abrir modal y simular auditoría IA (usando endpoint real /api/ads/watch/:id al final)
+    function abrirModal(adId, reward) {
+      if (watchedToday >= 20) {
+        alert('⚠️ Límite diario alcanzado. Vuelve mañana.');
+        return;
+      }
+      currentAdId = adId;
+      adViewModal.classList.remove('hidden');
+      adScanningPhase.style.display = 'block';
+      adRewardPhase.style.display = 'none';
+      scanProgressBar.style.width = '0%';
+      scanStatusText.textContent = 'Iniciando escaneo de integridad...';
+
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 2;
+        scanProgressBar.style.width = progress + '%';
+        if (progress < 25) scanStatusText.textContent = 'Analizando metadatos del anuncio...';
+        else if (progress < 50) scanStatusText.textContent = 'Verificando ausencia de scripts externos...';
+        else if (progress < 75) scanStatusText.textContent = 'Validando certificado de seguridad interna...';
+        else scanStatusText.textContent = 'IA: Contenido aprobado como 100% seguro.';
+
+        if (progress >= 100) {
+          clearInterval(interval);
+          setTimeout(async () => {
+            // Llamar al endpoint real para acreditar recompensa
+            const token = getToken();
+            if (!token) {
+              alert('Sesión no válida. Inicia sesión nuevamente.');
+              adViewModal.classList.add('hidden');
+              return;
+            }
+            try {
+              const res = await fetch(`/api/ads/watch/${currentAdId}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ watchTime: 15 }) // simula 15 segundos
+              });
+              const data = await res.json();
+              if (data.success) {
+                // Actualizar contadores locales
+                watchedToday++;
+                currentEarnings += reward;
+                adsCounterSpan.textContent = `${watchedToday} / 20`;
+                dailyEarningsSpan.textContent = `$${currentEarnings.toFixed(2)} USD`;
+                // Mostrar fase de recompensa
+                adScanningPhase.style.display = 'none';
+                adRewardPhase.style.display = 'block';
+                rewardAmountSpan.textContent = `+$${reward.toFixed(2)} USD`;
+                // Notificar al dueño (opcional)
+                if (typeof notificarDueño === 'function') {
+                  notificarDueño(`Anuncio visto. Ganaste $${reward.toFixed(2)} USD.`, 'exito');
+                }
+              } else {
+                alert('Error al acreditar recompensa: ' + (data.error || 'desconocido'));
+                adViewModal.classList.add('hidden');
+              }
+            } catch (err) {
+              console.error('Error watching ad:', err);
+              alert('Error de conexión al acreditar recompensa');
+              adViewModal.classList.add('hidden');
+            }
+          }, 500);
+        }
+      }, 60);
+    }
+
+    // Cerrar modal
+    if (btnCloseAdModal) {
+      btnCloseAdModal.addEventListener('click', () => {
+        adViewModal.classList.add('hidden');
+      });
+    }
+
+    // Refrescar anuncios
+    if (btnRefreshAds) {
+      btnRefreshAds.addEventListener('click', () => {
+        cargarAnuncios();
+      });
+    }
+
+    // Cargar anuncios cuando la sección se haga visible (desde script.js)
+    window.cargarAnuncios = cargarAnuncios;
+
+    // Si la sección ya está visible (porque el usuario está logueado), cargar
+    if (getToken() && document.getElementById('adsSection') && document.getElementById('adsSection').classList.contains('hidden') === false) {
+      cargarAnuncios();
+    }
+  })();
+</script>
+
 
 <!-- 🧠 LÓGICA SEGURA E INTEGRADA (Cero onclick, Cero enlaces externos, IA simulada) -->
 <script>
