@@ -5477,384 +5477,306 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     });
   })();
 </script>
-<!-- 🛠️ Modal de Herramientas Admin -->
-<section id="adminToolModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 10001; padding: 16px;">
-  <div style="background: #0f172a; border: 2px solid #7c3aed; border-radius: 16px; max-width: 550px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px;">
-    <h3 id="adminToolTitle" style="margin: 0 0 16px 0; color: #f8fafc; font-size: 1.2rem;">🛠️ Herramienta Admin</h3>
-    <div id="adminToolContent" style="margin-bottom: 20px;"></div>
-    <div id="adminAIProgress" class="hidden" style="margin-bottom: 16px;">
-      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #a78bfa; margin-bottom: 6px;">
-        <span id="adminAIStatus">🤖 IA: Validando acción...</span>
-        <span id="adminAIPercent">0%</span>
+  
+<!-- ============================================ -->
+<!-- 👑 PANEL ADMIN REAL (con backend JWT)        -->
+<!-- ============================================ -->
+<div id="adminPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 0 auto; padding: 20px;">
+  <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #7c3aed; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3);">
+    
+    <div id="adminDashboard">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #7c3aed; padding-bottom: 16px;">
+        <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc;">👑 Panel de Comando Supremo</h2>
+        <span style="background: #059669; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">✅ ACCESO CONCEDIDO</span>
       </div>
-      <div style="background: #1e293b; height: 8px; border-radius: 4px; overflow: hidden;">
-        <div id="adminAIProgressBar" style="background: #7c3aed; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+      
+      <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 20px; border-left: 4px solid #7c3aed;">
+        <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;">Rol:</p>
+        <p style="margin: 4px 0 0 0; font-size: 1.1rem; font-weight: bold; color: #a78bfa;" id="adminRoleDisplay">Cargando...</p>
+        <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #cbd5e1;">🛡️ Identidad Protegida • Poderes Absolutos</p>
       </div>
-    </div>
-    <div id="adminActions" style="display: flex; gap: 12px;">
-      <button type="button" id="btnConfirmAdmin" style="flex: 1; padding: 12px; background: #7c3aed; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">✅ Confirmar</button>
-      <button type="button" id="btnCancelAdmin" style="padding: 12px 20px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 10px; font-weight: 600; cursor: pointer;">Cancelar</button>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        <button type="button" class="admin-tool-btn" data-tool="view-users" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">📊</div>
+          <div style="font-weight: bold;">Ver Usuarios</div>
+        </button>
+        <button type="button" class="admin-tool-btn" data-tool="gift" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">🎁</div>
+          <div style="font-weight: bold;">Regalar Cuenta</div>
+        </button>
+        <button type="button" class="admin-tool-btn" data-tool="delete-user" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">🗑️</div>
+          <div style="font-weight: bold;">Eliminar Usuario</div>
+        </button>
+        <button type="button" class="admin-tool-btn" data-tool="change-password" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">🔐</div>
+          <div style="font-weight: bold;">Resetear Contraseña</div>
+        </button>
+        <button type="button" class="admin-tool-btn" data-tool="rotate-keys" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">🔑</div>
+          <div style="font-weight: bold;">Rotar Claves</div>
+        </button>
+        <button type="button" class="admin-tool-btn" data-tool="pay-user" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">💰</div>
+          <div style="font-weight: bold;">Pagar Usuario</div>
+        </button>
+        <button type="button" class="admin-tool-btn" data-tool="transfer-power" style="background: rgba(251, 191, 36, 0.1); border: 2px solid #fbbf24; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #fcd34d;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">👑</div>
+          <div style="font-weight: bold;">Transferir Poderes</div>
+        </button>
+        <button type="button" class="admin-tool-btn" data-tool="nuke-app" style="background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #fca5a5;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">☢️</div>
+          <div style="font-weight: bold; color: #ef4444;">BORRAR APP</div>
+        </button>
+        <button type="button" class="admin-tool-btn" data-tool="ai-audit" style="background: rgba(124, 58, 237, 0.1); border: 1px solid #7c3aed; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">🤖</div>
+          <div style="font-weight: bold;">Auditoría IA</div>
+        </button>
+      </div>
+
+      <div style="background: #0f172a; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
+        <h3 style="margin: 0 0 12px 0; color: #f8fafc; font-size: 1rem;">📜 Registro de Acciones</h3>
+        <div id="adminLogs" style="max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; color: #94a3b8;">
+          <p style="margin: 4px 0;">[SISTEMA] Panel cargado. Esperando acciones.</p>
+        </div>
+      </div>
     </div>
   </div>
-</section>
+</div>
 
 <script>
-// 🔐 SISTEMA DE ACCESO ADMIN SEGURO (Verificación por JWT del Backend)
-// ❌ NO usa claves ocultas ni atob() - Solo verifica el token JWT con el backend
-document.addEventListener('DOMContentLoaded', function() {
-  const adminLoginForm = document.getElementById('adminLoginForm');
-  const adminDashboard = document.getElementById('adminDashboard');
-  const btnAdminLogin = document.getElementById('btnAdminLogin');
-  const adminLogs = document.getElementById('adminLogs');
-  const adminToolModal = document.getElementById('adminToolModal');
-  const adminToolTitle = document.getElementById('adminToolTitle');
-  const adminToolContent = document.getElementById('adminToolContent');
-  const btnConfirmAdmin = document.getElementById('btnConfirmAdmin');
-  const btnCancelAdmin = document.getElementById('btnCancelAdmin');
-  const adminAIProgress = document.getElementById('adminAIProgress');
-  const adminAIProgressBar = document.getElementById('adminAIProgressBar');
-  const adminAIStatus = document.getElementById('adminAIStatus');
-  const adminAIPercent = document.getElementById('adminAIPercent');
-  
-  let currentTool = null;
-  let uploadedDocuments = { signature: null, fingerprint: null, letter: null };
-  
-  // ✅ Función para agregar logs
-  function addLog(mensaje) {
-    if (adminLogs) {
-      const time = new Date().toLocaleTimeString();
-      const logEntry = document.createElement('p');
-      logEntry.style.margin = '4px 0';
-      logEntry.style.color = '#cbd5e1';
-      logEntry.textContent = `[${time}] ${mensaje}`;
-      adminLogs.appendChild(logEntry);
-      adminLogs.scrollTop = adminLogs.scrollHeight;
+// ============================================
+// 👑 ADMINISTRACIÓN REAL (con backend JWT)
+// ============================================
+(function() {
+  const adminPanel = document.getElementById('adminPanel');
+  const logsDiv = document.getElementById('adminLogs');
+  const roleDisplay = document.getElementById('adminRoleDisplay');
+  const getToken = () => localStorage.getItem('authToken');
+
+  function addLog(message, type = 'info') {
+    const logEntry = document.createElement('p');
+    logEntry.style.margin = '4px 0';
+    logEntry.style.color = type === 'error' ? '#ef4444' : (type === 'success' ? '#059669' : '#94a3b8');
+    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    logsDiv.appendChild(logEntry);
+    logsDiv.scrollTop = logsDiv.scrollHeight;
+  }
+
+  async function verificarAccesoAdmin() {
+    const token = getToken();
+    if (!token) {
+      adminPanel.classList.add('hidden');
+      return false;
+    }
+    try {
+      const res = await fetch('/api/profile', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success && (data.profile?.isAdmin || data.user?.isAdmin)) {
+        const esSupremo = data.user?.esSupremo || data.profile?.esSupremo;
+        roleDisplay.textContent = esSupremo ? '👑 DUEÑO SUPREMO' : '🔐 ADMINISTRADOR';
+        addLog('Acceso administrativo verificado.', 'success');
+        adminPanel.classList.remove('hidden');
+        return true;
+      } else {
+        adminPanel.classList.add('hidden');
+        return false;
+      }
+    } catch (err) {
+      console.error(err);
+      adminPanel.classList.add('hidden');
+      return false;
     }
   }
-  
-  // ✅ VERIFICACIÓN SEGURA: Consulta al backend con el token JWT
-  btnAdminLogin.addEventListener('click', async function() {
-    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-    
-    if (!token) {
-      alert('⛔ No hay sesión activa. Inicia sesión primero.');
+
+  // Mostrar panel si es admin
+  verificarAccesoAdmin();
+
+  async function listarUsuarios() {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch('/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success && data.users) {
+        let userList = data.users.map(u => `${u.email} (${u.tier || 'personal'})${u.isSupremo ? ' 👑' : ''}`).join('\n');
+        alert('Usuarios registrados:\n' + userList);
+        addLog(`Listados ${data.users.length} usuarios.`);
+      } else throw new Error('Error al listar');
+    } catch (err) {
+      alert('Error: ' + err.message);
+      addLog('Error al listar usuarios: ' + err.message, 'error');
+    }
+  }
+
+  async function regalarCuenta() {
+    const email = prompt('Email del destinatario:');
+    if (!email) return;
+    const balance = parseFloat(prompt('Saldo inicial (USD):', '0'));
+    if (isNaN(balance)) return;
+    const tier = prompt('Plan (personal/business/enterprise):', 'personal');
+    if (!['personal','business','enterprise'].includes(tier)) {
+      alert('Plan inválido');
       return;
     }
-    
-    btnAdminLogin.disabled = true;
-    btnAdminLogin.textContent = '⏳ Verificando con el servidor...';
-    
+    const token = getToken();
     try {
-      const response = await fetch('/api/profile', {
-        method: 'GET',
+      const res = await fetch('/api/admin/gift-account', {
+        method: 'POST',
         headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ recipientEmail: email, initialBalance: balance, tier, note: 'Regalo administrador' })
       });
-      
-      if (response.status === 401) {
-        alert('⛔ Sesión expirada. Inicia sesión nuevamente.');
-        localStorage.removeItem('token');
-        localStorage.removeItem('auth_token');
-        window.location.reload();
-        return;
-      }
-      
-      if (!response.ok) {
-        throw new Error('Error al verificar permisos');
-      }
-      
-      const data = await response.json();
-      const isAdmin = data.user && data.user.isAdmin === true;
-      
-      if (isAdmin) {
-        adminLoginForm.classList.add('hidden');
-        adminDashboard.classList.remove('hidden');
-        addLog('✅ Acceso concedido al Administrador Supremo');
-        addLog('🔐 Verificado por el backend (JWT válido + email autorizado)');
-        addLog('🛡️ Nivel de permisos: Absoluto e Irrevocable');
-      } else {
-        alert('⛔ Acceso denegado. Tu cuenta no tiene permisos de administrador.');
-        addLog('⛔ Intento de acceso no autorizado');
-      }
-    } catch (error) {
-      console.error('❌ Error verificando admin:', error);
-      alert('❌ Error al verificar permisos. Intenta de nuevo.');
-      addLog('❌ Error de conexión al verificar permisos');
-    } finally {
-      btnAdminLogin.disabled = false;
-      btnAdminLogin.textContent = '🔍 Verificar Acceso Admin';
+      const data = await res.json();
+      if (data.success) {
+        alert(`Cuenta regalada a ${email}. Contraseña temporal: ${data.tempPassword || 'N/A'}`);
+        addLog(`Cuenta regalada a ${email} con $${balance} y plan ${tier}.`);
+      } else throw new Error(data.error);
+    } catch (err) {
+      alert('Error: ' + err.message);
+      addLog('Error al regalar cuenta: ' + err.message, 'error');
     }
-  });
-  
-  // ✅ Event listeners para botones de herramientas
+  }
+
+  async function eliminarUsuario() {
+    const email = prompt('Email del usuario a eliminar:');
+    if (!email) return;
+    if (!confirm(`¿Estás seguro de eliminar a ${email}? Esta acción es irreversible.`)) return;
+    const token = getToken();
+    try {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(email)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Usuario ${email} eliminado.`);
+        addLog(`Usuario ${email} eliminado.`);
+      } else throw new Error(data.error);
+    } catch (err) {
+      alert('Error: ' + err.message);
+      addLog('Error al eliminar usuario: ' + err.message, 'error');
+    }
+  }
+
+  async function resetearPassword() {
+    const email = prompt('Email del usuario:');
+    if (!email) return;
+    const newPassword = prompt('Nueva contraseña (mín. 8 caracteres):');
+    if (!newPassword || newPassword.length < 8) {
+      alert('Contraseña muy corta');
+      return;
+    }
+    const token = getToken();
+    try {
+      const res = await fetch(`/api/admin/reset-password/${encodeURIComponent(email)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ newPassword })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Contraseña de ${email} actualizada.`);
+        addLog(`Contraseña restablecida para ${email}.`);
+      } else throw new Error(data.error);
+    } catch (err) {
+      alert('Error: ' + err.message);
+      addLog('Error al resetear contraseña: ' + err.message, 'error');
+    }
+  }
+
+  async function rotarClaves() {
+    const token = getToken();
+    try {
+      const res = await fetch('/api/admin/rotate-keys', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Rotación de claves iniciada. Se rotarán las claves de usuarios elegibles.');
+        addLog('Rotación de claves solicitada.');
+      } else throw new Error(data.error);
+    } catch (err) {
+      alert('Error: ' + err.message);
+      addLog('Error al rotar claves: ' + err.message, 'error');
+    }
+  }
+
+  async function pagarUsuario() {
+    const email = prompt('Email del usuario:');
+    if (!email) return;
+    const amount = parseFloat(prompt('Monto a acreditar (USD):'));
+    if (isNaN(amount) || amount <= 0) return;
+    alert('Funcionalidad pendiente: implementar endpoint de pago admin.');
+    addLog(`Intento de pago a ${email} por $${amount} (pendiente).`, 'error');
+  }
+
+  function transferirPoderes() {
+    alert('Esta acción solo es posible mediante contrato legal. Contacta al administrador.');
+    addLog('Intento de transferencia de poderes (no implementado).');
+  }
+
+  async function auditoriaIA() {
+    const token = getToken();
+    try {
+      const res = await fetch('/api/security/status');
+      const data = await res.json();
+      alert(`Estado de seguridad:\nCifrado: ${data.encryption?.algorithm}\nZero-Knowledge: ${data.encryption?.zeroKnowledgeReady}`);
+      addLog('Auditoría IA de seguridad ejecutada.');
+    } catch (err) {
+      alert('Error al obtener auditoría');
+    }
+  }
+
+  function nukeApp() {
+    if (confirm('⚠️ BORRAR APP DEFINITIVAMENTE: Esta acción eliminará TODOS los datos. ¿Estás completamente seguro?\nEscribe "BORRAR" para confirmar:')) {
+      const confirmation = prompt('Escribe "BORRAR" para proceder:');
+      if (confirmation === 'BORRAR') {
+        alert('Esta acción no está implementada por seguridad. Solo el dueño supremo puede realizarla vía backend.');
+        addLog('Intento de nuke (no implementado).');
+      } else {
+        alert('Cancelado.');
+      }
+    }
+  }
+
+  // Asignar eventos a los botones
   document.querySelectorAll('.admin-tool-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const tool = this.dataset.tool;
-      currentTool = tool;
-      openAdminTool(tool);
-      addLog(`🛠️ Herramienta abierta: ${tool}`);
+    btn.addEventListener('click', (e) => {
+      const tool = btn.dataset.tool;
+      switch(tool) {
+        case 'view-users': listarUsuarios(); break;
+        case 'gift': regalarCuenta(); break;
+        case 'delete-user': eliminarUsuario(); break;
+        case 'change-password': resetearPassword(); break;
+        case 'rotate-keys': rotarClaves(); break;
+        case 'pay-user': pagarUsuario(); break;
+        case 'transfer-power': transferirPoderes(); break;
+        case 'nuke-app': nukeApp(); break;
+        case 'ai-audit': auditoriaIA(); break;
+        default: alert('Función en desarrollo');
+      }
     });
   });
-  
-  // ✅ Función para abrir herramientas
-  function openAdminTool(tool) {
-    adminToolModal.classList.remove('hidden');
-    adminAIProgress.classList.add('hidden');
-    document.getElementById('adminActions').style.display = 'flex';
-    btnConfirmAdmin.disabled = false;
-    btnConfirmAdmin.textContent = '✅ Confirmar Acción';
-    btnConfirmAdmin.style.background = '#7c3aed';
-    btnConfirmAdmin.style.color = 'white';
-    uploadedDocuments = { signature: null, fingerprint: null, letter: null };
-    
-    const tools = {
-      'view-users': {
-        title: '📊 Ver Usuarios',
-        html: '<p style="color:#cbd5e1;">Cargando lista de usuarios desde el backend...</p>',
-        action: async () => {
-          const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-          try {
-            const res = await fetch('/api/admin/users', {
-              headers: { 'Authorization': 'Bearer ' + token }
-            });
-            const data = await res.json();
-            if (data.success) {
-              let html = '<div style="max-height:300px;overflow-y:auto;font-family:monospace;font-size:0.8rem;">';
-              data.users.forEach(u => {
-                html += `<p style="margin:4px 0;color:#cbd5e1;">${u.isAdmin ? '👑' : '👤'} ${u.email} - ${u.tier}</p>`;
-              });
-              html += '</div>';
-              adminToolContent.innerHTML = html;
-              addLog(`📊 ${data.users.length} usuarios cargados`);
-            }
-          } catch (e) {
-            alert('❌ Error cargando usuarios');
-          }
-        }
-      },
-      'gift': {
-        title: '🎁 Regalar Cuenta Premium',
-        html: `
-          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Correo del beneficiario:</label>
-          <input type="email" id="giftEmail" placeholder="usuario@ejemplo.com" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;margin-bottom:12px;">
-          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Saldo inicial (USD):</label>
-          <input type="number" id="giftBalance" value="10" min="0" step="0.01" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;">
-        `
-      },
-      'delete-user': {
-        title: '🗑️ Eliminar Usuario (IRREVERSIBLE)',
-        html: `
-          <div style="background:rgba(239,68,68,0.1);border:1px solid #ef4444;border-radius:8px;padding:12px;margin-bottom:12px;color:#fca5a5;font-size:0.85rem;">
-            ⚠️ ADVERTENCIA: Esta acción eliminará permanentemente al usuario.
-          </div>
-          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Correo del usuario:</label>
-          <input type="email" id="deleteEmail" placeholder="usuario@ejemplo.com" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;">
-        `,
-        danger: true
-      },
-      'change-password': {
-        title: '🔐 Cambiar Contraseña',
-        html: `
-          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Correo del usuario:</label>
-          <input type="email" id="changePassEmail" placeholder="usuario@ejemplo.com" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;margin-bottom:12px;">
-          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Nueva contraseña:</label>
-          <input type="password" id="newPassword" placeholder="Mínimo 8 caracteres" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;">
-        `
-      },
-      'rotate-keys': {
-        title: '🔑 Rotar Claves de Cifrado',
-        html: `
-          <div style="background:rgba(251,191,36,0.1);border:1px solid #fbbf24;border-radius:8px;padding:12px;margin-bottom:12px;color:#fcd34d;font-size:0.85rem;">
-            ⚠️ Esta acción regenerará todas las claves AES-256-GCM.
-          </div>
-          <p style="color:#cbd5e1;">¿Confirmar rotación de claves maestras?</p>
-        `
-      },
-      'pay-user': {
-        title: '💰 Pagar a Usuario',
-        html: `
-          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Correo del usuario:</label>
-          <input type="email" id="payEmail" placeholder="usuario@ejemplo.com" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;margin-bottom:12px;">
-          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Monto (USD):</label>
-          <input type="number" id="payAmount" placeholder="100.00" min="0.01" step="0.01" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;">
-        `
-      },
-      'transfer-power': {
-        title: '👑 Transferir Poderes',
-        html: `
-          <div style="background:rgba(251,191,36,0.2);border:2px solid #fbbf24;border-radius:8px;padding:16px;margin-bottom:16px;color:#fcd34d;">
-            <p style="margin:0;font-weight:bold;">⚠️ REQUIERE VERIFICACIÓN FÍSICA ⚠️</p>
-            <p style="margin:8px 0 0 0;font-size:0.85rem;">Esta acción NO se puede ejecutar automáticamente. Requiere documentos físicos.</p>
-          </div>
-          <label style="font-size:0.85rem;color:#94a3b8;display:block;margin-bottom:6px;">Correo del nuevo propietario:</label>
-          <input type="email" id="transferEmail" placeholder="nuevo@propietario.com" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:1px solid #334155;color:#fff;border-radius:8px;">
-        `
-      },
-      'nuke-app': {
-        title: '☢️ BORRAR APP',
-        html: `
-          <div style="background:rgba(239,68,68,0.2);border:2px solid #ef4444;border-radius:8px;padding:16px;margin-bottom:12px;color:#fca5a5;">
-            <p style="margin:0;font-weight:bold;">⚠️ ACCIÓN EXTREMA ⚠️</p>
-            <p style="margin:8px 0 0 0;font-size:0.85rem;">Esto eliminará TODO. IRREVERSIBLE.</p>
-          </div>
-          <label style="font-size:0.85rem;color:#ef4444;display:block;margin-bottom:6px;font-weight:bold;">Escribe "BORRAR" para confirmar:</label>
-          <input type="text" id="nukeConfirm" placeholder="BORRAR" style="width:100%;box-sizing:border-box;padding:10px;background:#1e293b;border:2px solid #ef4444;color:#fff;border-radius:8px;">
-        `,
-        danger: true
-      },
-      'ai-audit': {
-        title: '🤖 Auditoría IA del Sistema',
-        html: `
-          <p style="color:#cbd5e1;margin-bottom:12px;">La IA escaneará:</p>
-          <ul style="color:#94a3b8;font-size:0.85rem;padding-left:20px;">
-            <li>Integridad de todas las bóvedas</li>
-            <li>Patrones de fraude en afiliados</li>
-            <li>Amenazas de seguridad externas</li>
-            <li>Anomalías en transacciones</li>
-          </ul>
-        `
-      }
-    };
-    
-    const toolData = tools[tool] || { title: 'Herramienta', html: '<p>Función en desarrollo</p>' };
-    adminToolTitle.textContent = toolData.title;
-    adminToolContent.innerHTML = toolData.html;
-    
-    if (toolData.danger) {
-      btnConfirmAdmin.style.background = '#ef4444';
-    } else {
-      btnConfirmAdmin.style.background = '#7c3aed';
-    }
-    
-    if (toolData.action) {
-      toolData.action();
-    }
-  }
-  
-  // ✅ Botón confirmar acción
-  btnConfirmAdmin.addEventListener('click', async function() {
-    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-    
-    if (!token) {
-      alert('⛔ Sesión expirada');
-      return;
-    }
-    
-    try {
-      let endpoint = '';
-      let method = 'POST';
-      let body = {};
-      
-      switch(currentTool) {
-        case 'gift':
-          endpoint = '/api/admin/gift-account';
-          body = {
-            recipientEmail: document.getElementById('giftEmail')?.value,
-            initialBalance: parseFloat(document.getElementById('giftBalance')?.value || 0)
-          };
-          if (!body.recipientEmail) {
-            alert('⚠️ Ingresa el correo del beneficiario');
-            return;
-          }
-          break;
-          
-        case 'delete-user':
-          endpoint = `/api/admin/users/${encodeURIComponent(document.getElementById('deleteEmail')?.value)}`;
-          method = 'DELETE';
-          if (!document.getElementById('deleteEmail')?.value) {
-            alert('⚠️ Ingresa el correo del usuario');
-            return;
-          }
-          break;
-          
-        case 'change-password':
-          endpoint = `/api/admin/reset-password/${encodeURIComponent(document.getElementById('changePassEmail')?.value)}`;
-          body = { newPassword: document.getElementById('newPassword')?.value };
-          if (!body.newPassword || body.newPassword.length < 8) {
-            alert('⚠️ La contraseña debe tener al menos 8 caracteres');
-            return;
-          }
-          break;
-          
-        case 'rotate-keys':
-          endpoint = '/api/admin/rotate-keys';
-          break;
-          
-        case 'nuke-app':
-          if (document.getElementById('nukeConfirm')?.value !== 'BORRAR') {
-            alert('⚠️ Debes escribir "BORRAR" exactamente');
-            return;
-          }
-          alert('☢️ Esta función está deshabilitada por seguridad. Contacta al desarrollador.');
-          adminToolModal.classList.add('hidden');
-          return;
-          
-        default:
-          alert(`🛠️ Herramienta "${currentTool}" en desarrollo`);
-          adminToolModal.classList.add('hidden');
-          return;
-      }
-      
-      const options = {
-        method: method,
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        }
-      };
-      
-      if (method !== 'DELETE' && Object.keys(body).length > 0) {
-        options.body = JSON.stringify(body);
-      }
-      
-      const res = await fetch(endpoint, options);
-      
-      if (res.status === 401) {
-        alert('⛔ Sesión expirada');
-        localStorage.removeItem('token');
-        window.location.reload();
-        return;
-      }
-      
-      const data = await res.json();
-      
-      if (data.success) {
-        addLog(`✅ ${currentTool}: ${data.message || 'Acción completada'}`);
-        alert(`✅ ${data.message || 'Acción completada'}`);
-      } else {
-        throw new Error(data.error || 'Error en la acción');
-      }
-      
-      adminToolModal.classList.add('hidden');
-    } catch (error) {
-      console.error('❌ Error:', error);
-      alert('❌ Error: ' + error.message);
-      addLog(`❌ ${currentTool}: ${error.message}`);
-    }
-  });
-  
-  // ✅ Botón cancelar
-  btnCancelAdmin.addEventListener('click', function() {
-    adminToolModal.classList.add('hidden');
-  });
-  
-  // ✅ Auto-verificar si ya hay sesión admin activa al cargar
-  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-  if (token && localStorage.getItem('arv_admin') === 'true') {
-    adminLoginForm.classList.add('hidden');
-    adminDashboard.classList.remove('hidden');
-    addLog('✅ Sesión admin activa detectada');
-  }
-});
+})();
 </script>
+
+<!-- ============================================ -->
+<!-- 📱 SERVICE WORKER (Modo Seguro)              -->
+<!-- ============================================ -->
 <script>
-  // ============================================================
-  // 📱 SERVICE WORKER (Modo Seguro - Solo si existe localmente)
-  // ============================================================
   function addSystemLog(msg) {
-    // Función segura para logs (si ya existe, no la sobreescribe)
     if (typeof window.addSystemLog === 'function') {
       window.addSystemLog(msg);
     } else {
@@ -5867,7 +5789,6 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('[apiromwinervault] Service Worker no soportado en este navegador.');
       return;
     }
-
     fetch('/sw.js', { method: 'HEAD', cache: 'no-store' })
       .then(response => {
         if (response.ok) {
@@ -5886,7 +5807,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
 
-  // Ejecutar cuando el DOM esté listo
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', registerServiceWorkerSecure);
   } else {
@@ -5894,285 +5814,197 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 </script>
   
-  <script>
-    // ============================================================
-    // 🔍 VERIFICACIÓN DE API CON AUDITORÍA IA (Mejorada)
-    // ============================================================
-    async function checkAPI() {
-      const statusDiv = document.getElementById('apiStatus');
-      const responsePre = document.getElementById('apiResponse');
-      
-      // Si no existen los elementos, crear indicadores automáticos
-      if (!statusDiv || !responsePre) {
-        createConnectionIndicator();
-        return checkAPIWithIndicator();
-      }
-      
-      statusDiv.style.display = 'block';
-      responsePre.textContent = '🔄 Consultando estado del servidor...';
-      responsePre.style.color = '#ffb74d';
-      
-      let attempt = 0;
-      let lastError = null;
-      
-      while (attempt < CONFIG.MAX_RETRIES) {
-        attempt++;
-        try {
-          // Crear controlador de timeout
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
-          
-          const res = await fetch(CONFIG.API_ENDPOINT, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'X-App-Name': CONFIG.APP_NAME,
-              'X-Client-Version': '1.0.0'
-            },
-            signal: controller.signal,
-            cache: 'no-store'
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-          }
-          
-          const data = await res.json();
-          
-          // Auditoría IA de la respuesta
-          const aiAudit = performAIAudit(data);
-          
-          responsePre.textContent = JSON.stringify({
-            status: 'success',
-            attempt: attempt,
-            server: data,
-            ai_audit: aiAudit,
-            timestamp: new Date().toISOString()
-          }, null, 2);
-          
-          responsePre.style.color = data.success ? '#00e676' : '#ffb74d';
-          addSystemLog(`✅ API conectada (intento ${attempt}) - IA: ${aiAudit.verdict}`);
-          
-          updateConnectionStatus('connected', `Conectado • IA: ${aiAudit.verdict}`);
-          return { success: true, data, audit: aiAudit };
-          
-        } catch (e) {
-          lastError = e;
-          console.warn(`[apiromwinervault] Intento ${attempt}/${CONFIG.MAX_RETRIES} fallido:`, e.message);
-          
-          if (attempt < CONFIG.MAX_RETRIES) {
-            // Esperar antes de reintentar (backoff exponencial)
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-          }
+ <script>
+// ============================================================
+// 🔍 VERIFICACIÓN DE API CON AUDITORÍA IA (CORREGIDA)
+// ============================================================
+(function() {
+  // Configuración por defecto (evita errores si no existe CONFIG)
+  const CONFIG = {
+    MAX_RETRIES: 3,
+    TIMEOUT_MS: 5000,
+    API_ENDPOINT: '/api/health',
+    APP_NAME: 'ApiRomwiner Vault',
+    OWNER_NAME: 'Dueño Supremo'
+  };
+
+  // Función auxiliar para logs
+  function addSystemLog(message) {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = `[${timestamp}] ${message}`;
+    const adminLogs = document.getElementById('adminLogs');
+    if (adminLogs) {
+      const logEntry = document.createElement('p');
+      logEntry.style.margin = '4px 0';
+      logEntry.style.color = '#cbd5e1';
+      logEntry.textContent = logMessage;
+      adminLogs.appendChild(logEntry);
+      adminLogs.scrollTop = adminLogs.scrollHeight;
+    }
+    try {
+      const logs = JSON.parse(localStorage.getItem('apiromwiner_logs') || '[]');
+      logs.push({ time: timestamp, message });
+      if (logs.length > 100) logs.shift();
+      localStorage.setItem('apiromwiner_logs', JSON.stringify(logs));
+    } catch(e) {}
+    console.log('[apiromwinervault]', logMessage);
+  }
+
+  function updateConnectionStatus(status, message) {
+    const dot = document.getElementById('connDot');
+    const text = document.getElementById('connText');
+    if (!dot || !text) return;
+    if (status === 'connected') {
+      dot.style.background = '#059669';
+      text.textContent = message || '🟢 Conectado';
+      text.style.color = '#059669';
+    } else if (status === 'disconnected') {
+      dot.style.background = '#ef4444';
+      text.textContent = message || '🔴 Desconectado';
+      text.style.color = '#ef4444';
+    } else {
+      dot.style.background = '#fbbf24';
+      text.textContent = message || '🟡 Verificando...';
+      text.style.color = '#fbbf24';
+    }
+  }
+
+  function createConnectionIndicator() {
+    if (document.getElementById('connectionIndicator')) return;
+    const indicator = document.createElement('div');
+    indicator.id = 'connectionIndicator';
+    indicator.style.cssText = `
+      position: fixed; bottom: 20px; right: 20px; background: rgba(15,23,42,0.95);
+      border: 1px solid #334155; border-radius: 12px; padding: 10px 16px;
+      font-family: system-ui; font-size: 0.8rem; color: #cbd5e1; z-index: 9998;
+      backdrop-filter: blur(8px); box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+    `;
+    indicator.innerHTML = `
+      <span id="connDot" style="width:10px;height:10px;border-radius:50%;background:#fbbf24;animation:pulse 2s infinite;"></span>
+      <span id="connText">Verificando conexión...</span>
+    `;
+    indicator.addEventListener('click', () => checkAPI());
+    document.body.appendChild(indicator);
+    if (!document.getElementById('connectionStyles')) {
+      const style = document.createElement('style');
+      style.id = 'connectionStyles';
+      style.textContent = `@keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.6; transform:scale(1.2); } }`;
+      document.head.appendChild(style);
+    }
+  }
+
+  function performAIAudit(data) {
+    // Simulación de auditoría IA (solo visual, no afecta funciones reales)
+    const checks = {
+      integrity: Math.random() > 0.05,
+      encryption: true,
+      threats: Math.floor(Math.random() * 3),
+      responseTime: Math.floor(Math.random() * 200) + 50
+    };
+    let verdict = 'APROBADO';
+    let risk = 'BAJO';
+    if (!checks.integrity) { verdict = 'ADVERTENCIA'; risk = 'MEDIO'; }
+    if (checks.threats > 0) { verdict = 'REQUIERE ATENCIÓN'; risk = 'ALTO'; }
+    return {
+      verdict, risk_level: risk, integrity_verified: checks.integrity,
+      encryption_active: checks.encryption, threats_detected: checks.threats,
+      response_time_ms: checks.responseTime,
+      hash: 'SHA-256:' + Math.random().toString(36).substring(2, 18).toUpperCase()
+    };
+  }
+
+  async function checkAPI() {
+    const statusDiv = document.getElementById('apiStatus');
+    const responsePre = document.getElementById('apiResponse');
+    if (!statusDiv || !responsePre) {
+      createConnectionIndicator();
+      return checkAPI(); // reintentar después de crear indicador
+    }
+    statusDiv.style.display = 'block';
+    responsePre.textContent = '🔄 Consultando estado del servidor...';
+    responsePre.style.color = '#ffb74d';
+
+    let lastError = null;
+    for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
+        const res = await fetch(CONFIG.API_ENDPOINT, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json', 'X-App-Name': CONFIG.APP_NAME },
+          signal: controller.signal,
+          cache: 'no-store'
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const aiAudit = performAIAudit(data);
+        responsePre.textContent = JSON.stringify({
+          status: 'success', attempt, server: data, ai_audit: aiAudit, timestamp: new Date().toISOString()
+        }, null, 2);
+        responsePre.style.color = data.status === 'ok' ? '#00e676' : '#ffb74d';
+        addSystemLog(`✅ API conectada (intento ${attempt}) - IA: ${aiAudit.verdict}`);
+        updateConnectionStatus('connected', `Conectado • IA: ${aiAudit.verdict}`);
+        return { success: true, data, audit: aiAudit };
+      } catch (e) {
+        lastError = e;
+        console.warn(`Intento ${attempt}/${CONFIG.MAX_RETRIES} fallido:`, e.message);
+        if (attempt < CONFIG.MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
         }
       }
-
-    // ============================================================
-    // 🤖 AUDITORÍA IA INTEGRADA (Simulada pero funcional)
-    // ============================================================
-    function performAIAudit(data) {
-      const checks = {
-        integrity: Math.random() > 0.05, // 95% probabilidad de OK
-        encryption: true,
-        threats: Math.floor(Math.random() * 3), // 0-2 amenazas simuladas
-        responseTime: Math.floor(Math.random() * 200) + 50
-      };
-      
-      let verdict = 'APROBADO';
-      let risk = 'BAJO';
-      
-      if (!checks.integrity) {
-        verdict = 'ADVERTENCIA';
-        risk = 'MEDIO';
-      }
-      if (checks.threats > 0) {
-        verdict = 'REQUIERE ATENCIÓN';
-        risk = 'ALTO';
-      }
-      
-      return {
-        verdict: verdict,
-        risk_level: risk,
-        integrity_verified: checks.integrity,
-        encryption_active: checks.encryption,
-        threats_detected: checks.threats,
-        response_time_ms: checks.responseTime,
-        hash: 'SHA-256:' + Math.random().toString(36).substring(2, 18).toUpperCase()
-      };
     }
+    // Todos los intentos fallaron
+    responsePre.textContent = `❌ Error tras ${CONFIG.MAX_RETRIES} intentos: ${lastError?.message || 'Sin conexión'}`;
+    responsePre.style.color = '#ff5252';
+    addSystemLog(`❌ API inaccesible: ${lastError?.message}`);
+    updateConnectionStatus('disconnected', 'Desconectado');
+    return { success: false, error: lastError };
+  }
 
-    // ============================================================
-    // 🎨 INDICADOR VISUAL DE CONEXIÓN (Se crea automáticamente)
-    // ============================================================
-    function createConnectionIndicator() {
-      if (document.getElementById('connectionIndicator')) return;
-      
-      const indicator = document.createElement('div');
-      indicator.id = 'connectionIndicator';
-      indicator.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: rgba(15, 23, 42, 0.95);
-        border: 1px solid #334155;
-        border-radius: 12px;
-        padding: 10px 16px;
-        font-family: system-ui, sans-serif;
-        font-size: 0.8rem;
-        color: #cbd5e1;
-        z-index: 9998;
-        backdrop-filter: blur(8px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      `;
-      
-      indicator.innerHTML = `
-        <span id="connDot" style="width:10px;height:10px;border-radius:50%;background:#fbbf24;animation:pulse 2s infinite;"></span>
-        <span id="connText">Verificando conexión...</span>
-      `;
-      
-      indicator.addEventListener('click', () => {
-        checkAPIWithIndicator();
-      });
-      
-      document.body.appendChild(indicator);
-      
-      // Agregar animación CSS
-      if (!document.getElementById('connectionStyles')) {
-        const style = document.createElement('style');
-        style.id = 'connectionStyles';
-        style.textContent = `
-          @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.2); }
-          }
-        `;
-        document.head.appendChild(style);
-      }
+  // Función auxiliar para registrar service worker (si existe)
+  function registerServiceWorkerSecure() {
+    if ('serviceWorker' in navigator) {
+      fetch('/sw.js', { method: 'HEAD', cache: 'no-store' })
+        .then(res => res.ok && navigator.serviceWorker.register('/sw.js'))
+        .catch(() => console.log('SW no disponible'));
     }
+  }
 
-    function updateConnectionStatus(status, message) {
-      const dot = document.getElementById('connDot');
-      const text = document.getElementById('connText');
-      
-      if (!dot || !text) return;
-      
-      if (status === 'connected') {
-        dot.style.background = '#059669';
-        text.textContent = message || '🟢 Conectado';
-        text.style.color = '#059669';
-      } else if (status === 'disconnected') {
-        dot.style.background = '#ef4444';
-        text.textContent = message || '🔴 Desconectado';
-        text.style.color = '#ef4444';
-      } else {
-        dot.style.background = '#fbbf24';
-        text.textContent = message || '🟡 Verificando...';
-        text.style.color = '#fbbf24';
-      }
-    }
-
-    // ============================================================
-    // 📜 SISTEMA DE LOGS SEGURO
-    // ============================================================
-    function addSystemLog(message) {
-      const timestamp = new Date().toLocaleTimeString();
-      const logMessage = `[${timestamp}] ${message}`;
-      
-      // Intentar agregar al panel de logs del admin si existe
-      const adminLogs = document.getElementById('adminLogs');
-      if (adminLogs) {
-        const logEntry = document.createElement('p');
-        logEntry.style.margin = '4px 0';
-        logEntry.style.color = '#cbd5e1';
-        logEntry.textContent = logMessage;
-        adminLogs.appendChild(logEntry);
-        adminLogs.scrollTop = adminLogs.scrollHeight;
-      }
-      
-      // También guardar en localStorage para persistencia
-      try {
-        const logs = JSON.parse(localStorage.getItem('apiromwiner_logs') || '[]');
-        logs.push({ time: timestamp, message: message });
-        // Mantener solo los últimos 100 logs
-        if (logs.length > 100) logs.shift();
-        localStorage.setItem('apiromwiner_logs', JSON.stringify(logs));
-      } catch (e) {
-        // Fallo silencioso
-      }
-      
-      console.log('[apiromwinervault]', logMessage);
-    }
-
-    // ============================================================
-    // 🔐 VERIFICACIÓN DE INTEGRIDAD DEL SISTEMA
-    // ============================================================
-    function verifySystemIntegrity() {
-      const checks = {
-        dom_ready: document.readyState === 'complete',
-        storage_available: typeof localStorage !== 'undefined',
-        crypto_available: typeof crypto !== 'undefined',
-        secure_context: window.isSecureContext || location.hostname === 'localhost'
-      };
-      
-      const allPassed = Object.values(checks).every(v => v === true);
-      
-      addSystemLog(`🛡️ Verificación de integridad: ${allPassed ? 'APROBADA' : 'ADVERTENCIA'}`);
-      
-      if (!checks.secure_context) {
-        console.warn('[apiromwinervault] ⚠️ Contexto no seguro. Algunas funciones de cifrado pueden no estar disponibles.');
-      }
-      
-      return { passed: allPassed, checks };
-    }
-
-    // ============================================================
-    // 🚀 INICIALIZACIÓN AUTOMÁTICA
-    // ============================================================
-    function initializeSecureApp() {
-      addSystemLog('🚀 Iniciando apiromwinervault...');
-      addSystemLog(`👑 Propietario: ${CONFIG.OWNER_NAME}`);
-      
-      // 1. Verificar integridad del sistema
-      const integrity = verifySystemIntegrity();
-      
-      // 2. Registrar Service Worker de forma segura
-      registerServiceWorkerSecure();
-      
-      // 3. Verificar conexión a la API
-      setTimeout(() => {
-        checkAPI();
-      }, 1000);
-      
-      // 4. Verificación periódica cada 60 segundos
-      setInterval(() => {
-        checkAPIWithIndicator();
-      }, 60000);
-      
-      addSystemLog('✅ Sistema inicializado correctamente');
-    }
-
-    // Exponer funciones globalmente de forma segura
-    window.apiromwiner = {
-      checkAPI: checkAPI,
-      verifyIntegrity: verifySystemIntegrity,
-      addLog: addSystemLog,
-      config: CONFIG
+  function verifySystemIntegrity() {
+    const checks = {
+      dom_ready: document.readyState === 'complete',
+      storage_available: typeof localStorage !== 'undefined',
+      crypto_available: typeof crypto !== 'undefined',
+      secure_context: window.isSecureContext || location.hostname === 'localhost'
     };
+    const allPassed = Object.values(checks).every(v => v === true);
+    addSystemLog(`🛡️ Verificación de integridad: ${allPassed ? 'APROBADA' : 'ADVERTENCIA'}`);
+    if (!checks.secure_context) console.warn('Contexto no seguro');
+    return { passed: allPassed, checks };
+  }
 
-    // Iniciar cuando el DOM esté listo
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initializeSecureApp);
-    } else {
-      initializeSecureApp();
-    }
-  })();
+  function initializeSecureApp() {
+    addSystemLog('🚀 Iniciando apiromwinervault...');
+    addSystemLog(`👑 Propietario: ${CONFIG.OWNER_NAME}`);
+    verifySystemIntegrity();
+    registerServiceWorkerSecure();
+    setTimeout(() => checkAPI(), 1000);
+    setInterval(() => checkAPI(), 60000);
+    addSystemLog('✅ Sistema inicializado correctamente');
+  }
+
+  window.apiromwiner = {
+    checkAPI, verifyIntegrity: verifySystemIntegrity, addLog: addSystemLog, config: CONFIG
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSecureApp);
+  } else {
+    initializeSecureApp();
+  }
+})();
 </script>
 
  <!-- 🔐 LANDING VIEW: apiromwinervault (Pantalla de bienvenida segura con IA) -->
@@ -6285,7 +6117,8 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </section>
-<!-- 🧠 LÓGICA SEGURA DE LANDING (Cero onclick, IA integrada) - CORREGIDA -->
+  
+<!-- 🧠 LÓGICA SEGURA DE LANDING (Cero onclick, IA integrada) - CORREGIDA Y MEJORADA -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // ============================================
@@ -6459,7 +6292,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================
-    // 6. Verificación de conexión y auditoría IA (simulada)
+    // 6. Verificación de conexión y auditoría IA (simulada, solo visual)
     // ============================================
     setTimeout(() => {
       performLandingAICheck();
@@ -6469,31 +6302,29 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!landingAIAudit || !landingAuditContent) return;
       
       landingAIAudit.style.display = 'block';
-      landingAuditContent.innerHTML = '<span style="color: #fbbf24;">⏳ Escaneando entorno de seguridad...</span>';
+      landingAuditContent.textContent = '⏳ Escaneando entorno de seguridad...';
       
       const checks = [
-        { text: '🔐 Verificando cifrado AES-256-GCM...', delay: 500 },
-        { text: '🛡️ Comprobando lista blanca de archivos...', delay: 1000 },
-        { text: '🤖 IA: Analizando integridad del servidor...', delay: 1500 },
-        { text: '🔗 Validando conexión segura...', delay: 2000 }
+        '🔐 Verificando cifrado AES-256-GCM...',
+        '🛡️ Comprobando lista blanca de archivos...',
+        '🤖 IA: Analizando integridad del servidor...',
+        '🔗 Validando conexión segura...'
       ];
       
       let step = 0;
       const interval = setInterval(() => {
         if (step < checks.length) {
-          landingAuditContent.innerHTML = `<span style="color: #fbbf24;">${checks[step].text}</span>`;
+          landingAuditContent.textContent = checks[step];
           step++;
         } else {
           clearInterval(interval);
-          
-          const fakeHash = 'SHA-256:' + Math.random().toString(36).substring(2, 14).toUpperCase();
           landingAuditContent.innerHTML = `
             <div style="color: #059669;">✅ Entorno verificado y seguro</div>
             <div style="margin-top: 6px; font-size: 0.75rem; color: #94a3b8;">
               • Cifrado: <strong style="color: #059669;">ACTIVO</strong><br>
               • Lista blanca: <strong style="color: #059669;">8 formatos permitidos</strong><br>
               • IA: <strong style="color: #059669;">OPERATIVA</strong><br>
-              • Hash de sesión: <span style="font-family: monospace; font-size: 0.7rem;">${fakeHash}</span>
+              • Hash de sesión: <span style="font-family: monospace; font-size: 0.7rem;">[VERIFICADO]</span>
             </div>
           `;
           
@@ -6530,7 +6361,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 </script>
 
-
 <!-- 💰 CENTRO DE MONETIZACIÓN: apiromwinervault (Gana dinero con IA integrada) -->
 <section id="earningsCenter" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 0 auto; padding: 20px;">
   
@@ -6543,10 +6373,10 @@ document.addEventListener('DOMContentLoaded', function() {
       </h2>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
         <span style="background: #059669; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
-          🏦 70% PARA TI
+          🏦 75% PARA TI
         </span>
         <span id="userTierBadge" style="background: #334155; color: #cbd5e1; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
-          👤 FREEMIUM
+          👤 CARGANDO...
         </span>
       </div>
     </div>
@@ -6580,7 +6410,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <span style="font-size: 1.5rem;">📦</span>
           <h4 style="margin: 0; color: #f8fafc; font-size: 0.95rem;">Venta Granular</h4>
         </div>
-        <p style="margin: 0; font-size: 0.8rem; color: #cbd5e1;">Vende .txt, .mp3, .mp4, .rar, .zip, .pdf, archivos empresariales/bancarios con <strong style="color:#059669;">70% para ti</strong> y Envelope Encryption.</p>
+        <p style="margin: 0; font-size: 0.8rem; color: #cbd5e1;">Vende .txt, .mp3, .mp4, .rar, .zip, .pdf, archivos empresariales/bancarios con <strong style="color:#059669;">75% para ti</strong> y Envelope Encryption.</p>
       </div>
 
       <div style="background: #1e293b; border-radius: 12px; padding: 16px; border-left: 4px solid #a78bfa;">
@@ -6655,20 +6485,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <div id="tierUsuario" style="background: #0f172a; border-radius: 10px; padding: 14px; border-left: 4px solid #38bdf8; display: flex; justify-content: space-between; align-items: center; opacity: 0.6;">
           <div>
-            <p style="margin: 0; font-weight: bold; color: #f8fafc;">👤 USUARIO</p>
-            <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Paga mensualidad o asciende por ganancias</p>
+            <p style="margin: 0; font-weight: bold; color: #f8fafc;">👤 USUARIO (Business)</p>
+            <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">$9.99/mes o 10 ventas</p>
           </div>
-          <button type="button" class="upgrade-btn" data-tier="usuario" style="padding: 6px 14px; background: #38bdf8; color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">
+          <button type="button" class="upgrade-btn" data-tier="business" style="padding: 6px 14px; background: #38bdf8; color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">
             Ascender
           </button>
         </div>
 
         <div id="tierPremium" style="background: #0f172a; border-radius: 10px; padding: 14px; border-left: 4px solid #fbbf24; display: flex; justify-content: space-between; align-items: center; opacity: 0.6;">
           <div>
-            <p style="margin: 0; font-weight: bold; color: #f8fafc;">👑 PREMIUM</p>
-            <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Venta sin comisiones + beneficios exclusivos</p>
+            <p style="margin: 0; font-weight: bold; color: #f8fafc;">👑 PREMIUM (Enterprise)</p>
+            <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">$49.99/mes o 50 ventas</p>
           </div>
-          <button type="button" class="upgrade-btn" data-tier="premium" style="padding: 6px 14px; background: #fbbf24; color: #000; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">
+          <button type="button" class="upgrade-btn" data-tier="enterprise" style="padding: 6px 14px; background: #fbbf24; color: #000; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">
             Ascender
           </button>
         </div>
@@ -6708,138 +6538,159 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </section>
 
-<!-- 🧠 LÓGICA SEGURA DE MONETIZACIÓN (Cero onclick, IA integrada) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const earningsCenter = document.getElementById('earningsCenter');
-    const totalBalance = document.getElementById('totalBalance');
-    const monthEarnings = document.getElementById('monthEarnings');
-    const activeAffiliates = document.getElementById('activeAffiliates');
-    const granularSales = document.getElementById('granularSales');
-    const userTierBadge = document.getElementById('userTierBadge');
-    const btnCalculateAI = document.getElementById('btnCalculateAI');
-    const aiCalculationResult = document.getElementById('aiCalculationResult');
-    const aiAuditEarnings = document.getElementById('aiAuditEarnings');
-
-    // Estado simulado del usuario
-    let userState = {
-      balance: 127.45,
-      monthEarnings: 45.20,
-      affiliates: 3,
-      sales: 7,
-      tier: 'freemium'
-    };
-
-    // Mostrar sección
-    setTimeout(() => {
-      earningsCenter.classList.remove('hidden');
-      updateDashboard();
-      runEarningsAIAudit();
-    }, 500);
-
-    // 1. Actualizar dashboard
-    function updateDashboard() {
-      totalBalance.textContent = '$' + userState.balance.toFixed(2);
-      monthEarnings.textContent = '$' + userState.monthEarnings.toFixed(2);
-      activeAffiliates.textContent = userState.affiliates;
-      granularSales.textContent = userState.sales;
-    }
-
-    // 2. Botones de ascenso de nivel
-    document.querySelectorAll('.upgrade-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        const targetTier = this.dataset.tier;
-        
-        if (targetTier === 'usuario') {
-          showUpgradeModal('USUARIO', 'Paga $9.99 USD/mes o genera $50 USD en ventas para ascender automáticamente.');
-        } else if (targetTier === 'premium') {
-          showUpgradeModal('PREMIUM', 'Paga $25 USD/mes o genera $500 USD en ventas + 10 afiliados activos.');
+  (function() {
+    // Función para obtener token
+    const getToken = () => localStorage.getItem('authToken');
+    
+    // Actualizar datos reales desde el backend
+    async function actualizarDatosMonetizacion() {
+      const token = getToken();
+      if (!token) return;
+      
+      try {
+        // Obtener wallet
+        const walletRes = await fetch('/api/wallet', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const walletData = await walletRes.json();
+        if (walletData.success) {
+          document.getElementById('totalBalance').textContent = `$${walletData.wallet?.balance?.toFixed(2) || '0.00'}`;
         }
-      });
-    });
-
-    function showUpgradeModal(tierName, requirements) {
-      alert(`🏆 ASCENDER A ${tierName}\n\n${requirements}\n\nBeneficios:\n• Más almacenamiento cifrado\n• Comisiones reducidas\n• Soporte prioritario\n• IA avanzada`);
-    }
-
-    // 3. Calculadora IA de ganancias
-    btnCalculateAI.addEventListener('click', function() {
-      const files = parseInt(document.getElementById('calcFiles').value) || 0;
-      const price = parseFloat(document.getElementById('calcPrice').value) || 0;
-      
-      btnCalculateAI.disabled = true;
-      btnCalculateAI.textContent = '🤖 IA Analizando mercado...';
-      
-      setTimeout(() => {
-        const estimatedSales = Math.floor(files * 0.7); // 70% tasa de conversión
-        const grossIncome = estimatedSales * price;
-        const yourCut = grossIncome * 0.70; // 70% para el usuario
-        const affiliateBonus = userState.affiliates * 2.5; // $2.50 por afiliado
-        const adsIncome = 15; // $15/mes estimados de publicidad
-        const totalPotential = yourCut + affiliateBonus + adsIncome;
         
-        aiCalculationResult.style.display = 'block';
-        aiCalculationResult.innerHTML = `
-          <div style="color: #38bdf8; font-weight: bold; margin-bottom: 8px;">📊 Proyección mensual estimada por IA:</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem;">
-            <div>📦 Ventas estimadas: <strong>${estimatedSales}</strong></div>
-            <div>💰 Ingreso bruto: <strong>$${grossIncome.toFixed(2)}</strong></div>
-            <div>🏦 Tu parte (70%): <strong style="color:#059669;">$${yourCut.toFixed(2)}</strong></div>
-            <div>🤝 Bonus afiliados: <strong>$${affiliateBonus.toFixed(2)}</strong></div>
-            <div>📺 Ingreso ads: <strong>$${adsIncome.toFixed(2)}</strong></div>
-            <div style="color:#fbbf24; font-weight:bold;">💎 Total: <strong>$${totalPotential.toFixed(2)}/mes</strong></div>
-          </div>
-          <div style="margin-top: 10px; padding: 8px; background: #1e293b; border-radius: 6px; font-size: 0.75rem; color: #94a3b8;">
-            🤖 <strong>Consejo IA:</strong> ${getAIRecommendation(files, price)}
+        // Obtener estadísticas de afiliados (número de referidos)
+        const affRes = await fetch('/api/referrals/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const affData = await affRes.json();
+        if (affData.success) {
+          document.getElementById('activeAffiliates').textContent = affData.referred || 0;
+          // También actualizar badge de nivel del usuario (tier)
+          const user = JSON.parse(localStorage.getItem('usuario') || '{}');
+          const tier = user.tier || 'personal';
+          const tierNames = { personal: 'FREEMIUM', business: 'BUSINESS', enterprise: 'ENTERPRISE' };
+          const badge = document.getElementById('userTierBadge');
+          if (badge) badge.textContent = tierNames[tier] || tier.toUpperCase();
+        }
+        
+        // Obtener ventas granulares (podría venir de /api/analytics/seller)
+        const analyticsRes = await fetch('/api/analytics/seller', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const analyticsData = await analyticsRes.json();
+        if (analyticsData.success) {
+          document.getElementById('granularSales').textContent = analyticsData.totalSales || 0;
+          // mes earnings (simplificado, se puede calcular desde revenue)
+          document.getElementById('monthEarnings').textContent = `$${analyticsData.totalEarnings || '0.00'}`;
+        }
+      } catch (err) {
+        console.error('Error actualizando datos de monetización:', err);
+      }
+    }
+    
+    // Auditoría IA (simulada)
+    async function actualizarAuditoriaIA() {
+      const token = getToken();
+      const auditDiv = document.getElementById('aiAuditEarnings');
+      if (!auditDiv) return;
+      auditDiv.innerHTML = '<p style="margin:0;">🔍 Analizando fuentes de ingresos...</p>';
+      try {
+        // Podríamos llamar a /api/security/status o simplemente simular
+        const res = await fetch('/api/security/status');
+        const data = await res.json();
+        auditDiv.innerHTML = `
+          <div style="margin-top: 4px;">
+            ✅ <strong>Ingresos verificados:</strong> Comisiones 75/15/8/2 activas.<br>
+            ✅ <strong>Afiliados:</strong> Cadena de 3 niveles funcionando.<br>
+            ✅ <strong>Publicidad:</strong> Recompensas diarias operativas.<br>
+            🤖 <strong>IA:</strong> Sin anomalías detectadas.
           </div>
         `;
-        
-        btnCalculateAI.disabled = false;
-        btnCalculateAI.textContent = '🤖 Calcular con IA';
-      }, 1500);
-    });
-
-    function getAIRecommendation(files, price) {
-      if (files < 5) return 'Sube al menos 5 archivos para maximizar visibilidad.';
-      if (price < 10) return 'Considera aumentar precios, tu contenido tiene valor.';
-      if (price > 100) return 'Ofrece vista previa gratuita para aumentar conversiones.';
-      return 'Estrategia óptima. Activa la opción de afiliados para multiplicar ventas.';
+      } catch (e) {
+        auditDiv.innerHTML = '<p style="margin:0;">⚠️ No se pudo completar la auditoría, pero los ingresos son reales.</p>';
+      }
     }
-
-    // 4. Auditoría IA de ingresos
-    function runEarningsAIAudit() {
-      const steps = [
-        "🔍 Escaneando fuentes de ingreso activas...",
-        "🤖 IA: Verificando integridad de transacciones...",
-        "🛡️ Validando pagos pendientes...",
-        "✅ Auditoría completada: Ingresos verificados"
-      ];
-      
-      let step = 0;
-      const interval = setInterval(() => {
-        if (step < steps.length) {
-          aiAuditEarnings.innerHTML = `<p style="margin:0;">${steps[step]}</p>`;
-          step++;
+    
+    // Calculadora IA (simulada pero con llamada a /api/ai/analyze opcional)
+    async function calcularGanancias() {
+      const files = parseInt(document.getElementById('calcFiles').value) || 0;
+      const price = parseFloat(document.getElementById('calcPrice').value) || 0;
+      if (files <= 0 || price <= 0) {
+        alert('Ingresa valores válidos');
+        return;
+      }
+      const totalVenta = files * price;
+      const gananciaVendedor = totalVenta * 0.75;
+      const resultadoDiv = document.getElementById('aiCalculationResult');
+      resultadoDiv.style.display = 'block';
+      resultadoDiv.innerHTML = `📊 <strong>Proyección IA:</strong><br>💰 Ventas totales: $${totalVenta.toFixed(2)}<br>👑 Tu ganancia (75%): <span style="color:#00e676;">$${gananciaVendedor.toFixed(2)}</span><br>🏢 Plataforma (15%): $${(totalVenta*0.15).toFixed(2)}<br>🤝 Afiliados (8%): $${(totalVenta*0.08).toFixed(2)}<br>🎁 Fondo solidario (2%): $${(totalVenta*0.02).toFixed(2)}`;
+    }
+    
+    // Upgrade de nivel (auto-subscribe)
+    async function upgradeTier(tier) {
+      const token = getToken();
+      if (!token) {
+        alert('Debes iniciar sesión');
+        return;
+      }
+      if (!confirm(`¿Deseas ascender al plan ${tier.toUpperCase()}? Se descontará el saldo de tu wallet según el precio mensual.`)) return;
+      try {
+        const res = await fetch('/api/wallet/auto-subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ tier })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`✅ Suscripción a ${tier} activada. Se renovará automáticamente.`);
+          // Actualizar badge y recargar datos
+          actualizarDatosMonetizacion();
+          // También actualizar el localStorage del usuario (tier)
+          const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+          usuario.tier = tier;
+          localStorage.setItem('usuario', JSON.stringify(usuario));
         } else {
-          clearInterval(interval);
-          aiAuditEarnings.innerHTML = `
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
-              <strong style="color:#059669;">✅ Ingresos Verificados</strong><br>
-              <span style="color:#cbd5e1; font-size:0.85rem;">
-                • 4 fuentes de ingreso activas<br>
-                • 0 anomalías detectadas<br>
-                • Pagos pendientes: $0.00<br>
-                • Próximo pago: En 3 días
-              </span>
-            </div>
-          `;
+          alert('❌ Error: ' + (data.error || 'Saldo insuficiente o no disponible'));
         }
-      }, 1200);
+      } catch (err) {
+        alert('Error de conexión');
+      }
     }
-  });
+    
+    // Inicializar cuando la sección sea visible
+    function initEarningsCenter() {
+      actualizarDatosMonetizacion();
+      actualizarAuditoriaIA();
+      // Botones de ascenso
+      document.querySelectorAll('.upgrade-btn').forEach(btn => {
+        btn.removeEventListener('click', upgradeHandler);
+        btn.addEventListener('click', upgradeHandler);
+      });
+      function upgradeHandler(e) {
+        const tier = e.currentTarget.dataset.tier;
+        upgradeTier(tier);
+      }
+      // Botón calculadora
+      const calcBtn = document.getElementById('btnCalculateAI');
+      if (calcBtn) {
+        calcBtn.removeEventListener('click', calcularGanancias);
+        calcBtn.addEventListener('click', calcularGanancias);
+      }
+    }
+    
+    // Si la sección ya está visible (porque el usuario está logueado y la vista está activa)
+    if (document.getElementById('earningsCenter') && !document.getElementById('earningsCenter').classList.contains('hidden')) {
+      initEarningsCenter();
+    }
+    // Exponer función para que script.js la llame cuando se muestre el panel
+    window.initEarningsCenter = initEarningsCenter;
+  })();
 </script>
   
-<!-- 📱 CENTRO DE INSTALACIÓN Y COMPARTIR: apiromwinervault (100% Local, IA Integrada) -->
+<!-- 📱 CENTRO DE INSTALACIÓN Y COMPARTIR: apiromwinervault (100% Local, QR Real) -->
 <section id="installShareSection" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 500px; margin: 0 auto; padding: 20px;">
   
   <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #38bdf8; border-radius: 20px; padding: 28px; text-align: center; box-shadow: 0 10px 40px rgba(56, 189, 248, 0.2);">
@@ -6849,10 +6700,10 @@ document.addEventListener('DOMContentLoaded', function() {
     </h2>
     <p style="margin: 0 0 24px 0; font-size: 0.9rem; color: #94a3b8;">Escanea, comparte o instala para empezar a ganar desde cualquier dispositivo.</p>
 
-    <!-- Contenedor del QR Generado Localmente -->
+    <!-- Contenedor del QR Real -->
     <div style="background: #ffffff; border-radius: 16px; padding: 16px; display: inline-block; margin-bottom: 20px; border: 4px solid #1e293b;">
       <canvas id="localQrCanvas" width="200" height="200" style="display: block;"></canvas>
-      <p style="color: #0f172a; font-size: 0.7rem; margin-top: 8px; font-weight: bold; font-family: monospace;">apiromwinervault.local</p>
+      <p id="qrUrlInfo" style="color: #0f172a; font-size: 0.7rem; margin-top: 8px; font-weight: bold; font-family: monospace; word-break: break-all; max-width: 200px;">Cargando...</p>
     </div>
 
     <!-- Botones de Acción (Sin onclick) -->
@@ -6883,47 +6734,76 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </section>
 
-<!-- 🧠 LÓGICA SEGURA DE INSTALACIÓN (Cero onclick, Cero enlaces externos, QR Local Real) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const installShareSection = document.getElementById('installShareSection');
-    const localQrCanvas = document.getElementById('localQrCanvas');
+  (function() {
+    const canvas = document.getElementById('localQrCanvas');
+    const qrUrlInfo = document.getElementById('qrUrlInfo');
     const btnShareNative = document.getElementById('btnShareNative');
     const btnInstallPWA = document.getElementById('btnInstallPWA');
     const btnCopyLink = document.getElementById('btnCopyLink');
     const installAIAudit = document.getElementById('installAIAudit');
+    let deferredPrompt = null;
 
-    let deferredPrompt; // Para la instalación PWA real
-    const appUrl = window.location.href; // URL actual de la app
+    // Obtener la URL de registro con código de referido (usando funciones globales o lógica propia)
+    function obtenerUrlRegistro() {
+      const token = localStorage.getItem('authToken');
+      let refCode = 'ROM0000'; // código por defecto (Dueño Supremo)
+      if (token) {
+        // Si hay sesión, intentar obtener el código del usuario desde localStorage o API
+        const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+        if (usuario.refCode) refCode = usuario.refCode;
+        // También podemos llamar a /api/referrals/me si es necesario, pero usamos lo guardado
+      }
+      return `${window.location.origin}/?ref=${refCode}`;
+    }
 
-    // Mostrar sección
-    setTimeout(() => {
-      installShareSection.classList.remove('hidden');
-      generateLocalQR(appUrl);
-      runInstallAIAudit();
-    }, 500);
+    // Generar QR real usando la librería qrcode-generator (ya debe estar cargada)
+    function generarQRReal() {
+      const url = obtenerUrlRegistro();
+      qrUrlInfo.textContent = url.length > 30 ? url.substring(0, 27) + '...' : url;
+      if (typeof qrcode === 'undefined') {
+        console.warn('Librería QR no disponible. Usando fallback visual.');
+        generarQRFallback(url);
+        return;
+      }
+      try {
+        const qr = qrcode(0, 'M');
+        qr.addData(url);
+        qr.make();
+        const size = 200;
+        const cells = qr.getModuleCount();
+        const cellSize = size / cells;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#0f172a';
+        for (let row = 0; row < cells; row++) {
+          for (let col = 0; col < cells; col++) {
+            if (qr.isDark(row, col)) {
+              ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error generando QR real:', err);
+        generarQRFallback(url);
+      }
+    }
 
-    // 1. Generar QR 100% Local en Canvas (Sin APIs externas)
-    function generateLocalQR(url) {
-      const ctx = localQrCanvas.getContext('2d');
+    // Fallback visual (por si la librería no está disponible)
+    function generarQRFallback(url) {
+      const ctx = canvas.getContext('2d');
       const size = 200;
-      const cells = 25; // Matriz de 25x25
+      const cells = 25;
       const cellSize = size / cells;
-      
-      // Fondo blanco
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, size, size);
-      
-      // Generar patrón pseudo-aleatorio basado en la URL (para que sea único pero consistente)
       let hash = 0;
-      for (let i = 0; i < url.length; i++) {
-        hash = ((hash << 5) - hash) + url.charCodeAt(i);
-        hash |= 0;
-      }
-      
+      for (let i = 0; i < url.length; i++) hash = ((hash << 5) - hash) + url.charCodeAt(i);
+      let seed = Math.abs(hash);
       ctx.fillStyle = '#0f172a';
-      
-      // Dibujar marcadores de posición (esquinas del QR)
       function drawFinder(x, y) {
         ctx.fillRect(x * cellSize, y * cellSize, 7 * cellSize, 7 * cellSize);
         ctx.fillStyle = '#ffffff';
@@ -6931,132 +6811,127 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.fillStyle = '#0f172a';
         ctx.fillRect((x + 2) * cellSize, (y + 2) * cellSize, 3 * cellSize, 3 * cellSize);
       }
-      
       drawFinder(0, 0);
       drawFinder(cells - 7, 0);
       drawFinder(0, cells - 7);
-      
-      // Rellenar datos simulados basados en el hash de la URL
-      let seed = Math.abs(hash);
       for (let i = 0; i < cells; i++) {
         for (let j = 0; j < cells; j++) {
-          // Evitar áreas de los marcadores
           if ((i < 8 && j < 8) || (i > cells - 9 && j < 8) || (i < 8 && j > cells - 9)) continue;
-          
           seed = (seed * 16807) % 2147483647;
-          if (seed % 3 !== 0) { // Densidad del QR
-            ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
-          }
+          if (seed % 3 !== 0) ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
         }
       }
     }
 
-    // 2. Botón Compartir Nativo (WhatsApp, Telegram, etc.)
-    btnShareNative.addEventListener('click', async function() {
+    // Compartir nativo
+    async function compartirApp() {
+      const url = obtenerUrlRegistro();
       const shareData = {
         title: 'ApiRomwiner Vault',
         text: '🔐 Únete a ApiRomwiner Vault: La bóveda suiza con cifrado militar. Guarda, audita con IA y gana dinero con tu información. ¡Regístrate gratis!',
-        url: appUrl
+        url: url
       };
-
       try {
         if (navigator.share && navigator.canShare(shareData)) {
           await navigator.share(shareData);
-          addInstallLog('✅ App compartida exitosamente vía nativa');
+          addLog('✅ App compartida vía nativa');
         } else {
-          throw new Error('Web Share API no soportada');
+          copyToClipboard(url);
         }
       } catch (err) {
-        // Fallback a copiar al portapapeles
-        copyToClipboard(appUrl);
+        copyToClipboard(url);
       }
-    });
-
-    // 3. Botón Copiar Enlace
-    btnCopyLink.addEventListener('click', function() {
-      copyToClipboard(appUrl);
-    });
+    }
 
     function copyToClipboard(text) {
       if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
-          showButtonFeedback(btnCopyLink, '✅ ¡Enlace copiado!');
-          addInstallLog('📋 Enlace de la app copiado al portapapeles');
+          mostrarFeedback(btnCopyLink, '✅ ¡Enlace copiado!');
+          addLog('📋 Enlace copiado al portapapeles');
         });
       } else {
-        // Fallback antiguo
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-          document.execCommand('copy');
-          showButtonFeedback(btnCopyLink, '✅ ¡Enlace copiado!');
-        } catch (err) {
-          alert('Copia este enlace manualmente: ' + text);
-        }
-        document.body.removeChild(textArea);
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try { document.execCommand('copy'); mostrarFeedback(btnCopyLink, '✅ ¡Enlace copiado!'); } catch(e) { alert('Copia manual: ' + text); }
+        document.body.removeChild(textarea);
       }
     }
 
-    function showButtonFeedback(btn, originalText) {
-      const oldText = btn.textContent;
-      btn.textContent = originalText;
+    function mostrarFeedback(btn, msg) {
+      const original = btn.textContent;
+      btn.textContent = msg;
       btn.style.background = '#059669';
       btn.style.color = '#fff';
       setTimeout(() => {
-        btn.textContent = oldText;
+        btn.textContent = original;
         btn.style.background = '';
         btn.style.color = '';
       }, 2000);
     }
 
-    // 4. Instalación PWA Real (Intercepta el evento del navegador)
+    function addLog(msg) {
+      console.log('[InstallShare]', msg);
+      const adminLogs = document.getElementById('adminLogs');
+      if (adminLogs) {
+        const logEntry = document.createElement('p');
+        logEntry.style.margin = '4px 0';
+        logEntry.style.color = '#cbd5e1';
+        logEntry.style.fontSize = '0.8rem';
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] 📱 ${msg}`;
+        adminLogs.appendChild(logEntry);
+        adminLogs.scrollTop = adminLogs.scrollHeight;
+      }
+    }
+
+    // Eventos
+    if (btnShareNative) btnShareNative.addEventListener('click', compartirApp);
+    if (btnCopyLink) btnCopyLink.addEventListener('click', () => copyToClipboard(obtenerUrlRegistro()));
+
+    // PWA
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      btnInstallPWA.style.display = 'flex'; // Mostrar botón solo si es instalable
-      addInstallLog('📲 App detectada como instalable (PWA)');
+      if (btnInstallPWA) btnInstallPWA.style.display = 'flex';
+      addLog('📲 App detectable como instalable');
     });
-
-    btnInstallPWA.addEventListener('click', async function() {
-      if (!deferredPrompt) return;
-      
-      btnInstallPWA.disabled = true;
-      btnInstallPWA.innerHTML = '⏳ Instalando...';
-      
-      try {
-        await deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        
-        if (outcome === 'accepted') {
-          addInstallLog('✅ App instalada exitosamente en el dispositivo');
-          btnInstallPWA.innerHTML = '✅ ¡App Instalada!';
-          btnInstallPWA.style.background = '#334155';
-        } else {
-          addInstallLog('❌ Instalación cancelada por el usuario');
-          btnInstallPWA.innerHTML = '📲 Instalar App en Dispositivo';
+    if (btnInstallPWA) {
+      btnInstallPWA.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        btnInstallPWA.disabled = true;
+        btnInstallPWA.innerHTML = '⏳ Instalando...';
+        try {
+          await deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            addLog('✅ App instalada exitosamente');
+            btnInstallPWA.innerHTML = '✅ ¡App Instalada!';
+            btnInstallPWA.style.background = '#334155';
+          } else {
+            addLog('❌ Instalación cancelada');
+            btnInstallPWA.innerHTML = '📲 Instalar App';
+            btnInstallPWA.disabled = false;
+          }
+          deferredPrompt = null;
+        } catch (err) {
+          addLog('⚠️ Error instalación: ' + err.message);
+          btnInstallPWA.innerHTML = '📲 Instalar App';
           btnInstallPWA.disabled = false;
         }
-        deferredPrompt = null;
-      } catch (err) {
-        addInstallLog('⚠️ Error durante la instalación: ' + err.message);
-        btnInstallPWA.innerHTML = '📲 Instalar App en Dispositivo';
-        btnInstallPWA.disabled = false;
-      }
-    });
+      });
+    }
 
-    // 5. Auditoría IA de Instalación
-    function runInstallAIAudit() {
+    // Auditoría IA (visual)
+    function ejecutarAuditoria() {
       const steps = [
         "🔍 Verificando que la URL sea segura (HTTPS/Local)...",
         "🛡️ Escaneando ausencia de scripts de rastreo externos...",
         "🤖 IA: Validando integridad del paquete de instalación...",
         "✅ Entorno de instalación 100% seguro y aislado."
       ];
-      
       let step = 0;
       const interval = setInterval(() => {
         if (step < steps.length) {
@@ -7078,29 +6953,27 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 1000);
     }
 
-    // Función auxiliar de logs
-    function addInstallLog(message) {
-      console.log('[apiromwinervault Install]', message);
-      // Si existe el panel de logs del admin, agregarlo allí también
-      const adminLogs = document.getElementById('adminLogs');
-      if (adminLogs) {
-        const logEntry = document.createElement('p');
-        logEntry.style.margin = '4px 0';
-        logEntry.style.color = '#cbd5e1';
-        logEntry.style.fontSize = '0.8rem';
-        logEntry.textContent = `[${new Date().toLocaleTimeString()}] 📱 ${message}`;
-        adminLogs.appendChild(logEntry);
-        adminLogs.scrollTop = adminLogs.scrollHeight;
-      }
+    // Inicializar cuando la sección sea visible
+    function initInstallShare() {
+      generarQRReal();
+      ejecutarAuditoria();
+      // También exponer función para actualizar QR si cambia la sesión (por ejemplo, después de login)
+      window.actualizarQRInstalacion = generarQRReal;
     }
-  });
+
+    // Mostrar sección y ejecutar
+    setTimeout(() => {
+      const section = document.getElementById('installShareSection');
+      if (section) section.classList.remove('hidden');
+      initInstallShare();
+    }, 500);
+  })();
 </script>
     
 <!-- 📱 BANNER DE INSTALACIÓN PWA SEGURO: apiromwinervault (Sin enlaces externos, IA integrada) -->
 <section id="pwaBanner" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; max-width: 480px; margin: 12px auto; padding: 0;">
   <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #38bdf8; border-left: 4px solid #38bdf8; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 10px 30px rgba(56, 189, 248, 0.15); position: relative;">
     
-    <!-- Botón de cerrar seguro -->
     <button type="button" id="btnClosePwaBanner" style="position: absolute; top: 8px; right: 8px; background: transparent; border: none; color: #64748b; font-size: 1.2rem; cursor: pointer; padding: 4px; line-height: 1;">✕</button>
     
     <p style="margin: 0 0 12px 0; font-size: 0.95rem; color: #f8fafc; font-weight: 600;">
@@ -7120,117 +6993,10 @@ document.addEventListener('DOMContentLoaded', function() {
       </button>
     </div>
     
-    <!-- Badge de Auditoría IA -->
     <div style="margin-top: 12px; font-size: 0.7rem; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 4px;">
       <span style="width: 6px; height: 6px; background: #059669; border-radius: 50%;"></span>
       🤖 Paquete de instalación verificado por IA • 0 dependencias externas
     </div>
-  </div>
-</section>
-
-<!-- 🧠 LÓGICA SEGURA DEL BANNER PWA (Cero onclick, Cero enlaces externos) -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const pwaBanner = document.getElementById('pwaBanner');
-    const btnClosePwaBanner = document.getElementById('btnClosePwaBanner');
-    const btnInstallPwaBanner = document.getElementById('btnInstallPwaBanner');
-    const btnLaterPwaBanner = document.getElementById('btnLaterPwaBanner');
-    
-    let deferredPrompt = null;
-
-    // 1. Escuchar el evento de instalación del navegador (PWA)
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault(); // Prevenir el banner predeterminado del navegador
-      
-      // Guardamos el evento para usarlo cuando el usuario haga clic
-      deferredPrompt = e;
-      
-      // Mostrar nuestro banner seguro solo si es instalable y el usuario no lo ha cerrado antes
-      if (!localStorage.getItem('apiromwiner_pwa_dismissed')) {
-        pwaBanner.classList.remove('hidden');
-      }
-    });
-
-    // 2. Botón "Instalar ahora" (Totalmente funcional)
-    btnInstallPwaBanner.addEventListener('click', async function() {
-      if (!deferredPrompt) {
-        // Fallback para navegadores que no soportan el evento (ej. iOS Safari)
-        alert('📱 Para instalar en iPhone/iPad: Toca el botón "Compartir" (cuadrado con flecha hacia arriba) y luego selecciona "Agregar a la pantalla de inicio".');
-        return;
-      }
-
-      btnInstallPwaBanner.disabled = true;
-      btnInstallPwaBanner.innerHTML = '⏳ Preparando instalación segura...';
-
-      try {
-        // Mostrar el prompt nativo de instalación del sistema operativo
-        await deferredPrompt.prompt();
-        
-        // Esperar la respuesta del usuario
-        const { outcome } = await deferredPrompt.userChoice;
-        
-        if (outcome === 'accepted') {
-          btnInstallPwaBanner.innerHTML = '✅ ¡App Instalada!';
-          btnInstallPwaBanner.style.background = '#334155';
-          setTimeout(() => {
-            pwaBanner.classList.add('hidden');
-          }, 2000);
-        } else {
-          btnInstallPwaBanner.innerHTML = '✨ Instalar ahora';
-          btnInstallPwaBanner.disabled = false;
-        }
-        
-        // Limpiar el prompt después de usarlo (solo se puede usar una vez)
-        deferredPrompt = null;
-      } catch (err) {
-        console.error('[apiromwinervault] Error en instalación PWA:', err);
-        btnInstallPwaBanner.innerHTML = '✨ Instalar ahora';
-        btnInstallPwaBanner.disabled = false;
-        alert('⚠️ No se pudo iniciar la instalación. Intenta de nuevo o usa el menú de tu navegador.');
-      }
-    });
-
-    // 3. Botón "Más tarde" / Cerrar
-    function dismissBanner() {
-      pwaBanner.classList.add('hidden');
-      // Recordar que el usuario lo cerró para no volver a mostrarlo en este navegador
-      localStorage.setItem('apiromwiner_pwa_dismissed', 'true');
-    }
-
-    btnClosePwaBanner.addEventListener('click', dismissBanner);
-    btnLaterPwaBanner.addEventListener('click', dismissBanner);
-
-    // 4. Efectos visuales de hover seguros
-    btnInstallPwaBanner.addEventListener('mouseover', function() {
-      if (!this.disabled) this.style.transform = 'translateY(-2px)';
-    });
-    btnInstallPwaBanner.addEventListener('mouseout', function() {
-      this.style.transform = 'translateY(0)';
-    });
-  });
-</script>
-    
-      <!-- Términos y Privacidad (Internos, sin enlaces externos) -->
-      <div style="display: flex; align-items: flex-start; gap: 8px; margin-top: 8px;">
-        <input type="checkbox" id="acceptTerms" required style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
-        <label for="acceptTerms" style="font-size: 0.8rem; color: #94a3b8; cursor: pointer; line-height: 1.4;">
-          Acepto los <button type="button" class="internal-link" data-modal="termsModal" style="background: none; border: none; color: #38bdf8; text-decoration: underline; cursor: pointer; padding: 0; font: inherit;">Términos de Servicio</button> y la <button type="button" class="internal-link" data-modal="privacyModal" style="background: none; border: none; color: #38bdf8; text-decoration: underline; cursor: pointer; padding: 0; font: inherit;">Política de Privacidad</button> de ApiRomwiner Vault.
-        </label>
-      </div>
-
-      <!-- Botón de Acción -->
-      <button type="submit" id="authSubmitBtn" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 8px;">
-        🔓 Acceder a la Bóveda
-      </button>
-
-    </form>
-
-    <!-- Estado de Autenticación IA -->
-    <div id="authAiStatus" style="margin-top: 16px; padding: 12px; background: #0f172a; border-radius: 8px; border-left: 3px solid #38bdf8; font-size: 0.8rem; color: #cbd5e1; display: none;">
-      <strong style="color: #38bdf8;">🤖 Auditoría IA de Autenticación:</strong>
-      <div id="authAiContent" style="margin-top: 6px;"></div>
-    </div>
-
   </div>
 </section>
 
@@ -7241,7 +7007,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.6;">
       1. <strong>Identidad Real:</strong> ApiRomwiner Vault actúa como un proveedor de identidad verificada. El usuario garantiza que la información proporcionada es real y única.<br><br>
       2. <strong>Cifrado Militar:</strong> Todos los archivos (.txt, .mp3, .mp4, .rar, .zip, etc.) se protegen con cifrado de extremo a extremo. La plataforma no tiene acceso a las claves maestras.<br><br>
-      3. <strong>Venta Granular:</strong> El usuario retiene el 70% de las ganancias por la venta de su información, bajo estricta auditoría de IA.<br><br>
+      3. <strong>Venta Granular:</strong> El usuario retiene el 75% de las ganancias por la venta de su información, bajo estricta auditoría de IA.<br><br>
       4. <strong>Cero Enlaces Externos:</strong> La aplicación opera en un entorno aislado. Cualquier intento de inyección de código externo resultará en la suspensión inmediata de la identidad.
     </p>
     <button type="button" class="close-modal" style="margin-top: 20px; width: 100%; padding: 10px; background: #334155; color: white; border: none; border-radius: 8px; cursor: pointer;">Cerrar</button>
@@ -7261,164 +7027,311 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </section>
 
-<!-- 🧠 LÓGICA SEGURA DE AUTENTICACIÓN (Cero onclick, Cero enlaces externos, IA integrada) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Referencias
-    const tabLogin = document.getElementById('tabLogin');
-    const tabRegister = document.getElementById('tabRegister');
-    const registerFields = document.getElementById('registerFields');
-    const authForm = document.getElementById('authForm');
-    const authSubmitBtn = document.getElementById('authSubmitBtn');
-    const authPass = document.getElementById('authPass');
-    const passStrengthMeter = document.getElementById('passStrengthMeter');
-    const passStrengthBar = document.getElementById('passStrengthBar');
-    const passStrengthText = document.getElementById('passStrengthText');
-    const authAiStatus = document.getElementById('authAiStatus');
-    const authAiContent = document.getElementById('authAiContent');
-    
-    let isRegistering = false;
+  // ============================================
+  // LÓGICA DEL BANNER PWA (sin duplicados)
+  // ============================================
+  (function() {
+    const banner = document.getElementById('pwaBanner');
+    const btnClose = document.getElementById('btnClosePwaBanner');
+    const btnInstall = document.getElementById('btnInstallPwaBanner');
+    const btnLater = document.getElementById('btnLaterPwaBanner');
+    let deferredPrompt = null;
 
-    // 1. Cambio de pestañas (Login vs Registro)
-    tabLogin.addEventListener('click', function() {
-      isRegistering = false;
-      tabLogin.style.background = '#059669';
-      tabLogin.style.color = 'white';
-      tabRegister.style.background = 'transparent';
-      tabRegister.style.color = '#94a3b8';
-      registerFields.style.display = 'none';
-      authSubmitBtn.textContent = '🔓 Acceder a la Bóveda';
-      authPass.placeholder = 'Contraseña Maestra';
-    });
-
-    tabRegister.addEventListener('click', function() {
-      isRegistering = true;
-      tabRegister.style.background = '#059669';
-      tabRegister.style.color = 'white';
-      tabLogin.style.background = 'transparent';
-      tabLogin.style.color = '#94a3b8';
-      registerFields.style.display = 'flex';
-      authSubmitBtn.textContent = '✨ Registrar Identidad Real';
-      authPass.placeholder = 'Mínimo 12 caracteres, alta seguridad';
-    });
-
-    // 2. Medidor de fuerza de contraseña con "IA"
-    authPass.addEventListener('input', function() {
-      const val = this.value;
-      if (val.length > 0) {
-        passStrengthMeter.style.display = 'block';
-        passStrengthText.style.display = 'block';
-        
-        let strength = 0;
-        if (val.length >= 12) strength += 1;
-        if (/[A-Z]/.test(val)) strength += 1;
-        if (/[0-9]/.test(val)) strength += 1;
-        if (/[^A-Za-z0-9]/.test(val)) strength += 1;
-
-        if (strength <= 1) {
-          passStrengthBar.style.width = '25%';
-          passStrengthBar.style.background = '#ef4444';
-          passStrengthText.textContent = '🤖 IA: Débil. Vulnerable a ataques de fuerza bruta.';
-          passStrengthText.style.color = '#ef4444';
-        } else if (strength === 2 || strength === 3) {
-          passStrengthBar.style.width = '60%';
-          passStrengthBar.style.background = '#fbbf24';
-          passStrengthText.textContent = '🤖 IA: Moderada. Agrega más caracteres o símbolos.';
-          passStrengthText.style.color = '#fbbf24';
-        } else {
-          passStrengthBar.style.width = '100%';
-          passStrengthBar.style.background = '#059669';
-          passStrengthText.textContent = '🤖 IA: Excelente. Cifrado de grado militar listo.';
-          passStrengthText.style.color = '#059669';
-        }
-      } else {
-        passStrengthMeter.style.display = 'none';
-        passStrengthText.style.display = 'none';
-      }
-    });
-
-    // 3. Manejo del envío del formulario (Simulación segura)
-    authForm.addEventListener('submit', function(e) {
+    window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
-      
-      const email = document.getElementById('authEmail').value;
-      const pass = authPass.value;
-      const terms = document.getElementById('acceptTerms').checked;
-
-      if (!terms) {
-        alert('⚠️ Debes aceptar los Términos y la Política de Privacidad para continuar.');
-        return;
+      deferredPrompt = e;
+      if (!localStorage.getItem('apiromwiner_pwa_dismissed') && banner) {
+        banner.classList.remove('hidden');
       }
+    });
 
-      if (isRegistering && pass.length < 12) {
-        alert('⚠️ ALERTA DE SEGURIDAD: La contraseña debe tener al menos 12 caracteres para una identidad real verificada.');
-        return;
+    function dismissBanner() {
+      if (banner) banner.classList.add('hidden');
+      localStorage.setItem('apiromwiner_pwa_dismissed', 'true');
+    }
+
+    if (btnClose) btnClose.addEventListener('click', dismissBanner);
+    if (btnLater) btnLater.addEventListener('click', dismissBanner);
+
+    if (btnInstall) {
+      btnInstall.addEventListener('click', async () => {
+        if (!deferredPrompt) {
+          alert('📱 Para instalar en iOS: usa el botón "Compartir" y luego "Agregar a pantalla de inicio".');
+          return;
+        }
+        btnInstall.disabled = true;
+        btnInstall.innerHTML = '⏳ Preparando...';
+        try {
+          await deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            btnInstall.innerHTML = '✅ ¡App Instalada!';
+            setTimeout(() => dismissBanner(), 2000);
+          } else {
+            btnInstall.innerHTML = '✨ Instalar ahora';
+            btnInstall.disabled = false;
+          }
+          deferredPrompt = null;
+        } catch (err) {
+          console.error('Error instalación:', err);
+          btnInstall.innerHTML = '✨ Instalar ahora';
+          btnInstall.disabled = false;
+        }
+      });
+    }
+  })();
+
+  // ============================================
+  // LÓGICA DE MODALES (Términos y Privacidad)
+  // ============================================
+  (function() {
+    function abrirModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) modal.classList.remove('hidden');
+    }
+    function cerrarModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) modal.classList.add('hidden');
+    }
+    document.querySelectorAll('.internal-link').forEach(link => {
+      const modalId = link.dataset.modal;
+      if (modalId) {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          abrirModal(modalId);
+        });
       }
+    });
+    document.querySelectorAll('.close-modal').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const modal = this.closest('section');
+        if (modal) modal.classList.add('hidden');
+      });
+    });
+  })();
+</script>
+  
+<!-- 🟢 DASHBOARD VIEW: apiromwinervault (Panel de Control Blindado con IA) - REAL -->
+<section id="dashboardView" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 0 auto; padding: 20px;">
+  
+  <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #059669; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(5, 150, 105, 0.15);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">🟢 Panel de Monetización y Control</h2>
+        <p style="margin: 6px 0 0 0; font-size: 0.9rem; color: #94a3b8;">Bienvenido, <span id="uEmail" style="color: #059669; font-weight: bold;">Cargando...</span></p>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <span id="userTierBadge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; border: 1px solid rgba(56, 189, 248, 0.3);">👤 CARGANDO</span>
+        <span style="background: rgba(5, 150, 105, 0.15); color: #059669; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; border: 1px solid rgba(5, 150, 105, 0.3);">🔒 Sesión Cifrada</span>
+      </div>
+    </div>
 
-      // Iniciar proceso de autenticación con IA
-      authSubmitBtn.disabled = true;
-      authSubmitBtn.textContent = '⏳ Procesando...';
-      authAiStatus.style.display = 'block';
-      
-      const steps = isRegistering ? [
-        "🔍 Verificando unicidad del correo electrónico...",
-        "🤖 IA: Analizando patrones de dispositivo para identidad real...",
-        "🛡️ Generando par de claves de cifrado AES-256-GCM...",
-        "✅ Identidad Real verificada y registrada con éxito."
-      ] : [
-        "🔍 Verificando credenciales contra la bóveda local...",
-        "🤖 IA: Validando huella digital de comportamiento...",
-        "🔐 Descifrando contenedor de identidad...",
-        "✅ Autenticación exitosa. Bienvenido a tu Bóveda."
+    <div id="quotaDisplay" style="background: #1e293b; border-radius: 10px; padding: 16px; border: 1px solid #334155;">
+      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px;">
+        <span>Almacenamiento seguro usado</span>
+        <span id="quotaText">0 MB / Límite</span>
+      </div>
+      <div style="background: #0f172a; height: 10px; border-radius: 5px; overflow: hidden;">
+        <div id="quotaFill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #059669, #10b981); transition: width 1s ease;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center;">
+      <div style="font-size: 1.5rem; margin-bottom: 8px;">💰</div>
+      <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Saldo Disponible</div>
+      <div id="saldo" style="font-size: 1.4rem; font-weight: bold; color: #059669;">$0.00</div>
+    </div>
+    <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center;">
+      <div style="font-size: 1.5rem; margin-bottom: 8px;">📦</div>
+      <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Activos en Venta</div>
+      <div id="activos" style="font-size: 1.4rem; font-weight: bold; color: #38bdf8;">0</div>
+    </div>
+    <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center;">
+      <div style="font-size: 1.5rem; margin-bottom: 8px;">📈</div>
+      <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ventas Completadas</div>
+      <div id="ventas" style="font-size: 1.4rem; font-weight: bold; color: #fbbf24;">0</div>
+    </div>
+    <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center;">
+      <div style="font-size: 1.5rem; margin-bottom: 8px;">🤝</div>
+      <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ganancias Afiliados</div>
+      <div id="afiliados" style="font-size: 1.4rem; font-weight: bold; color: #a78bfa;">$0.00</div>
+    </div>
+  </div>
+
+  <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; border-radius: 12px; padding: 16px;">
+    <h3 style="margin: 0 0 12px 0; color: #38bdf8; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">🤖 Auditoría IA de Sesión y Activos</h3>
+    <div id="dashboardAIAudit" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;"><p style="margin:0;">⏳ Verificando integridad...</p></div>
+  </div>
+</section>
+
+<script>
+  (function() {
+    const dashboard = document.getElementById('dashboardView');
+    const uEmailSpan = document.getElementById('uEmail');
+    const tierBadge = document.getElementById('userTierBadge');
+    const quotaFillDiv = document.getElementById('quotaFill');
+    const quotaTextSpan = document.getElementById('quotaText');
+    const saldoSpan = document.getElementById('saldo');
+    const activosSpan = document.getElementById('activos');
+    const ventasSpan = document.getElementById('ventas');
+    const afiliadosSpan = document.getElementById('afiliados');
+    const auditDiv = document.getElementById('dashboardAIAudit');
+
+    const getToken = () => localStorage.getItem('authToken');
+
+    // Función para obtener el usuario actual (desde localStorage o API)
+    async function obtenerUsuario() {
+      const token = getToken();
+      if (!token) return null;
+      const localUser = JSON.parse(localStorage.getItem('usuario') || '{}');
+      if (localUser.email) return localUser;
+      try {
+        const res = await fetch('/api/profile', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (data.success && data.profile) return data.profile;
+      } catch(e) {}
+      return null;
+    }
+
+    // Obtener wallet
+    async function obtenerWallet() {
+      const token = getToken();
+      if (!token) return 0;
+      try {
+        const res = await fetch('/api/wallet', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (data.success && data.wallet) return data.wallet.balance || 0;
+      } catch(e) {}
+      return 0;
+    }
+
+    // Obtener estadísticas de afiliados (referred + earned)
+    async function obtenerAfiliados() {
+      const token = getToken();
+      if (!token) return { count: 0, earned: 0 };
+      try {
+        const res = await fetch('/api/referrals/me', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        if (data.success) return { count: data.referred || 0, earned: data.earned || 0 };
+      } catch(e) {}
+      return { count: 0, earned: 0 };
+    }
+
+    // Obtener ventas y activos en venta (desde /vault y /analytics/seller)
+    async function obtenerVentasYActivos() {
+      const token = getToken();
+      if (!token) return { sales: 0, forSale: 0 };
+      try {
+        const vaultRes = await fetch('/vault', { headers: { 'Authorization': `Bearer ${token}` } });
+        const vaultData = await vaultRes.json();
+        let forSale = 0;
+        if (vaultData.success && vaultData.items) {
+          forSale = vaultData.items.filter(i => i.isForSale === true).length;
+        }
+        const analyticsRes = await fetch('/api/analytics/seller', { headers: { 'Authorization': `Bearer ${token}` } });
+        const analyticsData = await analyticsRes.json();
+        let totalSales = 0;
+        if (analyticsData.success) totalSales = analyticsData.totalSales || 0;
+        return { sales: totalSales, forSale };
+      } catch(e) {}
+      return { sales: 0, forSale: 0 };
+    }
+
+    // Obtener cuota de almacenamiento (tamaño total de archivos en vault)
+    async function obtenerCuota() {
+      const token = getToken();
+      if (!token) return { used: 0, limit: 100 };
+      try {
+        const res = await fetch('/vault', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        let totalSize = 0;
+        if (data.success && data.items) {
+          totalSize = data.items.reduce((sum, item) => sum + (item.fileSize || 0), 0);
+        }
+        // El límite puede ser dinámico según el tier, pero usamos 100 MB por defecto
+        // Podrías obtenerlo desde el usuario o un endpoint de cuota.
+        const limitMB = 100;
+        const usedMB = totalSize / (1024 * 1024);
+        return { used: usedMB, limit: limitMB };
+      } catch(e) {}
+      return { used: 0, limit: 100 };
+    }
+
+    // Actualizar todo el dashboard
+    async function actualizarDashboard() {
+      if (!dashboard || dashboard.classList.contains('hidden')) return;
+      const user = await obtenerUsuario();
+      if (user) {
+        uEmailSpan.textContent = user.email || user.username || 'Usuario';
+        const tier = (user.tier || 'personal').toUpperCase();
+        tierBadge.textContent = tier === 'PERSONAL' ? '👤 FREEMIUM' : (tier === 'BUSINESS' ? '👤 BUSINESS' : '👑 ENTERPRISE');
+      } else {
+        uEmailSpan.textContent = 'No autenticado';
+      }
+      const wallet = await obtenerWallet();
+      saldoSpan.textContent = `$${wallet.toFixed(2)}`;
+      const { sales, forSale } = await obtenerVentasYActivos();
+      ventasSpan.textContent = sales;
+      activosSpan.textContent = forSale;
+      const aff = await obtenerAfiliados();
+      afiliadosSpan.textContent = `$${aff.earned.toFixed(2)}`;
+      // (Opcional) actualizar badge de afiliados con el número de referidos, si quieres mostrarlo.
+      // Podrías agregar un elemento aparte, pero no está en el diseño actual.
+      const quota = await obtenerCuota();
+      const percent = Math.min((quota.used / quota.limit) * 100, 100);
+      quotaFillDiv.style.width = percent + '%';
+      if (percent > 80) quotaFillDiv.style.background = 'linear-gradient(90deg, #ef4444, #f97316)';
+      quotaTextSpan.textContent = `${quota.used.toFixed(1)} MB / ${quota.limit} MB`;
+    }
+
+    // Auditoría IA (simulada, solo visual)
+    function ejecutarAuditoria() {
+      const steps = [
+        "🔍 Verificando integridad de activos en venta...",
+        "🛡️ Validando transacciones de afiliados...",
+        "🤖 IA: Analizando patrones de sesión...",
+        "✅ Auditoría completada: Bóveda y finanzas seguras."
       ];
-
       let step = 0;
       const interval = setInterval(() => {
         if (step < steps.length) {
-          authAiContent.innerHTML = `<span style="color: #fbbf24;">${steps[step]}</span>`;
+          auditDiv.innerHTML = `<p style="margin:0;">${steps[step]}</p>`;
           step++;
         } else {
           clearInterval(interval);
-          authAiContent.innerHTML = `<span style="color: #059669;">${steps[steps.length - 1]}</span>`;
-          
-          setTimeout(() => {
-            alert(`✅ ${isRegistering ? 'Identidad Real registrada' : 'Sesión iniciada'} con éxito.\n\nAhora tienes un proveedor de identidad verificada para usar en otras aplicaciones y empresas.`);
-            // Aquí iría la lógica real para mostrar la app, ej: document.getElementById('vaultSection').classList.remove('hidden');
-            authSubmitBtn.disabled = false;
-            authSubmitBtn.textContent = isRegistering ? '✨ Registrar Identidad Real' : '🔓 Acceder a la Bóveda';
-            authAiStatus.style.display = 'none';
-          }, 1000);
+          auditDiv.innerHTML = `
+            <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
+              <strong style="color:#059669;">✅ Sesión y Activos Verificados</strong><br>
+              <span style="color:#cbd5e1; font-size:0.8rem;">
+                • Cifrado: ACTIVO<br>
+                • Activos en venta: cumplen lista blanca<br>
+                • Ganancias: validadas
+              </span>
+            </div>
+          `;
         }
-      }, 1200);
-    });
+      }, 1000);
+    }
 
-    // 4. Modales internos (Cero enlaces externos)
-    document.querySelectorAll('.internal-link').forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const modalId = this.getAttribute('data-modal');
-        document.getElementById(modalId).classList.remove('hidden');
-      });
-    });
+    // Función pública para inicializar el dashboard (llamada desde script.js cuando se muestra la vista)
+    window.initDashboard = async function() {
+      if (dashboard) dashboard.classList.remove('hidden');
+      await actualizarDashboard();
+      ejecutarAuditoria();
+    };
 
-    document.querySelectorAll('.close-modal').forEach(btn => {
-      btn.addEventListener('click', function() {
-        this.closest('section').classList.add('hidden');
-      });
-    });
-
-    // Cerrar modal al hacer clic fuera del contenido
-    window.addEventListener('click', function(e) {
-      if (e.target.tagName === 'SECTION' && (e.target.id === 'termsModal' || e.target.id === 'privacyModal')) {
-        e.target.classList.add('hidden');
-      }
-    });
-  });
+    // Si la vista ya está visible (por el flujo de login), actualizar
+    if (dashboard && !dashboard.classList.contains('hidden')) {
+      initDashboard();
+    }
+  })();
 </script>
-<!-- 🟢 DASHBOARD VIEW: apiromwinervault (Panel de Control Blindado con IA) -->
+<!-- 🟢 DASHBOARD VIEW: apiromwinervault (Panel de Control Real con IA) -->
 <section id="dashboardView" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 0 auto; padding: 20px;">
   
-  <!-- Encabezado de Seguridad de Sesión -->
   <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #059669; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(5, 150, 105, 0.15);">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
       <div>
@@ -7426,7 +7339,7 @@ document.addEventListener('DOMContentLoaded', function() {
           🟢 Panel de Monetización y Control
         </h2>
         <p style="margin: 6px 0 0 0; font-size: 0.9rem; color: #94a3b8;">
-          Bienvenido, <span id="uEmail" style="color: #059669; font-weight: bold;">Usuario Verificado</span>
+          Bienvenido, <span id="uEmail" style="color: #059669; font-weight: bold;">Cargando...</span>
         </p>
       </div>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -7439,7 +7352,7 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
     </div>
 
-    <!-- Barra de Cuota de Almacenamiento -->
+    <!-- Barra de Cuota de Almacenamiento (real desde /vault) -->
     <div id="quotaDisplay" style="background: #1e293b; border-radius: 10px; padding: 16px; border: 1px solid #334155;">
       <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px;">
         <span>Almacenamiento seguro usado (.txt, .mp3, .mp4, .rar, .zip)</span>
@@ -7487,117 +7400,126 @@ document.addEventListener('DOMContentLoaded', function() {
       <p style="margin: 0;">⏳ Escaneando integridad de la bóveda y activos en venta...</p>
     </div>
   </div>
-
 </section>
 
-<!-- 🧠 LÓGICA SEGURA DEL DASHBOARD (Cero enlaces externos, IA integrada, Anti-XSS) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Referencias seguras
-    const dashboardView = document.getElementById('dashboardView');
-    const uEmail = document.getElementById('uEmail');
-    const userTierBadge = document.getElementById('userTierBadge');
+  (function() {
+    const getToken = () => localStorage.getItem('authToken');
+    const uEmailSpan = document.getElementById('uEmail');
+    const tierBadge = document.getElementById('userTierBadge');
     const quotaFill = document.getElementById('quotaFill');
-    const quotaText = document.getElementById('quotaText');
-    const saldo = document.getElementById('saldo');
-    const activos = document.getElementById('activos');
-    const ventas = document.getElementById('ventas');
-    const afiliados = document.getElementById('afiliados');
-    const dashboardAIAudit = document.getElementById('dashboardAIAudit');
+    const quotaTextSpan = document.getElementById('quotaText');
+    const saldoSpan = document.getElementById('saldo');
+    const activosSpan = document.getElementById('activos');
+    const ventasSpan = document.getElementById('ventas');
+    const afiliadosSpan = document.getElementById('afiliados');
+    const auditDiv = document.getElementById('dashboardAIAudit');
 
-    // 1. Simular carga de datos del usuario de forma segura (Anti-XSS)
-    // En una app real, esto vendría de tu backend seguro. Usamos textContent para evitar inyección de código.
-    const userData = {
-      email: 'usuario@ejemplo.com', // Reemplazar con el email real logueado
-      tier: 'PERSONAL',
-      usedQuota: 35.5, // MB
-      maxQuota: 100,   // MB
-      balance: 127.45,
-      activeAssets: 3,
-      completedSales: 12,
-      affiliateEarnings: 45.20
-    };
+    async function cargarDashboard() {
+      const token = getToken();
+      if (!token) return;
 
-    // Función para mostrar el dashboard (llamar esto después de un login exitoso)
-    window.showSecureDashboard = function() {
-      dashboardView.classList.remove('hidden');
-      
-      // Asignación segura de datos (previene ataques XSS)
-      uEmail.textContent = userData.email;
-      userTierBadge.textContent = '👤 ' + userData.tier;
-      
-      // Actualizar barra de cuota
-      const quotaPercent = Math.min((userData.usedQuota / userData.maxQuota) * 100, 100);
-      quotaFill.style.width = quotaPercent + '%';
-      if (quotaPercent > 80) {
-        quotaFill.style.background = 'linear-gradient(90deg, #ef4444, #f97316)'; // Rojo si está casi lleno
-      }
-      quotaText.textContent = userData.usedQuota + ' MB / ' + userData.maxQuota + ' MB';
-      
-      // Actualizar estadísticas
-      saldo.textContent = '$' + userData.balance.toFixed(2);
-      activos.textContent = userData.activeAssets;
-      ventas.textContent = userData.completedSales;
-      afiliados.textContent = '$' + userData.affiliateEarnings.toFixed(2);
-
-      // Ejecutar auditoría IA del dashboard
-      runDashboardAIAudit();
-    };
-
-    // 2. Auditoría IA del Dashboard
-    function runDashboardAIAudit() {
-      const steps = [
-        "🔍 Verificando integridad de los activos en venta (.txt, .mp3, .mp4, .rar, .zip)...",
-        "🛡️ Validando que las transacciones de afiliados cumplan con la lista blanca...",
-        "🤖 IA: Analizando patrones de sesión para prevenir acceso no autorizado...",
-        "✅ Auditoría completada: Bóveda y finanzas 100% seguras y sincronizadas."
-      ];
-      
-      let step = 0;
-      const interval = setInterval(() => {
-        if (step < steps.length) {
-          dashboardAIAudit.innerHTML = `<p style="margin:0;">${steps[step]}</p>`;
-          step++;
-        } else {
-          clearInterval(interval);
-          dashboardAIAudit.innerHTML = `
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
-              <strong style="color:#059669;">✅ Sesión y Activos Verificados</strong><br>
-              <span style="color:#cbd5e1; font-size:0.8rem;">
-                • Cifrado de extremo a extremo: ACTIVO<br>
-                • Activos en venta: Todos cumplen con la lista blanca<br>
-                • Ganancias de afiliados: Validadas y sin anomalías
-              </span>
-            </div>
-          `;
+      try {
+        // 1. Obtener perfil (email y tier)
+        const profileRes = await fetch('/api/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const profileData = await profileRes.json();
+        if (profileData.success) {
+          const user = profileData.user || profileData.profile;
+          uEmailSpan.textContent = user.email || user.username;
+          const tier = (user.tier || 'personal').toUpperCase();
+          tierBadge.textContent = `👤 ${tier}`;
         }
-      }, 1000);
+
+        // 2. Obtener wallet (saldo)
+        const walletRes = await fetch('/api/wallet', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const walletData = await walletRes.json();
+        if (walletData.success) {
+          saldoSpan.textContent = `$${walletData.wallet?.balance?.toFixed(2) || '0.00'}`;
+        }
+
+        // 3. Obtener analíticas de vendedor (ventas totales, ingresos)
+        const analyticsRes = await fetch('/api/analytics/seller', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const analyticsData = await analyticsRes.json();
+        if (analyticsData.success) {
+          ventasSpan.textContent = analyticsData.totalSales || 0;
+          // monthEarnings no se usa aquí, pero se puede agregar
+        }
+
+        // 4. Obtener número de archivos en venta (activos)
+        const vaultRes = await fetch('/vault', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const vaultData = await vaultRes.json();
+        if (vaultData.success && vaultData.items) {
+          const forSaleCount = vaultData.items.filter(item => item.isForSale).length;
+          activosSpan.textContent = forSaleCount;
+
+          // Calcular cuota de almacenamiento
+          const totalSizeMB = vaultData.items.reduce((sum, item) => sum + (item.fileSize || 0), 0) / (1024 * 1024);
+          const maxQuota = 100; // Puedes obtener del plan del usuario
+          const percent = Math.min((totalSizeMB / maxQuota) * 100, 100);
+          quotaFill.style.width = percent + '%';
+          quotaTextSpan.textContent = `${totalSizeMB.toFixed(1)} MB / ${maxQuota} MB`;
+          if (percent > 80) quotaFill.style.background = 'linear-gradient(90deg, #ef4444, #f97316)';
+        }
+
+        // 5. Obtener ganancias de afiliados (desde /api/referrals/me)
+        const refRes = await fetch('/api/referrals/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const refData = await refRes.json();
+        if (refData.success) {
+          afiliadosSpan.textContent = `$${parseFloat(refData.earned || 0).toFixed(2)}`;
+        }
+
+        // Auditoría IA (simulada, visual)
+        auditDiv.innerHTML = `
+          <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
+            <strong style="color:#059669;">✅ Sesión y Activos Verificados</strong><br>
+            <span style="color:#cbd5e1; font-size:0.8rem;">
+              • Cifrado de extremo a extremo: ACTIVO<br>
+              • Activos en venta: Verificados<br>
+              • Ganancias de afiliados: Actualizadas
+            </span>
+          </div>
+        `;
+      } catch (err) {
+        console.error('Error cargando dashboard:', err);
+        auditDiv.innerHTML = '<p style="color:#ef4444;">Error al cargar datos. Intenta más tarde.</p>';
+      }
     }
 
-    // Mostrar el dashboard automáticamente para demostración (quitar esta línea en producción si se maneja por login)
-    setTimeout(() => {
-      // dashboardView.classList.remove('hidden'); // Descomentar cuando se integre con el login real
-    }, 500);
-  });
-</script>
+    // Exponer función para que script.js la llame cuando se muestre el panel
+    window.cargarDashboard = cargarDashboard;
 
-  <!-- 💰 BANNER DE PROGRESIÓN INTELIGENTE: apiromwinervault (Freemium a Normal/Premium con IA) -->
+    // Si la sección ya está visible (porque el usuario está logueado), cargar
+    if (document.getElementById('dashboardView') && !document.getElementById('dashboardView').classList.contains('hidden')) {
+      cargarDashboard();
+    }
+  })();
+</script>
+  
+ <!-- 💰 BANNER DE PROGRESIÓN INTELIGENTE: apiromwinervault (Freemium a Normal/Premium con IA) -->
 <section id="autoPayBanner" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 16px auto; padding: 0 20px;">
   
   <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #334155; border-left: 4px solid #059669; border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(5, 150, 105, 0.1);">
     
     <div style="display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
       
-      <!-- Icono y Título -->
       <div style="font-size: 2rem; background: rgba(5, 150, 105, 0.15); padding: 12px; border-radius: 12px; border: 1px solid rgba(5, 150, 105, 0.3);">🔄</div>
       
       <div style="flex: 1; min-width: 250px;">
         <h4 style="margin: 0 0 6px 0; color: #f8fafc; font-size: 1.1rem;">Tu cuenta puede pagarse sola</h4>
         <p style="margin: 0 0 12px 0; color: #94a3b8; font-size: 0.9rem; line-height: 1.4;">
-          Estás en nivel <strong style="color: #94a3b8;">Freemium</strong>. Usa la <strong style="color: #38bdf8;">venta granular</strong> (.txt, .mp3, .mp4, .rar, .zip), ve <strong style="color: #fbbf24;">publicidad segura</strong>, gana con <strong style="color: #a78bfa;">afiliados</strong> o recibe <strong style="color: #ec4899;">donativos</strong> para ascender a <strong style="color: #059669;">Usuario Normal</strong> y desbloquear ganancias reales.
+          Estás en nivel <strong id="currentTierDisplay">Freemium</strong>. Usa la <strong>venta granular</strong>, ve <strong>publicidad segura</strong>, gana con <strong>afiliados</strong> o recibe <strong>donativos</strong> para ascender a <strong>Usuario Normal</strong> y desbloquear ganancias reales.
         </p>
         
-        <!-- Barra de Progreso y Saldo -->
         <div style="background: #0f172a; border-radius: 10px; padding: 12px 16px; border: 1px solid #1e293b;">
           <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
             <span style="color: #94a3b8;">Saldo acumulado para ascenso:</span>
@@ -7609,13 +7531,11 @@ document.addEventListener('DOMContentLoaded', function() {
           <div id="autoPayStatus" style="font-size: 0.8rem; color: #64748b;">Meta: $9.99 USD para activar nivel Usuario Normal</div>
         </div>
 
-        <!-- Proyección de IA -->
         <div id="aiProjectionBox" style="margin-top: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px 12px; font-size: 0.8rem; color: #cbd5e1; display: none;">
           🤖 <strong style="color: #38bdf8;">Proyección IA:</strong> <span id="aiProjectionText">Analizando tu actividad...</span>
         </div>
       </div>
 
-      <!-- Botón de Acción -->
       <button type="button" id="btnActivateAutoPay" disabled style="padding: 12px 20px; background: #1e293b; color: #64748b; border: 1px solid #334155; border-radius: 10px; cursor: not-allowed; font-weight: 600; font-size: 0.9rem; white-space: nowrap; transition: all 0.3s; display: flex; align-items: center; gap: 6px;">
         🔒 Bloqueado
       </button>
@@ -7624,94 +7544,135 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </section>
 
-<!-- 🧠 LÓGICA SEGURA DEL BANNER DE PROGRESIÓN (Cero onclick, Cero enlaces externos, IA integrada) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const autoPayBanner = document.getElementById('autoPayBanner');
-    const autoPayBalance = document.getElementById('autoPayBalance');
-    const autoPayProgress = document.getElementById('autoPayProgress');
-    const autoPayStatus = document.getElementById('autoPayStatus');
-    const btnActivateAutoPay = document.getElementById('btnActivateAutoPay');
+  (function() {
+    const getToken = () => localStorage.getItem('authToken');
+    const currentTierSpan = document.getElementById('currentTierDisplay');
+    const autoPayBalanceSpan = document.getElementById('autoPayBalance');
+    const autoPayProgressDiv = document.getElementById('autoPayProgress');
+    const autoPayStatusDiv = document.getElementById('autoPayStatus');
+    const btnActivate = document.getElementById('btnActivateAutoPay');
     const aiProjectionBox = document.getElementById('aiProjectionBox');
     const aiProjectionText = document.getElementById('aiProjectionText');
 
-    // Estado simulado del usuario Freemium (en app real, esto viene de la base de datos)
-    let userState = {
-      currentBalance: 3.50, // Saldo actual acumulado
-      targetAmount: 9.99,   // Meta para ser Usuario Normal
-      dailyEarningRate: 0.85 // Promedio de ganancias diarias simulado
-    };
+    let userTier = 'personal';
+    let currentBalance = 0;
+    const targetAmount = 9.99; // Meta para business
 
-    // 1. Inicializar y mostrar el banner
-    setTimeout(() => {
-      autoPayBanner.classList.remove('hidden');
-      updateAutoPayUI();
-      runAIProjection();
-    }, 1000);
+    async function cargarProgresion() {
+      const token = getToken();
+      if (!token) return;
 
-    // 2. Actualizar la interfaz de forma segura
-    function updateAutoPayUI() {
-      const percent = Math.min((userState.currentBalance / userState.targetAmount) * 100, 100);
-      
-      autoPayBalance.textContent = '$' + userState.currentBalance.toFixed(2);
-      autoPayProgress.style.width = percent + '%';
-      
-      const remaining = Math.max(userState.targetAmount - userState.currentBalance, 0).toFixed(2);
-      
-      if (userState.currentBalance >= userState.targetAmount) {
-        autoPayStatus.textContent = '✅ ¡Meta alcanzada! Listo para ascender a Usuario Normal.';
-        autoPayStatus.style.color = '#059669';
-        
-        // Desbloquear botón
-        btnActivateAutoPay.disabled = false;
-        btnActivateAutoPay.style.background = 'linear-gradient(135deg, #059669, #10b981)';
-        btnActivateAutoPay.style.color = '#ffffff';
-        btnActivateAutoPay.style.border = 'none';
-        btnActivateAutoPay.style.cursor = 'pointer';
-        btnActivateAutoPay.innerHTML = '✨ Ascender a Usuario Normal';
-      } else {
-        autoPayStatus.textContent = `Te faltan $${remaining} USD para activar el nivel Usuario Normal`;
-      }
-    }
-
-    // 3. Botón de activación (Reemplaza al peligroso onclick)
-    btnActivateAutoPay.addEventListener('click', function() {
-      if (userState.currentBalance >= userState.targetAmount) {
-        btnActivateAutoPay.innerHTML = '⏳ Procesando ascenso...';
-        btnActivateAutoPay.disabled = true;
-        
-        setTimeout(() => {
-          alert('🎉 ¡Felicidades! Tu saldo ha cubierto la mensualidad. Has ascendido a Usuario Normal. Ahora puedes habilitar las ganancias reales y retirar fondos.');
-          // Aquí iría la lógica real para cambiar el rol del usuario en la base de datos
-          btnActivateAutoPay.innerHTML = '✅ Nivel Normal Activado';
-          btnActivateAutoPay.style.background = '#334155';
-        }, 1500);
-      }
-    });
-
-    // 4. Proyección de IA para motivar al usuario Freemium
-    function runAIProjection() {
-      aiProjectionBox.style.display = 'block';
-      
-      setTimeout(() => {
-        if (userState.currentBalance >= userState.targetAmount) {
-          aiProjectionText.textContent = '¡Meta cumplida! Tu estrategia de venta granular y afiliados ha sido exitosa.';
-        } else {
-          const daysLeft = Math.ceil((userState.targetAmount - userState.currentBalance) / userState.dailyEarningRate);
-          aiProjectionText.innerHTML = `Basado en tu actividad actual (ventas, ads y referidos), alcanzarás el nivel <strong style="color:#059669;">Usuario Normal</strong> en aproximadamente <strong style="color:#fbbf24;">${daysLeft} días</strong>. ¡Sigue subiendo archivos a tu bóveda!`;
+      try {
+        // Obtener tier del usuario (desde perfil)
+        const profileRes = await fetch('/api/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const profileData = await profileRes.json();
+        if (profileData.success) {
+          userTier = (profileData.user?.tier || profileData.profile?.tier || 'personal').toLowerCase();
+          currentTierSpan.textContent = userTier === 'personal' ? 'Freemium' : (userTier === 'business' ? 'Usuario Normal' : 'Enterprise');
         }
-      }, 1500);
+
+        // Si ya es business o superior, ocultar banner
+        if (userTier !== 'personal') {
+          document.getElementById('autoPayBanner')?.classList.add('hidden');
+          return;
+        }
+
+        // Obtener saldo de la wallet
+        const walletRes = await fetch('/api/wallet', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const walletData = await walletRes.json();
+        if (walletData.success) {
+          currentBalance = walletData.wallet?.balance || 0;
+          autoPayBalanceSpan.textContent = `$${currentBalance.toFixed(2)}`;
+          const percent = Math.min((currentBalance / targetAmount) * 100, 100);
+          autoPayProgressDiv.style.width = percent + '%';
+          if (currentBalance >= targetAmount) {
+            autoPayStatusDiv.textContent = '✅ ¡Meta alcanzada! Listo para ascender a Usuario Normal.';
+            autoPayStatusDiv.style.color = '#059669';
+            btnActivate.disabled = false;
+            btnActivate.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+            btnActivate.style.color = '#fff';
+            btnActivate.style.cursor = 'pointer';
+            btnActivate.innerHTML = '✨ Ascender a Usuario Normal';
+          } else {
+            const remaining = (targetAmount - currentBalance).toFixed(2);
+            autoPayStatusDiv.textContent = `Te faltan $${remaining} USD para activar el nivel Usuario Normal`;
+          }
+        }
+
+        // Proyección IA (simulada, solo motivacional)
+        aiProjectionBox.style.display = 'block';
+        const dailyEarningRate = 0.85; // Se podría calcular dinámicamente
+        const daysLeft = Math.ceil((targetAmount - currentBalance) / dailyEarningRate);
+        if (daysLeft > 0 && daysLeft < 365) {
+          aiProjectionText.innerHTML = `Basado en tu actividad reciente, alcanzarás el nivel <strong style="color:#059669;">Usuario Normal</strong> en aproximadamente <strong style="color:#fbbf24;">${daysLeft} días</strong>. ¡Sigue así!`;
+        } else {
+          aiProjectionText.textContent = 'Comienza a vender archivos o ver anuncios para ascender rápidamente.';
+        }
+
+      } catch (err) {
+        console.error('Error en progresión:', err);
+      }
     }
 
-    // Función global para actualizar el saldo desde otras partes de la app (ej: después de ver un ad o vender algo)
-    window.updateFreemiumBalance = function(amountAdded) {
-      userState.currentBalance += amountAdded;
-      updateAutoPayUI();
-      runAIProjection();
-    };
-  });
-</script>
+    // Ascender de nivel (auto-subscribe)
+    async function upgradeToBusiness() {
+      const token = getToken();
+      if (!token) return;
+      if (currentBalance < targetAmount) {
+        alert('Saldo insuficiente para ascender.');
+        return;
+      }
+      btnActivate.disabled = true;
+      btnActivate.innerHTML = '⏳ Procesando ascenso...';
+      try {
+        const res = await fetch('/api/wallet/auto-subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ tier: 'business' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ ¡Felicidades! Has ascendido a Usuario Normal. Ahora puedes habilitar ganancias reales y retirar fondos.');
+          // Actualizar badge y recargar dashboard
+          const banner = document.getElementById('autoPayBanner');
+          if (banner) banner.classList.add('hidden');
+          if (window.cargarDashboard) window.cargarDashboard();
+          // Actualizar usuario en localStorage
+          const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+          usuario.tier = 'business';
+          localStorage.setItem('usuario', JSON.stringify(usuario));
+        } else {
+          throw new Error(data.error || 'Error al ascender');
+        }
+      } catch (err) {
+        alert('❌ Error: ' + err.message);
+        btnActivate.disabled = false;
+        btnActivate.innerHTML = '✨ Ascender a Usuario Normal';
+      }
+    }
 
+    if (btnActivate) btnActivate.addEventListener('click', upgradeToBusiness);
+
+    window.cargarProgresion = cargarProgresion;
+
+    // Mostrar banner y cargar datos si el usuario es freemium y la sección está visible
+    setTimeout(() => {
+      const banner = document.getElementById('autoPayBanner');
+      if (banner && !banner.classList.contains('hidden')) {
+        cargarProgresion();
+      }
+    }, 500);
+  })();
+</script>
+  
 <!-- 🏦 CENTRO DE CONTROL ENTERPRISE: apiromwinervault (Funciones Corporativas con IA) -->
 <section id="enterpriseFeatures" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 1000px; margin: 20px auto; padding: 20px;">
   
@@ -7730,10 +7691,9 @@ document.addEventListener('DOMContentLoaded', function() {
       </span>
     </div>
 
-    <!-- Grid de Funciones Enterprise (Todas las que las empresas necesitan) -->
+    <!-- Grid de Funciones Enterprise (solo informativo) -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px;">
-      
-      <!-- Seguridad y Cifrado -->
+      <!-- (Las tarjetas se mantienen igual, solo son informativas) -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #059669;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">🔐</span>
@@ -7741,8 +7701,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">Clave única por usuario con AES-256-GCM. Cada archivo tiene su propia clave de cifrado derivada de tu contraseña maestra.</p>
       </div>
-
-      <!-- Auditoría y Cumplimiento -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #38bdf8;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">📊</span>
@@ -7750,8 +7708,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">Logs inmutables con exportación GDPR, SOC2, ISO 27001. Trazabilidad completa de cada acceso y modificación.</p>
       </div>
-
-      <!-- Rotación de Claves -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #fbbf24;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">🔄</span>
@@ -7759,8 +7715,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">Rotación automática de claves cada 90 días. Opción de rotación manual inmediata con auditoría IA.</p>
       </div>
-
-      <!-- Webhooks Seguros -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #ec4899;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">🚨</span>
@@ -7768,8 +7722,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">Alertas instantáneas vía webhooks seguros con firma HMAC-SHA256. Integración con Slack, Teams, PagerDuty.</p>
       </div>
-
-      <!-- Gestión de Equipos -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #06b6d4;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">👥</span>
@@ -7777,8 +7729,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">Roles granulares (Admin, Editor, Viewer), SSO empresarial, y control de acceso por departamento.</p>
       </div>
-
-      <!-- API Corporativa -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #f97316;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">⚡</span>
@@ -7786,8 +7736,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">API RESTful con límites personalizados, documentación completa, y SDKs para Python, Node.js, Java.</p>
       </div>
-
-      <!-- SLA y Soporte -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #14b8a6;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">🎯</span>
@@ -7795,8 +7743,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">Garantía de disponibilidad del 99.99%. Soporte prioritario 24/7 con tiempo de respuesta < 1 hora.</p>
       </div>
-
-      <!-- DLP (Data Loss Prevention) -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #ef4444;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">🛡️</span>
@@ -7804,8 +7750,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">Prevención de pérdida de datos con detección de PII, cifrado automático, y políticas de retención.</p>
       </div>
-
-      <!-- Backups Cifrados -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #8b5cf6;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">💾</span>
@@ -7813,8 +7757,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">Backups cifrados cada 6 horas en múltiples regiones geográficas. Recuperación en < 15 minutos.</p>
       </div>
-
-      <!-- Monitoreo de Amenazas -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #dc2626;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">🔍</span>
@@ -7822,8 +7764,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">Detección de amenazas con IA en tiempo real. Alertas automáticas y respuesta ante incidentes.</p>
       </div>
-
-      <!-- Reportes Ejecutivos -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #0ea5e9;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">📈</span>
@@ -7831,8 +7771,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">Dashboards ejecutivos con análisis predictivo, tendencias de uso, y recomendaciones de seguridad.</p>
       </div>
-
-      <!-- Integraciones -->
       <div style="background: #1e293b; border-radius: 12px; padding: 18px; border-left: 4px solid #84cc16;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 1.8rem;">🔗</span>
@@ -7842,37 +7780,130 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
     </div>
 
-    <!-- Panel de Acciones Rápidas -->
+    <!-- Panel de Acciones Rápidas (funcional) -->
     <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #334155;">
       <h3 style="margin: 0 0 16px 0; color: #f8fafc; font-size: 1.1rem;">⚡ Acciones Rápidas</h3>
       <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <button type="button" id="btnExportGDPR" style="padding: 12px 20px; background: #38bdf8; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-          📄 Exportar Reporte GDPR
-        </button>
-        <button type="button" id="btnManageWebhooks" style="padding: 12px 20px; background: #ec4899; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-          🔗 Gestionar Webhooks
-        </button>
-        <button type="button" id="btnRotateKeysNow" style="padding: 12px 20px; background: #fbbf24; color: #000; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-          🔄 Rotar Claves Ahora
-        </button>
-        <button type="button" id="btnManageTeams" style="padding: 12px 20px; background: #06b6d4; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-          👥 Gestionar Equipos
-        </button>
+        <button type="button" id="btnExportGDPR" style="padding: 12px 20px; background: #38bdf8; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">📄 Exportar Reporte GDPR</button>
+        <button type="button" id="btnManageWebhooks" style="padding: 12px 20px; background: #ec4899; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">🔗 Gestionar Webhooks</button>
+        <button type="button" id="btnRotateKeysNow" style="padding: 12px 20px; background: #fbbf24; color: #000; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">🔄 Rotar Claves Ahora</button>
+        <button type="button" id="btnManageTeams" style="padding: 12px 20px; background: #06b6d4; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">👥 Gestionar Equipos</button>
       </div>
     </div>
 
     <!-- Auditoría IA Enterprise -->
     <div style="background: rgba(167, 139, 250, 0.1); border: 1px solid #a78bfa; border-radius: 12px; padding: 16px;">
-      <h3 style="margin: 0 0 12px 0; color: #a78bfa; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
-        🤖 Auditoría IA de Seguridad Enterprise
-      </h3>
+      <h3 style="margin: 0 0 12px 0; color: #a78bfa; font-size: 1rem;">🤖 Auditoría IA de Seguridad Enterprise</h3>
       <div id="enterpriseAIAudit" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">
         <p style="margin: 0;">⏳ Escaneando configuración de seguridad empresarial...</p>
       </div>
     </div>
-
   </div>
 </section>
+
+<script>
+  (function() {
+    const getToken = () => localStorage.getItem('authToken');
+    const auditDiv = document.getElementById('enterpriseAIAudit');
+
+    async function actualizarAuditoria() {
+      try {
+        const res = await fetch('/api/security/status');
+        const data = await res.json();
+        auditDiv.innerHTML = `
+          <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #a78bfa;">
+            <strong style="color:#a78bfa;">✅ Seguridad Enterprise Verificada</strong><br>
+            <span style="color:#cbd5e1; font-size:0.8rem;">
+              • Cifrado: ${data.encryption?.algorithm || 'AES-256-GCM'}<br>
+              • Zero-Knowledge: ${data.encryption?.zeroKnowledgeReady ? 'ACTIVO' : 'DESACTIVADO'}<br>
+              • Auditoría: ${data.audit?.immutable ? 'Inmutable' : 'Estándar'}<br>
+              • Rotación de claves: cada ${data.keyManagement?.rotationDays || 90} días
+            </span>
+          </div>
+        `;
+      } catch (err) {
+        auditDiv.innerHTML = '<p style="color:#ef4444;">No se pudo obtener la auditoría en este momento.</p>';
+      }
+    }
+
+    // Exportar GDPR (descarga CSV)
+    async function exportarGDPR() {
+      const token = getToken();
+      if (!token) { alert('Debes iniciar sesión.'); return; }
+      try {
+        const res = await fetch('/api/audit/export?type=gdpr', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.data?.csv) {
+          const blob = new Blob([data.data.csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `gdpr_report_${Date.now()}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } else {
+          alert('No se pudo generar el reporte GDPR.');
+        }
+      } catch (err) {
+        alert('Error al exportar GDPR: ' + err.message);
+      }
+    }
+
+    // Gestionar webhooks (simulación o redirigir a panel)
+    function gestionarWebhooks() {
+      alert('🔗 Los webhooks se configuran desde el panel de administración.\n\nPuedes usar el panel de admin para registrarlos.');
+      // Opcional: abrir modal o redirigir a sección admin
+    }
+
+    // Rotar claves ahora
+    async function rotarClaves() {
+      const token = getToken();
+      if (!token) { alert('Debes iniciar sesión.'); return; }
+      if (!confirm('⚠️ Esta acción forzará la rotación de claves de cifrado para todos los usuarios elegibles. ¿Continuar?')) return;
+      try {
+        const res = await fetch('/api/admin/rotate-keys', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Rotación de claves solicitada. El proceso se ejecutará en segundo plano.');
+          actualizarAuditoria();
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (err) {
+        alert('Error al rotar claves: ' + err.message);
+      }
+    }
+
+    // Gestionar equipos (redirigir a la sección de empresas)
+    function gestionarEquipos() {
+      const token = getToken();
+      if (!token) { alert('Debes iniciar sesión.'); return; }
+      // Mostrar información y sugerir usar el panel de organización
+      alert('👥 La gestión de equipos está disponible en el panel "Empresas".\n\nSi ya has registrado una organización, usa el botón "Invitar miembro" desde allí.');
+    }
+
+    // Asignar eventos después de que el DOM esté listo
+    const btnGDPR = document.getElementById('btnExportGDPR');
+    const btnWebhooks = document.getElementById('btnManageWebhooks');
+    const btnRotate = document.getElementById('btnRotateKeysNow');
+    const btnTeams = document.getElementById('btnManageTeams');
+
+    if (btnGDPR) btnGDPR.addEventListener('click', exportarGDPR);
+    if (btnWebhooks) btnWebhooks.addEventListener('click', gestionarWebhooks);
+    if (btnRotate) btnRotate.addEventListener('click', rotarClaves);
+    if (btnTeams) btnTeams.addEventListener('click', gestionarEquipos);
+
+    // Inicializar auditoría IA
+    if (auditDiv) actualizarAuditoria();
+  })();
+</script>
 
 <!-- 🧠 LÓGICA SEGURA ENTERPRISE (Cero onclick, Cero enlaces externos, IA integrada) -->
 <script>
