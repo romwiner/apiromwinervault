@@ -129,12 +129,14 @@ function mostrarVistaSegunRol(usuario) {
     console.log(`🔓 Mostrando ${vistaId} para ${usuario.email}`);
     notificarDueño(`Bienvenido ${usuario.username || usuario.email}`, "exito");
 
-    // Si la vista mostrada es el feed social, cargar el feed (si la función existe)
+    // Si la vista mostrada es el feed social, cargar feed, anuncios y QR
     if (vistaId !== 'vistaLanding' && vistaId !== 'digitalIdentityPanel') {
       if (window.cargarFeed && typeof window.cargarFeed === 'function') {
         setTimeout(() => window.cargarFeed(), 300);
       }
-      // Mostrar QR personal si existe (pero no en la vista de identidad)
+      if (window.cargarAnuncios && typeof window.cargarAnuncios === 'function') {
+        setTimeout(() => window.cargarAnuncios(), 400);
+      }
       if (window.mostrarQRIdentidad && typeof window.mostrarQRIdentidad === 'function') {
         setTimeout(() => window.mostrarQRIdentidad(), 500);
       }
@@ -350,7 +352,9 @@ function mostrarLanding() {
   setTimeout(() => mostrarQRReferidoPublico(), 100);
 }
 
-// Exponer funciones globales para cerrar sesión, mostrar vistas y QR
+// Exponer funciones globales para cerrar sesión, mostrar vistas, QR, feed y anuncios
 window.cerrarSesion = cerrarSesion;
 window.mostrarVistaSegunRol = mostrarVistaSegunRol;
 window.mostrarQRIdentidad = mostrarQRIdentidad;
+window.cargarFeed = window.cargarFeed || null;
+window.cargarAnuncios = window.cargarAnuncios || null;
