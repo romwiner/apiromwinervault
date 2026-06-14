@@ -8956,6 +8956,104 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
   </div>
 </section>
 
+<!-- 📋 MODAL DE AUDITORÍA INTELIGENTE: apiromwinervault (Con IA y Filtros Avanzados) -->
+<section id="auditModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 10002; padding: 16px; font-family: system-ui, -apple-system, sans-serif; backdrop-filter: blur(8px);">
+  
+  <div style="background: #0f172a; border: 2px solid #64748b; border-radius: 16px; max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 28px; box-shadow: 0 25px 50px -12px rgba(100, 116, 139, 0.4);">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 16px;">
+      <h2 style="margin: 0; font-size: 1.3rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
+        📋 Centro de Auditoría Inteligente
+      </h2>
+      <span style="background: #64748b; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: bold;">
+        🤖 IA ACTIVA
+      </span>
+    </div>
+
+    <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #334155;">
+      <h3 style="margin: 0 0 12px 0; color: #f8fafc; font-size: 0.95rem;">🔍 Filtros de Búsqueda</h3>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Categoría de Evento:</label>
+          <select id="auditFilterCategory" style="width: 100%; box-sizing: border-box; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px; cursor: pointer;">
+            <option value="all">📋 Todos los eventos</option>
+            <option value="security">🔐 Seguridad (login, accesos)</option>
+            <option value="files">📁 Archivos (subida, descarga, venta)</option>
+            <option value="financial">💰 Finanzas (ventas, retiros, afiliados)</option>
+            <option value="admin">👑 Acciones de administrador</option>
+            <option value="system">⚙️ Sistema (configuración, errores)</option>
+          </select>
+        </div>
+        
+        <div>
+          <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Período de Tiempo:</label>
+          <select id="auditFilterPeriod" style="width: 100%; box-sizing: border-box; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px; cursor: pointer;">
+            <option value="today">📅 Hoy</option>
+            <option value="7d">📅 Últimos 7 días</option>
+            <option value="30d">📅 Últimos 30 días</option>
+            <option value="90d">📅 Últimos 90 días</option>
+            <option value="all">📅 Todo el historial</option>
+          </select>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="auditSearch" placeholder="🔍 Buscar en logs (palabra clave, usuario, IP...)" style="flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+        <button type="button" id="btnApplyFilters" style="padding: 10px 20px; background: #38bdf8; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+          Aplicar
+        </button>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+      <div style="background: #1e293b; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #334155;">
+        <div style="font-size: 0.75rem; color: #94a3b8;">Total Eventos</div>
+        <div id="auditTotalEvents" style="font-size: 1.3rem; font-weight: bold; color: #38bdf8;">0</div>
+      </div>
+      <div style="background: #1e293b; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #334155;">
+        <div style="font-size: 0.75rem; color: #94a3b8;">Seguridad</div>
+        <div id="auditSecurityEvents" style="font-size: 1.3rem; font-weight: bold; color: #ef4444;">0</div>
+      </div>
+      <div style="background: #1e293b; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #334155;">
+        <div style="font-size: 0.75rem; color: #94a3b8;">Finanzas</div>
+        <div id="auditFinancialEvents" style="font-size: 1.3rem; font-weight: bold; color: #059669;">0</div>
+      </div>
+      <div style="background: #1e293b; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #334155;">
+        <div style="font-size: 0.75rem; color: #94a3b8;">Anomalías</div>
+        <div id="auditAnomalies" style="font-size: 1.3rem; font-weight: bold; color: #fbbf24;">0</div>
+      </div>
+    </div>
+
+    <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #334155;">
+      <h3 style="margin: 0 0 12px 0; color: #f8fafc; font-size: 0.95rem;">📜 Registro de Actividades</h3>
+      <div id="auditLog" style="max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.8rem;">
+        <p style="text-align: center; color: #64748b; padding: 20px;">Cargando registros de auditoría...</p>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+      <button type="button" id="btnExportAudit" style="flex: 1; padding: 12px; background: #059669; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">
+        📤 Exportar Logs (CSV)
+      </button>
+      <button type="button" id="btnAnalyzeAI" style="flex: 1; padding: 12px; background: #a78bfa; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">
+        🤖 Analizar con IA
+      </button>
+      <button type="button" id="btnCloseAudit" style="padding: 12px 20px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 10px; font-weight: 600; cursor: pointer;">
+        Cerrar
+      </button>
+    </div>
+
+    <div id="aiAnalysisBox" style="display: none; background: rgba(167, 139, 250, 0.1); border: 1px solid #a78bfa; border-radius: 12px; padding: 16px;">
+      <h3 style="margin: 0 0 12px 0; color: #a78bfa; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+        🤖 Análisis de Inteligencia Artificial
+      </h3>
+      <div id="aiAnalysisContent" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.6;"></div>
+    </div>
+
+  </div>
+</section>
+
 <script>
   (function() {
     const modal = document.getElementById('auditModal');
@@ -8976,10 +9074,9 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 
     const getToken = () => localStorage.getItem('authToken');
 
-    let rawLogs = [];       // todos los logs sin filtrar
-    let filteredLogs = [];  // logs después de aplicar filtros
+    let rawLogs = [];
+    let filteredLogs = [];
 
-    // Función para obtener logs reales del backend
     async function cargarLogs() {
       const token = getToken();
       if (!token) {
@@ -8988,13 +9085,12 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       }
       auditLogDiv.innerHTML = '<p style="text-align:center;color:#cbd5e1;">Cargando logs...</p>';
       try {
-        // Usar el endpoint existente /api/audit/export (devuelve logs en data.logs)
-        const res = await fetch('/api/audit/export?type=logs', {
+        // Usar el endpoint /api/audit/export (esperamos que devuelva { success: true, logs: [...] })
+        const res = await fetch('/api/audit/export', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
-        // Se asume que los logs vienen en data.logs (array)
         rawLogs = data.logs || [];
         if (rawLogs.length === 0) {
           auditLogDiv.innerHTML = '<p style="text-align:center;color:#64748b;">No hay registros de auditoría disponibles.</p>';
@@ -9011,7 +9107,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       }
     }
 
-    // Clasificar tipo de evento según el campo 'action' o 'type'
     function getEventCategory(log) {
       const action = (log.action || log.type || '').toLowerCase();
       if (action.includes('login') || action.includes('logout') || action.includes('auth') || action.includes('fingerprint')) return 'security';
@@ -9022,7 +9117,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       return 'system';
     }
 
-    // Verificar si un log se considera anomalía (ej. login fallido, acción sospechosa)
     function isAnomaly(log) {
       const action = (log.action || log.type || '').toLowerCase();
       const data = (log.data || '');
@@ -9031,13 +9125,11 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       return false;
     }
 
-    // Aplicar filtros según categoría, período y búsqueda
     function aplicarFiltros() {
       const category = filterCategory.value;
       const period = filterPeriod.value;
       const searchTerm = searchInput.value.trim().toLowerCase();
 
-      // Calcular fecha de corte
       let cutoffDate = null;
       const now = new Date();
       if (period === 'today') {
@@ -9051,14 +9143,11 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       }
 
       filteredLogs = rawLogs.filter(log => {
-        // Filtro por fecha
         if (cutoffDate && log.timestamp && new Date(log.timestamp) < cutoffDate) return false;
-        // Filtro por categoría
         if (category !== 'all') {
           const cat = getEventCategory(log);
           if (cat !== category) return false;
         }
-        // Filtro por búsqueda textual
         if (searchTerm) {
           const text = JSON.stringify(log).toLowerCase();
           if (!text.includes(searchTerm)) return false;
@@ -9066,18 +9155,15 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         return true;
       });
 
-      // Actualizar estadísticas
-      let total = filteredLogs.length;
-      let securityCount = filteredLogs.filter(l => getEventCategory(l) === 'security').length;
-      let financialCount = filteredLogs.filter(l => getEventCategory(l) === 'financial').length;
-      let anomaliesCount = filteredLogs.filter(l => isAnomaly(l)).length;
+      totalEventsSpan.textContent = filteredLogs.length;
+      const securityCount = filteredLogs.filter(l => getEventCategory(l) === 'security').length;
+      const financialCount = filteredLogs.filter(l => getEventCategory(l) === 'financial').length;
+      const anomaliesCount = filteredLogs.filter(l => isAnomaly(l)).length;
 
-      totalEventsSpan.textContent = total;
       securityEventsSpan.textContent = securityCount;
       financialEventsSpan.textContent = financialCount;
       anomaliesSpan.textContent = anomaliesCount;
 
-      // Renderizar lista de logs
       if (filteredLogs.length === 0) {
         auditLogDiv.innerHTML = '<p style="text-align:center;color:#64748b;">No hay logs que coincidan con los filtros.</p>';
         return;
@@ -9088,12 +9174,11 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         const timestamp = log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Fecha desconocida';
         const action = log.action || log.type || 'Evento';
         const user = log.userId || log.email || 'Sistema';
-        const category = getEventCategory(log);
-        const color = category === 'security' ? '#ef4444' : (category === 'financial' ? '#059669' : '#38bdf8');
+        const categoryColor = getEventCategory(log) === 'security' ? '#ef4444' : (getEventCategory(log) === 'financial' ? '#059669' : '#38bdf8');
         const logEntry = document.createElement('div');
         logEntry.style.cssText = 'padding: 8px; border-bottom: 1px solid #334155; font-family: monospace; font-size: 0.8rem;';
         logEntry.innerHTML = `
-          <span style="color: ${color};">[${timestamp}]</span>
+          <span style="color: ${categoryColor};">[${timestamp}]</span>
           <span style="color: #f8fafc;">${action}</span>
           <span style="color: #94a3b8;"> - Usuario: ${user}</span>
           ${log.data ? `<div style="color: #64748b; font-size:0.7rem; margin-top:4px;">${JSON.stringify(log.data).substring(0, 200)}</div>` : ''}
@@ -9110,7 +9195,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       }
     }
 
-    // Exportar logs actuales a CSV
     function exportarCSV() {
       if (filteredLogs.length === 0) {
         alert('No hay datos para exportar.');
@@ -9135,7 +9219,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       URL.revokeObjectURL(url);
     }
 
-    // Análisis IA (simulado pero basado en datos reales)
     function analizarConIA() {
       if (filteredLogs.length === 0) {
         alert('No hay logs para analizar.');
@@ -9166,7 +9249,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       }, 800);
     }
 
-    // Abrir modal y cargar datos
     window.abrirAuditModal = function() {
       modal.classList.remove('hidden');
       cargarLogs();
@@ -9179,280 +9261,25 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
   })();
 </script>
 
-<!-- 🧠 LÓGICA SEGURA DE AUDITORÍA (Cero onclick, Cero enlaces externos, IA integrada) -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const auditModal = document.getElementById('auditModal');
-    const auditFilterCategory = document.getElementById('auditFilterCategory');
-    const auditFilterPeriod = document.getElementById('auditFilterPeriod');
-    const auditSearch = document.getElementById('auditSearch');
-    const btnApplyFilters = document.getElementById('btnApplyFilters');
-    const auditLog = document.getElementById('auditLog');
-    const btnExportAudit = document.getElementById('btnExportAudit');
-    const btnAnalyzeAI = document.getElementById('btnAnalyzeAI');
-    const btnCloseAudit = document.getElementById('btnCloseAudit');
-    const aiAnalysisBox = document.getElementById('aiAnalysisBox');
-    const aiAnalysisContent = document.getElementById('aiAnalysisContent');
-    
-    // Estadísticas
-    const auditTotalEvents = document.getElementById('auditTotalEvents');
-    const auditSecurityEvents = document.getElementById('auditSecurityEvents');
-    const auditFinancialEvents = document.getElementById('auditFinancialEvents');
-    const auditAnomalies = document.getElementById('auditAnomalies');
-
-    // Base de datos simulada de logs (en app real, viene del backend)
-    let auditLogs = [
-      { timestamp: '2026-06-07 14:32:15', category: 'security', type: 'login.success', user: 'admin@romwinervault.com', ip: '192.168.1.100', details: 'Login exitoso desde Chrome/Windows', severity: 'info' },
-      { timestamp: '2026-06-07 14:28:03', category: 'files', type: 'file.upload', user: 'usuario1@mail.com', ip: '192.168.1.101', details: 'Archivo subido: documento_confidencial.pdf (2.3MB)', severity: 'info' },
-      { timestamp: '2026-06-07 14:15:47', category: 'financial', type: 'sale.completed', user: 'usuario2@mail.com', ip: '192.168.1.102', details: 'Venta completada: $45.00 USD (Dataset Mercado)', severity: 'success' },
-      { timestamp: '2026-06-07 13:58:22', category: 'security', type: 'login.failed', user: 'desconocido@hacker.com', ip: '45.67.89.123', details: 'Intento de login fallido - contraseña incorrecta', severity: 'warning' },
-      { timestamp: '2026-06-07 13:45:10', category: 'admin', type: 'admin.user_deleted', user: 'admin@romwinervault.com', ip: '192.168.1.100', details: 'Usuario eliminado: spam_user@mail.com', severity: 'warning' },
-      { timestamp: '2026-06-07 13:30:55', category: 'financial', type: 'affiliate.commission', user: 'usuario3@mail.com', ip: '192.168.1.103', details: 'Comisión de afiliado: $6.75 USD (15% de venta)', severity: 'info' },
-      { timestamp: '2026-06-07 13:15:33', category: 'security', type: 'file.anomaly', user: 'usuario4@mail.com', ip: '192.168.1.104', details: 'Archivo sospechoso detectado: ejecutable.exe (bloqueado)', severity: 'critical' },
-      { timestamp: '2026-06-07 12:58:18', category: 'system', type: 'key.rotation', user: 'system', ip: 'localhost', details: 'Rotación automática de claves AES-256-GCM completada', severity: 'info' },
-      { timestamp: '2026-06-07 12:45:02', category: 'financial', type: 'withdrawal.request', user: 'usuario5@mail.com', ip: '192.168.1.105', details: 'Solicitud de retiro: $127.45 USD a cuenta bancaria', severity: 'info' },
-      { timestamp: '2026-06-07 12:30:47', category: 'security', type: 'quota.warning', user: 'usuario6@mail.com', ip: '192.168.1.106', details: 'Alerta: Cuota de almacenamiento al 92%', severity: 'warning' }
-    ];
-
-    let filteredLogs = [...auditLogs];
-
-    // 1. Renderizar logs con filtros
-    function renderAuditLogs() {
-      const category = auditFilterCategory.value;
-      const period = auditFilterPeriod.value;
-      const search = auditSearch.value.toLowerCase();
-
-      // Aplicar filtros
-      filteredLogs = auditLogs.filter(log => {
-        // Filtro por categoría
-        if (category !== 'all' && log.category !== category) return false;
-        
-        // Filtro por período (simplificado)
-        if (period !== 'all') {
-          const logDate = new Date(log.timestamp);
-          const now = new Date();
-          const daysDiff = (now - logDate) / (1000 * 60 * 60 * 24);
-          
-          if (period === 'today' && daysDiff > 1) return false;
-          if (period === '7d' && daysDiff > 7) return false;
-          if (period === '30d' && daysDiff > 30) return false;
-          if (period === '90d' && daysDiff > 90) return false;
-        }
-        
-        // Filtro por búsqueda
-        if (search) {
-          const searchText = `${log.user} ${log.ip} ${log.details} ${log.type}`.toLowerCase();
-          if (!searchText.includes(search)) return false;
-        }
-        
-        return true;
-      });
-
-      // Actualizar estadísticas
-      updateAuditStats();
-
-      // Renderizar lista
-      if (filteredLogs.length === 0) {
-        auditLog.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">No se encontraron registros con los filtros aplicados.</p>';
-        return;
-      }
-
-      auditLog.innerHTML = '';
-      filteredLogs.forEach(log => {
-        const logItem = document.createElement('div');
-        logItem.style.cssText = `background: #0f172a; border-left: 3px solid ${getSeverityColor(log.severity)}; padding: 10px; margin-bottom: 8px; border-radius: 6px;`;
-        
-        const severityIcon = getSeverityIcon(log.severity);
-        const categoryIcon = getCategoryIcon(log.category);
-        
-        logItem.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
-            <div style="flex: 1;">
-              <div style="font-size: 0.85rem; color: #f8fafc; font-weight: 600;">
-                ${severityIcon} ${categoryIcon} ${log.type}
-              </div>
-              <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">
-                ${log.timestamp} • ${log.user} • IP: ${log.ip}
-              </div>
-            </div>
-            <span style="background: ${getSeverityColor(log.severity)}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;">
-              ${log.severity.toUpperCase()}
-            </span>
-          </div>
-          <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 6px;">
-            ${log.details}
-          </div>
-        `;
-        
-        auditLog.appendChild(logItem);
-      });
-    }
-
-    // 2. Actualizar estadísticas
-    function updateAuditStats() {
-      auditTotalEvents.textContent = filteredLogs.length;
-      auditSecurityEvents.textContent = filteredLogs.filter(l => l.category === 'security').length;
-      auditFinancialEvents.textContent = filteredLogs.filter(l => l.category === 'financial').length;
-      auditAnomalies.textContent = filteredLogs.filter(l => l.severity === 'critical' || l.severity === 'warning').length;
-    }
-
-    // 3. Funciones auxiliares
-    function getSeverityColor(severity) {
-      const colors = {
-        info: '#38bdf8',
-        success: '#059669',
-        warning: '#fbbf24',
-        critical: '#ef4444'
-      };
-      return colors[severity] || '#64748b';
-    }
-
-    function getSeverityIcon(severity) {
-      const icons = {
-        info: 'ℹ️',
-        success: '✅',
-        warning: '⚠️',
-        critical: '🚨'
-      };
-      return icons[severity] || '📋';
-    }
-
-    function getCategoryIcon(category) {
-      const icons = {
-        security: '🔐',
-        files: '📁',
-        financial: '💰',
-        admin: '👑',
-        system: '⚙️'
-      };
-      return icons[category] || '📋';
-    }
-
-    // 4. Aplicar filtros
-    btnApplyFilters.addEventListener('click', function() {
-      renderAuditLogs();
-    });
-
-    // 5. Exportar logs a CSV
-    btnExportAudit.addEventListener('click', function() {
-      if (filteredLogs.length === 0) {
-        alert('⚠️ No hay registros para exportar.');
-        return;
-      }
-
-      btnExportAudit.disabled = true;
-      btnExportAudit.textContent = '⏳ Generando...';
-
-      setTimeout(() => {
-        // Crear contenido CSV
-        const csvContent = [
-          ['Timestamp', 'Categoría', 'Tipo', 'Usuario', 'IP', 'Detalles', 'Severidad'],
-          ...filteredLogs.map(log => [
-            log.timestamp,
-            log.category,
-            log.type,
-            log.user,
-            log.ip,
-            `"${log.details}"`,
-            log.severity
-          ])
-        ].map(row => row.join(',')).join('\n');
-
-        // Crear archivo descargable
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `audit_log_${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        alert('✅ Registros de auditoría exportados exitosamente.');
-        btnExportAudit.disabled = false;
-        btnExportAudit.textContent = '📤 Exportar Logs (CSV)';
-      }, 1000);
-    });
-
-    // 6. Análisis con IA
-    btnAnalyzeAI.addEventListener('click', function() {
-      aiAnalysisBox.style.display = 'block';
-      aiAnalysisContent.innerHTML = '<span style="color: #fbbf24;">⏳ IA analizando patrones de actividad...</span>';
-
-      setTimeout(() => {
-        aiAnalysisContent.innerHTML = '<span style="color: #fbbf24;">🔍 Detectando anomalías y amenazas...</span>';
-        
-        setTimeout(() => {
-          aiAnalysisContent.innerHTML = '<span style="color: #fbbf24;">🛡️ Generando recomendaciones de seguridad...</span>';
-          
-          setTimeout(() => {
-            const securityIssues = filteredLogs.filter(l => l.severity === 'critical' || l.severity === 'warning').length;
-            const failedLogins = filteredLogs.filter(l => l.type === 'login.failed').length;
-            const anomalies = filteredLogs.filter(l => l.type.includes('anomaly')).length;
-
-            aiAnalysisContent.innerHTML = `
-              <div style="background: #0f172a; padding: 12px; border-radius: 8px; border-left: 3px solid ${securityIssues > 3 ? '#ef4444' : '#059669'};">
-                <strong style="color: ${securityIssues > 3 ? '#ef4444' : '#059669'};">
-                  ${securityIssues > 3 ? '🚨 ALERTA: Se detectaron problemas de seguridad' : '✅ Sistema seguro'}
-                </strong>
-                <div style="margin-top: 10px; font-size: 0.8rem; color: #cbd5e1;">
-                  <strong>Resumen del Análisis:</strong><br>
-                  • Total de eventos analizados: <strong>${filteredLogs.length}</strong><br>
-                  • Incidentes de seguridad: <strong style="color: #ef4444;">${securityIssues}</strong><br>
-                  • Intentos de login fallidos: <strong>${failedLogins}</strong><br>
-                  • Anomalías detectadas: <strong style="color: #fbbf24;">${anomalies}</strong><br>
-                  <br>
-                  <strong>Recomendaciones de IA:</strong><br>
-                  ${failedLogins > 2 ? '• ⚠️ Activar autenticación de dos factores (2FA)<br>' : ''}
-                  ${anomalies > 0 ? '• 🚨 Revisar archivos sospechosos detectados<br>' : ''}
-                  ${securityIssues > 3 ? '• 🔐 Rotar claves de cifrado inmediatamente<br>' : ''}
-                  • ✅ Mantener monitoreo constante de logs de seguridad<br>
-                  • 📊 Revisar auditoría semanalmente
-                </div>
-              </div>
-            `;
-          }, 800);
-        }, 800);
-      }, 800);
-    });
-
-    // 7. Cerrar modal
-    btnCloseAudit.addEventListener('click', function() {
-      auditModal.classList.add('hidden');
-      aiAnalysisBox.style.display = 'none';
-    });
-
-    // Función global para abrir el modal
-    window.openAuditModal = function() {
-      auditModal.classList.remove('hidden');
-      renderAuditLogs();
-    };
-
-    // Renderizar logs iniciales
-    renderAuditLogs();
-  });
-</script>
-
 <!-- 🛍️ MARKETPLACE DE VENTA GRANULAR Y REPUTACIÓN: apiromwinervault (Monetización con IA y Cifrado Militar) -->
 <section id="marketplaceSection" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 1000px; margin: 0 auto; padding: 20px;">
   
   <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #fbbf24; border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(251, 191, 36, 0.15);">
     
-    <!-- Encabezado de Monetización -->
+    <!-- Encabezado -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #334155; padding-bottom: 16px; flex-wrap: wrap; gap: 12px;">
       <div>
         <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
           🛍️ Marketplace de Venta Granular
         </h2>
-        <p style="margin: 6px 0 0 0; font-size: 0.9rem; color: #94a3b8;">Compra y vende información cifrada. Tu 70% de ganancia, directo a tu bóveda.</p>
+        <p style="margin: 6px 0 0 0; font-size: 0.9rem; color: #94a3b8;">Compra y vende información cifrada. Tu 75% de ganancia, directo a tu bóveda.</p>
       </div>
       <span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
         💰 OPORTUNIDADES DE INGRESO
       </span>
     </div>
 
-    <!-- Barra de Búsqueda y Filtros Avanzados -->
+    <!-- Barra de Búsqueda y Filtros -->
     <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 24px; border: 1px solid #334155;">
       <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
         <input type="text" id="marketSearch" placeholder="🔍 Buscar por título, tag o tipo de archivo..." style="flex: 1; min-width: 200px; padding: 12px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 8px;">
@@ -9476,229 +9303,263 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
           <option value="100+">$100+</option>
         </select>
         
-        <button type="button" id="btnSearchMarket" style="padding: 12px 24px; background: #fbbf24; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s;">
-          🔍 Buscar
-        </button>
+        <button type="button" id="btnSearchMarket" style="padding: 12px 24px; background: #fbbf24; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">🔍 Buscar</button>
       </div>
     </div>
 
-    <!-- 🏆 SECCIÓN: Top Vendedores de Excelencia (Reconocimiento IA) -->
+    <!-- Top Vendedores (reputación real) -->
     <div style="margin-bottom: 32px; background: rgba(167, 139, 250, 0.1); border: 1px solid #a78bfa; border-radius: 12px; padding: 16px;">
       <h3 style="margin: 0 0 16px 0; color: #a78bfa; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
         🏆 Vendedores de Élite (Reconocimiento de Excelencia)
       </h3>
       <div id="topSellersGrid" style="display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px;">
-        <!-- Se llena dinámicamente con JS -->
+        <div style="color:#64748b;">Cargando top vendedores...</div>
       </div>
     </div>
 
-    <!-- Grid Principal del Marketplace -->
-    <h3 style="margin: 0 0 16px 0; color: #f8fafc; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
-      📦 Activos Disponibles para Venta Granular
-    </h3>
-    
+    <!-- Listado de productos -->
+    <h3 style="margin: 0 0 16px 0; color: #f8fafc; font-size: 1.1rem;">📦 Activos Disponibles para Venta Granular</h3>
     <div id="marketLoading" style="text-align: center; padding: 40px; color: #64748b; display: none;">
       <div style="font-size: 2rem; margin-bottom: 12px; animation: pulse 1.5s infinite;">⏳</div>
       <p>La IA está auditando y cargando los activos más seguros...</p>
     </div>
-
-    <div id="marketGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-      <!-- Se llena dinámicamente con JS -->
-    </div>
-
+    <div id="marketGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;"></div>
     <div id="marketEmpty" style="text-align: center; padding: 40px; color: #64748b; display: none;">
       <div style="font-size: 3rem; margin-bottom: 12px;">🔍</div>
       <p style="font-size: 1.1rem; font-weight: bold; color: #94a3b8;">No se encontró contenido con estos filtros.</p>
       <p style="font-size: 0.9rem;">¡Sé el primero en subir y vender tu información cifrada!</p>
     </div>
 
-    <!-- Botón de Cierre -->
+    <!-- Botón Cerrar -->
     <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #334155; text-align: center;">
-      <button type="button" id="btnCloseMarket" style="padding: 12px 32px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-        Cerrar Marketplace
-      </button>
+      <button type="button" id="btnCloseMarket" style="padding: 12px 32px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 10px; font-weight: 600; cursor: pointer;">Cerrar Marketplace</button>
     </div>
 
   </div>
 </section>
 
-<!-- 🧠 LÓGICA SEGURA DEL MARKETPLACE (Cero onclick, Cero enlaces externos, IA y Reputación integradas) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const marketplaceSection = document.getElementById('marketplaceSection');
-    const marketSearch = document.getElementById('marketSearch');
-    const marketCategory = document.getElementById('marketCategory');
-    const marketPriceFilter = document.getElementById('marketPriceFilter');
-    const btnSearchMarket = document.getElementById('btnSearchMarket');
-    const topSellersGrid = document.getElementById('topSellersGrid');
+  (function() {
+    // Elementos DOM
     const marketGrid = document.getElementById('marketGrid');
     const marketLoading = document.getElementById('marketLoading');
     const marketEmpty = document.getElementById('marketEmpty');
-    const btnCloseMarket = document.getElementById('btnCloseMarket');
+    const searchInput = document.getElementById('marketSearch');
+    const categorySelect = document.getElementById('marketCategory');
+    const priceSelect = document.getElementById('marketPriceFilter');
+    const searchBtn = document.getElementById('btnSearchMarket');
+    const closeBtn = document.getElementById('btnCloseMarket');
+    const topSellersDiv = document.getElementById('topSellersGrid');
 
-    // Base de datos simulada con SISTEMA DE REPUTACIÓN (Excelencia vs Disliked)
-    const mockProducts = [
-      { id: 1, title: 'Dataset Mercado Latino 2026', category: 'datos', fileType: '.zip', size: '45 MB', price: 120, seller: 'AnalistaPro', rating: 5.0, sales: 142, status: 'elite', aiVerified: true },
-      { id: 2, title: 'Plantilla Notion Gestión Financiera', category: 'software', fileType: '.txt', size: '0.5 MB', price: 15, seller: 'ProductivityGuru', rating: 4.8, sales: 89, status: 'elite', aiVerified: true },
-      { id: 3, title: 'Curso Avanzado de Ciberseguridad', category: 'educacion', fileType: '.mp4', size: '1.2 GB', price: 85, seller: 'CyberMentor', rating: 4.9, sales: 210, status: 'elite', aiVerified: true },
-      { id: 4, title: 'Informe Bancario Anónimo Q3', category: 'corporativo', fileType: '.pdf', size: '3.2 MB', price: 250, seller: 'FinanzasElite', rating: 5.0, sales: 34, status: 'elite', aiVerified: true },
-      { id: 5, title: 'Pack de Beats Exclusivos', category: 'multimedia', fileType: '.rar', size: '120 MB', price: 45, seller: 'BeatMakerX', rating: 3.2, sales: 12, status: 'disliked', aiVerified: true },
-      { id: 6, title: 'Estrategia de Marketing Secreto', category: 'secreto', fileType: '.docx', size: '1.8 MB', price: 300, seller: 'GrowthHacker', rating: 4.7, sales: 56, status: 'normal', aiVerified: true }
-    ];
+    const getToken = () => localStorage.getItem('authToken');
 
-    // 1. Renderizar Top Vendedores de Élite
-    function renderTopSellers() {
-      topSellersGrid.innerHTML = '';
-      const eliteSellers = mockProducts.filter(p => p.status === 'elite').map(p => p.seller);
-      const uniqueSellers = [...new Set(eliteSellers)].slice(0, 4); // Máximo 4
-      
-      uniqueSellers.forEach(seller => {
+    // Variables de estado
+    let allProducts = [];
+    let currentFilters = { q: '', category: 'all', priceRange: 'all' };
+
+    // ============================================
+    // 1. Cargar productos reales desde el backend
+    // ============================================
+    async function cargarProductos() {
+      const token = getToken();
+      if (!token) {
+        marketGrid.innerHTML = '<p style="text-align:center;color:#ef4444;">Debes iniciar sesión para ver el marketplace.</p>';
+        return;
+      }
+      marketLoading.style.display = 'block';
+      marketGrid.innerHTML = '';
+      marketEmpty.style.display = 'none';
+      try {
+        // Construir URL con parámetros de búsqueda y filtros
+        let url = `/api/marketplace?limit=50`;
+        if (currentFilters.q) url += `&q=${encodeURIComponent(currentFilters.q)}`;
+        if (currentFilters.category !== 'all') url += `&categoria=${encodeURIComponent(currentFilters.category)}`;
+        if (currentFilters.priceRange !== 'all') url += `&priceRange=${encodeURIComponent(currentFilters.priceRange)}`;
+        
+        const res = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        allProducts = data.items || [];
+        renderizarProductos(allProducts);
+        await cargarTopVendedores();
+      } catch (err) {
+        console.error('Error cargando marketplace:', err);
+        marketGrid.innerHTML = '<p style="text-align:center;color:#ef4444;">Error al cargar productos. Intenta más tarde.</p>';
+      } finally {
+        marketLoading.style.display = 'none';
+      }
+    }
+
+    // Renderizar productos en el grid
+    function renderizarProductos(productos) {
+      if (!productos.length) {
+        marketEmpty.style.display = 'block';
+        marketGrid.innerHTML = '';
+        return;
+      }
+      marketEmpty.style.display = 'none';
+      marketGrid.innerHTML = '';
+      productos.forEach(producto => {
         const card = document.createElement('div');
-        card.style.cssText = 'min-width: 200px; background: #0f172a; border: 1px solid #a78bfa; border-radius: 10px; padding: 12px; text-align: center;';
+        card.style.cssText = 'background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; transition: transform 0.2s;';
         card.innerHTML = `
-          <div style="font-size: 2rem; margin-bottom: 8px;">👑</div>
-          <div style="font-weight: bold; color: #f8fafc; margin-bottom: 4px;">${seller}</div>
-          <div style="color: #fbbf24; font-size: 0.9rem;">⭐⭐⭐⭐⭐ 5.0</div>
-          <div style="color: #059669; font-size: 0.75rem; margin-top: 4px;">✅ Vendedor de Élite</div>
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+            <div>
+              <h4 style="margin:0; color:#f8fafc;">${escapeHtml(producto.titulo)}</h4>
+              <p style="margin:4px 0 0; font-size:0.8rem; color:#94a3b8;">${escapeHtml(producto.categoria || 'general')}</p>
+            </div>
+            <span style="background: #fbbf24; color: #000; padding: 4px 10px; border-radius: 12px; font-weight: bold;">$${producto.precio}</span>
+          </div>
+          <div style="margin: 8px 0;">
+            <p style="margin:0; font-size:0.8rem; color:#cbd5e1;">${escapeHtml(producto.descripcion?.substring(0, 80) || 'Sin descripción')}</p>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+            <div style="font-size:0.75rem; color:#a78bfa;">
+              ⭐ ${producto.vendedor?.rating || 0} • ${producto.vendedor?.totalVentas || 0} ventas
+            </div>
+            <button class="buy-product-btn" data-id="${producto.id}" style="padding: 8px 16px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Comprar</button>
+          </div>
         `;
-        topSellersGrid.appendChild(card);
+        marketGrid.appendChild(card);
+      });
+      // Asignar eventos de compra después de renderizar
+      document.querySelectorAll('.buy-product-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const productId = btn.dataset.id;
+          await comprarProducto(productId);
+        });
       });
     }
 
-    // 2. Renderizar tarjetas de producto con Reputación
-    function renderProductCard(product) {
-      const card = document.createElement('div');
-      
-      // Estilo condicional según reputación
-      let borderColor = '#334155';
-      let statusBadge = '';
-      
-      if (product.status === 'elite') {
-        borderColor = '#a78bfa';
-        statusBadge = '<span style="background: rgba(167, 139, 250, 0.2); color: #a78bfa; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; border: 1px solid #a78bfa;">👑 ÉLITE</span>';
-      } else if (product.status === 'disliked') {
-        borderColor = '#ef4444';
-        statusBadge = '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; border: 1px solid #ef4444;">⚠️ REPORTADO</span>';
-      }
-
-      card.style.cssText = `background: #1e293b; border: 1px solid ${borderColor}; border-radius: 12px; padding: 16px; transition: transform 0.2s; display: flex; flex-direction: column;`;
-      card.onmouseover = () => { card.style.transform = 'translateY(-4px)'; };
-      card.onmouseout = () => { card.style.transform = 'translateY(0)'; };
-
-      const categoryIcons = {
-        corporativo: '🏢', secreto: '🔐', datos: '📊', software: '💻', educacion: '🎓', multimedia: '🎬', comprimido: '📦'
-      };
-
-      // Generar estrellas
-      const stars = '⭐'.repeat(Math.round(product.rating));
-
-      card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-          <span style="background: #0f172a; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; color: #94a3b8;">
-            ${categoryIcons[product.category] || '📁'} ${product.category.toUpperCase()}
-          </span>
-          ${product.aiVerified ? '<span style="background: rgba(5, 150, 105, 0.2); color: #059669; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; border: 1px solid #059669;">🤖 IA OK</span>' : ''}
-        </div>
-        <h4 style="margin: 0 0 8px 0; color: #f8fafc; font-size: 1rem; line-height: 1.4;">${product.title}</h4>
-        
-        <div style="background: #0f172a; padding: 8px; border-radius: 6px; margin-bottom: 12px; font-size: 0.8rem;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: #94a3b8;">Vendedor:</span>
-            <span style="color: #f8fafc; font-weight: 600;">${product.seller}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="color: #94a3b8;">Reputación:</span>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="color: #fbbf24;">${stars} ${product.rating}</span>
-              ${statusBadge}
-            </div>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-top: 4px;">
-            <span style="color: #94a3b8;">Archivo:</span>
-            <span style="color: #38bdf8;">${product.fileType} (${product.size})</span>
-          </div>
-        </div>
-
-        <div style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid #334155;">
-          <span style="font-size: 1.3rem; font-weight: bold; color: #fbbf24;">$${product.price} USD</span>
-          <button type="button" class="btn-buy-product" data-id="${product.id}" style="padding: 8px 16px; background: #fbbf24; color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; transition: opacity 0.2s;">
-            🛒 Adquirir
-          </button>
-        </div>
-      `;
-      return card;
-    }
-
-    // 3. Cargar y filtrar productos
-    function loadMarketplace() {
-      marketGrid.innerHTML = '';
-      marketLoading.style.display = 'block';
-      marketEmpty.style.display = 'none';
-
-      setTimeout(() => {
-        marketLoading.style.display = 'none';
-        
-        const searchTerm = marketSearch.value.toLowerCase();
-        const category = marketCategory.value;
-        const priceRange = marketPriceFilter.value;
-
-        const filtered = mockProducts.filter(p => {
-          const matchesSearch = p.title.toLowerCase().includes(searchTerm) || p.fileType.includes(searchTerm);
-          const matchesCategory = category === 'all' || p.category === category;
-          
-          let matchesPrice = true;
-          if (priceRange === '0-10') matchesPrice = p.price < 10;
-          else if (priceRange === '10-50') matchesPrice = p.price >= 10 && p.price <= 50;
-          else if (priceRange === '50-100') matchesPrice = p.price > 50 && p.price <= 100;
-          else if (priceRange === '100+') matchesPrice = p.price > 100;
-
-          return matchesSearch && matchesCategory && matchesPrice;
+    // ============================================
+    // 2. Top vendedores (reputación real)
+    // ============================================
+    async function cargarTopVendedores() {
+      try {
+        const token = getToken();
+        if (!token) return;
+        // Usar endpoint de perfiles / ranking (si no existe, podemos usar /api/users?sort=reputation)
+        // Como no hay endpoint específico, usamos los datos de los productos para agregar vendedores únicos y ordenarlos por rating.
+        const vendedoresMap = new Map();
+        allProducts.forEach(p => {
+          if (p.vendedor && p.vendedor.uid) {
+            const uid = p.vendedor.uid;
+            if (!vendedoresMap.has(uid)) {
+              vendedoresMap.set(uid, {
+                uid,
+                displayName: p.vendedor.displayName || 'Creador',
+                rating: p.vendedor.rating || 0,
+                avatar: p.vendedor.avatarUrl || null,
+                ventas: p.vendedor.totalVentas || 0
+              });
+            }
+          }
         });
-
-        if (filtered.length === 0) {
-          marketEmpty.style.display = 'block';
-        } else {
-          filtered.forEach(p => marketGrid.appendChild(renderProductCard(p)));
+        const top = Array.from(vendedoresMap.values()).sort((a,b) => b.rating - a.rating).slice(0, 5);
+        if (top.length === 0) {
+          topSellersDiv.innerHTML = '<div style="color:#64748b;">No hay suficientes vendedores aún.</div>';
+          return;
         }
-      }, 1000); // Simular tiempo de carga/auditoría
+        topSellersDiv.innerHTML = '';
+        top.forEach(v => {
+          const sellerDiv = document.createElement('div');
+          sellerDiv.style.cssText = 'background: #0f172a; border-radius: 10px; padding: 12px; min-width: 150px; text-align: center; border: 1px solid #a78bfa;';
+          sellerDiv.innerHTML = `
+            <div style="font-size: 2rem;">🏆</div>
+            <div style="font-weight: bold; margin: 6px 0;">${escapeHtml(v.displayName)}</div>
+            <div style="font-size: 0.8rem; color: #fbbf24;">⭐ ${v.rating.toFixed(1)}</div>
+            <div style="font-size: 0.7rem; color: #94a3b8;">${v.ventas} ventas</div>
+          `;
+          topSellersDiv.appendChild(sellerDiv);
+        });
+      } catch (err) {
+        console.error('Error cargando top vendedores:', err);
+        topSellersDiv.innerHTML = '<div style="color:#64748b;">No se pudieron cargar los top vendedores.</div>';
+      }
     }
 
-    // 4. Event Listeners seguros (Reemplazan a los onclick)
-    btnSearchMarket.addEventListener('click', loadMarketplace);
-    
-    marketSearch.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') loadMarketplace();
-    });
-
-    btnCloseMarket.addEventListener('click', function() {
-      marketplaceSection.classList.add('hidden');
-    });
-
-    // Delegación de eventos para los botones de compra dinámicos
-    document.addEventListener('click', function(e) {
-      if (e.target.classList.contains('btn-buy-product')) {
-        const productId = e.target.dataset.id;
-        const product = mockProducts.find(p => p.id == productId);
-        
-        if (product) {
-          let warningMsg = product.status === 'disliked' ? '\n\n⚠️ ADVERTENCIA: Este vendedor tiene calificaciones bajas. Proceda con precaución.' : '';
-          
-          alert(`🔐 PROCESO DE COMPRA SEGURO INICIADO\n\nActivo: ${product.title}\nVendedor: ${product.seller} (${product.rating}⭐)\nPrecio: $${product.price} USD\n\nEl sistema verificará tu saldo en la bóveda y transferirá el archivo cifrado con Envelope Encryption. El vendedor recibirá el 70% ($${(product.price * 0.7).toFixed(2)}).${warningMsg}`);
-        }
+    // ============================================
+    // 3. Compra de producto (real)
+    // ============================================
+    async function comprarProducto(productId) {
+      const token = getToken();
+      if (!token) {
+        alert('Debes iniciar sesión para comprar.');
+        return;
       }
+      try {
+        const res = await fetch(`/api/buy/${productId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Compra exitosa. El contenido se ha agregado a tu bóveda.');
+          // Opcional: recargar el marketplace o actualizar saldo
+        } else {
+          throw new Error(data.error || 'Error al procesar la compra');
+        }
+      } catch (err) {
+        alert('❌ Error: ' + err.message);
+      }
+    }
+
+    // ============================================
+    // 4. Aplicar filtros y búsqueda
+    // ============================================
+    function aplicarFiltros() {
+      currentFilters.q = searchInput.value.trim();
+      currentFilters.category = categorySelect.value;
+      currentFilters.priceRange = priceSelect.value;
+      cargarProductos();
+    }
+
+    // ============================================
+    // 5. Eventos y cierre
+    // ============================================
+    searchBtn.addEventListener('click', aplicarFiltros);
+    closeBtn.addEventListener('click', () => {
+      document.getElementById('marketplaceSection').classList.add('hidden');
     });
 
-    // Inicializar
-    renderTopSellers();
-    loadMarketplace();
-  });
+    // También aplicar filtro al presionar Enter en búsqueda
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') aplicarFiltros();
+    });
+
+    // Exponer función para abrir marketplace desde cualquier parte
+    window.abrirMarketplace = function() {
+      const marketSection = document.getElementById('marketplaceSection');
+      if (marketSection) marketSection.classList.remove('hidden');
+      cargarProductos();
+    };
+
+    // ============================================
+    // 6. Función auxiliar escapeHtml
+    // ============================================
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m] || m));
+    }
+
+    // Si la sección ya está visible (porque se llamó antes), cargar datos
+    if (document.getElementById('marketplaceSection') && !document.getElementById('marketplaceSection').classList.contains('hidden')) {
+      cargarProductos();
+    }
+  })();
 </script>
+
 <!-- 📱 FEED SOCIAL DE MONETIZACIÓN Y REPUTACIÓN: apiromwinervault (Con IA y Sistema de Excelencia) -->
 <section id="socialFeedPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 0 auto; padding: 20px;">
   
   <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #38bdf8; border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(56, 189, 248, 0.15);">
     
-    <!-- Encabezado -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #334155; padding-bottom: 16px; flex-wrap: wrap; gap: 12px;">
       <div>
         <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
@@ -9711,7 +9572,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </button>
     </div>
 
-    <!-- Filtros Rápidos (Seguros) -->
     <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
       <button type="button" class="feed-filter-btn" data-filter="all" style="padding: 8px 16px; background: #38bdf8; color: #000; border: none; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">🌍 Todo</button>
       <button type="button" class="feed-filter-btn" data-filter="corporativo" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 20px; font-size: 0.85rem; cursor: pointer;">🏢 Corporativo</button>
@@ -9720,19 +9580,18 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       <button type="button" class="feed-filter-btn" data-filter="multimedia" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 20px; font-size: 0.85rem; cursor: pointer;">🎬 Multimedia</button>
     </div>
 
-    <!-- Contenedor del Feed -->
     <div id="feedContainer" style="display: flex; flex-direction: column; gap: 16px;">
       <div style="text-align: center; padding: 40px; color: #64748b;">
         <div style="font-size: 2rem; margin-bottom: 12px;">⏳</div>
-        <p>La IA está auditando y cargando los activos más seguros...</p>
+        <p>Cargando feed seguro...</p>
       </div>
     </div>
 
   </div>
 </section>
 
-<!-- 📤 MODAL DE PUBLICACIÓN SEGURO CON IA -->
-<section id="publishModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 10002; padding: 16px; font-family: system-ui, -apple-system, sans-serif; backdrop-filter: blur(8px);">
+<!-- 📤 MODAL DE PUBLICACIÓN SEGURO (UNIFICADO) -->
+<div id="publishModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 10002; padding: 16px; font-family: system-ui, -apple-system, sans-serif; backdrop-filter: blur(8px);">
   
   <div style="background: #0f172a; border: 2px solid #059669; border-radius: 16px; max-width: 550px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 28px; box-shadow: 0 25px 50px -12px rgba(5, 150, 105, 0.4);">
     
@@ -9786,7 +9645,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         </div>
       </div>
 
-      <!-- Barra de Progreso de Auditoría IA -->
       <div id="publishAIProgress" class="hidden" style="margin-top: 8px;">
         <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;">
           <span id="publishAIStatus">🤖 IA: Iniciando escaneo de seguridad...</span>
@@ -9798,16 +9656,249 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </div>
 
       <div style="display: flex; gap: 12px; margin-top: 8px;">
-        <button type="submit" id="btnConfirmPublish" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
-          🚀 Publicar y Cifrar
-        </button>
-        <button type="button" id="btnCancelPublish" style="padding: 14px 24px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-          Cancelar
-        </button>
+        <button type="submit" id="btnConfirmPublish" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer;">🚀 Publicar y Cifrar</button>
+        <button type="button" id="btnCancelPublish" style="padding: 14px 24px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 10px; font-weight: 600; cursor: pointer;">Cancelar</button>
       </div>
     </form>
   </div>
-</section>
+</div>
+
+<script>
+  (function() {
+    // ============================================
+    // 1. REFERENCIAS Y VARIABLES GLOBALES
+    // ============================================
+    const feedContainer = document.getElementById('feedContainer');
+    const btnOpenPublish = document.getElementById('btnOpenPublish');
+    const publishModal = document.getElementById('publishModal');
+    const btnCancelPublish = document.getElementById('btnCancelPublish');
+    const publishForm = document.getElementById('publishForm');
+    const pubTitulo = document.getElementById('pubTitulo');
+    const pubDescripcion = document.getElementById('pubDescripcion');
+    const pubCategoria = document.getElementById('pubCategoria');
+    const pubArchivo = document.getElementById('pubArchivo');
+    const pubForSale = document.getElementById('pubForSale');
+    const pubPrecio = document.getElementById('pubPrecio');
+    const btnConfirmPublish = document.getElementById('btnConfirmPublish');
+    const publishAIProgress = document.getElementById('publishAIProgress');
+    const publishAIStatus = document.getElementById('publishAIStatus');
+    const publishAIPercent = document.getElementById('publishAIPercent');
+    const publishAIProgressBar = document.getElementById('publishAIProgressBar');
+    const descCounter = document.getElementById('descCounter');
+
+    const getToken = () => localStorage.getItem('authToken');
+
+    // Contador de caracteres de descripción
+    if (pubDescripcion) {
+      pubDescripcion.addEventListener('input', () => {
+        descCounter.textContent = pubDescripcion.value.length;
+      });
+    }
+
+    // ============================================
+    // 2. CARGAR FEED REAL DESDE EL BACKEND
+    // ============================================
+    async function cargarFeed() {
+      const token = getToken();
+      if (!token) {
+        feedContainer.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px;">Debes iniciar sesión para ver el feed.</div>';
+        return;
+      }
+      feedContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #cbd5e1;">Cargando feed seguro...</div>';
+      try {
+        const res = await fetch('/api/feed', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        const posts = data.posts || [];
+        if (posts.length === 0) {
+          feedContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;">No hay publicaciones aún. ¡Sé el primero en publicar un activo!</div>';
+          return;
+        }
+        feedContainer.innerHTML = '';
+        posts.forEach(post => {
+          const postDiv = document.createElement('div');
+          postDiv.style.cssText = 'background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; transition: transform 0.2s;';
+          postDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+              <div>
+                <h3 style="margin: 0 0 4px 0; color: #f8fafc;">${escapeHtml(post.titulo)}</h3>
+                <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Vendedor: ${escapeHtml(post.vendedor?.displayName || 'Anónimo')}</p>
+              </div>
+              <span style="background: #059669; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">$${post.precio} USD</span>
+            </div>
+            <p style="margin: 8px 0; color: #cbd5e1;">${escapeHtml(post.descripcion || 'Sin descripción')}</p>
+            <div style="display: flex; gap: 12px; margin-top: 12px;">
+              <button class="buy-feed-btn" data-id="${post.id}" style="flex: 1; padding: 8px; background: #00e676; color: #0b0c10; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">💰 Comprar</button>
+            </div>
+          `;
+          feedContainer.appendChild(postDiv);
+        });
+        // Asignar eventos de compra
+        document.querySelectorAll('.buy-feed-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const productId = btn.dataset.id;
+            await comprarProducto(productId);
+          });
+        });
+      } catch (err) {
+        console.error('Error cargando feed:', err);
+        feedContainer.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px;">Error al cargar el feed. Intenta más tarde.</div>';
+      }
+    }
+
+    async function comprarProducto(productId) {
+      const token = getToken();
+      if (!token) {
+        alert('Debes iniciar sesión para comprar.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/buy/${productId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Compra exitosa. El contenido se ha agregado a tu bóveda.');
+          // Opcional: recargar el feed o actualizar saldo
+        } else {
+          throw new Error(data.error || 'Error al procesar la compra');
+        }
+      } catch (err) {
+        alert('❌ Error: ' + err.message);
+      }
+    }
+
+    // ============================================
+    // 3. PUBLICAR ACTIVO REAL (CON BACKEND)
+    // ============================================
+    async function publicarActivo(event) {
+      event.preventDefault();
+      const token = getToken();
+      if (!token) {
+        alert('Debes iniciar sesión para publicar.');
+        return;
+      }
+      const titulo = pubTitulo.value.trim();
+      const descripcion = pubDescripcion.value.trim();
+      const categoria = pubCategoria.value;
+      const file = pubArchivo.files[0];
+      const forSale = pubForSale.checked;
+      const price = forSale ? parseFloat(pubPrecio.value) : 0;
+
+      if (!titulo) {
+        alert('El título es obligatorio.');
+        return;
+      }
+      if (!file) {
+        alert('Debes seleccionar un archivo.');
+        return;
+      }
+      const allowedExtensions = ['.txt', '.mp3', '.mp4', '.rar', '.zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx'];
+      const fileName = file.name.toLowerCase();
+      if (!allowedExtensions.some(ext => fileName.endsWith(ext))) {
+        alert('Tipo de archivo no permitido. Lista blanca: ' + allowedExtensions.join(', '));
+        return;
+      }
+      if (forSale && (isNaN(price) || price <= 0)) {
+        alert('Precio inválido. Debe ser mayor a 0.');
+        return;
+      }
+
+      // Simular auditoría IA (visual)
+      publishAIProgress.classList.remove('hidden');
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 4;
+        publishAIProgressBar.style.width = progress + '%';
+        publishAIPercent.textContent = progress + '%';
+        if (progress >= 100) {
+          clearInterval(interval);
+          publishAIStatus.textContent = '✅ Auditoría IA completada. Activo seguro.';
+        } else if (progress < 30) {
+          publishAIStatus.textContent = '🤖 IA: Verificando integridad del archivo...';
+        } else if (progress < 70) {
+          publishAIStatus.textContent = '🤖 IA: Escaneando en busca de malware...';
+        } else {
+          publishAIStatus.textContent = '🤖 IA: Aplicando cifrado AES-256-GCM...';
+        }
+      }, 60);
+
+      const formData = new FormData();
+      formData.append('archivo', file);
+      formData.append('titulo', titulo);
+      formData.append('descripcion', descripcion);
+      formData.append('categoria', categoria);
+      formData.append('forSale', forSale ? 'true' : 'false');
+      if (forSale) formData.append('price', price);
+
+      try {
+        const res = await fetch('/vault', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Activo publicado exitosamente. Aparecerá en el feed.');
+          publishModal.classList.add('hidden');
+          publishForm.reset();
+          pubForSale.checked = true;
+          pubPrecio.value = '10';
+          cargarFeed(); // Recargar feed para mostrar la nueva publicación
+        } else {
+          throw new Error(data.error || 'Error al publicar');
+        }
+      } catch (err) {
+        alert('❌ Error: ' + err.message);
+      } finally {
+        clearInterval(interval);
+        publishAIProgress.classList.add('hidden');
+        publishAIProgressBar.style.width = '0%';
+        publishAIPercent.textContent = '0%';
+      }
+    }
+
+    // ============================================
+    // 4. EVENTOS Y CIERRE
+    // ============================================
+    if (btnOpenPublish) {
+      btnOpenPublish.addEventListener('click', () => {
+        publishModal.classList.remove('hidden');
+      });
+    }
+    if (btnCancelPublish) {
+      btnCancelPublish.addEventListener('click', () => {
+        publishModal.classList.add('hidden');
+        publishForm.reset();
+        pubForSale.checked = true;
+        pubPrecio.value = '10';
+      });
+    }
+    if (btnConfirmPublish) {
+      btnConfirmPublish.addEventListener('click', publicarActivo);
+    }
+
+    // Exponer función para recargar feed desde otras partes
+    window.cargarFeed = cargarFeed;
+
+    // Cargar feed si la sección ya está visible
+    if (document.getElementById('socialFeedPanel') && !document.getElementById('socialFeedPanel').classList.contains('hidden')) {
+      cargarFeed();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m] || m));
+    }
+  })();
+</script>
 
 <!-- 🧠 LÓGICA SEGURA DEL FEED Y PUBLICACIÓN (Cero onclick, Cero enlaces externos, IA y Reputación integradas) -->
 <script>
@@ -22417,6 +22508,7 @@ function imprimirArchivo() {
               .footer { page-break-before: avoid; }
             }
           </style>
+     <style>
         </head>
         <body>
           <h1>📄 ${tituloSeguro}</h1>
