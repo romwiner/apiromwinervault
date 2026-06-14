@@ -90,8 +90,14 @@ function getAuthToken() {
   return localStorage.getItem('authToken');
 }
 
+// Función principal para mostrar la vista correcta según el rol
 function mostrarVistaSegunRol(usuario) {
-  const vistas = ['vistaLanding', 'vistaFreemium', 'vistaNormal', 'vistaEmpresarial', 'vistaAdmin', 'digitalIdentityPanel'];
+  // Ocultar todas las vistas posibles
+  const vistas = [
+    'vistaLanding', 'vistaFreemium', 'vistaNormal', 'vistaEmpresarial',
+    'vistaAdmin', 'digitalIdentityPanel', 'socialFeedPanel', 'vaultSection',
+    'marketplaceSection', 'earningsCenter', 'affiliatesPanel', 'adsSection'
+  ];
   vistas.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -99,24 +105,42 @@ function mostrarVistaSegunRol(usuario) {
       el.classList.add('hidden');
     }
   });
-  
+
+  // Añadir clase app-activa al body para que el CSS oculte el landing
+  document.body.classList.add('app-activa');
+  document.body.classList.remove('registro-activo');
+
+  // Determinar la vista según el rol
   let vistaId = 'vistaFreemium';
-  if (usuario.isAdmin) vistaId = 'vistaAdmin';
-  else if (usuario.tier === 'enterprise') vistaId = 'vistaEmpresarial';
-  else if (usuario.tier === 'business') vistaId = 'vistaNormal';
-  else vistaId = 'vistaFreemium';
-  
+  if (usuario.isAdmin) {
+    vistaId = 'vistaAdmin';
+  } else if (usuario.tier === 'enterprise') {
+    vistaId = 'vistaEmpresarial';
+  } else if (usuario.tier === 'business') {
+    vistaId = 'vistaNormal';
+  } else {
+    vistaId = 'vistaFreemium';
+  }
+
   const vistaMostrar = document.getElementById(vistaId);
   if (vistaMostrar) {
     vistaMostrar.style.display = 'block';
     vistaMostrar.classList.remove('hidden');
     console.log(`🔓 Mostrando ${vistaId} para ${usuario.email}`);
     notificarDueño(`Bienvenido ${usuario.username || usuario.email}`, "exito");
-    // Si el usuario está logueado y estamos mostrando la vista de identidad, actualizar QR
-    if (vistaId === 'vistaFreemium' || vistaId === 'vistaNormal' || vistaId === 'vistaEmpresarial' || vistaId === 'vistaAdmin') {
-      setTimeout(() => mostrarQRIdentidad(), 500);
+
+    // Si la vista mostrada es el feed social, cargar el feed (si la función existe)
+    if (vistaId !== 'vistaLanding' && vistaId !== 'digitalIdentityPanel') {
+      if (window.cargarFeed && typeof window.cargarFeed === 'function') {
+        setTimeout(() => window.cargarFeed(), 300);
+      }
+      // Mostrar QR personal si existe (pero no en la vista de identidad)
+      if (window.mostrarQRIdentidad && typeof window.mostrarQRIdentidad === 'function') {
+        setTimeout(() => window.mostrarQRIdentidad(), 500);
+      }
     }
   } else {
+    // Fallback: si no existe la vista, crear un contenedor genérico
     let vault = document.getElementById('vaultContainer');
     if (!vault) {
       vault = document.createElement('div');
@@ -128,9 +152,10 @@ function mostrarVistaSegunRol(usuario) {
     }
     vault.innerHTML = `<h2>🔐 Bóveda de ${usuario.email}</h2><p>Plan: ${usuario.tier}</p><button onclick="cerrarSesion()">Cerrar sesión</button>`;
     vault.style.display = 'block';
-    setTimeout(() => mostrarQRIdentidad(), 500);
+    if (window.mostrarQRIdentidad) setTimeout(() => window.mostrarQRIdentidad(), 500);
   }
-  
+
+  // Actualizar elementos de perfil si existen
   const displayName = document.getElementById('displayName');
   if (displayName) displayName.textContent = usuario.username || usuario.email;
   const displayEmail = document.getElementById('displayEmail');
@@ -200,7 +225,7 @@ async function mostrarQRIdentidad() {
 }
 
 // Mostrar QR en la landing (página de inicio) – sin necesidad de login
-// Usa el código de referido del Dueño Supremo (puedes cambiarlo por el que quieras)
+// Usa el código de referido del Dueño Supremo (cámbialo por el código real)
 function mostrarQRReferidoPublico() {
   // Si ya hay sesión, no mostrar el QR público (ya se mostrará el personal en la bóveda)
   if (localStorage.getItem('authToken')) return;
@@ -302,6 +327,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (landing) landing.style.display = 'block';
     const loginContainer = document.getElementById('loginContainer');
     if (loginContainer) loginContainer.classList.add('hidden');
+    document.body.classList.remove('app-activa');
     // Mostrar QR público en la landing (si existe el canvas)
     setTimeout(() => mostrarQRReferidoPublico(), 500);
   }
@@ -319,11 +345,12 @@ function mostrarLanding() {
   if (btnRegistro) btnRegistro.style.display = 'inline-block';
   const btnLogin = document.getElementById('btnShowLogin');
   if (btnLogin) btnLogin.style.display = 'inline-block';
+  document.body.classList.remove('app-activa');
   // También actualizar QR público si es necesario
   setTimeout(() => mostrarQRReferidoPublico(), 100);
 }
 
-// Exponer funciones globales para cerrar sesión y mostrar QR desde cualquier parte
+// Exponer funciones globales para cerrar sesión, mostrar vistas y QR
 window.cerrarSesion = cerrarSesion;
 window.mostrarVistaSegunRol = mostrarVistaSegunRol;
 window.mostrarQRIdentidad = mostrarQRIdentidad;
