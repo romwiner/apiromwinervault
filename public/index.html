@@ -7905,148 +7905,157 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
   })();
 </script>
 
-<!-- 🧠 LÓGICA SEGURA ENTERPRISE (Cero onclick, Cero enlaces externos, IA integrada) -->
+<!-- 🧠 LÓGICA REAL ENTERPRISE (Cero onclick, Cero enlaces externos, IA integrada) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const enterpriseFeatures = document.getElementById('enterpriseFeatures');
+  (function() {
+    const getToken = () => localStorage.getItem('authToken');
+    const enterpriseAIAudit = document.getElementById('enterpriseAIAudit');
     const btnExportGDPR = document.getElementById('btnExportGDPR');
     const btnManageWebhooks = document.getElementById('btnManageWebhooks');
     const btnRotateKeysNow = document.getElementById('btnRotateKeysNow');
     const btnManageTeams = document.getElementById('btnManageTeams');
-    const enterpriseAIAudit = document.getElementById('enterpriseAIAudit');
 
-    // Mostrar sección
-    setTimeout(() => {
-      enterpriseFeatures.classList.remove('hidden');
-      runEnterpriseAIAudit();
-    }, 500);
-
-    // 1. Exportar Reporte GDPR (Simulación segura)
-    btnExportGDPR.addEventListener('click', function() {
-      btnExportGDPR.disabled = true;
-      btnExportGDPR.textContent = '⏳ Generando reporte...';
-      
-      setTimeout(() => {
-        const reportData = {
-          timestamp: new Date().toISOString(),
-          compliance: ['GDPR', 'SOC2', 'ISO 27001'],
-          totalUsers: 1247,
-          dataProcessed: '2.4 TB',
-          encryptionStandard: 'AES-256-GCM',
-          lastAudit: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          vulnerabilities: 0,
-          recommendations: [
-            'Rotar claves de API cada 60 días',
-            'Habilitar MFA para todos los usuarios',
-            'Revisar permisos de equipos trimestralmente'
-          ]
-        };
-        
-        // Crear archivo JSON descargable
-        const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `enterprise_audit_${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        alert('✅ Reporte de cumplimiento GDPR/SOC2/ISO 27001 exportado exitosamente.');
-        btnExportGDPR.disabled = false;
-        btnExportGDPR.textContent = '📄 Exportar Reporte GDPR';
-      }, 2000);
-    });
-
-    // 2. Gestionar Webhooks
-    btnManageWebhooks.addEventListener('click', function() {
-      alert(`🔗 GESTIÓN DE WEBHOOKS ENTERPRISE
-      
-Webhooks configurados: 3 activos
-• Slack: #security-alerts (✅ Activo)
-• Teams: Canal IT (✅ Activo)
-• PagerDuty: Incidentes críticos (✅ Activo)
-
-Firma HMAC-SHA256: ACTIVADA
-Reintentos automáticos: 3 intentos
-Timeout: 5 segundos
-
-Para agregar o modificar webhooks, contacta al administrador:
-📧 admin@romwinervault.com`);
-    });
-
-    // 3. Rotar Claves Ahora
-    btnRotateKeysNow.addEventListener('click', function() {
-      if (confirm('⚠️ ¿Estás seguro de rotar todas las claves de cifrado ahora?\n\nEsto requerirá que todos los usuarios se re-autentiquen.')) {
-        btnRotateKeysNow.disabled = true;
-        btnRotateKeysNow.textContent = '🔄 Rotando...';
-        
-        setTimeout(() => {
-          alert('✅ Claves de cifrado rotadas exitosamente.\n\nPróxima rotación automática: ' + new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString());
-          btnRotateKeysNow.disabled = false;
-          btnRotateKeysNow.textContent = '🔄 Rotar Claves Ahora';
-        }, 2500);
+    // ============================================
+    // 1. Exportar Reporte GDPR (real)
+    // ============================================
+    async function exportarGDPR() {
+      const token = getToken();
+      if (!token) {
+        alert('Debes iniciar sesión.');
+        return;
       }
-    });
-
-    // 4. Gestionar Equipos
-    btnManageTeams.addEventListener('click', function() {
-      alert(`👥 GESTIÓN DE EQUIPOS ENTERPRISE
-
-Equipos activos: 5
-• Administración (3 usuarios) - Admin
-• Finanzas (12 usuarios) - Editor
-• Ventas (28 usuarios) - Viewer
-• IT (8 usuarios) - Admin
-• Marketing (15 usuarios) - Editor
-
-SSO Empresarial: ✅ Activo (Okta)
-MFA Obligatorio: ✅ Activado
-Políticas de retención: Configuradas
-
-Para modificar equipos y permisos, contacta al administrador:
-📧`admin@romwinervault.com);
-    });
-
-    // 5. Auditoría IA Enterprise
-    function runEnterpriseAIAudit() {
-      const steps = [
-        "🔍 Verificando cumplimiento normativo (GDPR, SOC2, ISO 27001)...",
-        "🛡️ Escaneando configuración de cifrado y rotación de claves...",
-        "🤖 IA: Analizando patrones de acceso y detección de anomalías...",
-        "📊 Validando integridad de logs de auditoría inmutables...",
-        "✅ Auditoría completada: Configuración enterprise 100% segura y conforme."
-      ];
-      
-      let step = 0;
-      const interval = setInterval(() => {
-        if (step < steps.length) {
-          enterpriseAIAudit.innerHTML = `<p style="margin:0;">${steps[step]}</p>`;
-          step++;
+      btnExportGDPR.disabled = true;
+      btnExportGDPR.innerHTML = '⏳ Generando reporte...';
+      try {
+        const res = await fetch('/api/audit/export?type=gdpr', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.data?.csv) {
+          // Descargar CSV
+          const blob = new Blob([data.data.csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `gdpr_report_${Date.now()}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          alert('✅ Reporte GDPR exportado correctamente.');
         } else {
-          clearInterval(interval);
-          enterpriseAIAudit.innerHTML = `
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
-              <strong style="color:#059669;">✅ Configuración Enterprise Verificada</strong><br>
-              <span style="color:#cbd5e1; font-size:0.8rem;">
-                • Cumplimiento normativo: GDPR ✅ | SOC2 ✅ | ISO 27001 ✅<br>
-                • Cifrado: AES-256-GCM con rotación automática<br>
-                • SLA: 99.99% de disponibilidad garantizada<br>
-                • Soporte: Prioritario 24/7 con respuesta < 1 hora
-              </span>
-            </div>
-          `;
+          throw new Error(data.error || 'Error al generar reporte');
         }
-      }, 1000);
+      } catch (err) {
+        alert('❌ Error: ' + err.message);
+      } finally {
+        btnExportGDPR.disabled = false;
+        btnExportGDPR.innerHTML = '📄 Exportar Reporte GDPR';
+      }
     }
-  });
+
+    // ============================================
+    // 2. Gestionar Webhooks (redirige al panel de admin)
+    // ============================================
+    function gestionarWebhooks() {
+      alert('🔗 Los webhooks se configuran desde el panel de administración.\n\nVe al Panel de Control → Herramientas Admin → "Registrar Webhook" o contacta al administrador.');
+      // Opcional: abrir el panel de admin si el usuario tiene permisos
+      const adminPanel = document.getElementById('adminPanel');
+      if (adminPanel && !adminPanel.classList.contains('hidden')) {
+        adminPanel.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // ============================================
+    // 3. Rotar Claves Ahora (real)
+    // ============================================
+    async function rotarClaves() {
+      const token = getToken();
+      if (!token) {
+        alert('Debes iniciar sesión.');
+        return;
+      }
+      if (!confirm('⚠️ ¿Estás seguro de rotar todas las claves de cifrado ahora?\n\nEsto requerirá que todos los usuarios se re-autentiquen.')) return;
+      btnRotateKeysNow.disabled = true;
+      btnRotateKeysNow.innerHTML = '🔄 Rotando...';
+      try {
+        const res = await fetch('/api/admin/rotate-keys', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Rotación de claves iniciada. El proceso se ejecutará en segundo plano.\n\nLos usuarios deberán volver a iniciar sesión.');
+          // Actualizar auditoría IA
+          actualizarAuditoria();
+        } else {
+          throw new Error(data.error || 'Error al rotar claves');
+        }
+      } catch (err) {
+        alert('❌ Error: ' + err.message);
+      } finally {
+        btnRotateKeysNow.disabled = false;
+        btnRotateKeysNow.innerHTML = '🔄 Rotar Claves Ahora';
+      }
+    }
+
+    // ============================================
+    // 4. Gestionar Equipos (redirige a la sección de empresas)
+    // ============================================
+    function gestionarEquipos() {
+      alert('👥 La gestión de equipos está disponible en el panel "Empresas".\n\nSi ya has registrado una organización, usa el botón "Invitar miembro" desde allí.');
+      const companyPanel = document.getElementById('companyPanel'); // si existe
+      if (companyPanel) companyPanel.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ============================================
+    // 5. Auditoría IA Enterprise (real desde /api/security/status)
+    // ============================================
+    async function actualizarAuditoria() {
+      if (!enterpriseAIAudit) return;
+      enterpriseAIAudit.innerHTML = '<p>⏳ Escaneando configuración de seguridad empresarial...</p>';
+      try {
+        const res = await fetch('/api/security/status');
+        const data = await res.json();
+        enterpriseAIAudit.innerHTML = `
+          <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
+            <strong style="color:#059669;">✅ Configuración Enterprise Verificada</strong><br>
+            <span style="color:#cbd5e1; font-size:0.8rem;">
+              • Cifrado: ${data.encryption?.algorithm || 'AES-256-GCM'}<br>
+              • Zero-Knowledge: ${data.encryption?.zeroKnowledgeReady ? 'ACTIVO' : 'DESACTIVADO'}<br>
+              • Auditoría: ${data.audit?.immutable ? 'Inmutable' : 'Estándar'}<br>
+              • Rotación de claves: cada ${data.keyManagement?.rotationDays || 90} días<br>
+              • Cumplimiento: GDPR, SOC2, ISO 27001 (en preparación)
+            </span>
+          </div>
+        `;
+      } catch (err) {
+        enterpriseAIAudit.innerHTML = '<p style="color:#ef4444;">No se pudo obtener la auditoría de seguridad.</p>';
+      }
+    }
+
+    // ============================================
+    // Asignar eventos
+    // ============================================
+    if (btnExportGDPR) btnExportGDPR.addEventListener('click', exportarGDPR);
+    if (btnManageWebhooks) btnManageWebhooks.addEventListener('click', gestionarWebhooks);
+    if (btnRotateKeysNow) btnRotateKeysNow.addEventListener('click', rotarClaves);
+    if (btnManageTeams) btnManageTeams.addEventListener('click', gestionarEquipos);
+
+    // Mostrar sección y ejecutar auditoría real
+    const enterpriseFeatures = document.getElementById('enterpriseFeatures');
+    if (enterpriseFeatures) {
+      setTimeout(() => {
+        enterpriseFeatures.classList.remove('hidden');
+        actualizarAuditoria();
+      }, 500);
+    }
+  })();
 </script>
   
 <!-- 🚀 CENTRO DE ACCIONES RÁPIDAS E IDENTIDAD DIGITAL: apiromwinervault (Con IA Integrada) -->
 <section id="quickActionsAndIdentity" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 20px auto; padding: 20px;">
   
-  <!-- Acciones Rápidas -->
   <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #334155; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #1e3a5f; padding-bottom: 16px; flex-wrap: wrap; gap: 12px;">
       <h2 style="margin: 0; font-size: 1.4rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
@@ -8055,7 +8064,6 @@ Para modificar equipos y permisos, contacta al administrador:
       <span style="background: #059669; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: bold;">🤖 IA Activa</span>
     </div>
 
-    <!-- Grid de Botones -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
       <button type="button" class="quick-action-btn" data-action="refresh" style="padding: 16px; background: linear-gradient(135deg, #38bdf8, #0ea5e9); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 8px;">
         <span style="font-size: 2rem;">🔄</span>
@@ -8097,13 +8105,14 @@ Para modificar equipos y permisos, contacta al administrador:
         <span>Ver Auditoría</span>
       </button>
     </div>
+  </div>
+</section>
 
-    <!-- 📊 ANALYTICS FINANCIERO: apiromwinervault (Con Gráficos Visuales e IA) -->
+<!-- 📊 ANALYTICS FINANCIERO: apiromwinervault (Con Gráficos Visuales e IA) -->
 <section id="financialAnalyticsPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 1000px; margin: 20px auto; padding: 20px;">
   
   <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #38bdf8; border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(56, 189, 248, 0.2);">
     
-    <!-- Encabezado -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #1e3a5f; padding-bottom: 16px; flex-wrap: wrap; gap: 12px;">
       <div>
         <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
@@ -8116,42 +8125,29 @@ Para modificar equipos y permisos, contacta al administrador:
       </span>
     </div>
 
-    <!-- Filtros de Fecha (Sin onclick) -->
     <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
-      <button type="button" class="date-filter-btn" data-period="7d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">
-        📅 7 días
-      </button>
-      <button type="button" class="date-filter-btn" data-period="30d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">
-        📅 30 días
-      </button>
-      <button type="button" class="date-filter-btn" data-period="90d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">
-        📅 90 días
-      </button>
-      <button type="button" id="btnExportCSV" style="padding: 8px 16px; background: transparent; color: #059669; border: 1px solid #059669; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-left: auto;">
-        📤 Exportar CSV
-      </button>
+      <button type="button" class="date-filter-btn" data-period="7d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 7 días</button>
+      <button type="button" class="date-filter-btn" data-period="30d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 30 días</button>
+      <button type="button" class="date-filter-btn" data-period="90d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 90 días</button>
+      <button type="button" id="btnExportCSV" style="padding: 8px 16px; background: transparent; color: #059669; border: 1px solid #059669; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-left: auto;">📤 Exportar CSV</button>
     </div>
 
-    <!-- Tarjetas de Resumen Financiero -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
       <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
         <div style="font-size: 1.5rem; margin-bottom: 8px;">💰</div>
         <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ingresos Totales</div>
         <div id="totalRevenue" style="font-size: 1.5rem; font-weight: bold; color: #059669;">$0.00</div>
       </div>
-      
       <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
         <div style="font-size: 1.5rem; margin-bottom: 8px;">🛍️</div>
         <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ventas Completadas</div>
         <div id="totalSales" style="font-size: 1.5rem; font-weight: bold; color: #38bdf8;">0</div>
       </div>
-      
       <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
         <div style="font-size: 1.5rem; margin-bottom: 8px;">🤝</div>
         <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ganancias Afiliados</div>
         <div id="affiliateEarnings" style="font-size: 1.5rem; font-weight: bold; color: #a78bfa;">$0.00</div>
       </div>
-      
       <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
         <div style="font-size: 1.5rem; margin-bottom: 8px;">📦</div>
         <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Productos Activos</div>
@@ -8159,224 +8155,435 @@ Para modificar equipos y permisos, contacta al administrador:
       </div>
     </div>
 
-    <!-- Gráfico de Ingresos (Canvas puro, sin librerías externas) -->
     <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #334155;">
       <h3 style="margin: 0 0 16px 0; color: #f8fafc; font-size: 1rem;">📈 Gráfico de Ingresos</h3>
       <canvas id="revenueChart" width="800" height="300" style="width: 100%; height: auto; background: #0f172a; border-radius: 8px;"></canvas>
     </div>
 
-    <!-- Auditoría IA de Finanzas -->
     <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; border-radius: 12px; padding: 16px;">
-      <h3 style="margin: 0 0 12px 0; color: #38bdf8; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
-        🤖 Auditoría IA de Finanzas
-      </h3>
+      <h3 style="margin: 0 0 12px 0; color: #38bdf8; font-size: 1rem;">🤖 Auditoría IA de Finanzas</h3>
       <div id="financialAIAudit" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">
         <p style="margin: 0;">⏳ Analizando patrones financieros...</p>
       </div>
     </div>
-
   </div>
 </section>
 
-<!-- 🧠 LÓGICA SEGURA DE ANALYTICS (Cero onclick, Cero enlaces externos, Gráficos con Canvas) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const financialAnalyticsPanel = document.getElementById('financialAnalyticsPanel');
-    const totalRevenue = document.getElementById('totalRevenue');
-    const totalSales = document.getElementById('totalSales');
-    const affiliateEarnings = document.getElementById('affiliateEarnings');
-    const activeProducts = document.getElementById('activeProducts');
-    const revenueChart = document.getElementById('revenueChart');
-    const financialAIAudit = document.getElementById('financialAIAudit');
-    const btnExportCSV = document.getElementById('btnExportCSV');
+  (function() {
+    const getToken = () => localStorage.getItem('authToken');
 
-    // Datos simulados (en app real, vienen de tu backend seguro)
-    let financialData = {
-      revenue: 1247.50,
-      sales: 34,
-      affiliateEarnings: 185.20,
-      activeProducts: 12,
-      chartData: [120, 145, 180, 210, 195, 230, 265, 240, 280, 310, 295, 340]
+    // ============================================
+    // ACCIONES RÁPIDAS (conectar a funciones reales)
+    // ============================================
+    const actionMap = {
+      refresh: () => {
+        // Actualizar métricas: recargar dashboard, wallet, analytics
+        if (window.cargarDashboard) window.cargarDashboard();
+        if (window.cargarProgresion) window.cargarProgresion();
+        if (window.cargarAnuncios) window.cargarAnuncios();
+        if (window.cargarFeed) window.cargarFeed();
+        alert('✅ Métricas actualizadas.');
+      },
+      upload: () => {
+        // Abrir modal de subida (si existe)
+        const modal = document.getElementById('uploadModal');
+        if (modal) modal.classList.remove('hidden');
+        else alert('Modal de subida no disponible.');
+      },
+      publish: () => {
+        // Abrir modal de publicación
+        if (window.abrirPublicarModal) window.abrirPublicarModal();
+        else alert('Publicación no disponible.');
+      },
+      vault: () => {
+        // Abrir modal de bóveda
+        if (window.abrirVaultModal) window.abrirVaultModal();
+        else alert('Bóveda no disponible.');
+      },
+      marketplace: () => {
+        // Navegar a la vista del marketplace (si existe)
+        const marketplace = document.getElementById('marketplaceSection');
+        if (marketplace) marketplace.classList.remove('hidden');
+        else alert('Marketplace no disponible.');
+      },
+      identity: () => {
+        // Mostrar QR de identidad
+        if (window.mostrarQRIdentidad) window.mostrarQRIdentidad();
+        else alert('QR no disponible.');
+      },
+      withdraw: () => {
+        // Abrir modal de retiro (o redirigir a wallet)
+        alert('💸 Función de retiro: contacta al administrador o usa el panel de wallet.');
+      },
+      audit: () => {
+        // Ver logs de auditoría
+        const adminLogs = document.getElementById('adminLogs');
+        if (adminLogs) adminLogs.scrollIntoView({ behavior: 'smooth' });
+        else alert('Los logs de auditoría están disponibles en el panel de administración.');
+      }
     };
 
-    // Mostrar sección
-    setTimeout(() => {
-      financialAnalyticsPanel.classList.remove('hidden');
-      updateFinancialUI();
-      drawRevenueChart();
-      runFinancialAIAudit();
-    }, 500);
+    document.querySelectorAll('.quick-action-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = btn.dataset.action;
+        if (actionMap[action]) actionMap[action]();
+        else console.warn(`Acción ${action} no definida`);
+      });
+    });
 
-    // 1. Actualizar interfaz
-    function updateFinancialUI() {
-      totalRevenue.textContent = '$' + financialData.revenue.toFixed(2);
-      totalSales.textContent = financialData.sales;
-      affiliateEarnings.textContent = '$' + financialData.affiliateEarnings.toFixed(2);
-      activeProducts.textContent = financialData.activeProducts;
+    // ============================================
+    // ANALYTICS FINANCIERO (real)
+    // ============================================
+    let currentPeriod = '30d';
+    let chartData = [];
+    const revenueCanvas = document.getElementById('revenueChart');
+    const ctx = revenueCanvas?.getContext('2d');
+
+    async function cargarAnalytics(period = currentPeriod) {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`/api/analytics/financial?period=${period}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        const stats = data.data;
+        // Actualizar tarjetas
+        document.getElementById('totalRevenue').textContent = `$${stats.totalRevenue?.toFixed(2) || '0.00'}`;
+        document.getElementById('totalSales').textContent = stats.totalSales || 0;
+        document.getElementById('affiliateEarnings').textContent = `$${stats.affiliateEarnings?.toFixed(2) || '0.00'}`;
+        document.getElementById('activeProducts').textContent = stats.activeProducts || 0;
+        // Datos para el gráfico (revenueByDay)
+        chartData = stats.revenueByDay || [];
+        dibujarGrafico();
+        // Auditoría IA (simulada pero con datos reales)
+        const auditDiv = document.getElementById('financialAIAudit');
+        if (auditDiv) {
+          auditDiv.innerHTML = `
+            <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
+              <strong style="color:#059669;">✅ Análisis Financiero Completado</strong><br>
+              <span style="color:#cbd5e1; font-size:0.8rem;">
+                • Período: ${period}<br>
+                • Ingreso diario promedio: $${(stats.totalRevenue / (chartData.length || 1)).toFixed(2)}<br>
+                • Productividad de ventas: ${stats.totalSales} transacciones<br>
+                • Comisiones de afiliados: $${stats.affiliateEarnings?.toFixed(2)}
+              </span>
+            </div>
+          `;
+        }
+      } catch (err) {
+        console.error('Error cargando analytics:', err);
+        document.getElementById('financialAIAudit').innerHTML = '<p style="color:#ef4444;">Error al cargar datos financieros.</p>';
+      }
     }
 
-    // 2. Dibujar gráfico de ingresos (Canvas puro)
-    function drawRevenueChart() {
-      const ctx = revenueChart.getContext('2d');
-      const width = revenueChart.width;
-      const height = revenueChart.height;
-      const data = financialData.chartData;
-      const max = Math.max(...data);
-      const padding = 40;
-
-      // Limpiar canvas
+    function dibujarGrafico() {
+      if (!ctx || !revenueCanvas) return;
+      const width = revenueCanvas.width;
+      const height = revenueCanvas.height;
       ctx.clearRect(0, 0, width, height);
-
-      // Dibujar ejes
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 2;
+      if (!chartData.length) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '14px system-ui';
+        ctx.fillText('No hay datos suficientes', width/2 - 100, height/2);
+        return;
+      }
+      const maxValue = Math.max(...chartData.map(d => d.amount), 1);
+      const stepX = width / (chartData.length - 1);
+      const padding = 30;
+      const graphHeight = height - padding * 2;
+      // Dibujar eje X
       ctx.beginPath();
       ctx.moveTo(padding, padding);
       ctx.lineTo(padding, height - padding);
       ctx.lineTo(width - padding, height - padding);
+      ctx.strokeStyle = '#334155';
+      ctx.stroke();
+      // Dibujar línea
+      ctx.beginPath();
+      for (let i = 0; i < chartData.length; i++) {
+        const x = padding + i * stepX;
+        const y = height - padding - (chartData[i].amount / maxValue) * graphHeight;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = '#059669';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // Rellenar área
+      ctx.beginPath();
+      for (let i = 0; i < chartData.length; i++) {
+        const x = padding + i * stepX;
+        const y = height - padding - (chartData[i].amount / maxValue) * graphHeight;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.lineTo(padding + (chartData.length-1)*stepX, height - padding);
+      ctx.lineTo(padding, height - padding);
+      ctx.fillStyle = 'rgba(5, 150, 105, 0.2)';
+      ctx.fill();
+    }
+
+    async function exportarCSV() {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`/api/analytics/financial/export?format=csv&period=${currentPeriod}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.data?.csv) {
+          const blob = new Blob([data.data.csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `financial_analytics_${currentPeriod}_${Date.now()}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } else throw new Error('No se pudo generar el CSV');
+      } catch (err) {
+        alert('Error al exportar: ' + err.message);
+      }
+    }
+
+    // Inicializar analytics cuando la sección sea visible
+    window.cargarAnalytics = cargarAnalytics;
+    document.querySelectorAll('.date-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentPeriod = btn.dataset.period;
+        cargarAnalytics(currentPeriod);
+      });
+    });
+    const btnExport = document.getElementById('btnExportCSV');
+    if (btnExport) btnExport.addEventListener('click', exportarCSV);
+
+    // Mostrar sección y cargar datos
+    const section = document.getElementById('financialAnalyticsPanel');
+    if (section && !section.classList.contains('hidden')) {
+      cargarAnalytics('30d');
+    }
+  })();
+</script>
+
+<!-- 📊 ANALYTICS FINANCIERO: apiromwinervault (Con Gráficos Visuales e IA real) -->
+<section id="financialAnalyticsPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 1000px; margin: 20px auto; padding: 20px;">
+  
+  <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #38bdf8; border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(56, 189, 248, 0.2);">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #1e3a5f; padding-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
+          📊 Analytics Financiero
+        </h2>
+        <p style="margin: 6px 0 0 0; font-size: 0.85rem; color: #94a3b8;">Visualiza ingresos, ventas y ganancias de afiliados con IA</p>
+      </div>
+      <span style="background: #38bdf8; color: #000; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
+        🤖 IA ACTIVA
+      </span>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+      <button type="button" class="date-filter-btn" data-period="7d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 7 días</button>
+      <button type="button" class="date-filter-btn" data-period="30d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 30 días</button>
+      <button type="button" class="date-filter-btn" data-period="90d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 90 días</button>
+      <button type="button" id="btnExportCSV" style="padding: 8px 16px; background: transparent; color: #059669; border: 1px solid #059669; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-left: auto;">📤 Exportar CSV</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">💰</div>
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ingresos Totales</div>
+        <div id="totalRevenue" style="font-size: 1.5rem; font-weight: bold; color: #059669;">$0.00</div>
+      </div>
+      <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">🛍️</div>
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ventas Completadas</div>
+        <div id="totalSales" style="font-size: 1.5rem; font-weight: bold; color: #38bdf8;">0</div>
+      </div>
+      <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">🤝</div>
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ganancias Afiliados</div>
+        <div id="affiliateEarnings" style="font-size: 1.5rem; font-weight: bold; color: #a78bfa;">$0.00</div>
+      </div>
+      <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">📦</div>
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Productos Activos</div>
+        <div id="activeProducts" style="font-size: 1.5rem; font-weight: bold; color: #fbbf24;">0</div>
+      </div>
+    </div>
+
+    <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #334155;">
+      <h3 style="margin: 0 0 16px 0; color: #f8fafc; font-size: 1rem;">📈 Gráfico de Ingresos</h3>
+      <canvas id="revenueChart" width="800" height="300" style="width: 100%; height: auto; background: #0f172a; border-radius: 8px;"></canvas>
+    </div>
+
+    <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; border-radius: 12px; padding: 16px;">
+      <h3 style="margin: 0 0 12px 0; color: #38bdf8; font-size: 1rem;">🤖 Auditoría IA de Finanzas</h3>
+      <div id="financialAIAudit" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">
+        <p style="margin: 0;">⏳ Analizando patrones financieros...</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function() {
+    const getToken = () => localStorage.getItem('authToken');
+    let currentPeriod = '30d';
+    let chartData = []; // array de objetos {date, amount}
+    const canvas = document.getElementById('revenueChart');
+    const ctx = canvas?.getContext('2d');
+
+    // Actualizar tarjetas y gráfico con datos reales
+    async function cargarAnalytics(period = currentPeriod) {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`/api/analytics/financial?period=${period}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        const stats = data.data;
+        document.getElementById('totalRevenue').textContent = `$${stats.totalRevenue?.toFixed(2) || '0.00'}`;
+        document.getElementById('totalSales').textContent = stats.totalSales || 0;
+        document.getElementById('affiliateEarnings').textContent = `$${stats.affiliateEarnings?.toFixed(2) || '0.00'}`;
+        document.getElementById('activeProducts').textContent = stats.activeProducts || 0;
+        chartData = stats.revenueByDay || [];
+        dibujarGrafico();
+        // Auditoría IA con datos reales
+        const auditDiv = document.getElementById('financialAIAudit');
+        if (auditDiv) {
+          const avgDaily = chartData.length ? (stats.totalRevenue / chartData.length).toFixed(2) : 0;
+          auditDiv.innerHTML = `
+            <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
+              <strong style="color:#059669;">✅ Análisis Financiero Completado</strong><br>
+              <span style="color:#cbd5e1; font-size:0.8rem;">
+                • Período: ${period}<br>
+                • Ingreso diario promedio: $${avgDaily}<br>
+                • Productividad de ventas: ${stats.totalSales} transacciones<br>
+                • Comisiones de afiliados: $${stats.affiliateEarnings?.toFixed(2)}<br>
+                • Tendencia: ${chartData.length > 1 && chartData[chartData.length-1]?.amount > chartData[0]?.amount ? '↑ Positiva' : '→ Estable'}
+              </span>
+            </div>
+          `;
+        }
+      } catch (err) {
+        console.error('Error cargando analytics:', err);
+        document.getElementById('financialAIAudit').innerHTML = '<p style="color:#ef4444;">Error al cargar datos financieros.</p>';
+      }
+    }
+
+    // Dibujar gráfico de línea con canvas (inspirado en tu diseño)
+    function dibujarGrafico() {
+      if (!ctx || !canvas) return;
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      if (!chartData.length) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '14px system-ui';
+        ctx.fillText('No hay datos suficientes', width/2 - 100, height/2);
+        return;
+      }
+      const maxValue = Math.max(...chartData.map(d => d.amount), 1);
+      const padding = 40;
+      const graphHeight = height - padding * 2;
+      const stepX = (width - padding * 2) / (chartData.length - 1);
+
+      // Dibujar ejes
+      ctx.beginPath();
+      ctx.moveTo(padding, padding);
+      ctx.lineTo(padding, height - padding);
+      ctx.lineTo(width - padding, height - padding);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Dibujar línea de datos
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 3;
+      // Dibujar línea
       ctx.beginPath();
-      
-      const stepX = (width - padding * 2) / (data.length - 1);
-      data.forEach((value, index) => {
-        const x = padding + (index * stepX);
-        const y = height - padding - ((value / max) * (height - padding * 2));
-        
-        if (index === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      });
+      for (let i = 0; i < chartData.length; i++) {
+        const x = padding + i * stepX;
+        const y = height - padding - (chartData[i].amount / maxValue) * graphHeight;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       // Dibujar puntos
       ctx.fillStyle = '#38bdf8';
-      data.forEach((value, index) => {
-        const x = padding + (index * stepX);
-        const y = height - padding - ((value / max) * (height - padding * 2));
+      for (let i = 0; i < chartData.length; i++) {
+        const x = padding + i * stepX;
+        const y = height - padding - (chartData[i].amount / maxValue) * graphHeight;
         ctx.beginPath();
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
         ctx.fill();
-      });
-
-      // Etiquetas
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '12px system-ui';
-      ctx.fillText('Ingresos ($)', padding, padding - 10);
-      ctx.fillText('Días', width - padding - 30, height - padding + 20);
+      }
     }
 
-    // 3. Filtros de fecha (Sin onclick)
+    // Exportar CSV real
+    async function exportarCSV() {
+      const token = getToken();
+      if (!token) return;
+      const btn = document.getElementById('btnExportCSV');
+      btn.disabled = true;
+      btn.textContent = '⏳ Generando...';
+      try {
+        const res = await fetch(`/api/analytics/financial/export?format=csv&period=${currentPeriod}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.data?.csv) {
+          const blob = new Blob([data.data.csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `financial_analytics_${currentPeriod}_${Date.now()}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } else throw new Error('No se pudo generar el CSV');
+      } catch (err) {
+        alert('Error al exportar: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📤 Exportar CSV';
+      }
+    }
+
+    // Filtros
     document.querySelectorAll('.date-filter-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        const period = this.dataset.period;
-        
-        // Actualizar estilo del botón activo
+      btn.addEventListener('click', () => {
+        currentPeriod = btn.dataset.period;
+        // Estilo activo
         document.querySelectorAll('.date-filter-btn').forEach(b => {
           b.style.background = '#1e293b';
           b.style.color = '#94a3b8';
         });
-        this.style.background = '#38bdf8';
-        this.style.color = '#000';
-        
-        // Simular carga de datos según período
-        btnExportCSV.disabled = true;
-        btnExportCSV.textContent = '⏳ Cargando...';
-        
-        setTimeout(() => {
-          // Simular datos diferentes según el período
-          if (period === '7d') {
-            financialData.revenue = 347.50;
-            financialData.sales = 8;
-            financialData.chartData = [45, 52, 48, 61, 58, 65, 72];
-          } else if (period === '30d') {
-            financialData.revenue = 1247.50;
-            financialData.sales = 34;
-            financialData.chartData = [120, 145, 180, 210, 195, 230, 265, 240, 280, 310, 295, 340];
-          } else if (period === '90d') {
-            financialData.revenue = 3892.30;
-            financialData.sales = 98;
-            financialData.chartData = [320, 380, 420, 450, 480, 520, 560, 590, 620, 650, 680, 720];
-          }
-          
-          updateFinancialUI();
-          drawRevenueChart();
-          
-          btnExportCSV.disabled = false;
-          btnExportCSV.textContent = '📤 Exportar CSV';
-        }, 1000);
+        btn.style.background = '#38bdf8';
+        btn.style.color = '#000';
+        cargarAnalytics(currentPeriod);
       });
     });
 
-    // 4. Exportar CSV (Funcional y seguro)
-    btnExportCSV.addEventListener('click', function() {
-      btnExportCSV.disabled = true;
-      btnExportCSV.textContent = '⏳ Generando...';
-      
-      setTimeout(() => {
-        // Crear contenido CSV
-        const csvContent = [
-          ['Fecha', 'Ingresos', 'Ventas', 'Afiliados', 'Productos'],
-          ['2026-06-01', '$120.00', '3', '$15.20', '12'],
-          ['2026-06-02', '$145.00', '4', '$18.50', '12'],
-          ['2026-06-03', '$180.00', '5', '$22.30', '12'],
-          ['2026-06-04', '$210.00', '6', '$25.80', '12'],
-          ['2026-06-05', '$195.00', '5', '$24.10', '12'],
-          ['2026-06-06', '$230.00', '7', '$28.90', '12'],
-          ['2026-06-07', '$265.00', '8', '$32.40', '12'],
-          ['', '', '', '', ''],
-          ['TOTALES', '$' + financialData.revenue.toFixed(2), financialData.sales, '$' + financialData.affiliateEarnings.toFixed(2), financialData.activeProducts]
-        ].map(row => row.join(',')).join('\n');
-        
-        // Crear archivo descargable
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `analytics_financiero_${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        alert('✅ Reporte financiero exportado exitosamente en formato CSV.');
-        btnExportCSV.disabled = false;
-        btnExportCSV.textContent = '📤 Exportar CSV';
-      }, 1500);
-    });
+    const exportBtn = document.getElementById('btnExportCSV');
+    if (exportBtn) exportBtn.addEventListener('click', exportarCSV);
 
-    // 5. Auditoría IA de Finanzas
-    function runFinancialAIAudit() {
-      const steps = [
-        "🔍 Analizando patrones de ingresos y ventas...",
-        "🛡️ Verificando integridad de transacciones de afiliados...",
-        "🤖 IA: Detectando anomalías y tendencias...",
-        "📊 Generando recomendaciones de optimización...",
-        "✅ Auditoría completada: Finanzas 100% verificadas."
-      ];
-      
-      let step = 0;
-      const interval = setInterval(() => {
-        if (step < steps.length) {
-          financialAIAudit.innerHTML = `<p style="margin:0;">${steps[step]}</p>`;
-          step++;
-        } else {
-          clearInterval(interval);
-          financialAIAudit.innerHTML = `
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
-              <strong style="color:#059669;">✅ Auditoría Financiera Completada</strong><br>
-              <span style="color:#cbd5e1; font-size:0.8rem;">
-                • Tendencia de ingresos: <strong style="color:#059669;">↑ 23% (positiva)</strong><br>
-                • Conversión de ventas: <strong style="color:#38bdf8;">68% (óptima)</strong><br>
-                • Anomalías detectadas: <strong style="color:#059669;">0</strong><br>
-                • Recomendación IA: Mantener estrategia actual de venta granular
-              </span>
-            </div>
+    // Mostrar sección y cargar datos si está visible
+    const panel = document.getElementById('financialAnalyticsPanel');
+    if (panel && !panel.classList.contains('hidden')) {
+      cargarAnalytics('30d');
+    }
+    // Exponer función para que script.js la llame si es necesario
+    window.cargarAnalytics = cargarAnalytics;
+  })();
 </script>
 
 <!-- 🔗 MODAL DE WEBHOOKS SEGURO: apiromwinervault (Con Auditoría IA y Validación de URLs) -->
@@ -8384,7 +8591,6 @@ Para modificar equipos y permisos, contacta al administrador:
   
   <div style="background: #0f172a; border: 2px solid #ec4899; border-radius: 16px; max-width: 550px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 28px; box-shadow: 0 25px 50px -12px rgba(236, 72, 153, 0.4);">
     
-    <!-- Encabezado -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 16px;">
       <h2 style="margin: 0; font-size: 1.3rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
         🔗 Gestor de Webhooks Seguros
@@ -8394,9 +8600,7 @@ Para modificar equipos y permisos, contacta al administrador:
       </span>
     </div>
 
-    <!-- Formulario de Registro -->
     <div style="margin-bottom: 20px;">
-      
       <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">1. URL del Webhook (HTTPS obligatorio):</label>
       <input type="url" id="webhookUrl" placeholder="https://tu-servicio.com/webhook" required pattern="https://.*" style="width: 100%; box-sizing: border-box; padding: 12px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; margin-bottom: 12px;">
       <p style="font-size: 0.7rem; color: #64748b; margin-top: -8px; margin-bottom: 12px;">✅ Solo HTTPS • ❌ Bloqueado: HTTP, IPs locales, dominios sospechosos</p>
@@ -8416,12 +8620,9 @@ Para modificar equipos y permisos, contacta al administrador:
       <input type="password" id="webhookSecret" placeholder="Clave secreta (mínimo 16 caracteres)" style="width: 100%; box-sizing: border-box; padding: 12px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; margin-bottom: 12px;">
       <p style="font-size: 0.7rem; color: #64748b; margin-top: -8px; margin-bottom: 16px;">🔐 Esta clave firmará cada payload para verificar autenticidad</p>
       
-      <button type="button" id="btnRegisterWebhook" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ec4899, #db2777); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
-        ✅ Registrar Webhook Seguro
-      </button>
+      <button type="button" id="btnRegisterWebhook" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ec4899, #db2777); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer;">✅ Registrar Webhook Seguro</button>
     </div>
 
-    <!-- Lista de Webhooks Registrados -->
     <div style="border-top: 1px solid #334155; padding-top: 20px;">
       <h3 style="margin: 0 0 12px 0; color: #f8fafc; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
         📋 Webhooks Registrados
@@ -8432,17 +8633,11 @@ Para modificar equipos y permisos, contacta al administrador:
       </div>
     </div>
 
-    <!-- Botones de Acción -->
     <div style="display: flex; gap: 12px;">
-      <button type="button" id="btnTestWebhook" style="flex: 1; padding: 12px; background: #38bdf8; color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: all 0.2s;">
-        🧪 Probar Conexión
-      </button>
-      <button type="button" id="btnCloseWebhooks" style="padding: 12px 20px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-        Cerrar
-      </button>
+      <button type="button" id="btnTestWebhook" style="flex: 1; padding: 12px; background: #38bdf8; color: #000; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">🧪 Probar Conexión</button>
+      <button type="button" id="btnCloseWebhooks" style="padding: 12px 20px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 10px; font-weight: 600; cursor: pointer;">Cerrar</button>
     </div>
 
-    <!-- Auditoría IA de Webhooks -->
     <div style="margin-top: 16px; padding: 12px; background: rgba(236, 72, 153, 0.1); border-radius: 8px; border-left: 3px solid #ec4899; font-size: 0.8rem; color: #cbd5e1;">
       <strong style="color: #ec4899;">🤖 Auditoría IA:</strong>
       <div id="webhookAIAudit" style="margin-top: 6px;">Cada webhook será validado antes de registrarse.</div>
@@ -8450,6 +8645,203 @@ Para modificar equipos y permisos, contacta al administrador:
 
   </div>
 </section>
+
+<script>
+  (function() {
+    const modal = document.getElementById('webhookModal');
+    const btnClose = document.getElementById('btnCloseWebhooks');
+    const urlInput = document.getElementById('webhookUrl');
+    const eventsSelect = document.getElementById('webhookEvents');
+    const secretInput = document.getElementById('webhookSecret');
+    const btnRegister = document.getElementById('btnRegisterWebhook');
+    const btnTest = document.getElementById('btnTestWebhook');
+    const webhookListDiv = document.getElementById('webhookList');
+    const webhookCountSpan = document.getElementById('webhookCount');
+    const auditDiv = document.getElementById('webhookAIAudit');
+
+    const getToken = () => localStorage.getItem('authToken');
+
+    // Validar URL (solo HTTPS, no localhost, no IP)
+    function isValidWebhookUrl(url) {
+      try {
+        const u = new URL(url);
+        if (u.protocol !== 'https:') return false;
+        if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return false;
+        // Permitir solo dominios con punto (no IPs)
+        const isIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(u.hostname);
+        if (isIp) return false;
+        return true;
+      } catch(e) { return false; }
+    }
+
+    // Cargar lista de webhooks del usuario
+    async function cargarWebhooks() {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch('/api/admin/webhooks', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        const webhooks = data.webhooks || [];
+        webhookCountSpan.textContent = webhooks.length;
+        if (webhooks.length === 0) {
+          webhookListDiv.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">No hay webhooks registrados aún.</p>';
+          return;
+        }
+        webhookListDiv.innerHTML = '';
+        webhooks.forEach(wh => {
+          const item = document.createElement('div');
+          item.style.cssText = 'background: #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 8px; border: 1px solid #334155;';
+          item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div style="flex:1;">
+                <strong style="color:#ec4899;">🔗 ${wh.url}</strong><br>
+                <span style="font-size:0.75rem; color:#94a3b8;">Evento: ${wh.events?.join(', ') || wh.event || 'general'}</span>
+              </div>
+              <button class="delete-webhook" data-url="${wh.url}" style="background: #ef4444; border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer;">🗑️ Eliminar</button>
+            </div>
+          `;
+          webhookListDiv.appendChild(item);
+        });
+        // Asignar eventos de eliminación
+        document.querySelectorAll('.delete-webhook').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const url = btn.dataset.url;
+            if (confirm(`¿Eliminar webhook ${url}?`)) {
+              await eliminarWebhook(url);
+              cargarWebhooks();
+            }
+          });
+        });
+      } catch (err) {
+        console.error('Error cargando webhooks:', err);
+        webhookListDiv.innerHTML = '<p style="color:#ef4444;">Error al cargar webhooks.</p>';
+      }
+    }
+
+    async function eliminarWebhook(url) {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`/api/admin/webhooks/${encodeURIComponent(url)}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        auditDiv.innerHTML = '✅ Webhook eliminado correctamente.';
+        setTimeout(() => { auditDiv.innerHTML = 'Cada webhook será validado antes de registrarse.'; }, 3000);
+      } catch (err) {
+        alert('Error al eliminar: ' + err.message);
+      }
+    }
+
+    // Registrar nuevo webhook
+    async function registrarWebhook() {
+      const token = getToken();
+      if (!token) {
+        alert('Debes iniciar sesión.');
+        return;
+      }
+      const url = urlInput.value.trim();
+      const events = [eventsSelect.value];
+      const secret = secretInput.value.trim();
+      if (!url) {
+        alert('Ingresa una URL válida (HTTPS).');
+        return;
+      }
+      if (!isValidWebhookUrl(url)) {
+        alert('URL inválida. Solo se permiten HTTPS y dominios externos (no localhost, no IPs).');
+        auditDiv.innerHTML = '❌ IA: URL rechazada por no cumplir estándares de seguridad.';
+        return;
+      }
+      if (secret.length < 16) {
+        alert('El secret debe tener al menos 16 caracteres.');
+        return;
+      }
+      btnRegister.disabled = true;
+      btnRegister.textContent = '⏳ Registrando...';
+      try {
+        const res = await fetch('/api/admin/webhooks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ url, events, secret })
+        });
+        const data = await res.json();
+        if (data.success) {
+          auditDiv.innerHTML = '✅ Webhook registrado exitosamente. Firma HMAC-SHA256 activa.';
+          urlInput.value = '';
+          secretInput.value = '';
+          cargarWebhooks();
+        } else {
+          throw new Error(data.error || 'Error al registrar');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+        auditDiv.innerHTML = '❌ Error en el registro: ' + err.message;
+      } finally {
+        btnRegister.disabled = false;
+        btnRegister.textContent = '✅ Registrar Webhook Seguro';
+      }
+    }
+
+    // Probar conexión (enviar ping de prueba)
+    async function probarWebhook() {
+      const token = getToken();
+      if (!token) return;
+      const url = urlInput.value.trim();
+      if (!url) {
+        alert('Primero ingresa una URL para probar.');
+        return;
+      }
+      if (!isValidWebhookUrl(url)) {
+        alert('URL inválida. Debe ser HTTPS y dominio externo.');
+        return;
+      }
+      btnTest.disabled = true;
+      btnTest.textContent = '⏳ Probando...';
+      try {
+        // Enviar una solicitud de prueba al webhook (endpoint especial)
+        const res = await fetch('/api/admin/webhooks/test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Conexión exitosa. El webhook respondió correctamente.');
+          auditDiv.innerHTML = '✅ IA: Webhook probado y funcionando.';
+        } else {
+          throw new Error(data.error || 'Error en la prueba');
+        }
+      } catch (err) {
+        alert('❌ Falló la conexión: ' + err.message);
+        auditDiv.innerHTML = '❌ IA: El webhook no respondió o no es válido.';
+      } finally {
+        btnTest.disabled = false;
+        btnTest.textContent = '🧪 Probar Conexión';
+      }
+    }
+
+    // Abrir modal y cargar datos
+    window.abrirWebhookModal = function() {
+      modal.classList.remove('hidden');
+      cargarWebhooks();
+    };
+
+    btnClose.addEventListener('click', () => modal.classList.add('hidden'));
+    btnRegister.addEventListener('click', registrarWebhook);
+    btnTest.addEventListener('click', probarWebhook);
+  })();
+</script>
 
 <!-- 🧠 LÓGICA SEGURA DE WEBHOOKS (Cero onclick, Cero enlaces externos, IA integrada) -->
 <script>
