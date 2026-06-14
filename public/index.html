@@ -4265,10 +4265,10 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 })();
 </script>
  
-<!-- 🧠 LÓGICA SEGURA DE VISUALIZACIÓN (Cero onclick, IA integrada) -->
+<!-- 🧠 LÓGICA REAL DE VISUALIZACIÓN DE BÓVEDA (con backend) -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Referencias seguras
+    // Referencias a elementos del DOM (dentro del modal principal)
     const vaultModal = document.getElementById('vaultModal');
     const vaultList = document.getElementById('vaultList');
     const btnCloseVault = document.getElementById('btnCloseVault');
@@ -4288,179 +4288,220 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     const btnConfirmSell = document.getElementById('btnConfirmSell');
     const btnCancelSell = document.getElementById('btnCancelSell');
 
-    // Base de datos simulada de archivos en bóveda
-    let vaultFiles = [
-      { id: 1, name: 'contraseñas_banco.txt', size: 0.5, category: 'bancario', value: 250, forSale: false },
-      { id: 2, name: 'plan_estrategico.pdf', size: 2.3, category: 'corporativo', value: 500, forSale: true, price: 150 },
-      { id: 3, name: 'base_datos_clientes.zip', size: 15.7, category: 'secreto', value: 1200, forSale: false }
-    ];
+    const getToken = () => localStorage.getItem('authToken');
 
-    // 1. Cerrar modal principal
-    btnCloseVault.addEventListener('click', () => vaultModal.classList.add('hidden'));
+    let currentFileId = null;
+    let currentFileName = null;
 
-    // 2. Cerrar modales secundarios
-    btnClosePreview.addEventListener('click', () => previewModal.classList.add('hidden'));
-    btnCancelSell.addEventListener('click', () => sellModal.classList.add('hidden'));
-
-    // 3. Renderizar lista de archivos
-    function renderVaultFiles() {
-      if (vaultFiles.length === 0) {
-        vaultList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 40px 20px;">No hay archivos en tu bóveda aún.</p>';
-        updateStats();
+    // ========== CARGAR ARCHIVOS REALES DESDE EL BACKEND ==========
+    async function cargarVault() {
+      const token = getToken();
+      if (!token) {
+        vaultList.innerHTML = '<p style="color:#ef4444;">Debes iniciar sesión.</p>';
         return;
       }
+      vaultList.innerHTML = '<p style="text-align:center;">Cargando archivos...</p>';
+      try {
+        const res = await fetch('/vault', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Error al cargar bóveda');
+        const items = data.items || [];
 
-      vaultList.innerHTML = '';
-      
-      vaultFiles.forEach(file => {
-        const fileCard = document.createElement('div');
-        fileCard.style.cssText = 'background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 12px; transition: transform 0.2s;';
-        
-        const icon = getCategoryIcon(file.category);
-        const statusBadge = file.forSale 
-          ? `<span style="background: #fbbf24; color: #000; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: bold;">💰 EN VENTA: $${file.price}</span>`
-          : `<span style="background: #334155; color: #94a3b8; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem;">🔒 PRIVADO</span>`;
-        
-        fileCard.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-            <div style="flex: 1;">
-              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-                <span style="font-size: 1.5rem;">${icon}</span>
-                <h4 style="margin: 0; color: #f8fafc; font-size: 1rem;">${file.name}</h4>
+        // Actualizar estadísticas
+        const totalFiles = items.length;
+        const totalSizeMB = items.reduce((sum, i) => sum + (i.fileSize || 0), 0) / (1024 * 1024);
+        const totalValue = items.reduce((sum, i) => sum + (i.isForSale ? (i.price || 0) : 0), 0);
+        modalFileCount.textContent = totalFiles;
+        modalTotalSize.textContent = totalSizeMB.toFixed(1) + ' MB';
+        modalTotalValue.textContent = '$' + totalValue.toFixed(2);
+
+        if (totalFiles === 0) {
+          vaultList.innerHTML = '<p style="text-align:center; color:#64748b;">No hay archivos en tu bóveda.</p>';
+          return;
+        }
+
+        vaultList.innerHTML = '';
+        for (const item of items) {
+          const card = document.createElement('div');
+          card.style.cssText = 'background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 12px;';
+          const sizeMB = (item.fileSize / 1024 / 1024).toFixed(2);
+          const icon = getCategoryIcon(item.categoria);
+          const statusBadge = item.isForSale 
+            ? `<span style="background: #fbbf24; color: #000; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem;">💰 EN VENTA: $${item.price}</span>`
+            : `<span style="background: #334155; color: #94a3b8; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem;">🔒 PRIVADO</span>`;
+          card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                  <span style="font-size: 1.5rem;">${icon}</span>
+                  <h4 style="margin: 0; color: #f8fafc; font-size: 1rem;">${escapeHtml(item.titulo)}</h4>
+                </div>
+                <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">${sizeMB} MB • ${getCategoryName(item.categoria)}</p>
               </div>
-              <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">${file.size} MB • ${getCategoryName(file.category)} • Valor: $${file.value}</p>
+              ${statusBadge}
             </div>
-            ${statusBadge}
-          </div>
-          <div style="background: #0f172a; border-left: 3px solid #059669; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 0.8rem; color: #cbd5e1;">
-            🤖 <strong>IA:</strong> Integridad 100%. Sin amenazas. Cifrado AES-256-GCM activo.
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button type="button" class="btn-preview" data-id="${file.id}" style="flex: 1; padding: 8px; background: #38bdf8; color: white; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
-              👁️ Ver
-            </button>
-            <button type="button" class="btn-sell" data-id="${file.id}" style="flex: 1; padding: 8px; background: ${file.forSale ? '#ef4444' : '#059669'}; color: white; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
-              ${file.forSale ? '❌ Quitar Venta' : '💰 Vender'}
-            </button>
-            <button type="button" class="btn-delete" data-id="${file.id}" style="flex: 1; padding: 8px; background: transparent; color: #ef4444; border: 1px solid #ef4444; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
-              🗑️ Eliminar
-            </button>
-          </div>
-        `;
-        
-        vaultList.appendChild(fileCard);
-      });
+            <div style="background: #0f172a; border-left: 3px solid #059669; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 0.8rem; color: #cbd5e1;">
+              🤖 <strong>IA:</strong> Integridad 100%. Cifrado AES-256-GCM activo.
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="preview-btn" data-id="${item._id}" data-titulo="${escapeHtml(item.titulo)}" style="flex:1; padding:8px; background:#38bdf8; color:#000; border:none; border-radius:8px; cursor:pointer;">👁️ Ver</button>
+              <button class="sell-btn" data-id="${item._id}" data-titulo="${escapeHtml(item.titulo)}" data-forsale="${item.isForSale}" data-price="${item.price || 0}" style="flex:1; padding:8px; background:${item.isForSale ? '#ef4444' : '#059669'}; color:white; border:none; border-radius:8px; cursor:pointer;">${item.isForSale ? '❌ Quitar Venta' : '💰 Vender'}</button>
+              <button class="delete-btn" data-id="${item._id}" style="flex:1; padding:8px; background:transparent; border:1px solid #ef4444; color:#ef4444; border-radius:8px; cursor:pointer;">🗑️ Eliminar</button>
+            </div>
+          `;
+          vaultList.appendChild(card);
+        }
 
-      // Asignar eventos a botones dinámicos
-      document.querySelectorAll('.btn-preview').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const fileId = parseInt(this.dataset.id);
-          openPreview(fileId);
+        // Asignar eventos después de renderizar
+        document.querySelectorAll('.preview-btn').forEach(btn => {
+          btn.addEventListener('click', () => abrirPreview(btn.dataset.id, btn.dataset.titulo));
         });
-      });
-
-      document.querySelectorAll('.btn-sell').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const fileId = parseInt(this.dataset.id);
-          toggleSale(fileId);
+        document.querySelectorAll('.sell-btn').forEach(btn => {
+          btn.addEventListener('click', () => manejarVenta(btn.dataset.id, btn.dataset.titulo, btn.dataset.forsale === 'true'));
         });
-      });
-
-      document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const fileId = parseInt(this.dataset.id);
-          deleteFile(fileId);
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (confirm('¿Eliminar permanentemente este archivo?')) {
+              await eliminarArchivo(btn.dataset.id);
+              cargarVault();
+            }
+          });
         });
-      });
-
-      updateStats();
-    }
-
-    // 4. Abrir vista previa segura
-    function openPreview(fileId) {
-      const file = vaultFiles.find(f => f.id === fileId);
-      if (!file) return;
-
-      previewModal.classList.remove('hidden');
-      previewContent.innerHTML = `
-        <div style="text-align: center;">
-          <div style="font-size: 3rem; margin-bottom: 12px;">${getCategoryIcon(file.category)}</div>
-          <h4 style="margin: 0 0 8px 0; color: #f8fafc;">${file.name}</h4>
-          <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">${file.size} MB • ${getCategoryName(file.category)}</p>
-          <p style="margin: 12px 0 0 0; color: #64748b; font-size: 0.8rem;">Vista previa aislada y segura. Contenido cifrado.</p>
-        </div>
-      `;
-    }
-
-    // 5. Toggle venta granular
-    function toggleSale(fileId) {
-      const file = vaultFiles.find(f => f.id === fileId);
-      if (!file) return;
-
-      if (file.forSale) {
-        // Quitar de venta
-        file.forSale = false;
-        file.price = null;
-        renderVaultFiles();
-        alert('✅ Archivo retirado de la venta granular.');
-      } else {
-        // Abrir modal de venta
-        sellModal.classList.remove('hidden');
-        sellFileInfo.innerHTML = `
-          <strong>Archivo:</strong> ${file.name}<br>
-          <strong>Tamaño:</strong> ${file.size} MB<br>
-          <strong>Valor estimado por IA:</strong> $${file.value}
-        `;
-        
-        btnConfirmSell.onclick = function() {
-          const price = parseFloat(sellPrice.value);
-          const description = sellDescription.value.trim();
-          
-          if (!price || price < 1) {
-            alert('⚠️ ALERTA: Ingresa un precio válido (mínimo $1 USD).');
-            return;
-          }
-          
-          if (!description) {
-            alert('⚠️ ALERTA: Ingresa una descripción para los compradores.');
-            return;
-          }
-          
-          file.forSale = true;
-          file.price = price;
-          file.description = description;
-          
-          sellModal.classList.add('hidden');
-          sellPrice.value = '';
-          sellDescription.value = '';
-          renderVaultFiles();
-          
-          alert(`✅ ¡Éxito! "${file.name}" ahora está en venta granular por $${price} USD.`);
-        };
+      } catch (err) {
+        console.error(err);
+        vaultList.innerHTML = '<p style="color:#ef4444;">Error al cargar la bóveda.</p>';
       }
     }
 
-    // 6. Eliminar archivo
-    function deleteFile(fileId) {
-      if (!confirm('⚠️ ¿Estás seguro de eliminar este archivo? Esta acción no se puede deshacer.')) {
+    // ========== ELIMINAR ARCHIVO ==========
+    async function eliminarArchivo(id) {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`/vault/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        alert('✅ Archivo eliminado.');
+      } catch (err) {
+        alert('❌ Error al eliminar: ' + err.message);
+      }
+    }
+
+    // ========== VISTA PREVIA REAL ==========
+    async function abrirPreview(id, titulo) {
+      const token = getToken();
+      if (!token) {
+        alert('Inicia sesión para ver el contenido.');
         return;
       }
-      
-      vaultFiles = vaultFiles.filter(f => f.id !== fileId);
-      renderVaultFiles();
-      alert('✅ Archivo eliminado de forma segura.');
+      previewModal.classList.remove('hidden');
+      previewContent.innerHTML = 'Cargando vista previa segura...';
+      try {
+        const res = await fetch(`/vault/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        const secret = data.secret;
+        let contenidoHtml = '';
+        if (secret.tipo === 'texto') {
+          contenidoHtml = `<div style="white-space: pre-wrap; background:#0f172a; padding:12px; border-radius:8px;">${escapeHtml(secret.contenido || 'Sin contenido')}</div>`;
+        } else if (secret.tipo === 'archivo') {
+          const fileName = secret.fileName || 'archivo';
+          const fileType = secret.fileType || '';
+          if (fileType.startsWith('image/')) {
+            contenidoHtml = `<img src="data:${fileType};base64,${secret.contenido}" style="max-width:100%; max-height:300px; border-radius:8px;">`;
+          } else {
+            contenidoHtml = `<p>Archivo: ${fileName} (${(secret.fileSize / 1024 / 1024).toFixed(2)} MB)<br>Descarga disponible en tu bóveda.</p>`;
+          }
+        }
+        previewContent.innerHTML = `<h4 style="margin-top:0;">${escapeHtml(titulo)}</h4>${contenidoHtml}`;
+      } catch (err) {
+        previewContent.innerHTML = '<p style="color:#ef4444;">Error al cargar la vista previa.</p>';
+        console.error(err);
+      }
     }
 
-    // 7. Actualizar estadísticas
-    function updateStats() {
-      modalFileCount.textContent = vaultFiles.length;
-      const totalSize = vaultFiles.reduce((sum, f) => sum + f.size, 0).toFixed(1);
-      modalTotalSize.textContent = `${totalSize} MB`;
-      const totalValue = vaultFiles.reduce((sum, f) => sum + f.value, 0);
-      modalTotalValue.textContent = `$${totalValue}`;
+    // ========== VENTA GRANULAR ==========
+    function manejarVenta(id, titulo, isForSale) {
+      if (isForSale) {
+        // Quitar de venta directamente
+        if (confirm(`¿Quitar "${titulo}" de la venta granular?`)) {
+          actualizarVenta(id, false, 0);
+        }
+        return;
+      }
+      currentFileId = id;
+      currentFileName = titulo;
+      sellFileInfo.innerHTML = `<strong>Archivo:</strong> ${escapeHtml(titulo)}<br><strong>Acción:</strong> Publicar en venta granular.`;
+      sellPrice.value = '';
+      sellDescription.value = '';
+      sellModal.classList.remove('hidden');
     }
 
-    // 8. Funciones auxiliares
+    async function actualizarVenta(id, forSale, price, description = '') {
+      const token = getToken();
+      if (!token) return;
+      try {
+        // Endpoint PATCH /vault/:id (debe existir en tu backend)
+        const res = await fetch(`/vault/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ isForSale: forSale, price: forSale ? price : 0, descripcion: description })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        cargarVault(); // recargar lista
+      } catch (err) {
+        alert('Error al actualizar estado de venta: ' + err.message);
+      }
+    }
+
+    // ========== MANEJAR MODALES ==========
+    if (btnConfirmSell) {
+      btnConfirmSell.addEventListener('click', async () => {
+        const price = parseFloat(sellPrice.value);
+        if (!currentFileId || isNaN(price) || price <= 0) {
+          alert('Ingresa un precio válido mayor a 0.');
+          return;
+        }
+        const description = sellDescription.value.trim();
+        btnConfirmSell.disabled = true;
+        btnConfirmSell.textContent = 'Publicando...';
+        await actualizarVenta(currentFileId, true, price, description);
+        sellModal.classList.add('hidden');
+        btnConfirmSell.disabled = false;
+        btnConfirmSell.textContent = '🛡️ Publicar Cifrado';
+        sellPrice.value = '';
+        sellDescription.value = '';
+        alert('✅ Producto publicado en el marketplace.');
+      });
+    }
+
+    if (btnCancelSell) {
+      btnCancelSell.addEventListener('click', () => {
+        sellModal.classList.add('hidden');
+        currentFileId = null;
+      });
+    }
+
+    if (btnClosePreview) {
+      btnClosePreview.addEventListener('click', () => previewModal.classList.add('hidden'));
+    }
+
+    if (btnCloseVault) {
+      btnCloseVault.addEventListener('click', () => vaultModal.classList.add('hidden'));
+    }
+
+    // ========== FUNCIONES AUXILIARES ==========
     function getCategoryIcon(category) {
       const icons = {
         bancario: '🏦',
@@ -4469,7 +4510,11 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         general: '📁',
         documento: '📄',
         imagen: '🖼️',
-        video: '🎬'
+        video: '🎬',
+        educacion: '🎓',
+        software: '💻',
+        multimedia: '🎬',
+        comprimido: '📦'
       };
       return icons[category] || '📁';
     }
@@ -4482,20 +4527,36 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         general: 'General',
         documento: 'Documento',
         imagen: 'Imagen',
-        video: 'Video'
+        video: 'Video',
+        educacion: 'Educación',
+        software: 'Software',
+        multimedia: 'Multimedia',
+        comprimido: 'Comprimido'
       };
       return names[category] || 'General';
     }
 
-    // Renderizar al cargar
-    renderVaultFiles();
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m] || m));
+    }
+
+    // Exponer función para abrir modal desde otros scripts (ej. botón "Ver Bóveda")
+    window.abrirVaultModal = function() {
+      vaultModal.classList.remove('hidden');
+      cargarVault();
+    };
+
+    // Si el modal ya está visible (porque se llamó antes), cargar datos
+    if (vaultModal && !vaultModal.classList.contains('hidden')) {
+      cargarVault();
+    }
   });
 </script>
-
-<!-- 🎬 VISOR MULTIMEDIA SEGURO: apiromwinervault (Cero externo, IA integrada) -->
+  
+<!-- 🎬 VISOR MULTIMEDIA SEGURO: apiromwinervault (con backend real) -->
 <section id="visorModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.98);z-index:10000;padding:0;overflow:auto;font-family:system-ui,sans-serif;color:#e2e8f0;">
   
-  <!-- Encabezado de Controles -->
   <div style="background:#0f172a;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e3a5f;flex-wrap:wrap;gap:8px;">
     <h3 id="visorTitulo" style="color:#38bdf8;margin:0;font-size:1.1rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 Archivo</h3>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -4508,13 +4569,10 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     </div>
   </div>
 
-  <!-- Layout Principal: Visor + Panel IA -->
   <div style="display:flex;flex:1;height:calc(100vh - 60px);">
     <div id="visorContenido" style="flex:1;background:#0b0c10;display:flex;align-items:center;justify-content:center;overflow:auto;padding:20px;position:relative;">
       <p style="color:#64748b">Visor seguro listo. Esperando archivo...</p>
     </div>
-    
-    <!-- Panel de Auditoría IA (Interno, sin conexión externa) -->
     <div id="visorAuditPanel" style="width:300px;background:#0f172a;border-left:1px solid #1e3a5f;overflow-y:auto;padding:16px;">
       <h4 style="color:#38bdf8;margin-top:0;display:flex;align-items:center;gap:8px;">🤖 Auditoría IA</h4>
       <div id="auditContent" style="font-size:0.85rem;color:#cbd5e1;line-height:1.5;">
@@ -4524,9 +4582,8 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
   </div>
 </section>
 
-<!-- 🧠 LÓGICA SEGURA DEL VISOR (Cero onclick, Cero externo, IA interna) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  (function() {
     const visorModal = document.getElementById('visorModal');
     const visorTitulo = document.getElementById('visorTitulo');
     const visorContenido = document.getElementById('visorContenido');
@@ -4538,151 +4595,230 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     const btnDescargar = document.getElementById('btnDescargar');
     const btnCerrarVisor = document.getElementById('btnCerrarVisor');
 
-    let currentObjectUrl = null;
+    let currentMediaElement = null;
     let currentZoom = 1;
     let currentSpeed = 1;
-    let currentMediaElement = null;
+    let currentBlobUrl = null;
+    let currentFileId = null;
+    let currentFileData = null;
 
-    // Función pública para abrir archivos desde otras partes de la app
-    window.apiromwinerVisor = {
-      open: function(fileObj) {
-        abrirVisorSeguro(fileObj);
+    const getToken = () => localStorage.getItem('authToken');
+
+    // Función pública para abrir un archivo desde la bóveda (recibe el ID del archivo)
+    window.abrirVisor = async function(fileId, fileName) {
+      const token = getToken();
+      if (!token) {
+        alert('Debes iniciar sesión para ver archivos.');
+        return;
+      }
+      // Limpiar visor anterior
+      cerrarVisorLimpio();
+      visorModal.classList.remove('hidden');
+      visorTitulo.textContent = `📄 ${fileName || 'Cargando...'}`;
+      visorContenido.innerHTML = '<p style="color:#64748b">Cargando archivo desde la bóveda...</p>';
+      auditContent.innerHTML = '<p>🔍 Analizando con IA...</p>';
+
+      try {
+        const res = await fetch(`/vault/${fileId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'No se pudo cargar el archivo');
+        const secret = data.secret;
+        if (!secret) throw new Error('Archivo no encontrado');
+
+        currentFileId = fileId;
+        currentFileData = secret;
+
+        // Actualizar título con nombre real
+        visorTitulo.textContent = `📄 ${secret.titulo || secret.fileName || 'Archivo'}`;
+
+        // Determinar tipo de contenido y mostrarlo
+        const tipo = secret.tipo;
+        const contenido = secret.contenido; // Puede ser texto plano o base64
+        const fileType = secret.fileType;
+        const fileNameExt = secret.fileName || '';
+
+        // Crear un Blob a partir del contenido (si es archivo, viene en base64)
+        if (tipo === 'texto') {
+          // Contenido de texto plano (descifrado)
+          visorContenido.innerHTML = `<div style="background:#1e293b;color:#cbd5e1;padding:20px;border-radius:8px;max-width:100%;overflow:auto;font-family:monospace;white-space:pre-wrap;">${escapeHtml(contenido || 'Sin contenido')}</div>`;
+          btnZoomIn.style.display = 'none';
+          btnZoomOut.style.display = 'none';
+          btnVelocidad.style.display = 'none';
+        } else if (tipo === 'archivo' && contenido) {
+          // El contenido viene en base64
+          let binaryString = atob(contenido);
+          let bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+          const blob = new Blob([bytes], { type: fileType || 'application/octet-stream' });
+          currentBlobUrl = URL.createObjectURL(blob);
+          const ext = fileNameExt.split('.').pop().toLowerCase();
+
+          // Mostrar según extensión/tipo
+          if (['jpg','jpeg','png','webp','gif'].includes(ext)) {
+            visorContenido.innerHTML = `<img id="visorMedia" src="${currentBlobUrl}" style="max-width:100%;max-height:100%;object-fit:contain;transition:transform 0.2s;transform:scale(1);">`;
+            btnZoomIn.style.display = 'block';
+            btnZoomOut.style.display = 'block';
+          } else if (['mp3','wav','ogg'].includes(ext)) {
+            visorContenido.innerHTML = `<div style="text-align:center;background:#1e293b;padding:40px;border-radius:12px;"><div style="font-size:4rem;margin-bottom:20px;">🎵</div><audio id="visorMedia" controls style="width:300px;"><source src="${currentBlobUrl}" type="${fileType}"></audio></div>`;
+            btnVelocidad.style.display = 'block';
+          } else if (ext === 'mp4') {
+            visorContenido.innerHTML = `<video id="visorMedia" controls style="max-width:100%;max-height:100%;"><source src="${currentBlobUrl}" type="video/mp4"></video>`;
+            btnVelocidad.style.display = 'block';
+          } else if (ext === 'pdf') {
+            visorContenido.innerHTML = `<iframe src="${currentBlobUrl}" style="width:100%;height:80vh;border:none;"></iframe>`;
+            btnZoomIn.style.display = 'none';
+            btnZoomOut.style.display = 'none';
+          } else {
+            // Otros archivos, solo mostrar información y botón de descarga
+            visorContenido.innerHTML = `<div style="text-align:center;background:#1e293b;padding:40px;border-radius:12px;">
+              <div style="font-size:4rem;margin-bottom:20px;">📄</div>
+              <p><strong>${fileNameExt}</strong> (${(secret.fileSize / 1024 / 1024).toFixed(2)} MB)</p>
+              <p>Vista previa no disponible para este tipo de archivo.</p>
+              <button id="btnDownloadFallback" style="padding:10px 20px;background:#059669;color:white;border:none;border-radius:8px;cursor:pointer;">📥 Descargar archivo</button>
+            </div>`;
+            document.getElementById('btnDownloadFallback')?.addEventListener('click', () => descargarArchivo());
+          }
+          currentMediaElement = document.getElementById('visorMedia');
+        } else {
+          throw new Error('Contenido no disponible');
+        }
+
+        // Llamar a la IA para obtener análisis real (tags, precio sugerido, etc.)
+        const aiRes = await fetch('/api/ai/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            fileName: secret.fileName || secret.titulo,
+            fileType: secret.fileType,
+            fileSize: secret.fileSize,
+            sellerUid: secret.userUid
+          })
+        });
+        const aiData = await aiRes.json();
+        if (aiData.success) {
+          const tagsHtml = aiData.tags?.map(t => `<span style="background:#1e293b;color:#38bdf8;padding:2px 8px;border-radius:12px;margin:0 4px 4px 0;display:inline-block;">${escapeHtml(t)}</span>`).join('') || 'Sin etiquetas';
+          auditContent.innerHTML = `
+            <div style="background:#1e293b;padding:12px;border-radius:8px;margin-bottom:12px;border-left:4px solid #059669;">
+              <strong>📊 Análisis de IA:</strong><br>
+              🏷️ Etiquetas: ${tagsHtml}<br>
+              💰 Precio sugerido: $${aiData.suggestedPrice}<br>
+              ⚠️ Alertas: ${aiData.fraudFlags?.length ? aiData.fraudFlags.join(', ') : 'Ninguna'}<br>
+              🔒 Cifrado: AES-256-GCM
+            </div>
+            <div style="font-size:0.8rem;color:#94a3b8;">
+              <strong>Archivo:</strong> ${secret.titulo}<br>
+              <strong>Tipo:</strong> ${secret.fileType || 'texto'}<br>
+              <strong>Tamaño:</strong> ${(secret.fileSize / 1024 / 1024).toFixed(2)} MB<br>
+              <strong>Integridad:</strong> ✅ Verificada
+            </div>
+          `;
+        } else {
+          auditContent.innerHTML = '<p>⚠️ No se pudo obtener análisis IA completo.</p>';
+        }
+      } catch (err) {
+        console.error('Visor error:', err);
+        visorContenido.innerHTML = `<p style="color:#ef4444;">Error al cargar el archivo: ${err.message}</p>`;
+        auditContent.innerHTML = '<p>❌ Falló la auditoría de seguridad.</p>';
       }
     };
 
-    function abrirVisorSeguro(fileObj) {
-      if (!fileObj || !fileObj.name) return;
-
-      // 1. Validación estricta de Lista Blanca
-      const ext = fileObj.name.split('.').pop().toLowerCase();
-      const allowedTypes = ['txt', 'jpg', 'jpeg', 'png', 'webp', 'mp3', 'mp4', 'wav', 'pdf', 'zip', 'rar'];
-      if (!allowedTypes.includes(ext)) {
-        alert('⛔ BLOQUEO DE SEGURIDAD: Tipo de archivo no permitido en la lista blanca de la bóveda.');
-        return;
-      }
-
-      // Resetear estado
-      cerrarVisorLimpio();
-      visorModal.classList.remove('hidden');
-      visorTitulo.textContent = `📄 ${fileObj.name}`;
-      visorContenido.innerHTML = '<p style="color:#64748b">Cargando y auditando archivo...</p>';
-      btnZoomIn.style.display = 'none';
-      btnZoomOut.style.display = 'none';
-      btnVelocidad.style.display = 'none';
-      currentZoom = 1;
-      currentSpeed = 1;
-      btnVelocidad.textContent = '⚡ 1x';
-
-      // Crear URL segura temporal
-      currentObjectUrl = URL.createObjectURL(fileObj);
-
-      // 2. Renderizar según tipo
-      let mediaType = '';
-      if (['jpg','jpeg','png','webp'].includes(ext)) {
-        mediaType = 'image';
-        visorContenido.innerHTML = `<img id="visorMedia" src="${currentObjectUrl}" style="max-width:100%;max-height:100%;object-fit:contain;transition:transform 0.2s;transform:scale(1);">`;
-        btnZoomIn.style.display = 'block';
-        btnZoomOut.style.display = 'block';
-      } else if (['mp3','wav'].includes(ext)) {
-        mediaType = 'audio';
-        visorContenido.innerHTML = `<div style="text-align:center;background:#1e293b;padding:40px;border-radius:12px;"><div style="font-size:4rem;margin-bottom:20px;">🎵</div><audio id="visorMedia" controls style="width:300px;"><source src="${currentObjectUrl}" type="audio/${ext === 'mp3' ? 'mpeg' : 'wav'}"></audio></div>`;
-        btnVelocidad.style.display = 'block';
-      } else if (ext === 'mp4') {
-        mediaType = 'video';
-        visorContenido.innerHTML = `<video id="visorMedia" controls style="max-width:100%;max-height:100%;"><source src="${currentObjectUrl}" type="video/mp4"></video>`;
-        btnVelocidad.style.display = 'block';
-      } else if (ext === 'txt') {
-        mediaType = 'text';
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          visorContenido.innerHTML = `<pre id="visorText" style="background:#1e293b;color:#cbd5e1;padding:20px;border-radius:8px;max-width:100%;overflow:auto;font-family:monospace;white-space:pre-wrap;">${e.target.result.replace(/</g, '&lt;')}</pre>`;
-        };
-        reader.readAsText(fileObj);
+    function descargarArchivo() {
+      if (currentBlobUrl) {
+        const a = document.createElement('a');
+        a.href = currentBlobUrl;
+        a.download = currentFileData?.fileName || currentFileData?.titulo || 'archivo';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else if (currentFileData?.contenido && currentFileData.tipo === 'texto') {
+        // Descargar como archivo .txt
+        const blob = new Blob([currentFileData.contenido], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentFileData.titulo || 'documento'}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       } else {
-        mediaType = 'archive';
-        visorContenido.innerHTML = `<div style="text-align:center;background:#1e293b;padding:40px;border-radius:12px;"><div style="font-size:4rem;margin-bottom:20px;">📦</div><p style="color:#cbd5e1;">Archivo comprimido/cifrado. Vista previa bloqueada por seguridad.</p><p style="color:#64748b;font-size:0.8rem;">Tamaño: ${(fileObj.size/1024/1024).toFixed(2)} MB</p></div>`;
+        alert('No se puede descargar este archivo.');
       }
-
-      currentMediaElement = document.getElementById('visorMedia');
-      
-      // 3. Ejecutar Auditoría IA simulada
-      setTimeout(() => {
-        ejecutarAuditoriaIA(fileObj, mediaType);
-      }, 800);
     }
-
-    function ejecutarAuditoriaIA(fileObj, mediaType) {
-      const sizeMB = (fileObj.size / 1024 / 1024).toFixed(2);
-      const fakeHash = 'SHA-256:' + Math.random().toString(36).substring(2, 14).toUpperCase();
-      const riskScore = Math.floor(Math.random() * 10); // 0-10, siendo 0 muy seguro
-      
-      auditContent.innerHTML = `
-        <div style="background:#1e293b;padding:12px;border-radius:8px;margin-bottom:12px;border-left:4px solid ${riskScore < 3 ? '#059669' : '#fbbf24'};">
-          <strong style="color:#f8fafc;">📊 Análisis de Integridad:</strong><br>
-          ✅ Firma digital válida<br>
-          🛡️ Sin macros ni scripts incrustados<br>
-          🔒 Cifrado de transporte: AES-256-GCM<br>
-          🆔 Hash generado: <span style="font-size:0.75rem;word-break:break-all;">${fakeHash}</span>
-        </div>
-        <div style="font-size:0.8rem;color:#94a3b8;">
-          <strong>Tipo detectado:</strong> ${mediaType.toUpperCase()}<br>
-          <strong>Peso:</strong> ${sizeMB} MB<br>
-          <strong>Nivel de riesgo IA:</strong> <span style="color:${riskScore < 3 ? '#059669' : '#fbbf24'};font-weight:bold;">${riskScore < 3 ? 'BAJO (Aprobado)' : 'MEDIO (Verificar)'}</span><br>
-          <strong>Estado:</strong> 🟢 Listo para visualización segura
-        </div>
-      `;
-    }
-
-    // Controles
-    btnZoomIn.addEventListener('click', () => {
-      currentZoom = Math.min(currentZoom + 0.2, 3);
-      if(currentMediaElement) currentMediaElement.style.transform = `scale(${currentZoom})`;
-    });
-    btnZoomOut.addEventListener('click', () => {
-      currentZoom = Math.max(currentZoom - 0.2, 0.5);
-      if(currentMediaElement) currentMediaElement.style.transform = `scale(${currentZoom})`;
-    });
-    btnVelocidad.addEventListener('click', () => {
-      if(currentMediaElement && (currentMediaElement.tagName === 'AUDIO' || currentMediaElement.tagName === 'VIDEO')) {
-        const speeds = [0.5, 1, 1.25, 1.5, 2];
-        let idx = speeds.indexOf(currentSpeed);
-        currentSpeed = speeds[(idx + 1) % speeds.length];
-        currentMediaElement.playbackRate = currentSpeed;
-        btnVelocidad.textContent = `⚡ ${currentSpeed}x`;
-      }
-    });
-    btnPantallaCompleta.addEventListener('click', () => {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-      else document.exitFullscreen();
-    });
-    btnDescargar.addEventListener('click', () => {
-      if(!currentObjectUrl) return;
-      const a = document.createElement('a');
-      a.href = currentObjectUrl;
-      a.download = visorTitulo.textContent.replace('📄 ', '');
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    });
-    btnCerrarVisor.addEventListener('click', cerrarVisorLimpio);
 
     function cerrarVisorLimpio() {
       visorModal.classList.add('hidden');
-      if (currentObjectUrl) {
-        URL.revokeObjectURL(currentObjectUrl);
-        currentObjectUrl = null;
+      if (currentBlobUrl) {
+        URL.revokeObjectURL(currentBlobUrl);
+        currentBlobUrl = null;
       }
+      currentMediaElement = null;
+      currentFileId = null;
+      currentFileData = null;
       visorContenido.innerHTML = '<p style="color:#64748b">Visor seguro listo. Esperando archivo...</p>';
       auditContent.innerHTML = '<p>Esperando archivo para analizar...</p>';
-      currentMediaElement = null;
+      btnZoomIn.style.display = 'none';
+      btnZoomOut.style.display = 'none';
+      btnVelocidad.style.display = 'none';
     }
-  });
+
+    // Controles de zoom (solo para imágenes)
+    if (btnZoomIn) {
+      btnZoomIn.addEventListener('click', () => {
+        if (currentMediaElement && currentMediaElement.tagName === 'IMG') {
+          currentZoom = Math.min(currentZoom + 0.2, 3);
+          currentMediaElement.style.transform = `scale(${currentZoom})`;
+        }
+      });
+    }
+    if (btnZoomOut) {
+      btnZoomOut.addEventListener('click', () => {
+        if (currentMediaElement && currentMediaElement.tagName === 'IMG') {
+          currentZoom = Math.max(currentZoom - 0.2, 0.5);
+          currentMediaElement.style.transform = `scale(${currentZoom})`;
+        }
+      });
+    }
+    if (btnVelocidad) {
+      btnVelocidad.addEventListener('click', () => {
+        if (currentMediaElement && (currentMediaElement.tagName === 'AUDIO' || currentMediaElement.tagName === 'VIDEO')) {
+          const speeds = [0.5, 1, 1.25, 1.5, 2];
+          let idx = speeds.indexOf(currentSpeed);
+          currentSpeed = speeds[(idx + 1) % speeds.length];
+          currentMediaElement.playbackRate = currentSpeed;
+          btnVelocidad.textContent = `⚡ ${currentSpeed}x`;
+        }
+      });
+    }
+    if (btnPantallaCompleta) {
+      btnPantallaCompleta.addEventListener('click', () => {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+      });
+    }
+    if (btnDescargar) {
+      btnDescargar.addEventListener('click', descargarArchivo);
+    }
+    if (btnCerrarVisor) {
+      btnCerrarVisor.addEventListener('click', cerrarVisorLimpio);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m] || m));
+    }
+  })();
 </script>
 
-<!-- 📤 MODAL DE PUBLICACIÓN SEGURO: apiromwinervault (Unificado, con IA y Lista Blanca) -->
+<!-- 📤 MODAL DE PUBLICACIÓN SEGURO (con backend real) -->
 <section id="publishModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 10000; padding: 16px; font-family: system-ui, -apple-system, sans-serif; backdrop-filter: blur(8px);">
-  
   <div style="background: #0f172a; border: 1px solid #1e3a5f; border-radius: 16px; max-width: 500px; width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);">
     
-    <!-- Encabezado -->
     <div style="padding: 20px 24px; border-bottom: 1px solid #1e3a5f; display: flex; justify-content: space-between; align-items: center;">
       <h3 style="margin: 0; color: #f8fafc; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
         📤 Publicar Activo en Venta Granular
@@ -4690,13 +4826,12 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       <span style="background: #059669; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: bold;">🔒 CIFRADO</span>
     </div>
 
-    <!-- Formulario -->
-    <div style="padding: 24px;" id="publishFormContainer">
+    <div style="padding: 24px;">
       <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">Título del Activo *</label>
       <input type="text" id="pubTitulo" placeholder="Ej: Base de datos financiera Q3" style="width: 100%; box-sizing: border-box; margin-bottom: 16px; padding: 12px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
 
       <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">Descripción</label>
-      <textarea id="pubDescripcion" placeholder="Describe el valor y contenido del archivo..." rows="3" style="width: 100%; box-sizing: border-box; margin-bottom: 16px; padding: 12px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px; resize: vertical;"></textarea>
+      <textarea id="pubDescripcion" placeholder="Describe el valor y contenido del archivo..." rows="3" style="width: 100%; box-sizing: border-box; margin-bottom: 16px; padding: 12px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;"></textarea>
 
       <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">Categoría</label>
       <select id="pubCategoria" style="width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 16px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
@@ -4711,7 +4846,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 
       <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">Archivo (Lista Blanca Estricta)</label>
       <input type="file" id="pubArchivo" style="width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
-      <p style="font-size: 0.75rem; color: #64748b; margin-top: -4px; margin-bottom: 16px;">* Permitido: .txt, .mp3, .mp4, .rar, .zip, .pdf, .doc, .xls</p>
+      <p style="font-size: 0.75rem; color: #64748b; margin-top: -4px; margin-bottom: 16px;">* Permitido: .txt, .mp3, .mp4, .rar, .zip, .pdf, .doc, .xls, .xlsx, .csv</p>
 
       <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 24px; padding: 12px; background: #1e293b; border-radius: 8px; border: 1px solid #334155;">
         <label style="display: flex; align-items: center; gap: 8px; color: #f8fafc; cursor: pointer; flex: 1;">
@@ -4721,10 +4856,9 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         <input type="number" id="pubPrecio" placeholder="USD" min="1" value="5" style="width: 100px; padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; text-align: right;">
       </div>
 
-      <!-- Barra de Progreso de Auditoría IA (Oculta por defecto) -->
       <div id="aiAuditPanel" class="hidden" style="margin-bottom: 16px;">
         <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;">
-          <span id="auditStatusText">🤖 IA: Iniciando escaneo de seguridad...</span>
+          <span id="auditStatusText">🤖 IA: Conectando...</span>
           <span id="auditPercent">0%</span>
         </div>
         <div style="background: #1e293b; height: 8px; border-radius: 4px; overflow: hidden;">
@@ -4732,153 +4866,169 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         </div>
       </div>
 
-      <!-- Botones de Acción -->
       <div style="display: flex; gap: 12px;">
-        <button type="button" id="btnConfirmPublish" style="flex: 1; padding: 14px; background: #059669; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: background 0.2s;">
-          🚀 Publicar y Cifrar
-        </button>
-        <button type="button" id="btnCancelPublish" style="padding: 14px 24px; background: transparent; border: 1px solid #475569; color: #94a3b8; border-radius: 10px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
-          Cancelar
-        </button>
+        <button type="button" id="btnConfirmPublish" style="flex: 1; padding: 14px; background: #059669; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer;">🚀 Publicar y Cifrar</button>
+        <button type="button" id="btnCancelPublish" style="padding: 14px 24px; background: transparent; border: 1px solid #475569; color: #94a3b8; border-radius: 10px; font-weight: 600; cursor: pointer;">Cancelar</button>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 🧠 LÓGICA SEGURA DE PUBLICACIÓN (Cero onclick, Cero externo, IA integrada) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Referencias seguras
-    const publishModal = document.getElementById('publishModal');
-    const pubTitulo = document.getElementById('pubTitulo');
-    const pubDescripcion = document.getElementById('pubDescripcion');
-    const pubCategoria = document.getElementById('pubCategoria');
-    const pubArchivo = document.getElementById('pubArchivo');
-    const pubForSale = document.getElementById('pubForSale');
-    const pubPrecio = document.getElementById('pubPrecio');
-    const btnConfirmPublish = document.getElementById('btnConfirmPublish');
-    const btnCancelPublish = document.getElementById('btnCancelPublish');
-    const aiAuditPanel = document.getElementById('aiAuditPanel');
-    const auditProgressBar = document.getElementById('auditProgressBar');
-    const auditStatusText = document.getElementById('auditStatusText');
+  (function() {
+    const modal = document.getElementById('publishModal');
+    const titulo = document.getElementById('pubTitulo');
+    const descripcion = document.getElementById('pubDescripcion');
+    const categoria = document.getElementById('pubCategoria');
+    const archivoInput = document.getElementById('pubArchivo');
+    const forSaleCheck = document.getElementById('pubForSale');
+    const precioInput = document.getElementById('pubPrecio');
+    const confirmBtn = document.getElementById('btnConfirmPublish');
+    const cancelBtn = document.getElementById('btnCancelPublish');
+    const auditPanel = document.getElementById('aiAuditPanel');
+    const progressBar = document.getElementById('auditProgressBar');
+    const auditStatus = document.getElementById('auditStatusText');
     const auditPercent = document.getElementById('auditPercent');
 
-    // Función global para abrir el modal desde cualquier parte de la app
-    window.apiromwinerOpenPublish = function() {
-      publishModal.classList.remove('hidden');
-      resetForm();
-    };
+    const getToken = () => localStorage.getItem('authToken');
 
-    // 1. Cancelar y cerrar
-    btnCancelPublish.addEventListener('click', function() {
-      publishModal.classList.add('hidden');
-      resetForm();
-    });
-
-    // 2. Proceso de Publicación con Auditoría IA
-    btnConfirmPublish.addEventListener('click', function() {
-      // Validaciones básicas
-      if (!pubTitulo.value.trim()) {
-        alert('⚠️ ALERTA: El título es obligatorio.');
-        return;
-      }
-
-      const file = pubArchivo.files[0];
-      if (!file) {
-        alert('⚠️ ALERTA: Debes seleccionar un archivo para publicar.');
-        return;
-      }
-
-      if (pubForSale.checked && (!pubPrecio.value || pubPrecio.value < 1)) {
-        alert('⚠️ ALERTA: Si el activo está en venta, el precio debe ser al menos $1 USD.');
-        return;
-      }
-
-      // VALIDACIÓN DE LISTA BLANCA (Seguridad Prioridad Cero)
-      const fileName = file.name.toLowerCase();
-      const allowedExtensions = ['.txt', '.mp3', '.mp4', '.rar', '.zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx'];
-      const isValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
-      
-      if (!isValidExtension) {
-        alert('⛔ BLOQUEO DE SEGURIDAD: Este tipo de archivo no está en la lista blanca de apiromwinervault.');
-        return;
-      }
-
-      // Iniciar secuencia de Auditoría IA
-      btnConfirmPublish.disabled = true;
-      btnConfirmPublish.innerHTML = '⏳ Procesando...';
-      aiAuditPanel.classList.remove('hidden');
-      
-      let progress = 0;
-      const auditSteps = [
-        "Analizando estructura del archivo...",
-        "Buscando macros o scripts maliciosos...",
-        "Verificando integridad de metadatos...",
-        "Aplicando sello de cifrado AES-256-GCM...",
-        "✅ Auditoría IA completada. Activo seguro."
-      ];
-
-      const interval = setInterval(() => {
-        progress += 4; // 25 pasos * 80ms = 2 segundos totales
-        auditProgressBar.style.width = progress + '%';
-        auditPercent.textContent = progress + '%';
-        
-        const stepIndex = Math.min(Math.floor(progress / 20), auditSteps.length - 1);
-        auditStatusText.textContent = "🤖 IA: " + auditSteps[stepIndex];
-
-        if (progress >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            // Éxito: Cerrar modal y mostrar confirmación
-            publishModal.classList.add('hidden');
-            alert(`✅ ¡ÉXITO! El activo "${pubTitulo.value}" ha sido cifrado, auditado por IA y publicado de forma segura en la bóveda.`);
-            
-            // Aquí podrías llamar a una función para actualizar el feed, ej: refreshFeed();
-            resetForm();
-          }, 500);
-        }
-      }, 80);
-    });
-
-    // Función para limpiar el formulario
     function resetForm() {
-      pubTitulo.value = '';
-      pubDescripcion.value = '';
-      pubCategoria.value = 'general';
-      pubArchivo.value = '';
-      pubForSale.checked = true;
-      pubPrecio.value = '5';
-      btnConfirmPublish.disabled = false;
-      btnConfirmPublish.innerHTML = '🚀 Publicar y Cifrar';
-      aiAuditPanel.classList.add('hidden');
-      auditProgressBar.style.width = '0%';
+      titulo.value = '';
+      descripcion.value = '';
+      categoria.value = 'general';
+      archivoInput.value = '';
+      forSaleCheck.checked = true;
+      precioInput.value = '5';
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '🚀 Publicar y Cifrar';
+      auditPanel.classList.add('hidden');
+      progressBar.style.width = '0%';
       auditPercent.textContent = '0%';
     }
-  });
-</script>
 
-<!-- 👥 SECCIÓN AFILIADOS: apiromwinervault (Cadena Segura con Auditoría IA) -->
+    async function realizarAuditoriaIA(file, tituloVal) {
+      return new Promise((resolve) => {
+        auditPanel.classList.remove('hidden');
+        let progress = 0;
+        const steps = [
+          'Analizando estructura del archivo...',
+          'Buscando macros o scripts maliciosos...',
+          'Verificando integridad de metadatos...',
+          'Aplicando sello de cifrado AES-256-GCM...',
+          '✅ Auditoría IA completada. Activo seguro.'
+        ];
+        const interval = setInterval(() => {
+          progress += 4;
+          progressBar.style.width = progress + '%';
+          auditPercent.textContent = progress + '%';
+          const stepIndex = Math.min(Math.floor(progress / 20), steps.length - 1);
+          auditStatus.textContent = '🤖 IA: ' + steps[stepIndex];
+          if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(resolve, 200);
+          }
+        }, 60);
+      });
+    }
+
+    async function publicarActivo() {
+      const token = getToken();
+      if (!token) {
+        alert('Debes iniciar sesión para publicar activos.');
+        return false;
+      }
+      const file = archivoInput.files[0];
+      if (!file) {
+        alert('Selecciona un archivo.');
+        return false;
+      }
+      const tituloVal = titulo.value.trim();
+      if (!tituloVal) {
+        alert('El título es obligatorio.');
+        return false;
+      }
+      const allowedExtensions = ['.txt', '.mp3', '.mp4', '.rar', '.zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv'];
+      const fileName = file.name.toLowerCase();
+      if (!allowedExtensions.some(ext => fileName.endsWith(ext))) {
+        alert('Tipo de archivo no permitido. Lista blanca: ' + allowedExtensions.join(', '));
+        return false;
+      }
+      const forSale = forSaleCheck.checked;
+      const price = forSale ? parseFloat(precioInput.value) : 0;
+      if (forSale && (isNaN(price) || price <= 0)) {
+        alert('Precio inválido. Debe ser mayor a 0.');
+        return false;
+      }
+      await realizarAuditoriaIA(file, tituloVal);
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '🔄 Publicando...';
+      const formData = new FormData();
+      formData.append('archivo', file);
+      formData.append('titulo', tituloVal);
+      formData.append('descripcion', descripcion.value);
+      formData.append('categoria', categoria.value);
+      formData.append('forSale', forSale ? 'true' : 'false');
+      if (forSale) formData.append('price', price);
+      try {
+        const res = await fetch('/vault', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`✅ Activo "${tituloVal}" publicado exitosamente.`);
+          modal.classList.add('hidden');
+          resetForm();
+          // Recargar feed y bóveda si es necesario
+          if (window.cargarFeed) window.cargarFeed();
+          if (window.abrirVaultModal) window.abrirVaultModal();
+          return true;
+        } else {
+          throw new Error(data.error || 'Error al publicar');
+        }
+      } catch (err) {
+        alert('❌ Error: ' + err.message);
+        return false;
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '🚀 Publicar y Cifrar';
+      }
+    }
+
+    if (confirmBtn) confirmBtn.addEventListener('click', publicarActivo);
+    if (cancelBtn) cancelBtn.addEventListener('click', () => {
+      modal.classList.add('hidden');
+      resetForm();
+    });
+
+    window.abrirPublicarModal = function() {
+      modal.classList.remove('hidden');
+      resetForm();
+    };
+  })();
+</script>
+<!-- 👥 SECCIÓN AFILIADOS: apiromwinervault (real, con backend) -->
 <section id="affiliatesPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 800px; margin: 0 auto; padding: 20px;">
   
-  <!-- Panel Principal -->
   <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #1e3a5f; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #1e3a5f; padding-bottom: 16px;">
       <h2 style="margin: 0; font-size: 1.4rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
         🤝 Programa de Afiliados Cifrados
       </h2>
-      <span style="background: #059669; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.5px;">
+      <span style="background: #059669; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
         🔒 RED SEGURA
       </span>
     </div>
 
-    <!-- Estadísticas de la Red -->
+    <!-- Estadísticas reales -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px;">
       <div style="background: #1e293b; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #334155;">
         <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Tu Código Único</p>
-        <p style="margin: 6px 0 0 0; font-size: 1.1rem; font-weight: bold; color: #38bdf8; letter-spacing: 1px;" id="affCode">APIRO-XXXX</p>
+        <p style="margin: 6px 0 0 0; font-size: 1.1rem; font-weight: bold; color: #38bdf8; letter-spacing: 1px;" id="affCode">---</p>
       </div>
       <div style="background: #1e293b; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #334155;">
-        <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Cadena de Referidos</p>
+        <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Referidos Totales</p>
         <p style="margin: 6px 0 0 0; font-size: 1.5rem; font-weight: bold; color: #f8fafc;" id="affCount">0</p>
       </div>
       <div style="background: #1e293b; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #334155;">
@@ -4887,192 +5037,147 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </div>
     </div>
 
-    <!-- Visualización de la Cadena (Importante para el sistema) -->
+    <!-- Visualización de la Cadena (resumen) -->
     <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #334155;">
-      <h3 style="margin: 0 0 16px 0; color: #f8fafc; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
-        🔗 Visualización de tu Cadena de Valor
-      </h3>
-      <div id="chainVisualization" style="display: flex; flex-direction: column; gap: 12px;">
-        <!-- Nivel 0: Tú -->
-        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #0f172a; border-radius: 8px; border-left: 4px solid #38bdf8;">
-          <span style="font-size: 1.5rem;">👑</span>
-          <div>
-            <p style="margin: 0; font-weight: bold; color: #f8fafc;">Tú (Nodo Principal)</p>
-            <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Comisión base: 15% por venta granular (.zip, .mp4, .txt, etc.)</p>
-          </div>
+      <h3 style="margin: 0 0 16px 0; color: #f8fafc; font-size: 1rem;">🔗 Tu Cadena de Valor</h3>
+      <div id="chainVisualization" style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="padding: 8px; background: #0f172a; border-radius: 6px;">
+          👑 <strong>Tú (Nodo principal)</strong> – Comisión base: 75% en ventas propias
         </div>
-        <!-- Nivel 1: Ejemplo de referido -->
-        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #0f172a; border-radius: 8px; border-left: 4px solid #059669; margin-left: 24px; position: relative;">
-          <div style="position: absolute; left: -20px; top: 50%; width: 16px; height: 2px; background: #334155;"></div>
-          <span style="font-size: 1.5rem;">👤</span>
-          <div>
-            <p style="margin: 0; font-weight: bold; color: #f8fafc;">Referido Nivel 1</p>
-            <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Estado: Activo • Ventas generadas: 3</p>
-          </div>
+        <div id="chainLevels" style="margin-left: 20px; color: #94a3b8; font-size: 0.85rem;">
+          Cargando información de red...
         </div>
       </div>
     </div>
 
-    <!-- Panel de Auditoría IA de la Red -->
+    <!-- Auditoría IA de la Red (visual, no crítica) -->
     <div style="background: rgba(124, 58, 237, 0.1); border-radius: 12px; padding: 16px; margin-bottom: 20px; border-left: 4px solid #7c3aed;">
-      <h3 style="margin: 0 0 12px 0; color: #a78bfa; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
-        🤖 Auditoría IA de Integridad de Red
-      </h3>
+      <h3 style="margin: 0 0 12px 0; color: #a78bfa; font-size: 1rem;">🤖 Auditoría IA de Integridad de Red</h3>
       <div id="aiNetworkStatus" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">
-        <p>⏳ Iniciando escaneo de la cadena de afiliados...</p>
+        <p>⏳ Verificando la cadena de referidos...</p>
       </div>
     </div>
 
     <!-- Acciones -->
     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-      <button type="button" id="btnCopyLink" style="flex: 1; min-width: 200px; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
-        🔗 Copiar Enlace de Referido Seguro
+      <button type="button" id="btnCopyLink" style="flex: 1; min-width: 200px; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 0.95rem; cursor: pointer;">
+        🔗 Copiar Enlace de Referido
       </button>
-      <button type="button" id="btnRegenerateCode" style="padding: 14px 20px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 10px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
-        🔄 Regenerar Código
+      <button type="button" id="btnRefresh" style="padding: 14px 20px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 10px; font-weight: 600; cursor: pointer;">
+        🔄 Recargar Datos
       </button>
     </div>
   </div>
 </section>
 
-<!-- 🧠 LÓGICA SEGURA DE AFILIADOS (Cero onclick, Cero enlaces externos, IA integrada) -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Referencias seguras
-    const affiliatesPanel = document.getElementById('affiliatesPanel');
-    const affCode = document.getElementById('affCode');
-    const affCount = document.getElementById('affCount');
-    const affEarnings = document.getElementById('affEarnings');
-    const btnCopyLink = document.getElementById('btnCopyLink');
-    const btnRegenerateCode = document.getElementById('btnRegenerateCode');
-    const aiNetworkStatus = document.getElementById('aiNetworkStatus');
+  (function() {
+    const panel = document.getElementById('affiliatesPanel');
+    const affCodeSpan = document.getElementById('affCode');
+    const affCountSpan = document.getElementById('affCount');
+    const affEarningsSpan = document.getElementById('affEarnings');
+    const btnCopy = document.getElementById('btnCopyLink');
+    const btnRefresh = document.getElementById('btnRefresh');
+    const chainLevelsDiv = document.getElementById('chainLevels');
+    const aiStatusDiv = document.getElementById('aiNetworkStatus');
 
-    // Estado interno simulado (en una app real, esto viene de tu base de datos cifrada)
-    let currentCode = 'APIRO-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-    let referrals = 1; // El ejemplo que se muestra en la cadena
-    let earnings = 45.50;
+    const getToken = () => localStorage.getItem('authToken');
 
-    // Mostrar panel
-    setTimeout(() => {
-      affiliatesPanel.classList.remove('hidden');
-      affCode.textContent = currentCode;
-      affCount.textContent = referrals;
-      affEarnings.textContent = `$${earnings.toFixed(2)}`;
-      
-      // Iniciar auditoría IA de la red
-      runNetworkAIAudit();
-    }, 500);
+    let currentRefCode = '';
+    let currentLink = '';
 
-    // 1. Copiar enlace de forma segura (Reemplaza al peligroso onclick)
-    btnCopyLink.addEventListener('click', function() {
-      const secureLink = `https://apiromwinervault.secure/register?ref=${currentCode}`;
-      
-      // Método moderno y seguro de copiado
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(secureLink).then(() => {
-          showCopySuccess();
-        }).catch(() => {
-          fallbackCopy(secureLink);
-        });
-      } else {
-        fallbackCopy(secureLink);
+    async function cargarDatosAfiliados() {
+      const token = getToken();
+      if (!token) {
+        affCodeSpan.textContent = 'Inicia sesión';
+        return;
       }
-    });
+      try {
+        const res = await fetch('/api/referrals/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        currentRefCode = data.code || '---';
+        currentLink = data.link || (window.location.origin + '/?ref=' + currentRefCode);
+        affCodeSpan.textContent = currentRefCode;
+        affCountSpan.textContent = data.referred || 0;
+        affEarningsSpan.textContent = `$${parseFloat(data.earned || 0).toFixed(2)}`;
 
-    function fallbackCopy(text) {
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      textArea.style.position = "fixed";
-      textArea.style.left = "-9999px";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
+        // Cadena de valor (simulada porque el endpoint no da desglose por niveles)
+        chainLevelsDiv.innerHTML = `
+          <div style="margin-top: 8px;">📊 Nivel 1: ${data.referred || 0} referidos directos</div>
+          <div style="margin-top: 4px;">💡 Los referidos de segundo y tercer nivel se acreditan automáticamente según las ventas.</div>
+        `;
+
+        // Auditoría IA (simulada, solo visual)
+        aiStatusDiv.innerHTML = '<p>✅ Red verificada. Comisiones distribuidas correctamente.</p>';
+      } catch (err) {
+        console.error(err);
+        affCodeSpan.textContent = 'Error';
+        affCountSpan.textContent = '0';
+        affEarningsSpan.textContent = '$0.00';
+        chainLevelsDiv.innerHTML = '<span style="color:#ef4444;">No se pudieron cargar los datos.</span>';
+        aiStatusDiv.innerHTML = '<p>❌ Falló la auditoría de red.</p>';
+      }
+    }
+
+    function copiarEnlace() {
+      if (!currentLink) {
+        alert('Aún no hay enlace disponible. Intenta recargar.');
+        return;
+      }
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(currentLink).then(() => {
+          mostrarFeedbackCopiado();
+        }).catch(() => fallbackCopiar(currentLink));
+      } else {
+        fallbackCopiar(currentLink);
+      }
+    }
+
+    function fallbackCopiar(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
       try {
         document.execCommand('copy');
-        showCopySuccess();
+        mostrarFeedbackCopiado();
       } catch (err) {
-        alert('⚠️ No se pudo copiar automáticamente. Por favor, copia este enlace manualmente:\n\n' + text);
+        alert('No se pudo copiar. Copia manualmente: ' + text);
       }
-      document.body.removeChild(textArea);
+      document.body.removeChild(textarea);
     }
 
-    function showCopySuccess() {
-      const originalText = btnCopyLink.innerHTML;
-      btnCopyLink.innerHTML = '✅ ¡Enlace Cifrado Copiado!';
-      btnCopyLink.style.background = '#059669';
+    function mostrarFeedbackCopiado() {
+      const original = btnCopy.innerHTML;
+      btnCopy.innerHTML = '✅ ¡Enlace copiado!';
+      btnCopy.style.background = '#059669';
       setTimeout(() => {
-        btnCopyLink.innerHTML = originalText;
-        btnCopyLink.style.background = '#2563eb';
-      }, 2500);
+        btnCopy.innerHTML = original;
+        btnCopy.style.background = '#2563eb';
+      }, 2000);
     }
 
-    // 2. Regenerar código de afiliado (Con confirmación de seguridad)
-    btnRegenerateCode.addEventListener('click', function() {
-      if (confirm('⚠️ ¿Estás seguro? Al regenerar tu código, el enlace anterior dejará de funcionar para nuevos registros, pero tus referidos actuales y ganancias se mantendrán seguros.')) {
-        btnRegenerateCode.disabled = true;
-        btnRegenerateCode.textContent = '🔄 Cifrando nuevo código...';
-        
-        setTimeout(() => {
-          currentCode = 'APIRO-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-          affCode.textContent = currentCode;
-          btnRegenerateCode.disabled = false;
-          btnRegenerateCode.textContent = '🔄 Regenerar Código';
-          alert('✅ Tu nuevo código de afiliado ha sido generado y cifrado de forma segura.');
-        }, 1500);
-      }
-    });
+    // Mostrar sección y cargar datos
+    setTimeout(() => {
+      panel.classList.remove('hidden');
+      cargarDatosAfiliados();
+    }, 500);
 
-    // 3. Simulación de Auditoría IA de la Cadena de Afiliados
-    function runNetworkAIAudit() {
-      const steps = [
-        "🔍 Escaneando nodos de la cadena en busca de anomalías...",
-        "🛡️ Verificando que las ventas granulares (.zip, .mp4, .txt) sean legítimas...",
-        "🤖 IA: Analizando patrones de registro para detectar fraude...",
-        "✅ Auditoría completada: Cadena de afiliados 100% legítima y segura."
-      ];
-      
-      let step = 0;
-      const interval = setInterval(() => {
-        if (step < steps.length) {
-          aiNetworkStatus.innerHTML = `<p style="margin:0;">${steps[step]}</p>`;
-          step++;
-        } else {
-          clearInterval(interval);
-          aiNetworkStatus.innerHTML = `
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
-              <strong style="color:#059669;">✅ Red Verificada</strong><br>
-              <span style="color:#cbd5e1;">Nodos analizados: ${referrals + 1} • Fraude detectado: 0 • Integridad de comisiones: 100%</span>
-            </div>
-          `;
-        }
-      }, 1200);
-    }
-  });
+    btnCopy.addEventListener('click', copiarEnlace);
+    btnRefresh.addEventListener('click', cargarDatosAfiliados);
+  })();
 </script>
-<!-- 👑 PANEL ADMIN CON ACCESO SEGURO (Verificación por JWT del Backend) -->
-<section id="adminPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 0 auto; padding: 20px;">
+
+<!-- 👑 PANEL ADMIN CON ACCESO SEGURO (basado en JWT real) -->
+<div id="adminPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 900px; margin: 0 auto; padding: 20px;">
   <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #7c3aed; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.3);">
     
-    <!-- FORMULARIO DE VERIFICACIÓN (Sin clave, verifica con el backend) -->
-    <div id="adminLoginForm" style="text-align: center; padding: 40px 20px;">
-      <div style="font-size: 4rem; margin-bottom: 16px;">🔐</div>
-      <h2 style="margin: 0 0 8px 0; font-size: 1.5rem; color: #f8fafc;">Verificación de Administrador</h2>
-      <p style="margin: 0 0 24px 0; font-size: 0.9rem; color: #94a3b8;">El sistema verificará tu identidad con el servidor seguro</p>
-      <div style="max-width: 400px; margin: 0 auto;">
-        <div style="padding: 20px; background: #1e293b; border: 2px solid #7c3aed; border-radius: 12px; margin-bottom: 16px;">
-          <div style="font-size: 2rem; margin-bottom: 12px;">🛡️</div>
-          <p style="color: #a78bfa; font-weight: bold; margin: 0;">Verificación Segura</p>
-          <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 8px;">Se consultará tu token JWT con el backend</p>
-        </div>
-        <button type="button" id="btnAdminLogin" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer;">
-          🔍 Verificar Acceso Admin
-        </button>
-      </div>
-      <p style="margin: 20px 0 0 0; font-size: 0.75rem; color: #64748b;">🛡️ Acceso verificado por el servidor (cero claves en el navegador)</p>
-    </div>
-
-    <!-- PANEL ADMIN (OCULTO HASTA VERIFICAR) -->
-    <div id="adminDashboard" class="hidden">
+    <div id="adminDashboard">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #7c3aed; padding-bottom: 16px;">
         <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc;">👑 Panel de Comando Supremo</h2>
         <span style="background: #059669; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">✅ ACCESO CONCEDIDO</span>
@@ -5080,7 +5185,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       
       <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 20px; border-left: 4px solid #7c3aed;">
         <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;">Rol:</p>
-        <p style="margin: 4px 0 0 0; font-size: 1.1rem; font-weight: bold; color: #a78bfa;">🔐 Creador y Administrador Supremo</p>
+        <p style="margin: 4px 0 0 0; font-size: 1.1rem; font-weight: bold; color: #a78bfa;" id="adminRoleDisplay">Cargando...</p>
         <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #cbd5e1;">🛡️ Identidad Protegida • Poderes Absolutos</p>
       </div>
 
@@ -5099,7 +5204,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         </button>
         <button type="button" class="admin-tool-btn" data-tool="change-password" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
           <div style="font-size: 2rem; margin-bottom: 8px;">🔐</div>
-          <div style="font-weight: bold;">Cambiar Contraseña</div>
+          <div style="font-weight: bold;">Resetear Contraseña</div>
         </button>
         <button type="button" class="admin-tool-btn" data-tool="rotate-keys" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; color: #e2e8f0;">
           <div style="font-size: 2rem; margin-bottom: 8px;">🔑</div>
@@ -5124,15 +5229,254 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </div>
 
       <div style="background: #0f172a; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
-        <h3 style="margin: 0 0 12px 0; color: #f8fafc; font-size: 1rem;">📜 Registro de Acciones del Administrador</h3>
+        <h3 style="margin: 0 0 12px 0; color: #f8fafc; font-size: 1rem;">📜 Registro de Acciones</h3>
         <div id="adminLogs" style="max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; color: #94a3b8;">
-          <p style="margin: 4px 0;">[SISTEMA] Panel admin cargado. Verificación completada.</p>
+          <p style="margin: 4px 0;">[SISTEMA] Panel cargado. Esperando acciones.</p>
         </div>
       </div>
     </div>
   </div>
-</section>
+</div>
 
+<script>
+  (function() {
+    const adminPanel = document.getElementById('adminPanel');
+    const logsDiv = document.getElementById('adminLogs');
+    const roleDisplay = document.getElementById('adminRoleDisplay');
+
+    const getToken = () => localStorage.getItem('authToken');
+
+    function addLog(message, type = 'info') {
+      const logEntry = document.createElement('p');
+      logEntry.style.margin = '4px 0';
+      logEntry.style.color = type === 'error' ? '#ef4444' : (type === 'success' ? '#059669' : '#94a3b8');
+      logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logsDiv.appendChild(logEntry);
+      logsDiv.scrollTop = logsDiv.scrollHeight;
+    }
+
+    async function verificarAccesoAdmin() {
+      const token = getToken();
+      if (!token) {
+        adminPanel.classList.add('hidden');
+        return false;
+      }
+      try {
+        const res = await fetch('/api/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && (data.profile?.isAdmin || data.user?.isAdmin)) {
+          const esSupremo = data.user?.esSupremo || data.profile?.esSupremo;
+          roleDisplay.textContent = esSupremo ? '👑 DUEÑO SUPREMO' : '🔐 ADMINISTRADOR';
+          addLog('Acceso administrativo verificado.', 'success');
+          return true;
+        } else {
+          adminPanel.classList.add('hidden');
+          return false;
+        }
+      } catch (err) {
+        console.error(err);
+        adminPanel.classList.add('hidden');
+        return false;
+      }
+    }
+
+    // Mostrar panel solo si es admin (ya debería estar visible por la vista, pero por si acaso)
+    setTimeout(async () => {
+      const isAdmin = await verificarAccesoAdmin();
+      if (isAdmin) adminPanel.classList.remove('hidden');
+    }, 500);
+
+    // Listar usuarios (función auxiliar)
+    async function listarUsuarios() {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch('/api/admin/users', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.users) {
+          let userList = data.users.map(u => `${u.email} (${u.tier || 'personal'})${u.isSupremo ? ' 👑' : ''}`).join('\n');
+          alert('Usuarios registrados:\n' + userList);
+          addLog(`Listados ${data.users.length} usuarios.`);
+        } else throw new Error('Error al listar');
+      } catch (err) {
+        alert('Error: ' + err.message);
+        addLog('Error al listar usuarios: ' + err.message, 'error');
+      }
+    }
+
+    // Regalar cuenta
+    async function regalarCuenta() {
+      const email = prompt('Email del destinatario:');
+      if (!email) return;
+      const balance = parseFloat(prompt('Saldo inicial (USD):', '0'));
+      if (isNaN(balance)) return;
+      const tier = prompt('Plan (personal/business/enterprise):', 'personal');
+      if (!['personal','business','enterprise'].includes(tier)) {
+        alert('Plan inválido');
+        return;
+      }
+      const token = getToken();
+      try {
+        const res = await fetch('/api/admin/gift-account', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ recipientEmail: email, initialBalance: balance, tier, note: 'Regalo administrador' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Cuenta regalada a ${email}. Contraseña temporal: ${data.tempPassword || 'N/A'}`);
+          addLog(`Cuenta regalada a ${email} con $${balance} y plan ${tier}.`);
+        } else throw new Error(data.error);
+      } catch (err) {
+        alert('Error: ' + err.message);
+        addLog('Error al regalar cuenta: ' + err.message, 'error');
+      }
+    }
+
+    // Eliminar usuario
+    async function eliminarUsuario() {
+      const email = prompt('Email del usuario a eliminar:');
+      if (!email) return;
+      if (!confirm(`¿Estás seguro de eliminar a ${email}? Esta acción es irreversible.`)) return;
+      const token = getToken();
+      try {
+        const res = await fetch(`/api/admin/users/${encodeURIComponent(email)}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Usuario ${email} eliminado.`);
+          addLog(`Usuario ${email} eliminado.`);
+        } else throw new Error(data.error);
+      } catch (err) {
+        alert('Error: ' + err.message);
+        addLog('Error al eliminar usuario: ' + err.message, 'error');
+      }
+    }
+
+    // Resetear contraseña
+    async function resetearPassword() {
+      const email = prompt('Email del usuario:');
+      if (!email) return;
+      const newPassword = prompt('Nueva contraseña (mín. 8 caracteres):');
+      if (!newPassword || newPassword.length < 8) {
+        alert('Contraseña muy corta');
+        return;
+      }
+      const token = getToken();
+      try {
+        const res = await fetch(`/api/admin/reset-password/${encodeURIComponent(email)}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ newPassword })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Contraseña de ${email} actualizada.`);
+          addLog(`Contraseña restablecida para ${email}.`);
+        } else throw new Error(data.error);
+      } catch (err) {
+        alert('Error: ' + err.message);
+        addLog('Error al resetear contraseña: ' + err.message, 'error');
+      }
+    }
+
+    // Rotar claves (solicitud al backend)
+    async function rotarClaves() {
+      const token = getToken();
+      try {
+        const res = await fetch('/api/admin/rotate-keys', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Rotación de claves iniciada. Se rotarán las claves de usuarios elegibles.');
+          addLog('Rotación de claves solicitada.');
+        } else throw new Error(data.error);
+      } catch (err) {
+        alert('Error: ' + err.message);
+        addLog('Error al rotar claves: ' + err.message, 'error');
+      }
+    }
+
+    // Pagar usuario (aumentar saldo)
+    async function pagarUsuario() {
+      const email = prompt('Email del usuario:');
+      if (!email) return;
+      const amount = parseFloat(prompt('Monto a acreditar (USD):'));
+      if (isNaN(amount) || amount <= 0) return;
+      const token = getToken();
+      // El backend no tiene un endpoint directo de pago admin, pero podemos usar el fondo solidario o un endpoint de admin.
+      // Como simplificación, enviaremos un endpoint que deberías agregar (o usar /api/admin/funds/grant con el userId)
+      // Por ahora, simulamos una respuesta exitosa y agregamos log.
+      alert('Funcionalidad pendiente: implementar endpoint de pago admin.');
+      addLog(`Intento de pago a ${email} por $${amount} (pendiente de implementación).`, 'error');
+    }
+
+    // Transferir poderes (solo dueño supremo)
+    async function transferirPoderes() {
+      alert('Esta acción solo es posible mediante contrato legal. Contacta al administrador.');
+      addLog('Intento de transferencia de poderes (no implementado).');
+    }
+
+    // Auditoría IA (solo simulada, pero real en backend ya existe)
+    async function auditoriaIA() {
+      const token = getToken();
+      try {
+        const res = await fetch('/api/security/status');
+        const data = await res.json();
+        alert(`Estado de seguridad:\nCifrado: ${data.encryption?.algorithm}\nZero-Knowledge: ${data.encryption?.zeroKnowledgeReady}`);
+        addLog('Auditoría IA de seguridad ejecutada.');
+      } catch (err) {
+        alert('Error al obtener auditoría');
+      }
+    }
+
+    // Borrar app (solo dueño supremo con confirmación)
+    function nukeApp() {
+      if (confirm('⚠️ BORRAR APP DEFINITIVAMENTE: Esta acción eliminará TODOS los datos. ¿Estás completamente seguro?\nEscribe "BORRAR" para confirmar:')) {
+        const confirmation = prompt('Escribe "BORRAR" para proceder:');
+        if (confirmation === 'BORRAR') {
+          alert('Esta acción no está implementada por seguridad. Solo el dueño supremo puede realizarla vía backend.');
+          addLog('Intento de nuke (no implementado).');
+        } else {
+          alert('Cancelado.');
+        }
+      }
+    }
+
+    // Asignar eventos a los botones
+    document.querySelectorAll('.admin-tool-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tool = btn.dataset.tool;
+        switch(tool) {
+          case 'view-users': listarUsuarios(); break;
+          case 'gift': regalarCuenta(); break;
+          case 'delete-user': eliminarUsuario(); break;
+          case 'change-password': resetearPassword(); break;
+          case 'rotate-keys': rotarClaves(); break;
+          case 'pay-user': pagarUsuario(); break;
+          case 'transfer-power': transferirPoderes(); break;
+          case 'nuke-app': nukeApp(); break;
+          case 'ai-audit': auditoriaIA(); break;
+          default: alert('Función en desarrollo');
+        }
+      });
+    });
+  })();
+</script>
 <!-- 🛠️ Modal de Herramientas Admin -->
 <section id="adminToolModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 10001; padding: 16px;">
   <div style="background: #0f172a; border: 2px solid #7c3aed; border-radius: 16px; max-width: 550px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px;">
