@@ -8661,17 +8661,33 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 
     const getToken = () => localStorage.getItem('authToken');
 
-    // Validar URL (solo HTTPS, no localhost, no IP)
+    // ============================================
+    // LISTA BLANCA DE DOMINIOS PERMITIDOS
+    // ============================================
+    const ALLOWED_DOMAINS = [
+      'hooks.slack.com',
+      'outlook.office.com',
+      'api.teams.microsoft.com',
+      'events.pagerduty.com',
+      'hooks.zapier.com',
+      'discord.com/api/webhooks',
+      'chat.googleapis.com'
+    ];
+
+    // Validar URL: HTTPS, no localhost, no IP, y dominio en lista blanca
     function isValidWebhookUrl(url) {
       try {
         const u = new URL(url);
         if (u.protocol !== 'https:') return false;
         if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return false;
-        // Permitir solo dominios con punto (no IPs)
         const isIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(u.hostname);
         if (isIp) return false;
+        const isAllowed = ALLOWED_DOMAINS.some(domain => u.hostname.includes(domain));
+        if (!isAllowed) return false;
         return true;
-      } catch(e) { return false; }
+      } catch(e) {
+        return false;
+      }
     }
 
     // Cargar lista de webhooks del usuario
@@ -8753,8 +8769,8 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         return;
       }
       if (!isValidWebhookUrl(url)) {
-        alert('URL inválida. Solo se permiten HTTPS y dominios externos (no localhost, no IPs).');
-        auditDiv.innerHTML = '❌ IA: URL rechazada por no cumplir estándares de seguridad.';
+        alert('URL no permitida. Solo se aceptan HTTPS y dominios en la lista blanca (Slack, Teams, PagerDuty, Zapier, Discord, Google Chat).');
+        auditDiv.innerHTML = '❌ IA: URL rechazada por no cumplir estándares de seguridad o dominio no autorizado.';
         return;
       }
       if (secret.length < 16) {
@@ -8790,7 +8806,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       }
     }
 
-    // Probar conexión (enviar ping de prueba)
+    // Probar conexión (opcional)
     async function probarWebhook() {
       const token = getToken();
       if (!token) return;
@@ -8800,13 +8816,12 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         return;
       }
       if (!isValidWebhookUrl(url)) {
-        alert('URL inválida. Debe ser HTTPS y dominio externo.');
+        alert('URL no permitida. Debe ser HTTPS y dominio de lista blanca.');
         return;
       }
       btnTest.disabled = true;
       btnTest.textContent = '⏳ Probando...';
       try {
-        // Enviar una solicitud de prueba al webhook (endpoint especial)
         const res = await fetch('/api/admin/webhooks/test', {
           method: 'POST',
           headers: {
@@ -8842,214 +8857,12 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     btnTest.addEventListener('click', probarWebhook);
   })();
 </script>
-
-<!-- 🧠 LÓGICA SEGURA DE WEBHOOKS (Cero onclick, Cero enlaces externos, IA integrada) -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const webhookModal = document.getElementById('webhookModal');
-    const webhookUrl = document.getElementById('webhookUrl');
-    const webhookEvents = document.getElementById('webhookEvents');
-    const webhookSecret = document.getElementById('webhookSecret');
-    const btnRegisterWebhook = document.getElementById('btnRegisterWebhook');
-    const btnTestWebhook = document.getElementById('btnTestWebhook');
-    const btnCloseWebhooks = document.getElementById('btnCloseWebhooks');
-    const webhookList = document.getElementById('webhookList');
-    const webhookCount = document.getElementById('webhookCount');
-    const webhookAIAudit = document.getElementById('webhookAIAudit');
-
-    // Lista blanca de dominios permitidos (ajustar según necesidades)
-    const ALLOWED_DOMAINS = [
-      'hooks.slack.com',
-      'outlook.office.com',
-      'api.teams.microsoft.com',
-      'events.pagerduty.com',
-      'hooks.zapier.com',
-      'discord.com/api/webhooks',
-      'chat.googleapis.com'
-    ];
-
-    // Estado de webhooks registrados
-    let registeredWebhooks = [];
-
-    // 1. Validación de URL con lista blanca
-    function validateWebhookUrl(url) {
-      try {
-        const urlObj = new URL(url);
-        
-        // Solo HTTPS
-        if (urlObj.protocol !== 'https:') {
-          return { valid: false, error: 'Solo se permiten URLs HTTPS por seguridad.' };
-        }
-        
-        // Verificar dominio en lista blanca
-        const isAllowed = ALLOWED_DOMAINS.some(domain => urlObj.hostname.includes(domain));
-        if (!isAllowed) {
-          return { 
-            valid: false, 
-            error: 'Dominio no permitido. Dominios aceptados: Slack, Teams, PagerDuty, Zapier, Discord, Google Chat.' 
-          };
-        }
-        
-        return { valid: true };
-      } catch (e) {
-        return { valid: false, error: 'URL inválida.' };
-      }
-    }
-
-    // 2. Registrar webhook con auditoría IA
-    btnRegisterWebhook.addEventListener('click', function() {
-      const url = webhookUrl.value.trim();
-      const event = webhookEvents.value;
-      const secret = webhookSecret.value;
-
-      // Validaciones
-      if (!url) {
-        alert('⚠️ Debes ingresar una URL de webhook.');
-        return;
-      }
-
-      const urlValidation = validateWebhookUrl(url);
-      if (!urlValidation.valid) {
-        alert('⛔ BLOQUEO DE SEGURIDAD: ' + urlValidation.error);
-        return;
-      }
-
-      if (secret.length < 16) {
-        alert('⚠️ ALERTA DE SEGURIDAD: El secret debe tener al menos 16 caracteres para firma HMAC-SHA256.');
-        return;
-      }
-
-      // Auditoría IA
-      btnRegisterWebhook.disabled = true;
-      btnRegisterWebhook.innerHTML = '🤖 IA Validando...';
-      webhookAIAudit.innerHTML = '<span style="color: #fbbf24;">⏳ Analizando URL y verificando seguridad...</span>';
-
-      setTimeout(() => {
-        webhookAIAudit.innerHTML = '<span style="color: #fbbf24;">🔍 Verificando certificado SSL...</span>';
-        
-        setTimeout(() => {
-          webhookAIAudit.innerHTML = '<span style="color: #fbbf24;">🛡️ Generando firma HMAC-SHA256...</span>';
-          
-          setTimeout(() => {
-            // Registrar webhook
-            const webhook = {
-              id: Date.now(),
-              url: url,
-              event: event,
-              eventLabel: webhookEvents.options[webhookEvents.selectedIndex].text,
-              secret: secret,
-              status: 'active',
-              createdAt: new Date().toISOString(),
-              lastTriggered: null
-            };
-
-            registeredWebhooks.push(webhook);
-            updateWebhookList();
-
-            webhookAIAudit.innerHTML = '<span style="color: #059669;">✅ Webhook registrado y verificado con éxito. Firma HMAC-SHA256 activa.</span>';
-
-            // Limpiar formulario
-            webhookUrl.value = '';
-            webhookSecret.value = '';
-            webhookEvents.selectedIndex = 0;
-
-            btnRegisterWebhook.disabled = false;
-            btnRegisterWebhook.innerHTML = '✅ Registrar Webhook Seguro';
-
-            alert('✅ Webhook registrado exitosamente.\n\nEvento: ' + webhook.eventLabel + '\nURL: ' + url + '\nFirma: HMAC-SHA256 activada');
-          }, 800);
-        }, 800);
-      }, 800);
-    });
-
-    // 3. Actualizar lista de webhooks
-    function updateWebhookList() {
-      webhookCount.textContent = registeredWebhooks.length;
-
-      if (registeredWebhooks.length === 0) {
-        webhookList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px; font-size: 0.85rem;">No hay webhooks registrados aún.</p>';
-        return;
-      }
-
-      webhookList.innerHTML = '';
-      registeredWebhooks.forEach(webhook => {
-        const item = document.createElement('div');
-        item.style.cssText = 'background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 8px;';
-        
-        const header = document.createElement('div');
-        header.style.cssText = 'display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;';
-        
-        const info = document.createElement('div');
-        info.style.cssText = 'flex: 1;';
-        info.innerHTML = `
-          <div style="font-size: 0.85rem; color: #f8fafc; font-weight: 600; margin-bottom: 4px;">${webhook.eventLabel}</div>
-          <div style="font-size: 0.75rem; color: #94a3b8; font-family: monospace; word-break: break-all;">${webhook.url}</div>
-        `;
-        
-        const status = document.createElement('span');
-        status.style.cssText = 'background: #059669; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: bold;';
-        status.textContent = '✅ ACTIVO';
-        
-        header.appendChild(info);
-        header.appendChild(status);
-        
-        const actions = document.createElement('div');
-        actions.style.cssText = 'display: flex; gap: 8px; margin-top: 8px;';
-        
-        const btnDelete = document.createElement('button');
-        btnDelete.type = 'button';
-        btnDelete.textContent = '🗑️ Eliminar';
-        btnDelete.style.cssText = 'flex: 1; padding: 6px; background: transparent; color: #ef4444; border: 1px solid #ef4444; border-radius: 6px; font-size: 0.75rem; cursor: pointer;';
-        btnDelete.addEventListener('click', () => {
-          if (confirm('¿Eliminar este webhook?')) {
-            registeredWebhooks = registeredWebhooks.filter(w => w.id !== webhook.id);
-            updateWebhookList();
-          }
-        });
-        
-        actions.appendChild(btnDelete);
-        
-        item.appendChild(header);
-        item.appendChild(actions);
-        webhookList.appendChild(item);
-      });
-    }
-
-    // 4. Probar webhook
-    btnTestWebhook.addEventListener('click', function() {
-      if (registeredWebhooks.length === 0) {
-        alert('⚠️ No hay webhooks registrados para probar.');
-        return;
-      }
-
-      btnTestWebhook.disabled = true;
-      btnTestWebhook.textContent = '🧪 Probando...';
-
-      setTimeout(() => {
-        alert('✅ Prueba enviada a todos los webhooks activos.\n\nRespuesta esperada: 200 OK\nFirma HMAC-SHA256: Verificada');
-        btnTestWebhook.disabled = false;
-        btnTestWebhook.textContent = '🧪 Probar Conexión';
-      }, 1500);
-    });
-
-    // 5. Cerrar modal
-    btnCloseWebhooks.addEventListener('click', function() {
-      webhookModal.classList.add('hidden');
-    });
-
-    // Función global para abrir el modal desde el panel Enterprise
-    window.openWebhooksModal = function() {
-      webhookModal.classList.remove('hidden');
-    };
-  });
-</script>   
-</div>
+  
 <!-- 📋 MODAL DE AUDITORÍA INTELIGENTE: apiromwinervault (Con IA y Filtros Avanzados) -->
 <section id="auditModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 10002; padding: 16px; font-family: system-ui, -apple-system, sans-serif; backdrop-filter: blur(8px);">
   
   <div style="background: #0f172a; border: 2px solid #64748b; border-radius: 16px; max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 28px; box-shadow: 0 25px 50px -12px rgba(100, 116, 139, 0.4);">
     
-    <!-- Encabezado -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 16px;">
       <h2 style="margin: 0; font-size: 1.3rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
         📋 Centro de Auditoría Inteligente
@@ -9059,7 +8872,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </span>
     </div>
 
-    <!-- Filtros y Búsqueda -->
     <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #334155;">
       <h3 style="margin: 0 0 12px 0; color: #f8fafc; font-size: 0.95rem;">🔍 Filtros de Búsqueda</h3>
       
@@ -9096,7 +8908,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </div>
     </div>
 
-    <!-- Estadísticas de Auditoría -->
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
       <div style="background: #1e293b; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #334155;">
         <div style="font-size: 0.75rem; color: #94a3b8;">Total Eventos</div>
@@ -9116,7 +8927,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </div>
     </div>
 
-    <!-- Lista de Logs -->
     <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #334155;">
       <h3 style="margin: 0 0 12px 0; color: #f8fafc; font-size: 0.95rem;">📜 Registro de Actividades</h3>
       <div id="auditLog" style="max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.8rem;">
@@ -9124,7 +8934,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </div>
     </div>
 
-    <!-- Botones de Acción -->
     <div style="display: flex; gap: 12px; margin-bottom: 16px;">
       <button type="button" id="btnExportAudit" style="flex: 1; padding: 12px; background: #059669; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">
         📤 Exportar Logs (CSV)
@@ -9137,7 +8946,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </button>
     </div>
 
-    <!-- Análisis IA -->
     <div id="aiAnalysisBox" style="display: none; background: rgba(167, 139, 250, 0.1); border: 1px solid #a78bfa; border-radius: 12px; padding: 16px;">
       <h3 style="margin: 0 0 12px 0; color: #a78bfa; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
         🤖 Análisis de Inteligencia Artificial
@@ -9147,6 +8955,229 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 
   </div>
 </section>
+
+<script>
+  (function() {
+    const modal = document.getElementById('auditModal');
+    const btnClose = document.getElementById('btnCloseAudit');
+    const btnExport = document.getElementById('btnExportAudit');
+    const btnAnalyze = document.getElementById('btnAnalyzeAI');
+    const filterCategory = document.getElementById('auditFilterCategory');
+    const filterPeriod = document.getElementById('auditFilterPeriod');
+    const searchInput = document.getElementById('auditSearch');
+    const btnApply = document.getElementById('btnApplyFilters');
+    const auditLogDiv = document.getElementById('auditLog');
+    const totalEventsSpan = document.getElementById('auditTotalEvents');
+    const securityEventsSpan = document.getElementById('auditSecurityEvents');
+    const financialEventsSpan = document.getElementById('auditFinancialEvents');
+    const anomaliesSpan = document.getElementById('auditAnomalies');
+    const aiBox = document.getElementById('aiAnalysisBox');
+    const aiContent = document.getElementById('aiAnalysisContent');
+
+    const getToken = () => localStorage.getItem('authToken');
+
+    let rawLogs = [];       // todos los logs sin filtrar
+    let filteredLogs = [];  // logs después de aplicar filtros
+
+    // Función para obtener logs reales del backend
+    async function cargarLogs() {
+      const token = getToken();
+      if (!token) {
+        auditLogDiv.innerHTML = '<p style="text-align:center;color:#ef4444;">Debes iniciar sesión para ver la auditoría.</p>';
+        return;
+      }
+      auditLogDiv.innerHTML = '<p style="text-align:center;color:#cbd5e1;">Cargando logs...</p>';
+      try {
+        // Usar el endpoint existente /api/audit/export (devuelve logs en data.logs)
+        const res = await fetch('/api/audit/export?type=logs', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        // Se asume que los logs vienen en data.logs (array)
+        rawLogs = data.logs || [];
+        if (rawLogs.length === 0) {
+          auditLogDiv.innerHTML = '<p style="text-align:center;color:#64748b;">No hay registros de auditoría disponibles.</p>';
+          totalEventsSpan.textContent = '0';
+          securityEventsSpan.textContent = '0';
+          financialEventsSpan.textContent = '0';
+          anomaliesSpan.textContent = '0';
+          return;
+        }
+        aplicarFiltros();
+      } catch (err) {
+        console.error('Error cargando logs:', err);
+        auditLogDiv.innerHTML = '<p style="text-align:center;color:#ef4444;">Error al cargar los logs. Intenta más tarde.</p>';
+      }
+    }
+
+    // Clasificar tipo de evento según el campo 'action' o 'type'
+    function getEventCategory(log) {
+      const action = (log.action || log.type || '').toLowerCase();
+      if (action.includes('login') || action.includes('logout') || action.includes('auth') || action.includes('fingerprint')) return 'security';
+      if (action.includes('vault') || action.includes('upload') || action.includes('delete') || action.includes('file') || action.includes('preview')) return 'files';
+      if (action.includes('buy') || action.includes('sale') || action.includes('wallet') || action.includes('deposit') || action.includes('withdraw') || action.includes('affiliate') || action.includes('referral')) return 'financial';
+      if (action.includes('admin') || action.includes('gift') || action.includes('rotate') || action.includes('set-tier')) return 'admin';
+      if (action.includes('error') || action.includes('system') || action.includes('config')) return 'system';
+      return 'system';
+    }
+
+    // Verificar si un log se considera anomalía (ej. login fallido, acción sospechosa)
+    function isAnomaly(log) {
+      const action = (log.action || log.type || '').toLowerCase();
+      const data = (log.data || '');
+      if (action.includes('failed') || action.includes('error') || action.includes('invalid')) return true;
+      if (data.includes('error') || data.includes('invalid')) return true;
+      return false;
+    }
+
+    // Aplicar filtros según categoría, período y búsqueda
+    function aplicarFiltros() {
+      const category = filterCategory.value;
+      const period = filterPeriod.value;
+      const searchTerm = searchInput.value.trim().toLowerCase();
+
+      // Calcular fecha de corte
+      let cutoffDate = null;
+      const now = new Date();
+      if (period === 'today') {
+        cutoffDate = new Date(now.setHours(0,0,0,0));
+      } else if (period === '7d') {
+        cutoffDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
+      } else if (period === '30d') {
+        cutoffDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
+      } else if (period === '90d') {
+        cutoffDate = new Date(now - 90 * 24 * 60 * 60 * 1000);
+      }
+
+      filteredLogs = rawLogs.filter(log => {
+        // Filtro por fecha
+        if (cutoffDate && log.timestamp && new Date(log.timestamp) < cutoffDate) return false;
+        // Filtro por categoría
+        if (category !== 'all') {
+          const cat = getEventCategory(log);
+          if (cat !== category) return false;
+        }
+        // Filtro por búsqueda textual
+        if (searchTerm) {
+          const text = JSON.stringify(log).toLowerCase();
+          if (!text.includes(searchTerm)) return false;
+        }
+        return true;
+      });
+
+      // Actualizar estadísticas
+      let total = filteredLogs.length;
+      let securityCount = filteredLogs.filter(l => getEventCategory(l) === 'security').length;
+      let financialCount = filteredLogs.filter(l => getEventCategory(l) === 'financial').length;
+      let anomaliesCount = filteredLogs.filter(l => isAnomaly(l)).length;
+
+      totalEventsSpan.textContent = total;
+      securityEventsSpan.textContent = securityCount;
+      financialEventsSpan.textContent = financialCount;
+      anomaliesSpan.textContent = anomaliesCount;
+
+      // Renderizar lista de logs
+      if (filteredLogs.length === 0) {
+        auditLogDiv.innerHTML = '<p style="text-align:center;color:#64748b;">No hay logs que coincidan con los filtros.</p>';
+        return;
+      }
+
+      auditLogDiv.innerHTML = '';
+      filteredLogs.slice(0, 100).forEach(log => {
+        const timestamp = log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Fecha desconocida';
+        const action = log.action || log.type || 'Evento';
+        const user = log.userId || log.email || 'Sistema';
+        const category = getEventCategory(log);
+        const color = category === 'security' ? '#ef4444' : (category === 'financial' ? '#059669' : '#38bdf8');
+        const logEntry = document.createElement('div');
+        logEntry.style.cssText = 'padding: 8px; border-bottom: 1px solid #334155; font-family: monospace; font-size: 0.8rem;';
+        logEntry.innerHTML = `
+          <span style="color: ${color};">[${timestamp}]</span>
+          <span style="color: #f8fafc;">${action}</span>
+          <span style="color: #94a3b8;"> - Usuario: ${user}</span>
+          ${log.data ? `<div style="color: #64748b; font-size:0.7rem; margin-top:4px;">${JSON.stringify(log.data).substring(0, 200)}</div>` : ''}
+        `;
+        auditLogDiv.appendChild(logEntry);
+      });
+      if (filteredLogs.length > 100) {
+        const more = document.createElement('div');
+        more.style.padding = '8px';
+        more.style.textAlign = 'center';
+        more.style.color = '#64748b';
+        more.textContent = `... y ${filteredLogs.length - 100} eventos más. Usa la exportación para ver todo.`;
+        auditLogDiv.appendChild(more);
+      }
+    }
+
+    // Exportar logs actuales a CSV
+    function exportarCSV() {
+      if (filteredLogs.length === 0) {
+        alert('No hay datos para exportar.');
+        return;
+      }
+      const headers = ['Timestamp', 'Acción', 'Usuario', 'Datos'];
+      const rows = filteredLogs.map(log => [
+        log.timestamp || '',
+        log.action || log.type || '',
+        log.userId || log.email || 'Sistema',
+        JSON.stringify(log.data || '')
+      ]);
+      const csvContent = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit_logs_${new Date().toISOString()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Análisis IA (simulado pero basado en datos reales)
+    function analizarConIA() {
+      if (filteredLogs.length === 0) {
+        alert('No hay logs para analizar.');
+        return;
+      }
+      aiBox.style.display = 'block';
+      aiContent.innerHTML = '🔍 Analizando patrones...';
+      setTimeout(() => {
+        const total = filteredLogs.length;
+        const anomalies = filteredLogs.filter(l => isAnomaly(l)).length;
+        const topActions = {};
+        filteredLogs.forEach(l => {
+          const act = l.action || l.type || 'desconocido';
+          topActions[act] = (topActions[act] || 0) + 1;
+        });
+        const sortedActions = Object.entries(topActions).sort((a,b) => b[1] - a[1]).slice(0, 3);
+        const recomendaciones = [];
+        if (anomalies > total * 0.1) recomendaciones.push('⚠️ Alta tasa de anomalías. Revisar seguridad.');
+        if (sortedActions[0] && sortedActions[0][0].includes('login.failed')) recomendaciones.push('🔐 Muchos intentos fallidos de login. Considera habilitar MFA.');
+        if (recomendaciones.length === 0) recomendaciones.push('✅ Todo parece normal. Sigue monitoreando.');
+        aiContent.innerHTML = `
+          <div>📊 <strong>Resumen IA</strong></div>
+          <div>• Total eventos analizados: ${total}</div>
+          <div>• Anomalías detectadas: ${anomalies} (${((anomalies/total)*100).toFixed(1)}%)</div>
+          <div>• Acciones más frecuentes: ${sortedActions.map(a => `${a[0]} (${a[1]})`).join(', ')}</div>
+          <div>• Recomendaciones: ${recomendaciones.join(' ')}</div>
+        `;
+      }, 800);
+    }
+
+    // Abrir modal y cargar datos
+    window.abrirAuditModal = function() {
+      modal.classList.remove('hidden');
+      cargarLogs();
+    };
+
+    btnClose.addEventListener('click', () => modal.classList.add('hidden'));
+    btnApply.addEventListener('click', aplicarFiltros);
+    btnExport.addEventListener('click', exportarCSV);
+    btnAnalyze.addEventListener('click', analizarConIA);
+  })();
+</script>
 
 <!-- 🧠 LÓGICA SEGURA DE AUDITORÍA (Cero onclick, Cero enlaces externos, IA integrada) -->
 <script>
