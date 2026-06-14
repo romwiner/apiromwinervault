@@ -94,7 +94,7 @@ body:not(.app-activa) #securePlayerModal {
 body.app-activa #vistaLanding {
   display: none !important;
 }
-}
+} 
 </style>
 
 <style>  
@@ -24622,6 +24622,35 @@ if (btnCreate) {
 })();
 </script> 
     <script src="/qrcode-generator.js"></script>
+   <!-- QR PÚBLICO (visible sin iniciar sesión) -->
+<div id="qrPublicoContainer" style="margin-top: 30px; text-align: center;">
+  <h3>📱 Únete con mi código QR</h3>
+  <canvas id="qrCanvasLanding" width="200" height="200" style="border:1px solid #00e676; border-radius:8px;"></canvas>
+  <div id="qrLandingInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
+  <p style="font-size: 0.8rem;">Escanea y regístrate para empezar a ganar</p>
+</div>
+
+<!-- QR PERSONAL (visible solo cuando inicias sesión) -->
+<div id="qrPersonalContainer" style="margin-top: 30px; text-align: center; display: none;">
+  <h3>🔗 Tu código de referido</h3>
+  <canvas id="qrCanvas" width="200" height="200" style="border:1px solid #00e676; border-radius:8px;"></canvas>
+  <div id="qrIdentityInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
+</div>
+
+<script>
+  // Mostrar/ocultar QR según sesión
+  if (localStorage.getItem('authToken')) {
+    document.getElementById('qrPublicoContainer').style.display = 'none';
+    document.getElementById('qrPersonalContainer').style.display = 'block';
+    // Llamar a la función que dibuja el QR personal (debe estar en script.js)
+    if (typeof mostrarQRIdentidad === 'function') mostrarQRIdentidad();
+  } else {
+    document.getElementById('qrPublicoContainer').style.display = 'block';
+    document.getElementById('qrPersonalContainer').style.display = 'none';
+    // Llamar a la función que dibuja el QR público (debe estar en script.js)
+    if (typeof mostrarQRReferidoPublico === 'function') mostrarQRReferidoPublico();
+  }
+</script> 
 </body>
 </html>
 
