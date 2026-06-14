@@ -210,6 +210,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
 let reviewsCollection, favoritesCollection, commitsCollection, adsCollection, adImpressionsCollection, organizationsCollection;
+let followsCollection, postLikesCollection;  // 👈 AÑADIDAS
 let mongoReady = false;
 
 async function connectToMongo() {
@@ -239,95 +240,43 @@ async function connectToMongo() {
     favoritesCollection = db.collection('favorites');
     commitsCollection = db.collection('vaultCommits');
     
-    // ✅ NUEVAS COLECCIONES para el feed real y seguidores
+    // ✅ NUEVAS COLECCIONES
     followsCollection = db.collection('follows');
     postLikesCollection = db.collection('post_likes');
-    
-    // ✅ NUEVO: Colecciones para publicidad y organizaciones (si no las tienes, se crean)
     adsCollection = db.collection('ads');
     adImpressionsCollection = db.collection('adImpressions');
     organizationsCollection = db.collection('organizations');
     
     // =====================================================
-    // ÍNDICES PARA LAS NUEVAS COLECCIONES
+    // ÍNDICES
     // =====================================================
-    // Seguidores (evita duplicados y permite búsqueda rápida)
+    // Seguidores
     await followsCollection.createIndex({ followerId: 1, followingId: 1 }, { unique: true });
-    // Likes (evita que un usuario dé like dos veces al mismo producto)
+    // Likes
     await postLikesCollection.createIndex({ userId: 1, postId: 1 }, { unique: true });
-    // Comentarios (para ordenar por fecha)
+    // Comentarios (para feed)
     await commentsCollection.createIndex({ postId: 1, createdAt: -1 });
-    
-    // ✅ Índices para organizaciones (empresas)
+    // Organizaciones
     await organizationsCollection.createIndex({ name: 1 }, { unique: true });
     await organizationsCollection.createIndex({ taxId: 1 }, { unique: true, sparse: true });
     await organizationsCollection.createIndex({ 'members.userId': 1 });
     await organizationsCollection.createIndex({ expiresAt: 1 });
-    
-    // ✅ Índices para publicidad
+    // Publicidad
     await adsCollection.createIndex({ active: 1, budget: -1, startDate: 1, endDate: 1 });
     await adsCollection.createIndex({ advertiserId: 1, createdAt: -1 });
     await adImpressionsCollection.createIndex({ userId: 1, watchedAt: -1 });
     await adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 });
     
-    // ✅ Índices existentes (sin cambios)
-    await usersCollection.createIndex({ email: 1 }, { unique: true });
-    await usersCollection.createIndex({ username: 1 }, { unique: true });
+    // ✅ Índices existentes (con manejo de errores para evitar duplicados)
+    try {
+      await usersCollection.createIndex({ email: 1 }, { unique: true });
+    } catch(e) { logger.warn('Index email ya existe'); }
+    try {
+      await usersCollection.createIndex({ username: 1 }, { unique: true, sparse: true });
+    } catch(e) { logger.warn('Index username ya existe'); }
     await usersCollection.createIndex({ uid: 1 }, { unique: true });
     await usersCollection.createIndex({ tier: 1 });
     await usersCollection.createIndex({ companyId: 1 });
-    await secretsCollection.createIndex({ userId: 1 });
-    await secretsCollection.createIndex({ isForSale: 1 });
-    await secretsCollection.createIndex({ titulo: 'text' });
-    await profilesCollection.createIndex({ userId: 1 }, { unique: true });
-    await walletCollection.createIndex({ userId: 1 }, { unique: true });
-    await auditCollection.createIndex({ createdAt: -1 });
-    await auditCollection.createIndex({ userId: 1, timestamp: -1 });
-    await sharedLinksCollection.createIndex({ token: 1 }, { unique: true });
-    await sharedLinksCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-    await versionsCollection.createIndex({ fileId: 1, versionNumber: -1 });
-    await commentsCollection.createIndex({ fileId: 1, createdAt: -1 }); // índice existente (opcional)
-    await webhooksCollection.createIndex({ userId: 1 });
-    await promoCollection.createIndex({ code: 1 }, { unique: true });
-    await cryptoKeysCollection.createIndex({ publicKey: 1 }, { unique: true });
-    await cryptoKeysCollection.createIndex({ userId: 1 });
-    await verifiedIdentitiesCollection.createIndex({ userId: 1 }, { unique: true });
-    await verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, sparse: true });
-    await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true });
-    await reviewsCollection.createIndex({ itemId: 1, createdAt: -1 });
-    await favoritesCollection.createIndex({ userId: 1, itemId: 1 }, { unique: true });
-    
-    mongoReady = true;
-    logger.info('✅ MongoDB Atlas conectado');
-  } catch (err) {
-    logger.error('⚠️ MongoDB fallback activo: ' + err.message);
-    mongoReady = false;
-  }
-}
-    
-    // ✅ NUEVO: Colecciones para publicidad y organizaciones
-    adsCollection = db.collection('ads');
-    adImpressionsCollection = db.collection('adImpressions');
-    organizationsCollection = db.collection('organizations');
-    
-    // ✅ Índices para organizaciones (empresas)
-    await organizationsCollection.createIndex({ name: 1 }, { unique: true });
-    await organizationsCollection.createIndex({ taxId: 1 }, { unique: true, sparse: true });
-    await organizationsCollection.createIndex({ 'members.userId': 1 });
-    await organizationsCollection.createIndex({ expiresAt: 1 });
-    
-    // ✅ Índices para publicidad
-    await adsCollection.createIndex({ active: 1, budget: -1, startDate: 1, endDate: 1 });
-    await adsCollection.createIndex({ advertiserId: 1, createdAt: -1 });
-    await adImpressionsCollection.createIndex({ userId: 1, watchedAt: -1 });
-    await adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 });
-    
-    // ✅ Índices existentes (más uno nuevo para companyId)
-    await usersCollection.createIndex({ email: 1 }, { unique: true });
-    await usersCollection.createIndex({ username: 1 }, { unique: true });
-    await usersCollection.createIndex({ uid: 1 }, { unique: true });
-    await usersCollection.createIndex({ tier: 1 });
-    await usersCollection.createIndex({ companyId: 1 });  // 👈 Relacionar usuarios con empresas
     await secretsCollection.createIndex({ userId: 1 });
     await secretsCollection.createIndex({ isForSale: 1 });
     await secretsCollection.createIndex({ titulo: 'text' });
@@ -355,7 +304,7 @@ async function connectToMongo() {
     logger.error('⚠️ MongoDB fallback activo: ' + err.message);
     mongoReady = false;
   }
-} // ← ✅ Solo UNA llave aquí, que cierra connectToMongo()
+}
 
 // 🔐 SEGURIDAD MÁXIMA - SIN ENLACES EXTERNOS
 app.use(helmet({
