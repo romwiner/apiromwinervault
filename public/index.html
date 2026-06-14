@@ -1911,14 +1911,12 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 <!-- 📱 SECCIÓN FEED: apiromwinervault (Venta Granular, Anuncios y Auditoría IA) -->
 <section id="socialFeedPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 800px; margin: 0 auto; padding: 20px;">
   
-  <!-- Encabezado del Feed -->
   <div style="background: rgba(10, 15, 25, 0.95); border: 1px solid #1e3a5f; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <h2 style="margin: 0; font-size: 1.4rem; color: #f8fafc;">📱 Feed de Activos Granulares</h2>
       <span style="background: #059669; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: bold;">🔒 ENTORNO SEGURO</span>
     </div>
     
-    <!-- Filtros Seguros (Sin onclick) -->
     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
       <button type="button" id="filterAll" class="feed-filter-btn" style="padding: 8px 14px; background: #1e293b; color: #fff; border: 1px solid #334155; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">🌍 Todo</button>
       <button type="button" id="filterEducacion" class="feed-filter-btn" style="padding: 8px 14px; background: #1e293b; color: #fff; border: 1px solid #334155; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">🎓 Educación</button>
@@ -1926,19 +1924,17 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       <button type="button" id="btnOpenPublish" style="padding: 8px 16px; background: #059669; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-left: auto;">📤 Publicar Activo</button>
     </div>
 
-    <!-- Espacio Seguro para Anuncios (Sin enlaces externos, controlado internamente) -->
     <div id="secureAdSlot" style="background: #0f172a; border: 1px dashed #334155; border-radius: 8px; padding: 16px; text-align: center; color: #64748b; font-size: 0.85rem; margin-bottom: 16px;">
       📢 Espacio de Anuncio Seguro (Interno). Cero rastreadores externos.
     </div>
 
-    <!-- Contenedor de Publicaciones -->
     <div id="feedContainer" style="display: flex; flex-direction: column; gap: 16px;">
-      <p style="text-align: center; color: #64748b; padding: 20px;">No hay activos publicados aún. Sé el primero en asegurar y vender tu información.</p>
+      <p style="text-align: center; color: #64748b; padding: 20px;">Cargando feed...</p>
     </div>
   </div>
 </section>
 
-<!-- 📤 Modal de Publicación Segura (Con Lista Blanca y Auditoría IA) -->
+<!-- 📤 Modal de Publicación Segura (Con Lista Blanca y Auditoría IA real) -->
 <div id="publishModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: system-ui, -apple-system, sans-serif; backdrop-filter: blur(8px);">
   <div style="background: #0f172a; border: 1px solid #1e3a5f; border-radius: 16px; padding: 28px; max-width: 450px; width: 90%; color: #e2e8f0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);">
     <h3 style="margin-top: 0; text-align: center; color: #f8fafc; font-size: 1.25rem;">🔒 Publicar en Bóveda Granular</h3>
@@ -1963,7 +1959,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       </div>
       <div style="flex: 1;">
         <label style="font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; font-weight: 600;">4. Precio (USD):</label>
-        <input type="number" id="pubPrice" placeholder="Ej: 50" min="1" required style="width: 100%; box-sizing: border-box; padding: 12px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
+        <input type="number" id="pubPrice" placeholder="Ej: 50" min="1" step="0.01" required style="width: 100%; box-sizing: border-box; padding: 12px; background: #1e293b; border: 1px solid #334155; color: #fff; border-radius: 8px;">
       </div>
     </div>
     
@@ -1976,6 +1972,208 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     </button>
   </div>
 </div>
+
+<script>
+(function() {
+  // Función para obtener token
+  const getToken = () => localStorage.getItem('authToken');
+
+  // Cargar feed real desde backend
+  async function cargarFeed() {
+    const token = getToken();
+    if (!token) return;
+
+    const feedContainer = document.getElementById('feedContainer');
+    if (!feedContainer) return;
+
+    feedContainer.innerHTML = '<p style="text-align: center; color: #cbd5e1;">Cargando publicaciones...</p>';
+
+    try {
+      const res = await fetch('/api/feed', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Error al cargar feed');
+
+      if (!data.posts || data.posts.length === 0) {
+        feedContainer.innerHTML = '<p style="text-align: center; color: #64748b;">No hay activos publicados aún. ¡Sé el primero!</p>';
+        return;
+      }
+
+      feedContainer.innerHTML = '';
+      for (const post of data.posts) {
+        const postDiv = document.createElement('div');
+        postDiv.style.cssText = 'background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; transition: transform 0.2s;';
+        postDiv.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+            <div>
+              <h3 style="margin: 0 0 4px 0; color: #f8fafc;">${escapeHtml(post.titulo)}</h3>
+              <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Vendedor: ${escapeHtml(post.vendedor?.displayName || 'Anónimo')}</p>
+            </div>
+            <span style="background: #059669; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">$${post.precio} USD</span>
+          </div>
+          <p style="margin: 8px 0; color: #cbd5e1;">${escapeHtml(post.descripcion || 'Sin descripción')}</p>
+          <div style="display: flex; gap: 12px; margin-top: 12px;">
+            <button class="buy-btn" data-id="${post.id}" style="flex: 1; padding: 8px; background: #00e676; color: #0b0c10; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">💰 Comprar</button>
+            <button class="like-btn" data-id="${post.id}" style="flex: 0.3; padding: 8px; background: transparent; border: 1px solid #38bdf8; color: #38bdf8; border-radius: 8px; cursor: pointer;">❤️ ${post.engagement?.likes || 0}</button>
+          </div>
+        `;
+        feedContainer.appendChild(postDiv);
+      }
+
+      // Agregar eventos a botones de compra (usar delegación)
+      feedContainer.querySelectorAll('.buy-btn').forEach(btn => {
+        btn.addEventListener('click', () => comprarProducto(btn.dataset.id));
+      });
+      // Aquí podrías agregar eventos para likes, etc.
+
+    } catch (err) {
+      console.error('Error cargando feed:', err);
+      feedContainer.innerHTML = '<p style="text-align: center; color: #ef4444;">Error al cargar el feed. Intenta más tarde.</p>';
+    }
+  }
+
+  // Función auxiliar para escapar HTML
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  // Función de compra (puede reutilizar la lógica global si existe)
+  async function comprarProducto(productId) {
+    const token = getToken();
+    if (!token) {
+      alert('Debes iniciar sesión para comprar.');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/buy/${productId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ Compra exitosa. Revisa tu bóveda.');
+        // Opcional: recargar feed o actualizar saldo
+      } else {
+        alert('❌ Error: ' + (data.error || 'No se pudo completar la compra'));
+      }
+    } catch (err) {
+      console.error('Error comprando:', err);
+      alert('Error de conexión');
+    }
+  }
+
+  // Publicar un activo (usando endpoint real /vault con forSale=true)
+  async function publicarActivo(file, titulo, categoria, price) {
+    const token = getToken();
+    if (!token) throw new Error('No autenticado');
+
+    const formData = new FormData();
+    formData.append('archivo', file);
+    formData.append('titulo', titulo);
+    formData.append('categoria', categoria);
+    formData.append('forSale', 'true');
+    formData.append('price', price.toString());
+
+    const res = await fetch('/vault', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Error al publicar');
+    return data;
+  }
+
+  // Configurar modal de publicación
+  const publishModal = document.getElementById('publishModal');
+  const btnOpenPublish = document.getElementById('btnOpenPublish');
+  const btnClosePublish = document.getElementById('btnClosePublish');
+  const btnSecurePublish = document.getElementById('btnSecurePublish');
+  const pubFile = document.getElementById('pubFile');
+  const pubTitle = document.getElementById('pubTitle');
+  const pubCat = document.getElementById('pubCat');
+  const pubPrice = document.getElementById('pubPrice');
+
+  if (btnOpenPublish) {
+    btnOpenPublish.addEventListener('click', () => {
+      if (!getToken()) {
+        alert('Debes iniciar sesión para publicar activos.');
+        return;
+      }
+      publishModal.classList.remove('hidden');
+    });
+  }
+
+  if (btnClosePublish) {
+    btnClosePublish.addEventListener('click', () => {
+      publishModal.classList.add('hidden');
+      // Limpiar campos
+      if (pubFile) pubFile.value = '';
+      if (pubTitle) pubTitle.value = '';
+      if (pubCat) pubCat.value = 'educacion';
+      if (pubPrice) pubPrice.value = '';
+    });
+  }
+
+  if (btnSecurePublish) {
+    btnSecurePublish.addEventListener('click', async () => {
+      if (!pubFile.files.length || !pubTitle.value.trim() || !pubPrice.value) {
+        alert('Completa todos los campos (archivo, título, precio)');
+        return;
+      }
+      const file = pubFile.files[0];
+      const allowedExtensions = ['.txt', '.mp3', '.mp4', '.rar', '.zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv'];
+      const fileName = file.name.toLowerCase();
+      const isValid = allowedExtensions.some(ext => fileName.endsWith(ext));
+      if (!isValid) {
+        alert('Tipo de archivo no permitido. Solo: ' + allowedExtensions.join(', '));
+        return;
+      }
+      const price = parseFloat(pubPrice.value);
+      if (isNaN(price) || price <= 0) {
+        alert('Ingresa un precio válido mayor a 0.');
+        return;
+      }
+
+      btnSecurePublish.disabled = true;
+      btnSecurePublish.textContent = '🔄 Publicando...';
+
+      try {
+        await publicarActivo(file, pubTitle.value.trim(), pubCat.value, price);
+        alert('✅ Activo publicado correctamente. Aparecerá en el feed.');
+        publishModal.classList.add('hidden');
+        // Limpiar campos
+        pubFile.value = '';
+        pubTitle.value = '';
+        pubCat.value = 'educacion';
+        pubPrice.value = '';
+        // Recargar feed
+        cargarFeed();
+      } catch (err) {
+        alert('❌ Error al publicar: ' + err.message);
+      } finally {
+        btnSecurePublish.disabled = false;
+        btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
+      }
+    });
+  }
+
+  // Cargar feed cuando la sección se haga visible (desde la función de cambio de vista)
+  // Además, exponer la función para que sea llamada desde script.js cuando se muestre el panel
+  window.cargarFeed = cargarFeed;
+})();
+</script>
 
 <!-- 🧠 LÓGICA SEGURA E INTEGRADA (Cero onclick, Cero enlaces externos) -->
 <script>
