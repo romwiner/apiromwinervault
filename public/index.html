@@ -26736,40 +26736,51 @@ if (btnCreate) {
   console.log('👑 Lealtad absoluta al Dueño Supremo');
 })();
 </script> 
+<!-- QR PÚBLICO (sin sesión) -->
+<div id="qrPublico" style="text-align:center; margin:30px auto;">
+  <h3>📱 Únete con mi código QR</h3>
+  <img id="qrImgPublico" width="200" height="200" style="border:1px solid #0f0; background:#fff;">
+  <div id="qrInfoPublico" style="margin-top:8px;">Regístrate con este código</div>
+</div>
 
-<!-- Coloca esto dentro de tu archivo public/index.html, en el lugar donde quieras que aparezca el QR -->
-<div style="text-align: center; margin-top: 30px;">
-  <h3>📱 Escanea y regístrate</h3>
-  <img id="qrImagen" width="200" height="200" style="border:1px solid green; background:white;">
-  <div id="qrMensaje" style="margin-top:8px;"></div>
+<!-- QR PERSONAL (con sesión) -->
+<div id="qrPersonal" style="text-align:center; margin:30px auto; display:none;">
+  <h3>🔗 Tu código de referido</h3>
+  <img id="qrImgPersonal" width="200" height="200" style="border:1px solid #0f0; background:#fff;">
+  <div id="qrInfoPersonal" style="margin-top:8px;"></div>
 </div>
 
 <script>
-  (function() {
+  // Esperar a que cargue la página
+  window.addEventListener('DOMContentLoaded', function() {
     const token = localStorage.getItem('authToken');
-    let url = window.location.origin + '/register';
     if (token) {
-      // Si está logueado, añade su código de referido
+      // Mostrar QR personal
+      document.getElementById('qrPublico').style.display = 'none';
+      document.getElementById('qrPersonal').style.display = 'block';
       fetch('/api/identity/qr', { headers: { 'Authorization': 'Bearer ' + token } })
         .then(r => r.json())
         .then(data => {
           if (data.success && data.qrPayload) {
-            document.getElementById('qrImagen').src = '/api/qr/' + encodeURIComponent(data.qrPayload);
-            document.getElementById('qrMensaje').innerText = 'Código: ' + (data.qrData.ref || 'activo');
+            document.getElementById('qrImgPersonal').src = '/api/qr/' + encodeURIComponent(data.qrPayload);
+            document.getElementById('qrInfoPersonal').innerText = 'Código: ' + (data.qrData.ref || 'activo');
           } else {
             throw new Error('Sin datos');
           }
         })
-        .catch(() => {
-          document.getElementById('qrImagen').src = '/api/qr/' + encodeURIComponent(url);
-          document.getElementById('qrMensaje').innerText = 'Regístrate con este código';
+        .catch(err => {
+          console.error(err);
+          document.getElementById('qrImgPersonal').src = '';
+          document.getElementById('qrInfoPersonal').innerText = 'Error al cargar QR';
         });
     } else {
-      document.getElementById('qrImagen').src = '/api/qr/' + encodeURIComponent(url);
-      document.getElementById('qrMensaje').innerText = 'Regístrate con este código';
+      // QR público
+      document.getElementById('qrPublico').style.display = 'block';
+      document.getElementById('qrPersonal').style.display = 'none';
+      const url = window.location.origin + '/register';
+      document.getElementById('qrImgPublico').src = '/api/qr/' + encodeURIComponent(url);
     }
-  })();
-</script>  
+  });
 </script>
 </body>
 </html>
