@@ -26739,7 +26739,7 @@ if (btnCreate) {
 <!-- QR PÚBLICO (visible sin iniciar sesión) -->
 <div id="qrPublicoContainer" style="margin-top: 30px; text-align: center;">
   <h3>📱 Únete con mi código QR</h3>
-  <canvas id="qrCanvasLanding" width="200" height="200" style="border:1px solid #00e676; border-radius:8px;"></canvas>
+  <div id="qrCanvasLanding" style="width:200px; height:200px; margin:0 auto; border:1px solid #00e676; border-radius:8px;"></div>
   <div id="qrLandingInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
   <p style="font-size: 0.8rem;">Escanea y regístrate para empezar a ganar</p>
 </div>
@@ -26747,53 +26747,51 @@ if (btnCreate) {
 <!-- QR PERSONAL (visible solo cuando inicias sesión) -->
 <div id="qrPersonalContainer" style="margin-top: 30px; text-align: center; display: none;">
   <h3>🔗 Tu código de referido</h3>
-  <canvas id="qrCanvas" width="200" height="200" style="border:1px solid #00e676; border-radius:8px;"></canvas>
+  <div id="qrCanvas" style="width:200px; height:200px; margin:0 auto; border:1px solid #00e676; border-radius:8px;"></div>
   <div id="qrIdentityInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
 </div>
 
-<!-- Librería QR (qrcode - funciona con canvas) -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<!-- Librería QR (versión que dibuja en DIV, sin canvas) -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
 <script>
 // ========================
-// 1. Función para QR público (código de referido general)
+// 1. Función para QR público
 // ========================
 function mostrarQRReferidoPublico() {
-  const canvas = document.getElementById('qrCanvasLanding');
-  if (!canvas) {
-    console.error('No se encontró canvasLanding');
-    return;
-  }
+  const container = document.getElementById('qrCanvasLanding');
+  if (!container) return;
+  // Limpiar el contenedor
+  container.innerHTML = '';
+  
   const url = window.location.origin + '/register';
   const infoDiv = document.getElementById('qrLandingInfo');
   if (infoDiv) infoDiv.textContent = 'Regístrate con este código';
 
-  // Generar QR en canvas usando la librería qrcode
-  QRCode.toCanvas(canvas, url, { width: 200, margin: 1 }, function (error) {
-    if (error) {
-      console.error('Error generando QR público:', error);
-      // Fallback: mostrar texto
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 200, 200);
-      ctx.fillStyle = '#ff0000';
-      ctx.font = '12px monospace';
-      ctx.fillText('Error QR', 20, 100);
-    } else {
-      console.log('QR público generado');
-    }
-  });
+  try {
+    // Crear el QR usando la librería (dibuja dentro del div)
+    new QRCode(container, {
+      text: url,
+      width: 200,
+      height: 200,
+      colorDark: '#0f172a',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    console.log('QR público generado');
+  } catch (err) {
+    console.error('Error generando QR público:', err);
+    container.innerHTML = '<div style="color:red; text-align:center; padding-top:80px;">Error QR</div>';
+  }
 }
 
 // ========================
-// 2. Función para QR personal (con datos de usuario autenticado)
+// 2. Función para QR personal
 // ========================
 async function mostrarQRIdentidad() {
-  const canvas = document.getElementById('qrCanvas');
-  if (!canvas) {
-    console.error('No se encontró canvas personal');
-    return;
-  }
+  const container = document.getElementById('qrCanvas');
+  if (!container) return;
+  container.innerHTML = '';
 
   try {
     const token = localStorage.getItem('authToken');
@@ -26808,29 +26806,26 @@ async function mostrarQRIdentidad() {
     const infoDiv = document.getElementById('qrIdentityInfo');
     if (infoDiv) infoDiv.textContent = `Código: ${data.qrData.ref || 'activo'}`;
 
-    // Generar QR en canvas con el payload
-    QRCode.toCanvas(canvas, data.qrPayload, { width: 200, margin: 1 }, function (error) {
-      if (error) {
-        console.error('Error generando QR personal:', error);
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 200, 200);
-        ctx.fillStyle = '#ff0000';
-        ctx.font = '12px monospace';
-        ctx.fillText('Error QR', 20, 100);
-      } else {
-        console.log('QR personal generado');
-      }
+    // Generar QR personal
+    new QRCode(container, {
+      text: data.qrPayload,
+      width: 200,
+      height: 200,
+      colorDark: '#0f172a',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
     });
+    console.log('QR personal generado');
   } catch (err) {
     console.error('Error al obtener QR personal:', err);
     const infoDiv = document.getElementById('qrIdentityInfo');
     if (infoDiv) infoDiv.textContent = 'Error al cargar QR';
+    container.innerHTML = '<div style="color:red; text-align:center; padding-top:80px;">Error QR</div>';
   }
 }
 
 // ========================
-// 3. Ejecutar según autenticación al cargar la página
+// 3. Ejecutar según autenticación
 // ========================
 document.addEventListener('DOMContentLoaded', function() {
   const token = localStorage.getItem('authToken');
