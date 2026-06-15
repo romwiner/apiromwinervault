@@ -28,11 +28,33 @@ const tokenizer = new natural.WordTokenizer();
 const stemmer = natural.PorterStemmer;
 
 // 🔐 CLAVES + ADMINS (definir constantes PRIMERO)
-const JWT_SECRET = process.env.JWT_SECRET || 'romwiner_jwt_secret_fallback';
-const MASTER_KEY = process.env.MASTER_KEY || 'romwiner_master_key_fallback';
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'admin@romwinervault.com,nubislosnubis@gmail.com,romraywiner@gmail.com').split(',').map(e => e.trim());
+// ⚠️ IMPORTANTE: Asegúrate de tener dotenv configurado al inicio del archivo:
+// require('dotenv').config();   (si usas CommonJS)
+// import 'dotenv/config';       (si usas ES modules)
+
+// 1. Claves críticas: sin fallbacks, la app NO debe arrancar si faltan
+const JWT_SECRET = process.env.JWT_SECRET;
+const MASTER_KEY = process.env.MASTER_KEY;
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+
+// Validación estricta (mata el proceso si falta alguna)
+if (!JWT_SECRET || !MASTER_KEY || !STRIPE_SECRET_KEY) {
+  console.error('❌ ERROR CRÍTICO: Faltan variables de entorno obligatorias:');
+  if (!JWT_SECRET) console.error('   - JWT_SECRET');
+  if (!MASTER_KEY) console.error('   - MASTER_KEY');
+  if (!STRIPE_SECRET_KEY) console.error('   - STRIPE_SECRET_KEY');
+  console.error('   El servidor NO puede iniciar sin ellas.');
+  process.exit(1);
+}
+
+// 2. Configuración no crítica: puedes mantener fallbacks razonables
+const ADMIN_EMAILS = process.env.ADMIN_EMAILS
+  ? process.env.ADMIN_EMAILS.split(',').map(e => e.trim())
+  : ['admin@romwinervault.com', 'nubislosnubis@gmail.com', 'romraywiner@gmail.com'];
+
 const APP_URL = process.env.FRONTEND_URL || 'https://apiromwinervault.onrender.com';
+
+// El resto de tu código continúa aquí...
 
 // 💳 Stripe para pagos (definir DESPUÉS de STRIPE_SECRET_KEY)
 const stripe = require('stripe')(STRIPE_SECRET_KEY);
