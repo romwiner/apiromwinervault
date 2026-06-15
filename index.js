@@ -469,56 +469,6 @@ app.get('/api/health', (req, res) => {
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdir(uploadDir, { recursive: true }).catch(err => logger.warn('⚠️ No se pudo crear uploads/: ' + err.message));
 
-// FileFilter que valida con números mágicos (usa file-type)
-const fileFilter = async (req, file, cb) => {
-  if (!file.buffer) {
-    return cb(new Error('Solo archivos en memoria son soportados'), false);
-  }
-  try {
-    const { fileTypeFromBuffer } = await import('file-type');
-    const buffer = file.buffer.slice(0, 4100);
-    const type = await fileTypeFromBuffer(buffer);
-    // Lista de tipos permitidos (basada en MIME real, no en el que envía el cliente)
-    const allowedMimes = [
-      'image/jpeg', 'image/png', 'image/gif',
-      'application/pdf', 'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/plain', 'video/mp4', 'video/webm',
-      'audio/mpeg', 'audio/wav', 'audio/ogg',
-      'application/zip', 'application/x-rar-compressed',
-      'application/x-7z-compressed', 'application/epub+zip',
-      'application/x-mobipocket-ebook'
-    ];
-    if (type && allowedMimes.includes(type.mime)) {
-      // Opcional: normalizar extensión
-      const originalExt = type.ext;
-      file.originalname = file.originalname.replace(/\.[^/.]+$/, '') + '.' + originalExt;
-      cb(null, true);
-    } else {
-      cb(new Error(`Tipo real no permitido: ${type ? type.mime : 'desconocido'}`), false);
-    }
-  } catch (error) {
-    logger.error('Error en fileFilter:', error);
-    cb(new Error('Error interno validando archivo'), false);
-  }
-};
-
-// Usamos memoryStorage para tener acceso al buffer
-const upload = multer({
-  storage: multer.memoryStorage(),
-  fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10 MB máximo (ajústalo a tu necesidad)
-});
-
-// 📌 NOTA: Ahora en tus rutas deberás guardar el buffer en disco manualmente si lo necesitas.
-// Ejemplo:
-// app.post('/upload', upload.single('archivo'), async (req, res) => {
-//   const buffer = req.file.buffer;
-//   const filename = `${Date.now()}-${req.file.originalname}`;
-//   await fs.writeFile(path.join(uploadDir, filename), buffer);
-//   res.json({ filename });
-// });
 // =========================================================================
 
 // ========== RATE LIMITING SELECTIVO (menos agresivo) ==========
