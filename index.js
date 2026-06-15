@@ -5085,37 +5085,42 @@ startServer().catch(err => {
   logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
   process.exit(1);
 });
-
-<div style="text-align: center; margin-top: 30px;">
-  <h3>📱 Escanea y regístrate</h3>
-  <img id="qrImagen" width="200" height="200" style="border:1px solid green; background:white;">
-  <div id="qrMensaje" style="margin-top:8px;"></div>
-</div>
-
-<script>
-  (function() {
-    const token = localStorage.getItem('authToken');
-    let url = window.location.origin + '/register';
-    if (token) {
-      // Si está logueado, añade su código de referido
-      fetch('/api/identity/qr', { headers: { 'Authorization': 'Bearer ' + token } })
-        .then(r => r.json())
-        .then(data => {
-          if (data.success && data.qrPayload) {
-            document.getElementById('qrImagen').src = '/api/qr/' + encodeURIComponent(data.qrPayload);
-            document.getElementById('qrMensaje').innerText = 'Código: ' + (data.qrData.ref || 'activo');
-          } else {
-            throw new Error('Sin datos');
-          }
-        })
-        .catch(() => {
-          document.getElementById('qrImagen').src = '/api/qr/' + encodeURIComponent(url);
-          document.getElementById('qrMensaje').innerText = 'Regístrate con este código';
-        });
-    } else {
-      document.getElementById('qrImagen').src = '/api/qr/' + encodeURIComponent(url);
-      document.getElementById('qrMensaje').innerText = 'Regístrate con este código';
-    }
-  })();
-</script>
+app.get('/api/identity/qr', authenticate, async (req, res) => {
+  try {
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const baseUrl = process.env.FRONTEND_URL || (req.protocol + '://' + req.get('host'));
+    const registerUrl = `${baseUrl}/register?ref=${user.refCode}`;
+    res.json({
+      success: true,
+      qrPayload: registerUrl,
+      qrData: { ref: user.refCode, url: registerUrl }
+    });
+  } catch (e) {
+    console.error('QR error:', e);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+app.get('/api/identity/qr', authenticate, async(req, res) => {
+  try {
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    // Obtener la URL base (desde entorno o desde la petición)
+    const baseUrl = process.env.FRONTEND_URL || (req.protocol + '://' + req.get('host'));
+    const registerUrl = `${baseUrl}/register?ref=${user.refCode}`;
+    
+    res.json({
+      success: true,
+      qrPayload: registerUrl,   // ← Ahora es una URL, no un JSON
+      qrData: {
+        ref: user.refCode,
+        url: registerUrl
+      }
+    });
+  } catch (e) {
+    console.error('❌ QR identity error:', e);
+    res.status(500).json({ error: 'Error al generar el código QR' });
+  }
+});
 // === FIN: index.js ===
