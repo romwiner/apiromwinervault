@@ -26840,50 +26840,127 @@ if (btnCreate) {
   console.log('🤝 Coordinación con Agente Flotante establecida');
   console.log('👑 Lealtad absoluta al Dueño Supremo');
 })();
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Descargando RomWinerVault...</title>
-    <script>
-        // Capturar el código de afiliado de la URL
-        const params = new URLSearchParams(window.location.search);
-        const refCode = params.get('ref') || 'DIRECTO';
-        
-        // Guardar en cookie (persiste aunque cierren el navegador)
-        document.cookie = `affiliate_ref=${refCode}; path=/; max-age=86400`;
-        
-        // Guardar también en localStorage como respaldo
-        localStorage.setItem('affiliate_ref', refCode);
-        
-        // Detectar dispositivo
-        const ua = navigator.userAgent || navigator.vendor || window.opera;
-        const isAndroid = /android/i.test(ua);
-        const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-        
-        // Redirigir después de 1.5 segundos
-        setTimeout(() => {
-            if (isAndroid) {
-                // Reemplaza con tu link real de Play Store
-                window.location.href = 'https://play.google.com/store/apps/details?id=com.tuempresa.romwinervault';
-            } else if (isIOS) {
-                // Reemplaza con tu link real de App Store
-                window.location.href = 'https://apps.apple.com/app/romwinervault/id123456789';
+// Configuración de la API
+const API_BASE = 'https://apiromwinervault.com/api/affiliates/register';
+
+// Generar código único de 6 caracteres
+function generarCodigoUnico() {
+    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let codigo = 'RWV-';
+    for (let i = 0; i < 6; i++) {
+        codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+    }
+    return codigo;
+}
+
+// Registrar afiliado en tu backend
+async function registrarAfiliado(nombre, email, whatsapp) {
+    try {
+        const respuesta = await fetch(API_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: nombre, email: email, whatsapp: whatsapp })
+        });
+        const datos = await respuesta.json();
+        return datos;
+    } catch (error) {
+        console.error('Error de conexión:', error);
+        return { success: false, message: 'Error de conexión con el servidor' };
+    }
+}
+
+// Generar el código QR visualmente
+function generarQR(texto, elementoId) {
+    const contenedor = document.getElementById(elementoId);
+    contenedor.innerHTML = ''; // Limpiar anterior
+    
+    // Asegúrate de tener la librería qrcode.js cargada en el <head> de tu HTML
+    new QRCode(contenedor, {
+        text: texto,
+        width: 256,
+        height: 256,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+    });
+}
+
+// Descargar el QR como imagen PNG
+function descargarQR() {
+    const canvas = document.querySelector('#qrcode canvas');
+    if (!canvas) {
+        alert('El código QR aún no se ha generado.');
+        return;
+    }
+    const url = canvas.toDataURL('image/png');
+    const codigo = document.getElementById('generatedCode').textContent;
+    const enlace = document.createElement('a');
+    enlace.download = `QR_Afiliado_${codigo}.png`;
+    enlace.href = url;
+    enlace.click();
+}
+
+// Copiar el enlace de referido al portapapeles
+function copiarLink() {
+    const link = document.getElementById('generatedLink').textContent;
+    navigator.clipboard.writeText(link).then(() => {
+        alert('✅ Enlace copiado al portapapeles');
+    }).catch(() => {
+        alert('❌ Error al copiar el enlace.');
+    });
+}
+
+// Manejar el envío del formulario
+document.addEventListener('DOMContentLoaded', () => {
+    const formulario = document.getElementById('affiliateForm');
+    
+    if (formulario) {
+        formulario.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const whatsapp = document.getElementById('whatsapp').value;
+            
+            const btn = formulario.querySelector('button[type="submit"]');
+            const textoOriginal = btn.textContent;
+            btn.textContent = 'Generando...';
+            btn.disabled = true;
+
+            const resultado = await registrarAfiliado(nombre, email, whatsapp);
+            
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
+
+            if (resultado.success) {
+                const codigo = resultado.affiliate.code;
+                const link = `https://romwinervault.com/app.html?ref=${codigo}`;
+                
+                document.getElementById('generatedCode').textContent = codigo;
+                document.getElementById('generatedLink').textContent = link;
+                
+                generarQR(link, 'qrcode');
+                
+                document.getElementById('result').style.display = 'block';
+                
+                const successAlert = document.getElementById('successAlert');
+                const errorAlert = document.getElementById('errorAlert');
+                if (successAlert) successAlert.style.display = 'block';
+                if (errorAlert) errorAlert.style.display = 'none';
+                
+                document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
             } else {
-                // Desktop: mostrar ambos botones
-                document.body.innerHTML = `
-                    <h2>Descarga RomWinerVault</h2>
-                    <a href="https://play.google.com/store/apps/details?id=com.tuempresa.romwinervault">Android</a>
-                    <a href="https://apps.apple.com/app/romwinervault/id123456789">iOS</a>
-                `;
+                const errorAlert = document.getElementById('errorAlert');
+                const successAlert = document.getElementById('successAlert');
+                if (errorAlert) {
+                    errorAlert.textContent = '❌ Error: ' + (resultado.message || 'Desconocido');
+                    errorAlert.style.display = 'block';
+                }
+                if (successAlert) successAlert.style.display = 'none';
             }
-        }, 1500);
-    </script>
-</head>
-<body style="text-align:center; padding:50px; font-family:sans-serif;">
-    <h2>Preparando tu descarga...</h2>
-    <p>Código de referido: <strong id="refDisplay"></strong></p>
-    <script>document.getElementById('refDisplay').textContent = refCode;
+        });
+    }
+});
 </script>
 </body>
 </html>
