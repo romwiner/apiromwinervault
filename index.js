@@ -13,11 +13,11 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs').promises;
 const pino = require('pino');
-const logger = pino({ level: 'info' }); // Crea una instancia del logger
+const logger = pino({ level: 'info' });
 const fetch = require('node-fetch');
 const sharp = require('sharp');
 const diffLib = require('diff');
-const fileType = require('file-type');
+// ❌ ELIMINADA: const fileType = require('file-type');  // Ya no se usa así
 const { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } = require('@simplewebauthn/server');
 const { ethers } = require('ethers');
 const { createFromURL } = require('@helia/http');
@@ -28,10 +28,6 @@ const tokenizer = new natural.WordTokenizer();
 const stemmer = natural.PorterStemmer;
 
 // 🔐 CLAVES + ADMINS (definir constantes PRIMERO)
-// ⚠️ IMPORTANTE: Asegúrate de tener dotenv configurado al inicio del archivo:
-// require('dotenv').config();   (si usas CommonJS)
-// import 'dotenv/config';       (si usas ES modules)
-
 // 1. Claves críticas: sin fallbacks, la app NO debe arrancar si faltan
 const JWT_SECRET = process.env.JWT_SECRET;
 const MASTER_KEY = process.env.MASTER_KEY;
@@ -46,6 +42,46 @@ if (!JWT_SECRET || !MASTER_KEY || !STRIPE_SECRET_KEY) {
   console.error('   El servidor NO puede iniciar sin ellas.');
   process.exit(1);
 }
+
+// ========== CONFIGURACIÓN SEGURA DE MULTER (VALIDACIÓN POR NÚMEROS MÁGICOS) ==========
+// Esta función reemplaza al viejo fileFilter inseguro
+const fileFilter = async (req, file, cb) => {
+  if (!file.buffer) {
+    return cb(new Error('Solo se permiten archivos en memoria'), false);
+  }
+  try {
+    // Importación dinámica de file-type (compatible con tu versión 22)
+    const { fileTypeFromBuffer } = await import('file-type');
+    const buffer = file.buffer.slice(0, 4100);
+    const type = await fileTypeFromBuffer(buffer);
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (type && allowedMimes.includes(type.mime)) {
+      // Normaliza la extensión según el tipo real
+      const originalName = file.originalname;
+      const newExt = type.ext;
+      file.originalname = originalName.replace(/\.[^/.]+$/, '') + '.' + newExt;
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no permitido o manipulado'), false);
+    }
+  } catch (error) {
+    console.error('Error en fileFilter:', error);
+    cb(new Error('Error interno al validar archivo'), false);
+  }
+};
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5 MB
+});
+// =====================================================================================
+
+// Aquí continúa el resto de tu código (definir app, middlewares, rutas...)
+// Por ejemplo:
+// const app = express();
+// app.use(helmet());
+// ... etc.
 
 // 2. Configuración no crítica: puedes mantener fallbacks razonables
 const ADMIN_EMAILS = process.env.ADMIN_EMAILS
@@ -418,43 +454,82 @@ app.get('/api/health', (req, res) => {
     mensaje: 'Backend operativo ✅'
   });
 });
-// 📁 UPLOADS
+// ========== CONFIGURACIÓN SEGURA DE MULTER (con validación real) ==========
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdir(uploadDir, { recursive: true }).catch(err => logger.warn('⚠️ No se pudo crear uploads/: ' + err.message));
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const safeName = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + safeName);
+
+// FileFilter que valida con números mágicos (usa file-type)
+const fileFilter = async (req, file, cb) => {
+  if (!file.buffer) {
+    return cb(new Error('Solo archivos en memoria son soportados'), false);
   }
-});
-const upload = multer({
-  storage,
-  limits: { fileSize: 500 * 1024 * 1024 },
-  fileFilter: async(req, file, cb) => {
-    try {
-      const allowedMimes = [
-        'image/jpeg', 'image/png', 'image/gif',
-        'application/pdf', 'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'text/plain', 'video/mp4', 'video/webm',
-        'audio/mpeg', 'audio/wav', 'audio/ogg',
-        'application/x-rar-compressed', 'application/zip',
-        'application/x-7z-compressed', 'application/epub+zip',
-        'application/x-mobipocket-ebook'
-      ];
-      if (allowedMimes.includes(file.mimetype)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Archivo no permitido: ' + file.mimetype));
-      }
-    } catch (e) {
-      cb(new Error('Error validando archivo: ' + e.message));
+  try {
+    const { fileTypeFromBuffer } = await import('file-type');
+    const buffer = file.buffer.slice(0, 4100);
+    const type = await fileTypeFromBuffer(buffer);
+    // Lista de tipos permitidos (basada en MIME real, no en el que envía el cliente)
+    const allowedMimes = [
+      'image/jpeg', 'image/png', 'image/gif',
+      'application/pdf', 'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain', 'video/mp4', 'video/webm',
+      'audio/mpeg', 'audio/wav', 'audio/ogg',
+      'application/zip', 'application/x-rar-compressed',
+      'application/x-7z-compressed', 'application/epub+zip',
+      'application/x-mobipocket-ebook'
+    ];
+    if (type && allowedMimes.includes(type.mime)) {
+      // Opcional: normalizar extensión
+      const originalExt = type.ext;
+      file.originalname = file.originalname.replace(/\.[^/.]+$/, '') + '.' + originalExt;
+      cb(null, true);
+    } else {
+      cb(new Error(`Tipo real no permitido: ${type ? type.mime : 'desconocido'}`), false);
     }
+  } catch (error) {
+    logger.error('Error en fileFilter:', error);
+    cb(new Error('Error interno validando archivo'), false);
   }
+};
+
+// Usamos memoryStorage para tener acceso al buffer
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10 MB máximo (ajústalo a tu necesidad)
 });
-app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Demasiadas solicitudes' } }));
+
+// 📌 NOTA: Ahora en tus rutas deberás guardar el buffer en disco manualmente si lo necesitas.
+// Ejemplo:
+// app.post('/upload', upload.single('archivo'), async (req, res) => {
+//   const buffer = req.file.buffer;
+//   const filename = `${Date.now()}-${req.file.originalname}`;
+//   await fs.writeFile(path.join(uploadDir, filename), buffer);
+//   res.json({ filename });
+// });
+// =========================================================================
+
+// ========== RATE LIMITING SELECTIVO (menos agresivo) ==========
+// Límite general (más permisivo)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  message: { error: 'Demasiadas solicitudes, intente más tarde' }
+});
+// Límite estricto solo para rutas sensibles (login, registro, etc.)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  skipSuccessfulRequests: true,
+  message: { error: 'Demasiados intentos, espere 15 minutos' }
+});
+
+app.use('/api/', globalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+// Aplica authLimiter también a otras rutas sensibles (cambio de contraseña, etc.)
+// ==============================================================
 // 🔐 AUTH
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
