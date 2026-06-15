@@ -44,25 +44,33 @@ if (!JWT_SECRET || !MASTER_KEY || !STRIPE_SECRET_KEY) {
 }
 
 // ========== CONFIGURACIÓN SEGURA DE MULTER (VALIDACIÓN POR NÚMEROS MÁGICOS) ==========
-// Esta función reemplaza al viejo fileFilter inseguro
 const fileFilter = async (req, file, cb) => {
   if (!file.buffer) {
     return cb(new Error('Solo se permiten archivos en memoria'), false);
   }
   try {
-    // Importación dinámica de file-type (compatible con tu versión 22)
     const { fileTypeFromBuffer } = await import('file-type');
     const buffer = file.buffer.slice(0, 4100);
     const type = await fileTypeFromBuffer(buffer);
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+
+    // ✅ Lista ampliada de tipos permitidos (ajústala según necesites)
+    const allowedMimes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf', 'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain', 'video/mp4', 'video/webm',
+      'audio/mpeg', 'audio/wav', 'audio/ogg',
+      'application/zip', 'application/x-rar-compressed'
+    ];
+
     if (type && allowedMimes.includes(type.mime)) {
-      // Normaliza la extensión según el tipo real
       const originalName = file.originalname;
       const newExt = type.ext;
       file.originalname = originalName.replace(/\.[^/.]+$/, '') + '.' + newExt;
       cb(null, true);
     } else {
-      cb(new Error('Tipo de archivo no permitido o manipulado'), false);
+      cb(new Error(`Tipo real no permitido: ${type ? type.mime : 'desconocido'}`), false);
     }
   } catch (error) {
     console.error('Error en fileFilter:', error);
@@ -73,8 +81,11 @@ const fileFilter = async (req, file, cb) => {
 const upload = multer({
   storage: multer.memoryStorage(),
   fileFilter: fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5 MB
+  limits: { fileSize: 10 * 1024 * 1024 } // ✅ 10 MB (cámbialo si prefieres 5 MB)
 });
+// =====================================================================================
+
+// El resto de tu código (middlewares, rutas, etc.) continúa aquí...
 // =====================================================================================
 
 // Aquí continúa el resto de tu código (definir app, middlewares, rutas...)
