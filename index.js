@@ -15,6 +15,43 @@ const fs = require('fs').promises;
 const pino = require('pino');
 const logger = pino({ level: 'info' });
 const fetch = require('node-fetch');
+// ☁️ CLOUDFLARE R2
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+
+const r2 = new S3Client({
+  region: 'auto',
+  endpoint: process.env.R2_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  },
+});
+const R2_BUCKET = process.env.R2_BUCKET_NAME || 'apiromwinervault-files';
+
+async function uploadToR2(buffer, key, mimeType) {
+  await r2.send(new PutObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: key,
+    Body: buffer,
+    ContentType: mimeType,
+  }));
+  return key;
+}
+
+async function getR2Url(key, expiresIn = 300) {
+  return getSignedUrl(r2, new GetObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: key,
+  }), { expiresIn });
+}
+
+async function deleteFromR2(key) {
+  await r2.send(new DeleteObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: key,
+  }));
+}
 const sharp = require('sharp');
 const diffLib = require('diff');
 // ❌ ELIMINADA: const fileType = require('file-type');  // Ya no se usa así
@@ -81,7 +118,7 @@ const fileFilter = async (req, file, cb) => {
 const upload = multer({
   storage: multer.memoryStorage(),
   fileFilter: fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // ✅ 10 MB (cámbialo si prefieres 5 MB)
+ limits: { fileSize: 500 * 1024 * 1024 }
 });
 // =====================================================================================
 
@@ -1372,16 +1409,21 @@ app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async (re
     }
 
     // Procesar archivo si existe (usando buffer, no archivo temporal)
-    if (req.file) {
-      const fileBuffer = req.file.buffer;
-      const base64Content = fileBuffer.toString('base64');
-      data.encrypted = EnvelopeEncryption.seal(base64Content, userDEK);
-      data.fileName = req.file.originalname;  // Nombre original (puedes sanitizarlo)
-      data.fileType = req.file.mimetype;
-      data.fileSize = req.file.size;
-    } else if (contenido) {
-      data.contenido = EnvelopeEncryption.seal(contenido, userDEK);
-    }
+if (req.file) {
+  const fileBuffer = req.file.buffer;
+  const base64Content = fileBuffer.toString('base64');
+  const sealedData = EnvelopeEncryption.seal(base64Content, userDEK);
+  const encryptedBuffer = Buffer.from(JSON.stringify(sealedData));
+  const r2Key = `vault/${user.uid}/${Date.now()}_${req.file.originalname}`;
+  await uploadToR2(encryptedBuffer, r2Key, 'application/octet-stream');
+  data.r2Key = r2Key;
+  data.encrypted = null;
+  data.fileName = req.file.originalname;
+  data.fileType = req.file.mimetype;
+  data.fileSize = req.file.size;
+  } else if (contenido) {
+  data.contenido = EnvelopeEncryption.seal(contenido, userDEK);
+}
 
     const result = await secretsCollection.insertOne(data);
     await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale: isForSale, tags: finalTags });
@@ -1400,6 +1442,7 @@ app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async (re
     logger.error('❌ Vault create: ' + e.message);
     // No exponer detalles internos al cliente
     res.status(500).json({ error: 'Error interno al guardar en el Vault' });
+    
   }
 });
 
