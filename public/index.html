@@ -26841,90 +26841,84 @@ if (btnCreate) {
   console.log('👑 Lealtad absoluta al Dueño Supremo');
 })();
 </script> 
-<!-- QR PÚBLICO (sin sesión) -->
-<div id="qrPublico" style="text-align:center; margin:30px auto;">
-  <h3>📱 Únete con mi código QR</h3>
-  <canvas id="qrCanvasPublico" width="200" height="200" style="border:1px solid #0f0; background:#fff; border-radius:8px;"></canvas>
-  <div id="qrInfoPublico" style="margin-top:8px;">Regístrate con este código</div>
+<!-- === QR PÚBLICO Y PERSONAL (Versión Funcional) === -->
+<div style="text-align:center; margin:40px 0;">
+  
+  <!-- QR Público -->
+  <div id="qrPublico">
+    <h3>📱 Únete con mi código QR</h3>
+    <div id="qrContainerPublico" style="margin:15px auto; display:inline-block; padding:10px; background:white; border-radius:12px;"></div>
+    <p style="margin-top:8px; color:#94a3b8;">Regístrate escaneando este código</p>
+  </div>
+
+  <!-- QR Personal (solo si está logueado) -->
+  <div id="qrPersonal" style="display:none; margin-top:30px;">
+    <h3>🔐 Tu QR de Identidad</h3>
+    <div id="qrContainerPersonal" style="margin:15px auto; display:inline-block; padding:10px; background:white; border-radius:12px;"></div>
+    <p id="qrInfoPersonal" style="margin-top:8px; color:#94a3b8;"></p>
+  </div>
+
 </div>
 
-<!-- QR PERSONAL (con sesión) -->
-<div id="qrPersonal" style="text-align:center; margin:30px auto; display:none;">
-  <h3>🔗 Tu código de referido</h3>
-  <canvas id="qrCanvasPersonal" width="200" height="200" style="border:1px solid #0f0; background:#fff; border-radius:8px;"></canvas>
-  <div id="qrInfoPersonal" style="margin-top:8px;"></div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
-// ============================================================
-// QR Code Generator (algoritmo público, sin librerías externas)
-// Basado en el código de Kazuhiko Arase (dominio público)
-// ============================================================
-(function() {
-    // Función para dibujar QR en canvas
-    function dibujarQR(canvasId, texto) {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const size = 200;
-        canvas.width = size;
-        canvas.height = size;
-        
-        if (!texto) {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, size, size);
-            ctx.fillStyle = '#ff0000';
-            ctx.font = '12px monospace';
-            ctx.fillText('Texto vacío', 20, 100);
+// ==================== GENERADOR DE QR FUNCIONAL ====================
+
+// QR Público (ejemplo)
+function generarQRPublico() {
+    const container = document.getElementById('qrContainerPublico');
+    container.innerHTML = ''; 
+    new QRCode(container, {
+        text: "https://apiromwinervault.com/register?ref=TU_CODIGO_REFERIDO",
+        width: 220,
+        height: 220,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+}
+
+// QR Personal (usa el endpoint que ya tienes)
+async function generarQRPersonal() {
+    try {
+        const response = await fetch('/api/identity/qr');
+        const data = await response.json();
+
+        if (!data.success) {
+            alert("Error: " + (data.error || "No se pudo generar el QR"));
             return;
         }
-        
-        // Generar QR usando el módulo qrcode-generator incrustado
-        // Creamos un objeto QR de versión 10, corrección M
-        try {
-            // Usamos la versión integrada (minificada) de qrcode-generator
-            const qr = qrcode(10, 'M');
-            qr.addData(texto);
-            qr.make();
-            const cells = qr.getModuleCount();
-            const cellSize = size / cells;
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, size, size);
-            ctx.fillStyle = '#0f172a';
-            for (let row = 0; row < cells; row++) {
-                for (let col = 0; col < cells; col++) {
-                    if (qr.isDark(row, col)) {
-                        ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
-                    }
-                }
-            }
-        } catch(e) {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, size, size);
-            ctx.fillStyle = '#ff0000';
-            ctx.fillText('Error QR', 20, 100);
-            console.error(e);
-        }
+
+        const container = document.getElementById('qrContainerPersonal');
+        container.innerHTML = ''; 
+
+        new QRCode(container, {
+            text: data.qrPayload,
+            width: 260,
+            height: 260,
+            colorDark: "#0f172a",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        document.getElementById('qrInfoPersonal').innerHTML = `
+            Escanea para instalar la app o compartir tu identidad<br>
+            <strong>Usuario:</strong> ${data.qrData.username}
+        `;
+        document.getElementById('qrPersonal').style.display = 'block';
+
+    } catch (e) {
+        console.error(e);
+        alert("Error de conexión. Asegúrate de estar iniciado sesión.");
     }
-    
-    // Incrustar la librería qrcode-generator (código minificado, sin dependencias)
-    // Esto es un clon del archivo original pero incrustado aquí
-    // Nota: es largo, pero es la única forma de tener QR local.
-    var qrcode = function() {
-        // (Aquí iría el código completo de la librería, que es largo pero necesario)
-        // Para no alargar demasiado, pondré una implementación simplificada que cubre lo esencial.
-        // Pero dado que el usuario quiere algo que funcione, usaré una implementación reducida que genera QR estándar.
-        // Implementación real basada en el código público de QR Code Generator.
-        // Nota: La librería completa está disponible en https://github.com/kazuhikoarase/qrcode-generator
-        // Por brevedad, incluyo una versión funcional mínima.
-        // Como no puedo copiar todo el código aquí sin errores, pondré una llamada a la versión que ya existe en la web.
-        // No, eso sería enlace externo. Entonces debo poner el código completo. Son unas 200 líneas minificadas.
-        // Voy a incluirla directamente (es texto, no es enlace).
-        // El usuario puede copiarla sin problemas.
-        // A continuación el código minificado de la librería (dominio público).
-        // Si el usuario prefiere, puede cargar el archivo local, pero esto ya es autónomo.
-    })();
-</script> 
+}
+
+// Ejecutar al cargar la página
+window.onload = function() {
+    generarQRPublico();
+    generarQRPersonal();   // Intentará cargar el QR personal si estás logueado
+};
+</script>
 </body>
 </html>
 
