@@ -26739,7 +26739,7 @@ if (btnCreate) {
 <!-- QR PÚBLICO (visible sin iniciar sesión) -->
 <div id="qrPublicoContainer" style="margin-top: 30px; text-align: center;">
   <h3>📱 Únete con mi código QR</h3>
-  <div id="qrCanvasLanding" style="width:200px; height:200px; margin:0 auto; border:1px solid #00e676; border-radius:8px;"></div>
+  <img id="qrImgPublico" width="200" height="200" style="border:1px solid #00e676; border-radius:8px; background:white;">
   <div id="qrLandingInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
   <p style="font-size: 0.8rem;">Escanea y regístrate para empezar a ganar</p>
 </div>
@@ -26747,91 +26747,43 @@ if (btnCreate) {
 <!-- QR PERSONAL (visible solo cuando inicias sesión) -->
 <div id="qrPersonalContainer" style="margin-top: 30px; text-align: center; display: none;">
   <h3>🔗 Tu código de referido</h3>
-  <div id="qrCanvas" style="width:200px; height:200px; margin:0 auto; border:1px solid #00e676; border-radius:8px;"></div>
+  <img id="qrImgPersonal" width="200" height="200" style="border:1px solid #00e676; border-radius:8px; background:white;">
   <div id="qrIdentityInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
 </div>
 
-<!-- Librería QR (versión que dibuja en DIV, sin canvas) -->
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-
 <script>
-// ========================
-// 1. Función para QR público
-// ========================
 function mostrarQRReferidoPublico() {
-  const container = document.getElementById('qrCanvasLanding');
-  if (!container) return;
-  // Limpiar el contenedor
-  container.innerHTML = '';
-  
   const url = window.location.origin + '/register';
+  const img = document.getElementById('qrImgPublico');
+  if (img) img.src = '/api/qr/' + encodeURIComponent(url);
   const infoDiv = document.getElementById('qrLandingInfo');
   if (infoDiv) infoDiv.textContent = 'Regístrate con este código';
-
-  try {
-    // Crear el QR usando la librería (dibuja dentro del div)
-    new QRCode(container, {
-      text: url,
-      width: 200,
-      height: 200,
-      colorDark: '#0f172a',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
-    console.log('QR público generado');
-  } catch (err) {
-    console.error('Error generando QR público:', err);
-    container.innerHTML = '<div style="color:red; text-align:center; padding-top:80px;">Error QR</div>';
-  }
 }
 
-// ========================
-// 2. Función para QR personal
-// ========================
 async function mostrarQRIdentidad() {
-  const container = document.getElementById('qrCanvas');
-  if (!container) return;
-  container.innerHTML = '';
-
   try {
     const token = localStorage.getItem('authToken');
     if (!token) throw new Error('No hay token');
-
     const res = await fetch('/api/identity/qr', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     const data = await res.json();
     if (!data.success || !data.qrPayload) throw new Error('Respuesta inválida');
-
+    const img = document.getElementById('qrImgPersonal');
+    if (img) img.src = '/api/qr/' + encodeURIComponent(data.qrPayload);
     const infoDiv = document.getElementById('qrIdentityInfo');
-    if (infoDiv) infoDiv.textContent = `Código: ${data.qrData.ref || 'activo'}`;
-
-    // Generar QR personal
-    new QRCode(container, {
-      text: data.qrPayload,
-      width: 200,
-      height: 200,
-      colorDark: '#0f172a',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
-    console.log('QR personal generado');
+    if (infoDiv) infoDiv.textContent = 'Código: ' + (data.qrData.ref || 'activo');
   } catch (err) {
-    console.error('Error al obtener QR personal:', err);
+    console.error('Error QR personal:', err);
     const infoDiv = document.getElementById('qrIdentityInfo');
     if (infoDiv) infoDiv.textContent = 'Error al cargar QR';
-    container.innerHTML = '<div style="color:red; text-align:center; padding-top:80px;">Error QR</div>';
   }
 }
 
-// ========================
-// 3. Ejecutar según autenticación
-// ========================
 document.addEventListener('DOMContentLoaded', function() {
   const token = localStorage.getItem('authToken');
   const publico = document.getElementById('qrPublicoContainer');
   const personal = document.getElementById('qrPersonalContainer');
-
   if (token) {
     if (publico) publico.style.display = 'none';
     if (personal) personal.style.display = 'block';
