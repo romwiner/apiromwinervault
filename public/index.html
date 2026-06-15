@@ -26739,7 +26739,7 @@ if (btnCreate) {
 <!-- QR PÚBLICO (visible sin iniciar sesión) -->
 <div id="qrPublicoContainer" style="margin-top: 30px; text-align: center;">
   <h3>📱 Únete con mi código QR</h3>
-  <img id="qrImgPublico" width="200" height="200" style="border:1px solid #00e676; border-radius:8px; background:white;">
+  <div id="qrCanvasLanding" style="width:200px; height:200px; margin:0 auto;"></div>
   <div id="qrLandingInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
   <p style="font-size: 0.8rem;">Escanea y regístrate para empezar a ganar</p>
 </div>
@@ -26747,19 +26747,61 @@ if (btnCreate) {
 <!-- QR PERSONAL (visible solo cuando inicias sesión) -->
 <div id="qrPersonalContainer" style="margin-top: 30px; text-align: center; display: none;">
   <h3>🔗 Tu código de referido</h3>
-  <img id="qrImgPersonal" width="200" height="200" style="border:1px solid #00e676; border-radius:8px; background:white;">
+  <div id="qrCanvasPersonal" style="width:200px; height:200px; margin:0 auto;"></div>
   <div id="qrIdentityInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
 </div>
 
+<!-- Librería QR (qrcode-generator - funciona sin problemas) -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
 <script>
+// Función para generar QR en un div
+function generarQR(contenedorId, texto) {
+  const container = document.getElementById(contenedorId);
+  if (!container) return;
+  container.innerHTML = ''; // Limpiar
+  
+  if (!texto) {
+    container.innerHTML = '<div style="color:red;">Texto vacío</div>';
+    return;
+  }
+  
+  // Crear QR
+  var qr = qrcode(10, 'M');  // versión 10, corrección M
+  qr.addData(texto);
+  qr.make();
+  
+  var size = 200;
+  var cells = qr.getModuleCount();
+  var cellSize = size / cells;
+  
+  // Crear canvas
+  var canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = '#0f172a';
+  for (var row = 0; row < cells; row++) {
+    for (var col = 0; col < cells; col++) {
+      if (qr.isDark(row, col)) {
+        ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+  container.appendChild(canvas);
+}
+
+// QR público
 function mostrarQRReferidoPublico() {
   const url = window.location.origin + '/register';
-  const img = document.getElementById('qrImgPublico');
-  if (img) img.src = '/api/qr/' + encodeURIComponent(url);
+  generarQR('qrCanvasLanding', url);
   const infoDiv = document.getElementById('qrLandingInfo');
   if (infoDiv) infoDiv.textContent = 'Regístrate con este código';
 }
 
+// QR personal (llama al backend para obtener la URL con ref)
 async function mostrarQRIdentidad() {
   try {
     const token = localStorage.getItem('authToken');
@@ -26769,28 +26811,31 @@ async function mostrarQRIdentidad() {
     });
     const data = await res.json();
     if (!data.success || !data.qrPayload) throw new Error('Respuesta inválida');
-    const img = document.getElementById('qrImgPersonal');
-    if (img) img.src = '/api/qr/' + encodeURIComponent(data.qrPayload);
+    
+    // data.qrPayload ahora es la URL de registro con el código de referido
+    generarQR('qrCanvasPersonal', data.qrPayload);
     const infoDiv = document.getElementById('qrIdentityInfo');
     if (infoDiv) infoDiv.textContent = 'Código: ' + (data.qrData.ref || 'activo');
   } catch (err) {
     console.error('Error QR personal:', err);
     const infoDiv = document.getElementById('qrIdentityInfo');
     if (infoDiv) infoDiv.textContent = 'Error al cargar QR';
+    document.getElementById('qrCanvasPersonal').innerHTML = '<div style="color:red;">Error</div>';
   }
 }
 
+// Mostrar/ocultar según autenticación
 document.addEventListener('DOMContentLoaded', function() {
   const token = localStorage.getItem('authToken');
-  const publico = document.getElementById('qrPublicoContainer');
-  const personal = document.getElementById('qrPersonalContainer');
+  const publicoDiv = document.getElementById('qrPublicoContainer');
+  const personalDiv = document.getElementById('qrPersonalContainer');
   if (token) {
-    if (publico) publico.style.display = 'none';
-    if (personal) personal.style.display = 'block';
+    if (publicoDiv) publicoDiv.style.display = 'none';
+    if (personalDiv) personalDiv.style.display = 'block';
     mostrarQRIdentidad();
   } else {
-    if (publico) publico.style.display = 'block';
-    if (personal) personal.style.display = 'none';
+    if (publicoDiv) publicoDiv.style.display = 'block';
+    if (personalDiv) personalDiv.style.display = 'none';
     mostrarQRReferidoPublico();
   }
 });
