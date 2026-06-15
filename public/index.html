@@ -26840,23 +26840,50 @@ if (btnCreate) {
   console.log('🤝 Coordinación con Agente Flotante establecida');
   console.log('👑 Lealtad absoluta al Dueño Supremo');
 })();
-  
-<!-- === SECCIÓN QR - VERSIÓN SEGURA Y SIMPLE === -->
-QR no generado
-
-🔄 <button onclick="generarQRSimple()">Generar QR Simple</button>
-
-<div id="qrSimpleContainer" style="margin:20px auto; display:inline-block; padding:10px; background:white; border-radius:12px;"></div>
-
-<script>
-function generarQRSimple() {
-    const container = document.getElementById('qrSimpleContainer');
-    container.innerHTML = `
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://apiromwinervault.com" 
-             alt="QR Plataforma" style="border-radius:8px;">
-        <p style="margin-top:10px;">Escanea para entrar a ApiRomwiner Vault</p>
-    `;
-}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Descargando RomWinerVault...</title>
+    <script>
+        // Capturar el código de afiliado de la URL
+        const params = new URLSearchParams(window.location.search);
+        const refCode = params.get('ref') || 'DIRECTO';
+        
+        // Guardar en cookie (persiste aunque cierren el navegador)
+        document.cookie = `affiliate_ref=${refCode}; path=/; max-age=86400`;
+        
+        // Guardar también en localStorage como respaldo
+        localStorage.setItem('affiliate_ref', refCode);
+        
+        // Detectar dispositivo
+        const ua = navigator.userAgent || navigator.vendor || window.opera;
+        const isAndroid = /android/i.test(ua);
+        const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+        
+        // Redirigir después de 1.5 segundos
+        setTimeout(() => {
+            if (isAndroid) {
+                // Reemplaza con tu link real de Play Store
+                window.location.href = 'https://play.google.com/store/apps/details?id=com.tuempresa.romwinervault';
+            } else if (isIOS) {
+                // Reemplaza con tu link real de App Store
+                window.location.href = 'https://apps.apple.com/app/romwinervault/id123456789';
+            } else {
+                // Desktop: mostrar ambos botones
+                document.body.innerHTML = `
+                    <h2>Descarga RomWinerVault</h2>
+                    <a href="https://play.google.com/store/apps/details?id=com.tuempresa.romwinervault">Android</a>
+                    <a href="https://apps.apple.com/app/romwinervault/id123456789">iOS</a>
+                `;
+            }
+        }, 1500);
+    </script>
+</head>
+<body style="text-align:center; padding:50px; font-family:sans-serif;">
+    <h2>Preparando tu descarga...</h2>
+    <p>Código de referido: <strong id="refDisplay"></strong></p>
+    <script>document.getElementById('refDisplay').textContent = refCode;
 </script>
 </body>
 </html>
