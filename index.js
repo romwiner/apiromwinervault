@@ -4394,39 +4394,58 @@ app.patch('/api/ads/:id/toggle', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Error actualizando campaña: ' + e.message });
   }
 });
-
 // ============================================
-// 🔄 RENOVACIÓN AUTOMÁTICA DE SUSCRIPCIONES
+// 🔄 RENOVACIÓN AUTOMÁTICA DE SUSCRIPCIONES (CORREGIDA)
 // ============================================
 async function processAutoRenewals() {
   if (!mongoReady) return;
   const today = new Date();
-  // Buscar usuarios con autoRenew true o que tengan el campo (compatibilidad)
+  // Buscar usuarios con autoRenew activo, tier de pago y suscripción expirada o próxima a vencer (menos de 1 día)
   const users = await usersCollection.find({
-    $or: [{ autoRenew: true }, { autoRenew: { $exists: false } }],
-    tier: { $ne: 'personal' }
+    autoRenew: true,
+    tier: { $in: ['business', 'enterprise'] },
+    $or: [
+      { subscriptionExpires: { $lt: today } },                 // ya expirada
+      { subscriptionExpires: { $exists: false } },             // migración (nunca se asignó)
+      { subscriptionExpires: { $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) } } // vence en menos de 24h
+    ]
   }).toArray();
 
   for (const user of users) {
     try {
       const wallet = await walletCollection.findOne({ userId: user._id });
       const tierPrice = { business: 9.99, enterprise: 49.99 };
-      const price = tierPrice[user.tier] || 0;
-      if (price > 0 && wallet && wallet.balance >= price) {
-        await walletCollection.updateOne(
-          { userId: user._id },
-          {
-            $inc: { balance: -price },
-            $push: { history: { type: 'auto_renewal', amount: -price, tier: user.tier, date: today } }
-          }
-        );
-        await logAudit('auto_renewal', { userId: user.uid, tier: user.tier, amount: price });
-        logger.info(`🔄 Auto-renovado: ${user.email} → ${user.tier}`);
-      } else if (price > 0 && (!wallet || wallet.balance < price)) {
-        // Opcional: desactivar autoRenew si saldo insuficiente
+      const price = tierPrice[user.tier];
+      if (!price) continue;
+
+      // Si no tiene saldo suficiente, desactivar autoRenew y notificar
+      if (!wallet || wallet.balance < price) {
         await usersCollection.updateOne({ _id: user._id }, { $set: { autoRenew: false } });
-        logger.warn(`⚠️ Auto-renewal fallido por saldo insuficiente: ${user.email}`);
+        logger.warn(`⚠️ Auto-renewal desactivado por saldo insuficiente: ${user.email}`);
+        continue;
       }
+
+      // Calcular nueva fecha de expiración (30 días desde la fecha actual o desde la fecha de expiración actual, la que sea mayor)
+      const currentExpiry = user.subscriptionExpires ? new Date(user.subscriptionExpires) : today;
+      const newExpiry = new Date(Math.max(currentExpiry.getTime(), today.getTime()) + 30 * 24 * 60 * 60 * 1000);
+
+      // Cobrar
+      await walletCollection.updateOne(
+        { userId: user._id },
+        {
+          $inc: { balance: -price },
+          $push: { history: { type: 'auto_renewal', amount: -price, tier: user.tier, date: today } }
+        }
+      );
+
+      // Actualizar fecha de expiración y mantener autoRenew activo
+      await usersCollection.updateOne(
+        { _id: user._id },
+        { $set: { subscriptionExpires: newExpiry, updatedAt: today } }
+      );
+
+      await logAudit('auto_renewal', { userId: user.uid, tier: user.tier, amount: price, newExpiry });
+      logger.info(`🔄 Auto-renovado: ${user.email} → ${user.tier} hasta ${newExpiry.toISOString()}`);
     } catch (e) {
       logger.warn(`⚠️ Auto-renewal failed for ${user.uid}: ${e.message}`);
     }
@@ -4448,7 +4467,6 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  // Validar configuración
   if (!webhookSecret || webhookSecret === 'placeholder') {
     logger.warn('⚠️ Stripe webhook secret no configurado. Modo demo.');
     return res.json({ received: true, demo: true });
@@ -4456,15 +4474,12 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 
   let event;
   try {
-    // El cuerpo ya es un Buffer gracias a express.raw()
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
     logger.error(`❌ Webhook signature verification failed: ${err.message}`);
-    // No exponer detalles internos al cliente
     return res.status(400).json({ error: 'Webhook signature verification failed' });
   }
 
-  // Procesar el evento
   try {
     switch (event.type) {
       case 'payment_intent.succeeded':
@@ -4475,7 +4490,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
         if (type === 'deposit' && uid && mongoReady && walletCollection) {
           const user = await usersCollection.findOne({ uid });
           if (user) {
-            // Usar updateOne con filtro exacto y verificar que no se haya procesado antes (idempotencia)
+            // Idempotencia: evitar duplicados
             const existingHistory = await walletCollection.findOne({
               userId: user._id,
               'history.paymentId': paymentIntent.id
@@ -4507,15 +4522,78 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
         }
         break;
 
-      // Puedes añadir más tipos de evento aquí si los necesitas
       default:
         logger.info(`Webhook recibido de tipo no manejado: ${event.type}`);
     }
-
     res.json({ received: true });
   } catch (err) {
     logger.error(`❌ Error procesando webhook: ${err.message}`);
     res.status(500).json({ error: 'Error interno procesando webhook' });
+  }
+});
+
+// ============================================
+// 💰 AUTO-SUSCRIPCIÓN (ACTUALIZAR FECHA DE EXPIRACIÓN)
+// ============================================
+app.post('/api/wallet/auto-subscribe', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady || !usersCollection || !walletCollection) {
+      return res.json({ success: true, message: 'Demo: auto-suscripción activada', demo: true });
+    }
+
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const wallet = await walletCollection.findOne({ userId: user._id });
+    const tierPrice = { personal: 0, business: 9.99, enterprise: 49.99 };
+    const nextTier = req.body.tier || 'business';
+    const price = tierPrice[nextTier] || 0;
+
+    if (!wallet || wallet.balance < price) {
+      return res.status(400).json({
+        error: 'Saldo insuficiente',
+        currentBalance: wallet?.balance || 0,
+        required: price,
+        hint: 'Gana saldo viendo anuncios o vendiendo en el Marketplace'
+      });
+    }
+
+    // Calcular nueva fecha de expiración (30 días desde hoy, o desde la actual si ya tiene)
+    const now = new Date();
+    const currentExpiry = user.subscriptionExpires ? new Date(user.subscriptionExpires) : null;
+    const newExpiry = new Date(Math.max(now.getTime(), currentExpiry?.getTime() || now.getTime()) + 30 * 24 * 60 * 60 * 1000);
+
+    await walletCollection.updateOne(
+      { userId: user._id },
+      {
+        $inc: { balance: -price },
+        $push: { history: { type: 'auto_subscription', amount: -price, tier: nextTier, date: now } }
+      }
+    );
+
+    await usersCollection.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          tier: nextTier,
+          autoRenew: true,
+          subscriptionExpires: newExpiry,
+          updatedAt: now
+        }
+      }
+    );
+
+    await logAudit('auto_subscribe', { userId: user.uid, tier: nextTier, amount: price, expiresAt: newExpiry });
+    res.json({
+      success: true,
+      message: `✅ Suscripción a ${nextTier} activada. Se renovará automáticamente cada mes.`,
+      newTier: nextTier,
+      nextBilling: newExpiry.toISOString(),
+      remainingBalance: (wallet.balance - price).toFixed(2)
+    });
+  } catch (e) {
+    logger.error('❌ Auto-subscribe error: ' + e.message);
+    res.status(500).json({ error: 'Error procesando auto-suscripción' });
   }
 });
 // ============================================
