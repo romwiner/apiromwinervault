@@ -26736,81 +26736,40 @@ if (btnCreate) {
   console.log('👑 Lealtad absoluta al Dueño Supremo');
 })();
 </script> 
-<!-- QR PÚBLICO (visible sin iniciar sesión) -->
-<div id="qrPublicoContainer" style="margin-top: 30px; text-align: center;">
-  <h3>📱 Únete con mi código QR</h3>
-  <div id="qrPublico" style="width:200px; height:200px; margin:0 auto;"></div>
-  <div id="qrLandingInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
-  <p style="font-size: 0.8rem;">Escanea y regístrate para empezar a ganar</p>
-</div>
 
-<!-- QR PERSONAL (visible solo cuando inicias sesión) -->
-<div id="qrPersonalContainer" style="margin-top: 30px; text-align: center; display: none;">
-  <h3>🔗 Tu código de referido</h3>
-  <div id="qrPersonal" style="width:200px; height:200px; margin:0 auto;"></div>
-  <div id="qrIdentityInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
+<!-- Coloca esto dentro de tu archivo public/index.html, en el lugar donde quieras que aparezca el QR -->
+<div style="text-align: center; margin-top: 30px;">
+  <h3>📱 Escanea y regístrate</h3>
+  <img id="qrImagen" width="200" height="200" style="border:1px solid green; background:white;">
+  <div id="qrMensaje" style="margin-top:8px;"></div>
 </div>
-
-<!-- Librería QR (local, no depende de CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
 <script>
-// Esperar a que cargue la página
-document.addEventListener('DOMContentLoaded', function() {
-  const token = localStorage.getItem('authToken');
-  
-  if (token) {
-    // Mostrar contenedor personal
-    document.getElementById('qrPublicoContainer').style.display = 'none';
-    document.getElementById('qrPersonalContainer').style.display = 'block';
-    
-    // Obtener la URL con el código de referido desde el backend
-    fetch('/api/identity/qr', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success && data.qrPayload) {
-        // Limpiar el contenedor
-        const container = document.getElementById('qrPersonal');
-        container.innerHTML = '';
-        // Generar el QR con la URL
-        new QRCode(container, {
-          text: data.qrPayload,
-          width: 200,
-          height: 200,
-          colorDark: '#0f172a',
-          colorLight: '#ffffff'
+  (function() {
+    const token = localStorage.getItem('authToken');
+    let url = window.location.origin + '/register';
+    if (token) {
+      // Si está logueado, añade su código de referido
+      fetch('/api/identity/qr', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.qrPayload) {
+            document.getElementById('qrImagen').src = '/api/qr/' + encodeURIComponent(data.qrPayload);
+            document.getElementById('qrMensaje').innerText = 'Código: ' + (data.qrData.ref || 'activo');
+          } else {
+            throw new Error('Sin datos');
+          }
+        })
+        .catch(() => {
+          document.getElementById('qrImagen').src = '/api/qr/' + encodeURIComponent(url);
+          document.getElementById('qrMensaje').innerText = 'Regístrate con este código';
         });
-        document.getElementById('qrIdentityInfo').innerHTML = 'Código: ' + (data.qrData.ref || 'activo');
-      } else {
-        throw new Error('Respuesta inválida');
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      document.getElementById('qrPersonal').innerHTML = '<div style="color:red;">Error al cargar QR</div>';
-      document.getElementById('qrIdentityInfo').innerHTML = 'Error';
-    });
-  } else {
-    // Mostrar contenedor público
-    document.getElementById('qrPublicoContainer').style.display = 'block';
-    document.getElementById('qrPersonalContainer').style.display = 'none';
-    
-    const url = window.location.origin + '/register';
-    const container = document.getElementById('qrPublico');
-    container.innerHTML = '';
-    new QRCode(container, {
-      text: url,
-      width: 200,
-      height: 200,
-      colorDark: '#0f172a',
-      colorLight: '#ffffff'
-    });
-    document.getElementById('qrLandingInfo').innerHTML = 'Regístrate con este código';
-  }
-});
-</script>
+    } else {
+      document.getElementById('qrImagen').src = '/api/qr/' + encodeURIComponent(url);
+      document.getElementById('qrMensaje').innerText = 'Regístrate con este código';
+    }
+  })();
+</script>  
 </script>
 </body>
 </html>
