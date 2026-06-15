@@ -26842,18 +26842,21 @@ if (btnCreate) {
 })();
   
 <!-- === SECCIÓN QR - VERSIÓN SEGURA Y SIMPLE === -->
-<div style="text-align: center; margin: 50px 0; padding: 30px; background: #1e2937; border-radius: 12px;">
-    <h3>📱 Códigos QR</h3>
-    <p>Sección en reparación...</p>
-    
-    <!-- QR Temporal Simple -->
-    <div style="margin: 30px auto; display: inline-block; padding: 15px; background: white; border-radius: 12px;">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=https://apiromwinervault.com" 
-             alt="QR de la Plataforma" 
-             style="border-radius: 8px;">
-    </div>
-    <p style="margin-top: 15px; color: #94a3b8;">Escanea para entrar a ApiRomwiner Vault</p>
-</div>
+QR no generado
+
+🔄 <button onclick="generarQRSimple()">Generar QR Simple</button>
+
+<div id="qrSimpleContainer" style="margin:20px auto; display:inline-block; padding:10px; background:white; border-radius:12px;"></div>
+
+<script>
+function generarQRSimple() {
+    const container = document.getElementById('qrSimpleContainer');
+    container.innerHTML = `
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://apiromwinervault.com" 
+             alt="QR Plataforma" style="border-radius:8px;">
+        <p style="margin-top:10px;">Escanea para entrar a ApiRomwiner Vault</p>
+    `;
+}
 </script>
 </body>
 </html>
