@@ -26634,36 +26634,81 @@ if (btnCreate) {
 </div>
 
 <script>
-  // Esperar a que cargue la página
-  window.addEventListener('DOMContentLoaded', function() {
+  (function() {
+    // Obtener la URL base (tu dominio)
+    const baseUrl = window.location.origin;
+    // URL de registro sin código
+    const registerUrl = baseUrl + '/register';
+
+    // Función para generar la imagen del QR
+    function setQrImage(imgElement, fullUrl, infoElement, refCode) {
+      if (!fullUrl) {
+        infoElement.innerText = 'Error: URL inválida';
+        return;
+      }
+      // Mostrar el código de referido (o un mensaje)
+      infoElement.innerText = refCode ? 'Código: ' + refCode : 'Regístrate con este código';
+      // Generar la URL del QR usando el endpoint del servidor
+      const encodedUrl = encodeURIComponent(fullUrl);
+      imgElement.src = '/api/qr/' + encodedUrl;
+      imgElement.onerror = () => {
+        infoElement.innerText = 'Error al cargar QR. Revisa que el servidor responda.';
+        console.error('Error cargando QR para:', fullUrl);
+      };
+    }
+
+    // Obtener el token de sesión
     const token = localStorage.getItem('authToken');
+
     if (token) {
-      // Mostrar QR personal
+      // Modo personal: mostrar contenedor personal y ocultar público
       document.getElementById('qrPublico').style.display = 'none';
       document.getElementById('qrPersonal').style.display = 'block';
+
+      // Pedir al backend el código de referido
       fetch('/api/identity/qr', { headers: { 'Authorization': 'Bearer ' + token } })
-        .then(r => r.json())
+        .then(res => res.json())
         .then(data => {
-          if (data.success && data.qrPayload) {
-            document.getElementById('qrImgPersonal').src = '/api/qr/' + encodeURIComponent(data.qrPayload);
-            document.getElementById('qrInfoPersonal').innerText = 'Código: ' + (data.qrData.ref || 'activo');
-          } else {
-            throw new Error('Sin datos');
+          let refCode = null;
+          // Extraer el código de referido de la respuesta
+          if (data.success) {
+            if (data.qrData && data.qrData.ref) {
+              refCode = data.qrData.ref;
+            } else if (data.qrPayload && typeof data.qrPayload === 'string') {
+              // Si qrPayload es una URL, intentar extraer el parámetro ref
+              const match = data.qrPayload.match(/[?&]ref=([^&]+)/);
+              if (match) refCode = match[1];
+            }
           }
+          // Si no se encontró, usar un código por defecto (puedes cambiarlo)
+          if (!refCode) {
+            console.warn('No se pudo obtener el código de referido, usando código por defecto.');
+            refCode = 'ROM0000';
+          }
+          // Construir la URL completa de registro con el código
+          const fullUrl = registerUrl + '?ref=' + refCode;
+          const img = document.getElementById('qrImgPersonal');
+          const info = document.getElementById('qrInfoPersonal');
+          setQrImage(img, fullUrl, info, refCode);
         })
         .catch(err => {
-          console.error(err);
-          document.getElementById('qrImgPersonal').src = '';
-          document.getElementById('qrInfoPersonal').innerText = 'Error al cargar QR';
+          console.error('Error al obtener el código de referido:', err);
+          const img = document.getElementById('qrImgPersonal');
+          const info = document.getElementById('qrInfoPersonal');
+          info.innerText = 'Error al obtener código de referido';
+          img.src = '';
         });
     } else {
-      // QR público
+      // Modo público: mostrar QR público
       document.getElementById('qrPublico').style.display = 'block';
       document.getElementById('qrPersonal').style.display = 'none';
-      const url = window.location.origin + '/register';
-      document.getElementById('qrImgPublico').src = '/api/qr/' + encodeURIComponent(url);
+      // El QR público no tiene código de referido (o puedes poner uno fijo)
+      const img = document.getElementById('qrImgPublico');
+      const info = document.getElementById('qrInfoPublico');
+      setQrImage(img, registerUrl, info, null);
     }
-  });
+  })();
+</script>
 </script>
 </body>
 </html>
