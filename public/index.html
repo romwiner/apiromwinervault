@@ -26736,36 +26736,141 @@ if (btnCreate) {
   console.log('👑 Lealtad absoluta al Dueño Supremo');
 })();
 </script> 
-    <script src="/qrcode-generator.js"></script>
-   <!-- QR PÚBLICO (visible sin iniciar sesión) -->
-<div id="qrPublicoContainer" style="margin-top: 30px; text-align: center;">
-  <h3>📱 Únete con mi código QR</h3>
-  <canvas id="qrCanvasLanding" width="200" height="200" style="border:1px solid #00e676; border-radius:8px;"></canvas>
-  <div id="qrLandingInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
-  <p style="font-size: 0.8rem;">Escanea y regístrate para empezar a ganar</p>
-</div>
-
-<!-- QR PERSONAL (visible solo cuando inicias sesión) -->
-<div id="qrPersonalContainer" style="margin-top: 30px; text-align: center; display: none;">
-  <h3>🔗 Tu código de referido</h3>
-  <canvas id="qrCanvas" width="200" height="200" style="border:1px solid #00e676; border-radius:8px;"></canvas>
-  <div id="qrIdentityInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
-</div>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
 <script>
-  // Mostrar/ocultar QR según sesión
-  if (localStorage.getItem('authToken')) {
+// ========================
+// 1. Función para QR público (código de referido general)
+// ========================
+function mostrarQRReferidoPublico() {
+  const canvas = document.getElementById('qrCanvasLanding');
+  if (!canvas) {
+    console.error('No se encontró canvasLanding');
+    return;
+  }
+  const url = window.location.origin + '/register';
+  const infoDiv = document.getElementById('qrLandingInfo');
+  if (infoDiv) infoDiv.textContent = 'Regístrate con este código';
+
+  generarQREnCanvas(canvas, url);
+}
+
+// ========================
+// 2. Función para QR personal (con datos de usuario autenticado)
+// ========================
+async function mostrarQRIdentidad() {
+  const canvas = document.getElementById('qrCanvas');
+  if (!canvas) {
+    console.error('No se encontró canvas personal');
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) throw new Error('No hay token');
+
+    const res = await fetch('/api/identity/qr', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!data.success || !data.qrPayload) throw new Error('Respuesta inválida');
+
+    const infoDiv = document.getElementById('qrIdentityInfo');
+    if (infoDiv) infoDiv.textContent = `Código: ${data.qrData.ref || 'activo'}`;
+
+    generarQREnCanvas(canvas, data.qrPayload);
+  } catch (err) {
+    console.error('Error al obtener QR personal:', err);
+    const infoDiv = document.getElementById('qrIdentityInfo');
+    if (infoDiv) infoDiv.textContent = 'Error al cargar QR';
+  }
+}
+
+// ========================
+// 3. Función genérica que dibuja el QR en un canvas usando qrcode-generator
+// ========================
+function generarQREnCanvas(canvas, texto) {
+  if (!texto || texto.trim() === '') {
+    console.warn('Texto vacío para QR');
+    return;
+  }
+
+  if (typeof qrcode === 'undefined') {
+    console.error('Librería qrcode-generator no cargada');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 200;
+    canvas.height = 200;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 200, 200);
+    ctx.fillStyle = '#ff0000';
+    ctx.font = '12px monospace';
+    ctx.fillText('QR no disponible', 20, 100);
+    return;
+  }
+
+  try {
+    let version = 4;
+    if (texto.length > 100) version = 10;
+    if (texto.length > 200) version = 15;
+    if (texto.length > 300) version = 20;
+
+    let qr = qrcode(version, 'M');
+    qr.addData(texto);
+    qr.make();
+
+    if (qr.getModuleCount() === 0) {
+      console.warn('Aumentando versión QR');
+      qr = qrcode(20, 'M');
+      qr.addData(texto);
+      qr.make();
+    }
+
+    const size = 200;
+    const cells = qr.getModuleCount();
+    const cellSize = size / cells;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#0f172a';
+    for (let row = 0; row < cells; row++) {
+      for (let col = 0; col < cells; col++) {
+        if (qr.isDark(row, col)) {
+          ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+    console.log('QR generado correctamente en canvas', canvas.id);
+  } catch (err) {
+    console.error('Error generando QR:', err);
+    const ctx = canvas.getContext('2d');
+    canvas.width = 200;
+    canvas.height = 200;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 200, 200);
+    ctx.fillStyle = '#ff0000';
+    ctx.font = '10px monospace';
+    ctx.fillText('Error QR', 20, 100);
+  }
+}
+
+// ========================
+// 4. Ejecutar la función correspondiente según autenticación
+// ========================
+document.addEventListener('DOMContentLoaded', function() {
+  const token = localStorage.getItem('authToken');
+  if (token) {
     document.getElementById('qrPublicoContainer').style.display = 'none';
     document.getElementById('qrPersonalContainer').style.display = 'block';
-    // Llamar a la función que dibuja el QR personal (debe estar en script.js)
-    if (typeof mostrarQRIdentidad === 'function') mostrarQRIdentidad();
+    mostrarQRIdentidad();
   } else {
     document.getElementById('qrPublicoContainer').style.display = 'block';
     document.getElementById('qrPersonalContainer').style.display = 'none';
-    // Llamar a la función que dibuja el QR público (debe estar en script.js)
-    if (typeof mostrarQRReferidoPublico === 'function') mostrarQRReferidoPublico();
+    mostrarQRReferidoPublico();
   }
-</script> 
+});
+</script>
 </body>
 </html>
 
