@@ -1323,56 +1323,85 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
 // ============================================
 // 📦 VAULT CREATE (CON IA: AUTO-TAGS)
 // ============================================
-app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async(req, res) => {
+app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async (req, res) => {
   try {
     const { titulo, categoria = 'general', folderId = 'general', contenido, price = 0, forSale = false, licenseDays = null, tags: userTags } = req.body;
-    if (!titulo) return res.status(400).json({ error: 'Título requerido para el contenido' });
-    
+
+    // Validaciones básicas y sanitización
+    if (!titulo || typeof titulo !== 'string' || titulo.trim() === '') {
+      return res.status(400).json({ error: 'Título requerido y debe ser texto válido' });
+    }
+
     // Validación de precio si se pone en venta
-    if (forSale && (isNaN(price) || price <= 0)) {
-      return res.status(400).json({ error: 'El precio debe ser mayor a 0 para poner en venta' });
+    const isForSale = (forSale === true || forSale === 'true');
+    let numericPrice = 0;
+    if (isForSale) {
+      numericPrice = parseFloat(price);
+      if (isNaN(numericPrice) || numericPrice <= 0) {
+        return res.status(400).json({ error: 'El precio debe ser un número mayor a 0 para poner en venta' });
+      }
     }
-    
-    // Validar licenseDays (si se proporciona, debe ser número positivo)
-    if (licenseDays !== null && (isNaN(licenseDays) || licenseDays <= 0)) {
-      return res.status(400).json({ error: 'Los días de licencia deben ser un número positivo' });
+
+    // Validar licenseDays
+    let numericLicenseDays = null;
+    if (licenseDays !== null && licenseDays !== undefined && licenseDays !== '') {
+      numericLicenseDays = parseInt(licenseDays);
+      if (isNaN(numericLicenseDays) || numericLicenseDays <= 0) {
+        return res.status(400).json({ error: 'Los días de licencia deben ser un número positivo' });
+      }
     }
-    
-    if (!mongoReady || !secretsCollection) return res.status(201).json({ success: true, message: 'Guardado en modo demo', id: 'demo', demo: true });
+
+    // Debe haber archivo o contenido
+    if (!req.file && (!contenido || typeof contenido !== 'string' || contenido.trim() === '')) {
+      return res.status(400).json({ error: 'Debes proporcionar un archivo o contenido de texto' });
+    }
+
+    if (!mongoReady || !secretsCollection) {
+      return res.status(201).json({ success: true, message: 'Guardado en modo demo', id: 'demo', demo: true });
+    }
+
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    
+
+    // Tags sugeridos por IA
     const suggestedTags = FEATURES.AI_INTERNAL ? suggestTags(titulo, req.file?.originalname) : [];
-    const finalTags = userTags ? (Array.isArray(userTags) ? userTags : [userTags]) : suggestedTags;
-    
+    let finalTags = [];
+    if (userTags) {
+      finalTags = Array.isArray(userTags) ? userTags : [userTags];
+    } else {
+      finalTags = suggestedTags;
+    }
+
+    // Preparar objeto del vault
     const data = {
       userId: user._id,
       userUid: user.uid,
-      titulo,
-      categoria,
-      folderId,
+      titulo: titulo.trim(),
+      categoria: categoria.trim(),
+      folderId: folderId.trim(),
       tipo: req.file ? 'archivo' : 'texto',
       contenido: null,
-      fileName: req.file ? path.basename(req.file.filename) : null,
-      fileType: req.file ? req.file.mimetype : null,
-      fileSize: req.file ? req.file.size : null,
+      fileName: null,
+      fileType: null,
+      fileSize: null,
       encrypted: null,
-      isForSale: forSale,
-      price: forSale ? parseFloat(price) : 0,
-      licenseDays: licenseDays ? parseInt(licenseDays) : null,
+      isForSale,
+      price: numericPrice,
+      licenseDays: numericLicenseDays,
       sales: 0,
       buyers: [],
       tags: finalTags,
       createdAt: new Date()
     };
-    
+
+    // Obtener o generar DEK del usuario
     let wrappedDEK = user.encryptedUserKey;
     if (!wrappedDEK) {
       const dek = EnvelopeEncryption.generateDEK();
       wrappedDEK = EnvelopeEncryption.wrapDEK(dek);
       await usersCollection.updateOne({ _id: user._id }, { $set: { encryptedUserKey: wrappedDEK } });
     }
-    
+
     let userDEK;
     try {
       userDEK = EnvelopeEncryption.unwrapDEK(wrappedDEK);
@@ -1380,26 +1409,27 @@ app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async(req
       logger.error('❌ Error desencriptando DEK: ' + e.message);
       return res.status(500).json({ error: 'Error de cifrado: clave de usuario inválida' });
     }
-    
+
+    // Procesar archivo si existe (usando buffer, no archivo temporal)
     if (req.file) {
-      data.fileName = path.basename(req.file.filename);
+      const fileBuffer = req.file.buffer;
+      const base64Content = fileBuffer.toString('base64');
+      data.encrypted = EnvelopeEncryption.seal(base64Content, userDEK);
+      data.fileName = req.file.originalname;  // Nombre original (puedes sanitizarlo)
       data.fileType = req.file.mimetype;
       data.fileSize = req.file.size;
-      const fileContent = await fs.readFile(req.file.path);
-      data.encrypted = EnvelopeEncryption.seal(fileContent.toString('base64'), userDEK);
-      await fs.unlink(req.file.path).catch(e => logger.warn('⚠️ No se pudo eliminar archivo temporal: ' + e.message));
     } else if (contenido) {
       data.contenido = EnvelopeEncryption.seal(contenido, userDEK);
     }
-    
+
     const result = await secretsCollection.insertOne(data);
-    await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale, tags: finalTags });
-    
+    await logAudit('vault_create', { titulo, userId: user.uid, tipo: data.tipo, forSale: isForSale, tags: finalTags });
+
     const response = {
       success: true,
       message: 'Contenido guardado y cifrado en Vault (clave única por usuario)',
       id: result.insertedId,
-      fileName: data.fileName
+      fileName: req.file ? req.file.originalname : undefined
     };
     if (FEATURES.AI_INTERNAL && suggestedTags.length > 0) {
       response.aiSuggestions = { suggestedTags, message: 'Tags sugeridos por IA interna' };
@@ -1407,7 +1437,8 @@ app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async(req
     res.status(201).json(response);
   } catch (e) {
     logger.error('❌ Vault create: ' + e.message);
-    res.status(500).json({ error: 'Error al guardar en Vault: ' + e.message });
+    // No exponer detalles internos al cliente
+    res.status(500).json({ error: 'Error interno al guardar en el Vault' });
   }
 });
 
