@@ -6743,48 +6743,110 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     const installAIAudit = document.getElementById('installAIAudit');
     let deferredPrompt = null;
 
-    // Obtener la URL de registro con el código de referido (usando la API si hay token)
+   <!-- 📱 CENTRO DE INSTALACIÓN Y COMPARTIR: apiromwinervault (QR REAL) -->
+<section id="installShareSection" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 500px; margin: 0 auto; padding: 20px;">
+  <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #38bdf8; border-radius: 20px; padding: 28px; text-align: center; box-shadow: 0 10px 40px rgba(56, 189, 248, 0.2);">
+    
+    <h2 style="margin: 0 0 8px 0; font-size: 1.4rem; color: #f8fafc; display: flex; align-items: center; justify-content: center; gap: 10px;">
+      📱 Instala y Comparte la App
+    </h2>
+    <p style="margin: 0 0 24px 0; font-size: 0.9rem; color: #94a3b8;">Escanea, comparte o instala para empezar a ganar desde cualquier dispositivo.</p>
+
+    <!-- Contenedor del QR Real (imagen generada por el servidor) -->
+    <div style="background: #ffffff; border-radius: 16px; padding: 16px; display: inline-block; margin-bottom: 20px; border: 4px solid #1e293b;">
+      <img id="qrImagen" width="200" height="200" style="display: block; background: white;">
+      <p id="qrUrlInfo" style="color: #0f172a; font-size: 0.7rem; margin-top: 8px; font-weight: bold; font-family: monospace; word-break: break-all; max-width: 200px;">Cargando...</p>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+      <button type="button" id="btnShareNative" style="padding: 14px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        🔗 Compartir App (WhatsApp/Telegram)
+      </button>
+      <button type="button" id="btnInstallPWA" style="padding: 14px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; display: none; align-items: center; justify-content: center; gap: 8px;">
+        📲 Instalar App en Dispositivo
+      </button>
+      <button type="button" id="btnCopyLink" style="padding: 12px; background: transparent; color: #94a3b8; border: 1px solid #334155; border-radius: 12px; font-size: 0.9rem; font-weight: 600; cursor: pointer;">
+        📋 Copiar Enlace de la App
+      </button>
+    </div>
+
+    <!-- Auditoría IA de Instalación -->
+    <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; border-radius: 12px; padding: 16px; text-align: left;">
+      <h3 style="margin: 0 0 10px 0; color: #38bdf8; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+        🤖 Auditoría IA de Instalación
+      </h3>
+      <div id="installAIAudit" style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5;">
+        <p style="margin: 0;">⏳ Verificando entorno de instalación...</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function() {
+    // Elementos
+    const qrImg = document.getElementById('qrImagen');
+    const qrUrlInfo = document.getElementById('qrUrlInfo');
+    const btnShareNative = document.getElementById('btnShareNative');
+    const btnInstallPWA = document.getElementById('btnInstallPWA');
+    const btnCopyLink = document.getElementById('btnCopyLink');
+    const installAIAudit = document.getElementById('installAIAudit');
+    let deferredPrompt = null;
+
+    // ========== OBTENER URL DE REGISTRO CON CÓDIGO DE REFERIDO (CORREGIDO) ==========
     async function obtenerUrlRegistro() {
       const token = localStorage.getItem('authToken');
+      let refCode = null;
+
       if (token) {
         try {
           const res = await fetch('/api/identity/qr', {
             headers: { 'Authorization': 'Bearer ' + token }
           });
           const data = await res.json();
-          if (data.success && data.qrPayload) {
-            return data.qrPayload;  // ya es la URL completa con ?ref=...
+          // Extraer código de referido desde qrData.ref (respuesta correcta del backend)
+          if (data.success && data.qrData && data.qrData.ref) {
+            refCode = data.qrData.ref;
+          }
+          // Fallback: si qrPayload es una cadena y contiene ref=...
+          else if (data.success && data.qrPayload && typeof data.qrPayload === 'string' && data.qrPayload.includes('ref=')) {
+            const match = data.qrPayload.match(/[?&]ref=([^&]+)/);
+            if (match) refCode = match[1];
           }
         } catch (err) {
           console.warn('Error al obtener código de referido:', err);
         }
       }
-      // Fallback: código por defecto (Dueño Supremo)
-      let refCode = 'ROM0000';
-      const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-      if (usuario.refCode) refCode = usuario.refCode;
+
+      if (!refCode) {
+        const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+        refCode = usuario.refCode || 'ROM0000';
+      }
       return `${window.location.origin}/register?ref=${refCode}`;
     }
 
-  async function generarQRReal() {
-  const url = await obtenerUrlRegistro();
-  if (!url) {
-    qrUrlInfo.textContent = 'Error: URL inválida';
-    return;
-  }
-  qrUrlInfo.textContent = url.length > 30 ? url.substring(0, 27) + '...' : url;
-  qrImg.src = '/api/qr/' + encodeURIComponent(url);
-  qrImg.onerror = () => {
-    qrUrlInfo.textContent = 'Error al cargar QR (intenta de nuevo)';
-    qrImg.alt = 'Error QR';
-    setTimeout(() => {
-      qrImg.src = '/api/qr/' + encodeURIComponent(url);
-    }, 2000);
-  };
-  console.log('QR generado con URL:', url);
-}
+    // ========== GENERAR QR REAL (usando endpoint del servidor) ==========
+    async function generarQRReal() {
+      const url = await obtenerUrlRegistro();
+      if (!url || typeof url !== 'string') {
+        qrUrlInfo.textContent = 'Error: URL inválida';
+        return;
+      }
+      const urlSanitizada = encodeURIComponent(url);
+      qrUrlInfo.textContent = url.length > 30 ? url.substring(0, 27) + '...' : url;
+      qrImg.src = '/api/qr/' + urlSanitizada;
+      qrImg.onerror = () => {
+        qrUrlInfo.textContent = 'Error al cargar QR (intenta de nuevo)';
+        qrImg.alt = 'Error QR';
+        setTimeout(() => {
+          qrImg.src = '/api/qr/' + urlSanitizada;
+        }, 2000);
+      };
+      console.log('QR generado con URL:', url);
+    }
 
-    // Compartir nativo
+    // ========== COMPARTIR NATIVO ==========
     async function compartirApp() {
       const url = await obtenerUrlRegistro();
       const shareData = {
@@ -6804,6 +6866,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       }
     }
 
+    // ========== COPIAR AL PORTAPAPELES ==========
     function copyToClipboard(text) {
       if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
@@ -6848,11 +6911,11 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       }
     }
 
-    // Eventos
+    // ========== EVENTOS ==========
     if (btnShareNative) btnShareNative.addEventListener('click', compartirApp);
     if (btnCopyLink) btnCopyLink.addEventListener('click', () => obtenerUrlRegistro().then(url => copyToClipboard(url)));
 
-    // PWA
+    // ========== PWA (INSTALACIÓN) ==========
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -6885,7 +6948,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       });
     }
 
-    // Auditoría IA (visual)
+    // ========== AUDITORÍA IA (VISUAL) ==========
     function ejecutarAuditoria() {
       const steps = [
         "🔍 Verificando que la URL sea segura (HTTPS/Local)...",
@@ -6914,14 +6977,13 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       }, 1000);
     }
 
-    // Inicializar cuando la sección sea visible
+    // ========== INICIALIZAR ==========
     async function initInstallShare() {
       await generarQRReal();
       ejecutarAuditoria();
       window.actualizarQRInstalacion = generarQRReal;
     }
 
-    // Mostrar sección y ejecutar
     setTimeout(() => {
       const section = document.getElementById('installShareSection');
       if (section) section.classList.remove('hidden');
