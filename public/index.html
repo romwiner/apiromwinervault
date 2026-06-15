@@ -26618,96 +26618,119 @@ if (btnCreate) {
   console.log('👑 Lealtad absoluta al Dueño Supremo');
 })();
 </script> 
- 
 <!-- QR PÚBLICO (sin sesión) -->
 <div id="qrPublico" style="text-align:center; margin:30px auto;">
   <h3>📱 Únete con mi código QR</h3>
-  <img id="qrImgPublico" width="200" height="200" style="border:1px solid #0f0; background:#fff;">
+  <canvas id="qrCanvasPublico" width="200" height="200" style="border:1px solid #0f0; background:#fff; border-radius:8px;"></canvas>
   <div id="qrInfoPublico" style="margin-top:8px;">Regístrate con este código</div>
 </div>
 
 <!-- QR PERSONAL (con sesión) -->
 <div id="qrPersonal" style="text-align:center; margin:30px auto; display:none;">
   <h3>🔗 Tu código de referido</h3>
-  <img id="qrImgPersonal" width="200" height="200" style="border:1px solid #0f0; background:#fff;">
+  <canvas id="qrCanvasPersonal" width="200" height="200" style="border:1px solid #0f0; background:#fff; border-radius:8px;"></canvas>
   <div id="qrInfoPersonal" style="margin-top:8px;"></div>
 </div>
 
+<!-- Cargar la librería qrcode-generator (dibuja QR en canvas) -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
+  // Función para dibujar un QR en un canvas
+  function dibujarQR(canvasId, texto) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return false;
+    const ctx = canvas.getContext('2d');
+    canvas.width = 200;
+    canvas.height = 200;
+    if (!texto) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 200, 200);
+      ctx.fillStyle = '#ff0000';
+      ctx.font = '12px monospace';
+      ctx.fillText('Texto vacío', 20, 100);
+      return false;
+    }
+    // Verificar que la librería esté cargada
+    if (typeof qrcode === 'undefined') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 200, 200);
+      ctx.fillStyle = '#ff0000';
+      ctx.font = '12px monospace';
+      ctx.fillText('Librería QR no cargada', 20, 100);
+      return false;
+    }
+    try {
+      const qr = qrcode(10, 'M'); // versión 10, corrección M
+      qr.addData(texto);
+      qr.make();
+      const cells = qr.getModuleCount();
+      const cellSize = 200 / cells;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 200, 200);
+      ctx.fillStyle = '#0f172a'; // color oscuro
+      for (let row = 0; row < cells; row++) {
+        for (let col = 0; col < cells; col++) {
+          if (qr.isDark(row, col)) {
+            ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+          }
+        }
+      }
+      return true;
+    } catch (err) {
+      console.error('Error dibujando QR:', err);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 200, 200);
+      ctx.fillStyle = '#ff0000';
+      ctx.fillText('Error QR', 20, 100);
+      return false;
+    }
+  }
+
+  // Función principal
   (function() {
-    // Obtener la URL base (tu dominio)
+    const token = localStorage.getItem('authToken');
     const baseUrl = window.location.origin;
-    // URL de registro sin código
     const registerUrl = baseUrl + '/register';
 
-    // Función para generar la imagen del QR
-    function setQrImage(imgElement, fullUrl, infoElement, refCode) {
-      if (!fullUrl) {
-        infoElement.innerText = 'Error: URL inválida';
-        return;
-      }
-      // Mostrar el código de referido (o un mensaje)
-      infoElement.innerText = refCode ? 'Código: ' + refCode : 'Regístrate con este código';
-      // Generar la URL del QR usando el endpoint del servidor
-      const encodedUrl = encodeURIComponent(fullUrl);
-      imgElement.src = '/api/qr/' + encodedUrl;
-      imgElement.onerror = () => {
-        infoElement.innerText = 'Error al cargar QR. Revisa que el servidor responda.';
-        console.error('Error cargando QR para:', fullUrl);
-      };
-    }
-
-    // Obtener el token de sesión
-    const token = localStorage.getItem('authToken');
-
     if (token) {
-      // Modo personal: mostrar contenedor personal y ocultar público
+      // Modo personal
       document.getElementById('qrPublico').style.display = 'none';
       document.getElementById('qrPersonal').style.display = 'block';
-
-      // Pedir al backend el código de referido
       fetch('/api/identity/qr', { headers: { 'Authorization': 'Bearer ' + token } })
         .then(res => res.json())
         .then(data => {
           let refCode = null;
-          // Extraer el código de referido de la respuesta
           if (data.success) {
             if (data.qrData && data.qrData.ref) {
               refCode = data.qrData.ref;
             } else if (data.qrPayload && typeof data.qrPayload === 'string') {
-              // Si qrPayload es una URL, intentar extraer el parámetro ref
               const match = data.qrPayload.match(/[?&]ref=([^&]+)/);
               if (match) refCode = match[1];
             }
           }
-          // Si no se encontró, usar un código por defecto (puedes cambiarlo)
           if (!refCode) {
-            console.warn('No se pudo obtener el código de referido, usando código por defecto.');
+            console.warn('No se obtuvo código de referido, usando por defecto.');
             refCode = 'ROM0000';
           }
-          // Construir la URL completa de registro con el código
           const fullUrl = registerUrl + '?ref=' + refCode;
-          const img = document.getElementById('qrImgPersonal');
-          const info = document.getElementById('qrInfoPersonal');
-          setQrImage(img, fullUrl, info, refCode);
+          document.getElementById('qrInfoPersonal').innerText = 'Código: ' + refCode;
+          dibujarQR('qrCanvasPersonal', fullUrl);
         })
         .catch(err => {
           console.error('Error al obtener el código de referido:', err);
-          const img = document.getElementById('qrImgPersonal');
-          const info = document.getElementById('qrInfoPersonal');
-          info.innerText = 'Error al obtener código de referido';
-          img.src = '';
+          document.getElementById('qrInfoPersonal').innerText = 'Error al obtener código';
+          dibujarQR('qrCanvasPersonal', registerUrl); // fallback sin código
         });
     } else {
-      // Modo público: mostrar QR público
+      // Modo público
       document.getElementById('qrPublico').style.display = 'block';
       document.getElementById('qrPersonal').style.display = 'none';
-      // El QR público no tiene código de referido (o puedes poner uno fijo)
-      const img = document.getElementById('qrImgPublico');
-      const info = document.getElementById('qrInfoPublico');
-      setQrImage(img, registerUrl, info, null);
+      document.getElementById('qrInfoPublico').innerText = 'Regístrate con este código';
+      dibujarQR('qrCanvasPublico', registerUrl);
     }
   })();
+</script> 
+
 </script>
 </script>
 </body>
