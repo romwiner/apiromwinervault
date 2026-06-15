@@ -26840,73 +26840,12 @@ if (btnCreate) {
   console.log('🤝 Coordinación con Agente Flotante establecida');
   console.log('👑 Lealtad absoluta al Dueño Supremo');
 })();
-<!-- === QR PÚBLICO Y PERSONAL (Versión Estable) === -->
-<div style="text-align:center; margin:40px 0;">
   
-  <!-- QR Público -->
-  <div id="qrPublico">
-    <h3>📱 Únete con mi código QR</h3>
-    <div id="qrContainerPublico" style="margin:15px auto; display:inline-block; padding:15px; background:white; border-radius:12px;"></div>
-    <p style="margin-top:8px; color:#94a3b8;">Regístrate escaneando este código</p>
-  </div>
-
-  <!-- QR Personal -->
-  <div id="qrPersonal" style="display:none; margin-top:40px;">
-    <h3>🔐 Tu QR de Identidad</h3>
-    <div id="qrContainerPersonal" style="margin:15px auto; display:inline-block; padding:15px; background:white; border-radius:12px;"></div>
-    <p id="qrInfoPersonal" style="margin-top:8px; color:#94a3b8;"></p>
-  </div>
-
+<!-- === SECCIÓN QR (Temporalmente desactivada) === -->
+<div style="text-align:center; margin:40px 0; padding:20px; background:#1e2937; border-radius:12px;">
+  <h3>📱 Sección de Códigos QR</h3>
+  <p>Estamos reparando esta sección...</p>
 </div>
-
-<script>
-// ==================== VERSIÓN MÁS ESTABLE ====================
-
-// Función para generar QR usando servicio temporal (funciona siempre)
-function generarQRConImagen(containerId, texto) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    container.innerHTML = `
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(texto)}" 
-             alt="Código QR" 
-             style="max-width:300px; height:auto; border-radius:8px;">
-    `;
-}
-
-// QR Público
-function generarQRPublico() {
-    const textoPublico = "https://apiromwinervault.com/?ref=TU_CODIGO_AQUI";   // Cambia por tu referido real
-    generarQRConImagen('qrContainerPublico', textoPublico);
-}
-
-// QR Personal (usa tu endpoint)
-async function generarQRPersonal() {
-    try {
-        const response = await fetch('/api/identity/qr');
-        const data = await response.json();
-
-        if (data.success) {
-            generarQRConImagen('qrContainerPersonal', data.qrPayload);
-            
-            document.getElementById('qrInfoPersonal').innerHTML = `
-                Usuario: <strong>${data.qrData.username}</strong><br>
-                Escanea para instalar la app o compartir tu identidad
-            `;
-            document.getElementById('qrPersonal').style.display = 'block';
-        }
-    } catch (e) {
-        console.error(e);
-        document.getElementById('qrContainerPersonal').innerHTML = `<p style="color:red;">Error al cargar QR personal</p>`;
-    }
-}
-
-// Ejecutar al cargar
-window.onload = function() {
-    generarQRPublico();
-    generarQRPersonal();
-};
-</script>
 </script>
 </body>
 </html>
