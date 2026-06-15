@@ -1852,37 +1852,43 @@ app.delete('/api/identity/revoke/all', authenticate, async(req, res) => {
 });
 
 // ============================================
-// 📱 ENDPOINT QR (sin enlaces externos, QR generado por frontend)
+// 📱 ENDPOINT QR DE IDENTIDAD (Mejorado)
 // ============================================
-app.get('/api/identity/qr', authenticate, async(req, res) => {
-  try {
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    
-    // Solo datos, el frontend genera el QR localmente (sin dependencias externas)
-    const qrData = {
-      uid: user.uid,
-      email: user.email,
-      username: user.username,
-      ref: user.refCode,
-      ts: Date.now()
-    };
-    
-    res.json({
-      success: true,
-      qrPayload: JSON.stringify(qrData),
-      qrData: qrData,
-      installGuide: {
-        mobile: "1. Escanea con la cámara\n2. Toca 'Agregar a pantalla de inicio'\n3. Abre la app desde tu pantalla",
-        desktop: "1. Abre en Chrome/Edge/Firefox\n2. Haz clic en el ícono 📥 de la barra de direcciones\n3. Confirma la instalación\n4. ¡Listo! Usa la app desde tu escritorio"
-      }
-    });
-  } catch (e) {
-    logger.error('❌ QR generation error: ' + e.message);
-    res.status(500).json({ error: 'Error al generar QR: ' + e.message });
-  }
-});
+app.get('/api/identity/qr', authenticate, async (req, res) => {
+    try {
+        const user = await usersCollection.findOne({ uid: req.user.uid });
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+        }
 
+        const qrData = {
+            type: "identity",
+            uid: user.uid,
+            username: user.username,
+            email: user.email || "",
+            refCode: user.refCode || "",
+            platform: "ApiRomwiner Vault",
+            timestamp: Date.now()
+        };
+
+        res.json({
+            success: true,
+            qrPayload: JSON.stringify(qrData),
+            qrData: qrData,
+            installGuide: {
+                mobile: "1. Escanea el QR con tu cámara\n2. Abre el enlace que aparece\n3. Toca 'Agregar a pantalla de inicio'",
+                desktop: "1. Abre el sitio en Chrome o Edge\n2. Haz clic en el ícono de instalación (📥)\n3. Confirma la instalación"
+            },
+            message: "QR de identidad generado correctamente"
+        });
+    } catch (e) {
+        console.error('❌ Error al generar QR de identidad:', e.message);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error interno del servidor' 
+        });
+    }
+});
 // ============================================
 // 📊 DASHBOARD
 // ============================================
