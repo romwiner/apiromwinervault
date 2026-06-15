@@ -26750,6 +26750,10 @@ if (btnCreate) {
   <canvas id="qrCanvas" width="200" height="200" style="border:1px solid #00e676; border-radius:8px;"></canvas>
   <div id="qrIdentityInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
 </div>
+
+<!-- Librería QR (qrcode - funciona con canvas) -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+
 <script>
 // ========================
 // 1. Función para QR público (código de referido general)
@@ -26764,7 +26768,21 @@ function mostrarQRReferidoPublico() {
   const infoDiv = document.getElementById('qrLandingInfo');
   if (infoDiv) infoDiv.textContent = 'Regístrate con este código';
 
-  generarQREnCanvas(canvas, url);
+  // Generar QR en canvas usando la librería qrcode
+  QRCode.toCanvas(canvas, url, { width: 200, margin: 1 }, function (error) {
+    if (error) {
+      console.error('Error generando QR público:', error);
+      // Fallback: mostrar texto
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 200, 200);
+      ctx.fillStyle = '#ff0000';
+      ctx.font = '12px monospace';
+      ctx.fillText('Error QR', 20, 100);
+    } else {
+      console.log('QR público generado');
+    }
+  });
 }
 
 // ========================
@@ -26790,7 +26808,20 @@ async function mostrarQRIdentidad() {
     const infoDiv = document.getElementById('qrIdentityInfo');
     if (infoDiv) infoDiv.textContent = `Código: ${data.qrData.ref || 'activo'}`;
 
-    generarQREnCanvas(canvas, data.qrPayload);
+    // Generar QR en canvas con el payload
+    QRCode.toCanvas(canvas, data.qrPayload, { width: 200, margin: 1 }, function (error) {
+      if (error) {
+        console.error('Error generando QR personal:', error);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, 200, 200);
+        ctx.fillStyle = '#ff0000';
+        ctx.font = '12px monospace';
+        ctx.fillText('Error QR', 20, 100);
+      } else {
+        console.log('QR personal generado');
+      }
+    });
   } catch (err) {
     console.error('Error al obtener QR personal:', err);
     const infoDiv = document.getElementById('qrIdentityInfo');
@@ -26799,76 +26830,7 @@ async function mostrarQRIdentidad() {
 }
 
 // ========================
-// 3. Función genérica que dibuja el QR en un canvas usando qrcode-generator
-// ========================
-function generarQREnCanvas(canvas, texto) {
-  if (!texto || texto.trim() === '') {
-    console.warn('Texto vacío para QR');
-    return;
-  }
-
-  if (typeof qrcode === 'undefined') {
-    console.error('Librería qrcode-generator no cargada');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 200;
-    canvas.height = 200;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 200, 200);
-    ctx.fillStyle = '#ff0000';
-    ctx.font = '12px monospace';
-    ctx.fillText('QR no disponible', 20, 100);
-    return;
-  }
-
-  try {
-    let version = 4;
-    if (texto.length > 100) version = 10;
-    if (texto.length > 200) version = 15;
-    if (texto.length > 300) version = 20;
-
-    let qr = qrcode(version, 'M');
-    qr.addData(texto);
-    qr.make();
-
-    if (qr.getModuleCount() === 0) {
-      console.warn('Aumentando versión QR');
-      qr = qrcode(20, 'M');
-      qr.addData(texto);
-      qr.make();
-    }
-
-    const size = 200;
-    const cells = qr.getModuleCount();
-    const cellSize = size / cells;
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = '#0f172a';
-    for (let row = 0; row < cells; row++) {
-      for (let col = 0; col < cells; col++) {
-        if (qr.isDark(row, col)) {
-          ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
-        }
-      }
-    }
-    console.log('QR generado correctamente en canvas', canvas.id);
-  } catch (err) {
-    console.error('Error generando QR:', err);
-    const ctx = canvas.getContext('2d');
-    canvas.width = 200;
-    canvas.height = 200;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 200, 200);
-    ctx.fillStyle = '#ff0000';
-    ctx.font = '10px monospace';
-    ctx.fillText('Error QR', 20, 100);
-  }
-}
-
-// ========================
-// 4. Ejecutar la función correspondiente según autenticación
+// 3. Ejecutar según autenticación al cargar la página
 // ========================
 document.addEventListener('DOMContentLoaded', function() {
   const token = localStorage.getItem('authToken');
