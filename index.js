@@ -4442,45 +4442,82 @@ if (mongoReady) {
 }
 
 // ============================================
-// 💳 STRIPE WEBHOOK (confirmar pagos)
+// 💳 STRIPE WEBHOOK (confirmar pagos) - CORREGIDO
 // ============================================
-app.post('/api/webhooks/stripe', async (req, res) => {
+app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  // Validar configuración
   if (!webhookSecret || webhookSecret === 'placeholder') {
     logger.warn('⚠️ Stripe webhook secret no configurado. Modo demo.');
     return res.json({ received: true, demo: true });
   }
+
   let event;
   try {
+    // El cuerpo ya es un Buffer gracias a express.raw()
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-  } catch (e) {
-    logger.error('❌ Webhook error: ' + e.message);
-    return res.status(400).json({ error: 'Webhook error: ' + e.message });
+  } catch (err) {
+    logger.error(`❌ Webhook signature verification failed: ${err.message}`);
+    // No exponer detalles internos al cliente
+    return res.status(400).json({ error: 'Webhook signature verification failed' });
   }
 
-  if (event.type === 'payment_intent.succeeded') {
-    const pi = event.data.object;
-    const { uid, type } = pi.metadata;
-    const amount = pi.amount / 100;
-    if (type === 'deposit' && mongoReady && walletCollection) {
-      const user = await usersCollection.findOne({ uid });
-      if (user) {
-        await walletCollection.updateOne(
-          { userId: user._id },
-          {
-            $inc: { balance: amount },
-            $push: { history: { type: 'deposit_stripe', amount, date: new Date(), paymentId: pi.id } }
+  // Procesar el evento
+  try {
+    switch (event.type) {
+      case 'payment_intent.succeeded':
+        const paymentIntent = event.data.object;
+        const { uid, type } = paymentIntent.metadata;
+        const amount = paymentIntent.amount / 100;
+
+        if (type === 'deposit' && uid && mongoReady && walletCollection) {
+          const user = await usersCollection.findOne({ uid });
+          if (user) {
+            // Usar updateOne con filtro exacto y verificar que no se haya procesado antes (idempotencia)
+            const existingHistory = await walletCollection.findOne({
+              userId: user._id,
+              'history.paymentId': paymentIntent.id
+            });
+            if (!existingHistory) {
+              await walletCollection.updateOne(
+                { userId: user._id },
+                {
+                  $inc: { balance: amount },
+                  $push: {
+                    history: {
+                      type: 'deposit_stripe',
+                      amount,
+                      date: new Date(),
+                      paymentId: paymentIntent.id,
+                      status: 'confirmed'
+                    }
+                  }
+                }
+              );
+              await logAudit('deposit_confirmed', { uid, amount, method: 'stripe', paymentId: paymentIntent.id });
+              logger.info(`💳 Depósito confirmado: $${amount} para ${uid}`);
+            } else {
+              logger.warn(`⚠️ Webhook duplicado ignorado para paymentIntent ${paymentIntent.id}`);
+            }
+          } else {
+            logger.warn(`⚠️ Usuario no encontrado para uid: ${uid}`);
           }
-        );
-        await logAudit('deposit_confirmed', { uid, amount, method: 'stripe', paymentId: pi.id });
-        logger.info(`💳 Depósito confirmado: $${amount} para ${uid}`);
-      }
-    }
-  }
-  res.json({ received: true });
-});
+        }
+        break;
 
+      // Puedes añadir más tipos de evento aquí si los necesitas
+      default:
+        logger.info(`Webhook recibido de tipo no manejado: ${event.type}`);
+    }
+
+    res.json({ received: true });
+  } catch (err) {
+    logger.error(`❌ Error procesando webhook: ${err.message}`);
+    res.status(500).json({ error: 'Error interno procesando webhook' });
+  }
+});
 // ============================================
 // 💰 SUSCRIPCIONES ENTRE USUARIOS Y DONACIONES
 // ============================================
