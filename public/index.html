@@ -6757,72 +6757,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       return `${window.location.origin}/?ref=${refCode}`;
     }
 
-    // Generar QR real usando la librería qrcode-generator (ya debe estar cargada)
-    function generarQRReal() {
-      const url = obtenerUrlRegistro();
-      qrUrlInfo.textContent = url.length > 30 ? url.substring(0, 27) + '...' : url;
-      if (typeof qrcode === 'undefined') {
-        console.warn('Librería QR no disponible. Usando fallback visual.');
-        generarQRFallback(url);
-        return;
-      }
-      try {
-        const qr = qrcode(0, 'M');
-        qr.addData(url);
-        qr.make();
-        const size = 200;
-        const cells = qr.getModuleCount();
-        const cellSize = size / cells;
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, size, size);
-        ctx.fillStyle = '#0f172a';
-        for (let row = 0; row < cells; row++) {
-          for (let col = 0; col < cells; col++) {
-            if (qr.isDark(row, col)) {
-              ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Error generando QR real:', err);
-        generarQRFallback(url);
-      }
-    }
-
-    // Fallback visual (por si la librería no está disponible)
-    function generarQRFallback(url) {
-      const ctx = canvas.getContext('2d');
-      const size = 200;
-      const cells = 25;
-      const cellSize = size / cells;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, size, size);
-      let hash = 0;
-      for (let i = 0; i < url.length; i++) hash = ((hash << 5) - hash) + url.charCodeAt(i);
-      let seed = Math.abs(hash);
-      ctx.fillStyle = '#0f172a';
-      function drawFinder(x, y) {
-        ctx.fillRect(x * cellSize, y * cellSize, 7 * cellSize, 7 * cellSize);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect((x + 1) * cellSize, (y + 1) * cellSize, 5 * cellSize, 5 * cellSize);
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect((x + 2) * cellSize, (y + 2) * cellSize, 3 * cellSize, 3 * cellSize);
-      }
-      drawFinder(0, 0);
-      drawFinder(cells - 7, 0);
-      drawFinder(0, cells - 7);
-      for (let i = 0; i < cells; i++) {
-        for (let j = 0; j < cells; j++) {
-          if ((i < 8 && j < 8) || (i > cells - 9 && j < 8) || (i < 8 && j > cells - 9)) continue;
-          seed = (seed * 16807) % 2147483647;
-          if (seed % 3 !== 0) ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
-        }
-      }
-    }
-
     // Compartir nativo
     async function compartirApp() {
       const url = obtenerUrlRegistro();
@@ -26736,6 +26670,7 @@ if (btnCreate) {
   console.log('👑 Lealtad absoluta al Dueño Supremo');
 })();
 </script> 
+ 
 <!-- QR PÚBLICO (sin sesión) -->
 <div id="qrPublico" style="text-align:center; margin:30px auto;">
   <h3>📱 Únete con mi código QR</h3>
