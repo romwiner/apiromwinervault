@@ -26736,10 +26736,20 @@ if (btnCreate) {
   console.log('👑 Lealtad absoluta al Dueño Supremo');
 })();
 </script> 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<!-- QR PÚBLICO (visible sin iniciar sesión) -->
+<div id="qrPublicoContainer" style="margin-top: 30px; text-align: center;">
+  <h3>📱 Únete con mi código QR</h3>
+  <canvas id="qrCanvasLanding" width="200" height="200" style="border:1px solid #00e676; border-radius:8px;"></canvas>
+  <div id="qrLandingInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
+  <p style="font-size: 0.8rem;">Escanea y regístrate para empezar a ganar</p>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-
+<!-- QR PERSONAL (visible solo cuando inicias sesión) -->
+<div id="qrPersonalContainer" style="margin-top: 30px; text-align: center; display: none;">
+  <h3>🔗 Tu código de referido</h3>
+  <canvas id="qrCanvas" width="200" height="200" style="border:1px solid #00e676; border-radius:8px;"></canvas>
+  <div id="qrIdentityInfo" style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;"></div>
+</div>
 <script>
 // ========================
 // 1. Función para QR público (código de referido general)
