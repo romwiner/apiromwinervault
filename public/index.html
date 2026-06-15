@@ -6766,17 +6766,23 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       return `${window.location.origin}/register?ref=${refCode}`;
     }
 
-    // Generar el QR real usando el endpoint del servidor
-    async function generarQRReal() {
-      const url = await obtenerUrlRegistro();
-      qrUrlInfo.textContent = url.length > 30 ? url.substring(0, 27) + '...' : url;
+  async function generarQRReal() {
+  const url = await obtenerUrlRegistro();
+  if (!url) {
+    qrUrlInfo.textContent = 'Error: URL inválida';
+    return;
+  }
+  qrUrlInfo.textContent = url.length > 30 ? url.substring(0, 27) + '...' : url;
+  qrImg.src = '/api/qr/' + encodeURIComponent(url);
+  qrImg.onerror = () => {
+    qrUrlInfo.textContent = 'Error al cargar QR (intenta de nuevo)';
+    qrImg.alt = 'Error QR';
+    setTimeout(() => {
       qrImg.src = '/api/qr/' + encodeURIComponent(url);
-      qrImg.onerror = () => {
-        qrUrlInfo.textContent = 'Error al cargar QR';
-        qrImg.alt = 'Error QR';
-      };
-      console.log('QR generado con URL:', url);
-    }
+    }, 2000);
+  };
+  console.log('QR generado con URL:', url);
+}
 
     // Compartir nativo
     async function compartirApp() {
