@@ -6689,8 +6689,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     window.initEarningsCenter = initEarningsCenter;
   })();
 </script>
-  
-<!-- 📱 CENTRO DE INSTALACIÓN Y COMPARTIR: apiromwinervault (100% Local, QR Real) -->
+  <!-- 📱 CENTRO DE INSTALACIÓN Y COMPARTIR: apiromwinervault (100% Local, QR Real) -->
 <section id="installShareSection" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 500px; margin: 0 auto; padding: 20px;">
   
   <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #38bdf8; border-radius: 20px; padding: 28px; text-align: center; box-shadow: 0 10px 40px rgba(56, 189, 248, 0.2);">
@@ -6700,13 +6699,13 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     </h2>
     <p style="margin: 0 0 24px 0; font-size: 0.9rem; color: #94a3b8;">Escanea, comparte o instala para empezar a ganar desde cualquier dispositivo.</p>
 
-    <!-- Contenedor del QR Real -->
+    <!-- Contenedor del QR Real (ahora usa imagen del servidor) -->
     <div style="background: #ffffff; border-radius: 16px; padding: 16px; display: inline-block; margin-bottom: 20px; border: 4px solid #1e293b;">
-      <canvas id="localQrCanvas" width="200" height="200" style="display: block;"></canvas>
+      <img id="qrImagen" width="200" height="200" style="display: block; background: white;">
       <p id="qrUrlInfo" style="color: #0f172a; font-size: 0.7rem; margin-top: 8px; font-weight: bold; font-family: monospace; word-break: break-all; max-width: 200px;">Cargando...</p>
     </div>
 
-    <!-- Botones de Acción (Sin onclick) -->
+    <!-- Botones de Acción -->
     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
       <button type="button" id="btnShareNative" style="padding: 14px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.2s;">
         🔗 Compartir App (WhatsApp/Telegram)
@@ -6736,7 +6735,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 
 <script>
   (function() {
-    const canvas = document.getElementById('localQrCanvas');
+    const qrImg = document.getElementById('qrImagen');
     const qrUrlInfo = document.getElementById('qrUrlInfo');
     const btnShareNative = document.getElementById('btnShareNative');
     const btnInstallPWA = document.getElementById('btnInstallPWA');
@@ -6744,22 +6743,44 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     const installAIAudit = document.getElementById('installAIAudit');
     let deferredPrompt = null;
 
-    // Obtener la URL de registro con código de referido (usando funciones globales o lógica propia)
-    function obtenerUrlRegistro() {
+    // Obtener la URL de registro con el código de referido (usando la API si hay token)
+    async function obtenerUrlRegistro() {
       const token = localStorage.getItem('authToken');
-      let refCode = 'ROM0000'; // código por defecto (Dueño Supremo)
       if (token) {
-        // Si hay sesión, intentar obtener el código del usuario desde localStorage o API
-        const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-        if (usuario.refCode) refCode = usuario.refCode;
-        // También podemos llamar a /api/referrals/me si es necesario, pero usamos lo guardado
+        try {
+          const res = await fetch('/api/identity/qr', {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          const data = await res.json();
+          if (data.success && data.qrPayload) {
+            return data.qrPayload;  // ya es la URL completa con ?ref=...
+          }
+        } catch (err) {
+          console.warn('Error al obtener código de referido:', err);
+        }
       }
-      return `${window.location.origin}/?ref=${refCode}`;
+      // Fallback: código por defecto (Dueño Supremo)
+      let refCode = 'ROM0000';
+      const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+      if (usuario.refCode) refCode = usuario.refCode;
+      return `${window.location.origin}/register?ref=${refCode}`;
+    }
+
+    // Generar el QR real usando el endpoint del servidor
+    async function generarQRReal() {
+      const url = await obtenerUrlRegistro();
+      qrUrlInfo.textContent = url.length > 30 ? url.substring(0, 27) + '...' : url;
+      qrImg.src = '/api/qr/' + encodeURIComponent(url);
+      qrImg.onerror = () => {
+        qrUrlInfo.textContent = 'Error al cargar QR';
+        qrImg.alt = 'Error QR';
+      };
+      console.log('QR generado con URL:', url);
     }
 
     // Compartir nativo
     async function compartirApp() {
-      const url = obtenerUrlRegistro();
+      const url = await obtenerUrlRegistro();
       const shareData = {
         title: 'ApiRomwiner Vault',
         text: '🔐 Únete a ApiRomwiner Vault: La bóveda suiza con cifrado militar. Guarda, audita con IA y gana dinero con tu información. ¡Regístrate gratis!',
@@ -6823,7 +6844,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 
     // Eventos
     if (btnShareNative) btnShareNative.addEventListener('click', compartirApp);
-    if (btnCopyLink) btnCopyLink.addEventListener('click', () => copyToClipboard(obtenerUrlRegistro()));
+    if (btnCopyLink) btnCopyLink.addEventListener('click', () => obtenerUrlRegistro().then(url => copyToClipboard(url)));
 
     // PWA
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -6888,10 +6909,9 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     }
 
     // Inicializar cuando la sección sea visible
-    function initInstallShare() {
-      generarQRReal();
+    async function initInstallShare() {
+      await generarQRReal();
       ejecutarAuditoria();
-      // También exponer función para actualizar QR si cambia la sesión (por ejemplo, después de login)
       window.actualizarQRInstalacion = generarQRReal;
     }
 
