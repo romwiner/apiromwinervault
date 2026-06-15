@@ -355,26 +355,39 @@ app.use(helmet({
 
 app.use(cors({
   origin: function(origin, callback) {
+    // Permitir peticiones sin origen (ej. apps móviles, Postman)
     if (!origin) return callback(null, true);
+    
     const allowedOrigins = [
-      'https://apiromwinervault.onrender.com', 'https://api.romwinervault.com',
-      'https://romwinervault.com', 'http://localhost:3000', 'http://127.0.0.1:3000',
-      'http://localhost:10000', 'http://127.0.0.1:10000'
+      'https://apiromwinervault.onrender.com',
+      'https://api.romwinervault.com',
+      'https://romwinervault.com',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:10000',
+      'http://127.0.0.1:10000'
     ];
-    if (origin.endsWith('.onrender.com') || origin.endsWith('.romwinervault.com') || allowedOrigins.includes(origin)) {
+    
+    // Verificar si el origen está explícitamente permitido o es subdominio válido
+    const isAllowed = allowedOrigins.includes(origin) ||
+                      origin.endsWith('.onrender.com') ||
+                      origin.endsWith('.romwinervault.com');
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
-      logger.warn('⚠️ Origen no en lista permitida:', origin);
-      callback(null, true);
+      // ❌ CORREGIDO: ahora realmente bloquea
+      logger.warn('🚫 CORS bloqueado - origen no permitido:', origin);
+      callback(new Error('Origen no permitido por CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Vault-Sig', 'X-Requested-With', 'Accept', 'Origin']
 }));
-app.options('*', cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Elimina esta línea si la tienes (es redundante):
+// app.options('*', cors());
 
 // ✅ Servir archivos estáticos (frontend)
 app.use(express.static(path.join(__dirname, 'public')));
