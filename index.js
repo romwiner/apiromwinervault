@@ -5086,4 +5086,23 @@ startServer().catch(err => {
   process.exit(1);
 });
 
+// ============================================
+// 📱 Generar código QR como imagen PNG
+// ============================================
+const QRCode = require('qrcode');
+
+app.get('/api/qr/:texto', async (req, res) => {
+  try {
+    let texto = req.params.texto;
+    if (!texto) return res.status(400).json({ error: 'Texto requerido' });
+    texto = decodeURIComponent(texto);
+    const options = { width: 200, margin: 2, color: { dark: '#0f172a', light: '#ffffff' } };
+    res.setHeader('Content-Type', 'image/png');
+    QRCode.toFileStream(res, texto, options);
+  } catch (err) {
+    console.error('Error generando QR:', err);
+    res.status(500).json({ error: 'Error al generar el código QR' });
+  }
+});
+
 // === FIN: index.js ===
