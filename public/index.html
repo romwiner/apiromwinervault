@@ -26738,6 +26738,8 @@ if (btnCreate) {
 </script> 
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
 <script>
 // ========================
 // 1. Función para QR público (código de referido general)
@@ -26860,13 +26862,16 @@ function generarQREnCanvas(canvas, texto) {
 // ========================
 document.addEventListener('DOMContentLoaded', function() {
   const token = localStorage.getItem('authToken');
+  const publico = document.getElementById('qrPublicoContainer');
+  const personal = document.getElementById('qrPersonalContainer');
+
   if (token) {
-    document.getElementById('qrPublicoContainer').style.display = 'none';
-    document.getElementById('qrPersonalContainer').style.display = 'block';
+    if (publico) publico.style.display = 'none';
+    if (personal) personal.style.display = 'block';
     mostrarQRIdentidad();
   } else {
-    document.getElementById('qrPublicoContainer').style.display = 'block';
-    document.getElementById('qrPersonalContainer').style.display = 'none';
+    if (publico) publico.style.display = 'block';
+    if (personal) personal.style.display = 'none';
     mostrarQRReferidoPublico();
   }
 });
