@@ -5090,28 +5090,20 @@ startServer().catch(err => {
 // 📱 Generar código QR como imagen PNG
 // ============================================
 const QRCode = require('qrcode');
-
-app.get('/api/identity/qr', authenticate, async(req, res) => {
+app.get('/api/identity/qr', authenticate, async (req, res) => {
   try {
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    
-    // Obtener la URL base (desde entorno o desde la petición)
     const baseUrl = process.env.FRONTEND_URL || (req.protocol + '://' + req.get('host'));
     const registerUrl = `${baseUrl}/register?ref=${user.refCode}`;
-    
     res.json({
       success: true,
-      qrPayload: registerUrl,   // ← Ahora es una URL, no un JSON
-      qrData: {
-        ref: user.refCode,
-        url: registerUrl
-      }
+      qrPayload: registerUrl,
+      qrData: { ref: user.refCode, url: registerUrl }
     });
   } catch (e) {
-    console.error('❌ QR identity error:', e);
-    res.status(500).json({ error: 'Error al generar el código QR' });
+    console.error('QR error:', e);
+    res.status(500).json({ error: 'Error interno' });
   }
 });
-
 // === FIN: index.js ===
