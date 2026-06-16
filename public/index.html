@@ -26545,38 +26545,30 @@ if (btnCreate) {
   }
 
 // Listeners
-  const btnFull = document.getElementById('btnFullDiagnostic');
-  const btnFix = document.getElementById('btnAutoFix');
-  const btnSec = document.getElementById('btnSecurityZero');
-  const btnMon = document.getElementById('btnMonetization');
-  const btnMsg = document.getElementById('btnMessengerFeed');
-  const btnPre = document.getElementById('btnPreserveAll');
-
-  if (btnFull) btnFull.addEventListener('click', () => {
+  document.getElementById('btnFullDiagnostic').onclick = () => {
     reportDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;"><div style="font-size: 2rem;">🔍</div><p>Analizando bajo 9 Leyes...</p></div>';
     setTimeout(() => showReport('diagnostic'), 1500);
-  });
-  if (btnFix) btnFix.addEventListener('click', () => {
+  };
+  document.getElementById('btnAutoFix').onclick = () => {
     reportDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;"><div style="font-size: 2rem;">🔧</div><p>Corrigiendo errores...</p></div>';
     setTimeout(() => showReport('autofix'), 1800);
-  });
-  if (btnSec) btnSec.addEventListener('click', () => {
+  };
+  document.getElementById('btnSecurityZero').onclick = () => {
     reportDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;"><div style="font-size: 2rem;">🛡️</div><p>Auditoría Zero-Knowledge...</p></div>';
     setTimeout(() => showReport('security'), 1700);
-  });
-  if (btnMon) btnMon.addEventListener('click', () => {
+  };
+  document.getElementById('btnMonetization').onclick = () => {
     reportDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;"><div style="font-size: 2rem;">💰</div><p>Verificando 75/25...</p></div>';
     setTimeout(() => showReport('monetization'), 1500);
-  });
-  if (btnMsg) btnMsg.addEventListener('click', () => {
+  };
+  document.getElementById('btnMessengerFeed').onclick = () => {
     reportDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;"><div style="font-size: 2rem;">💬</div><p>Analizando Messenger+Feed+Marketplace+Ads...</p></div>';
     setTimeout(() => showReport('messenger'), 2000);
-  });
-  if (btnPre) btnPre.addEventListener('click', () => {
+  };
+  document.getElementById('btnPreserveAll').onclick = () => {
     reportDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;"><div style="font-size: 2rem;">✅</div><p>Verificando preservación...</p></div>';
     setTimeout(() => showReport('preserve'), 1500);
-  });
-
+  };
   // Notificar al Agente Flotante
   console.log('🧠 Ingeniero Supremo v5.0 activado');
   console.log('📜 9 Leyes Fundamentales cargadas');
@@ -26584,10 +26576,3 @@ if (btnCreate) {
   console.log('👑 Lealtad absoluta al Dueño Supremo');
   })();
 </script>
-<div style="text-align: center; margin: 30px 0; padding: 20px; background: white; border-radius: 15px; max-width: 300px; margin-left: auto; margin-right: auto;">
-    <p style="font-weight: bold; margin-bottom: 15px; color: #333;">📱 Escanea para instalar la App</p>
-    <div id="mi-qr-app" style="display: flex; justify-content: center;"></div>
-</div>
-</body>
-</html>
-
