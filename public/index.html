@@ -16054,33 +16054,6 @@ async function deleteContact(id) {
   }
 }
 // ============================================
-// 🔐 FUNCIÓN HASH SHA-256 NATIVO (CORREGIDA)
-// ============================================
-async function hashLocal(data, longitudCompleta = false) {
-  if (!data) return 'none';
-  
-  // Verificar que crypto.subtle esté disponible
-  if (typeof crypto === 'undefined' || !crypto.subtle) {
-    log('⚠️ crypto.subtle no disponible (requiere HTTPS)', 'warning');
-    return 'none';
-  }
-
-  try {
-    const encoder = new TextEncoder();
-    const buffer = encoder.encode(String(data));
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    // ✅ Devolver hash completo o truncado según se solicite
-    return longitudCompleta ? hashHex : hashHex.slice(0, 16);
-  } catch (error) {
-    log('⚠️ Error generando hash: ' + error.message, 'warning');
-    return 'none';
-  }
-}
-
-// ============================================
 // 🎨 OPCIÓN A: IDENTICON (RECOMENDADO)
 // Patrón visual único basado en hash - 100% local
 // ============================================
