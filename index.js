@@ -5132,7 +5132,26 @@ app.get('/api/gamification/badges', (req, res) => {
 // Solo mantenemos lo que no estaba duplicado. Pero para evitar repetición,
 // aseguramos que solo existan una vez. Como en el archivo ya aparecen,
 // no los repetimos aquí.
-
+// 📱 QR GENERATOR
+const QRCode = require('qrcode');
+app.get('/api/qr/:data', authenticate, async (req, res) => {
+  try {
+    const data = decodeURIComponent(req.params.data);
+    const qrBuffer = await QRCode.toBuffer(data, {
+      errorCorrectionLevel: 'M',
+      type: 'png',
+      width: 300,
+      margin: 2,
+      color: { dark: '#000000', light: '#ffffff' }
+    });
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send(qrBuffer);
+  } catch (e) {
+    logger.error('❌ QR error: ' + e.message);
+    res.status(500).json({ error: 'Error generando QR' });
+  }
+});
 // ============================================
 // 🚀 START SERVER (único)
 // ============================================
