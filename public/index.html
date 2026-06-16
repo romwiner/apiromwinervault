@@ -10588,16 +10588,19 @@ window.publishProduct = function(event) {
   if (event) event.preventDefault();
   
   const titulo = document.getElementById('pubTitulo')?.value?.trim();
-  const descripcion = document.getElementById('pubDescripcion')?.value?.trim();
-  const categoria = document.getElementById('pubCategoria')?.value;
-  const archivo = document.getElementById('pubArchivo')?.files?.[0];
-  const forSale = document.getElementById('pubForSale')?.checked;
-  const precio = document.getElementById('pubPrecio')?.value;
+  // ... todo el código que ya tiene ...
   
   if (!titulo || titulo.length < 3) {
     notifySafe('⚠️ El título debe tener al menos 3 caracteres', 'warning');
     return false;
   }
+
+  console.log('📤 Publicando producto:', { titulo, categoria, forSale, precio, hasFile: !!archivo });
+  notifySafe('✅ Producto publicado exitosamente (demo)', 'success');
+  closePublishModal();
+  if (typeof loadFeed === 'function') loadFeed('all');
+  return false;
+};
 </script>
   
  <script>
@@ -10640,16 +10643,6 @@ function generateLocalQR(data, size = 160) {
     </svg>`.trim();
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
-
-  console.log('📤 Publicando producto:', { titulo, categoria, forSale, precio, hasFile: !!archivo });
-  
-  // Demo: éxito simulado
-  notifySafe('✅ Producto publicado exitosamente (demo)', 'success');
-  closePublishModal();
-  if (typeof loadFeed === 'function') loadFeed('all');
-  
-  return false;
-};
 
 // Contador de caracteres para descripción
 document.addEventListener('DOMContentLoaded', () => {
