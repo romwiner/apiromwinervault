@@ -17630,67 +17630,6 @@ async function exportFinancialData(formato = 'csv') {
   }
 }
 </script>    
-<!-- ✅ EXPORTAR DATOS FINANCIEROS (CORREGIDO) -->
-<script>
- async function exportFinancialData(format = 'csv') {
- 
-  // ✅ Validar formato (solo permitir whitelist)
-  const formatosValidos = ['csv', 'json'];
-  if (!formatosValidos.includes(format)) {
-    showNotification('❌ Formato no soportado. Usa CSV o JSON.', 'error');
-    return;
-  }
-
-  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-  if (!token) {
-    showNotification('⚠️ Debes iniciar sesión', 'warning');
-    return;
-  }
-
-  try {
-    showNotification('📤 Preparando exportación...', 'info');
-    
-    // ✅ Ruta relativa + encodeURIComponent para sanitizar
-    const res = await req(`/api/analytics/financial/export?format=${encodeURIComponent(format)}`);
-    
-    if (!res || !res.success) {
-      throw new Error(res?.error || 'Error en la exportación');
-    }
-
-    const fecha = new Date().toISOString().slice(0, 10);
-    let blob, nombreArchivo;
-
-    if (format === 'csv' && res.data?.csv) {
-      blob = new Blob([res.data.csv], { type: 'text/csv;charset=utf-8' });
-      nombreArchivo = `romwiner-financial-${fecha}.csv`;
-    } else if (format === 'json' && res.data?.json) {
-      blob = new Blob([JSON.stringify(res.data.json, null, 2)], { type: 'application/json;charset=utf-8' });
-      nombreArchivo = `romwiner-financial-${fecha}.json`;
-    } else {
-      throw new Error('Datos de exportación vacíos');
-    }
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = nombreArchivo;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    
-    // ✅ Cleanup con delay
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    
-    showNotification(`✅ ${format.toUpperCase()} descargado: ${nombreArchivo}`, 'success');
-    log(`📤 Exportado: ${format}`, 'success');
-  } catch (e) {
-    log('❌ Export: ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification('❌ Error exportando: ' + (e.message || 'Desconocido'), 'error');
-  }
-}
-</script>
-
 <!-- 🎨 ESTILOS DE ANUNCIOS Y ANALYTICS (UNIFICADO) -->
 <style>
 #adsSection { animation: fadeIn 0.3s ease; }
