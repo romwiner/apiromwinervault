@@ -1933,7 +1933,6 @@ app.delete('/api/identity/revoke/all', authenticate, async(req, res) => {
 // 📱 ENDPOINT QR DE IDENTIDAD (Mejorado)
 // ============================================
 app.get('/api/identity/qr', async (req, res) => {
-    try {
         const user = await usersCollection.findOne({ uid: req.user.uid });
         if (!user) {
             return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
