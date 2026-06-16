@@ -1932,39 +1932,41 @@ app.delete('/api/identity/revoke/all', authenticate, async(req, res) => {
 // ============================================
 // 📱 ENDPOINT QR DE IDENTIDAD (Mejorado)
 // ============================================
-app.get('/api/identity/qr', async (req, res) => {
-        const user = await usersCollection.findOne({ uid: req.user.uid });
-        if (!user) {
-            return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
-        }
-
-        const qrData = {
-            type: "identity",
-            uid: user.uid,
-            username: user.username,
-            email: user.email || "",
-            refCode: user.refCode || "",
-            platform: "ApiRomwiner Vault",
-            timestamp: Date.now()
-        };
-
-        res.json({
-            success: true,
-            qrPayload: JSON.stringify(qrData),
-            qrData: qrData,
-            installGuide: {
-                mobile: "1. Escanea el QR con tu cámara\n2. Abre el enlace que aparece\n3. Toca 'Agregar a pantalla de inicio'",
-                desktop: "1. Abre el sitio en Chrome o Edge\n2. Haz clic en el ícono de instalación (📥)\n3. Confirma la instalación"
-            },
-            message: "QR de identidad generado correctamente"
-        });
-    } catch (e) {
-        console.error('❌ Error al generar QR de identidad:', e.message);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Error interno del servidor' 
-        });
+app.get('/api/identity/qr', authenticate, async (req, res) => {
+  try {
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ success: false, error: 'Token requerido' });
     }
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+
+    const baseUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+    const registerUrl = `${baseUrl}/register?ref=${user.refCode || 'ROM0000'}`;
+
+    res.json({
+      success: true,
+      qrPayload: registerUrl,
+      qrData: {
+        type: 'identity',
+        uid: user.uid,
+        username: user.username,
+        email: user.email || '',
+        refCode: user.refCode || '',
+        platform: 'ApiRomwiner Vault',
+        timestamp: Date.now(),
+        ref: user.refCode || '',
+        url: registerUrl
+      },
+      installGuide: {
+        mobile: '1. Escanea el QR\n2. Abre el enlace\n3. Toca Agregar a pantalla de inicio',
+        desktop: '1. Abre en Chrome\n2. Clic en instalar\n3. Confirma'
+      },
+      message: 'QR de identidad generado correctamente'
+    });
+  } catch (e) {
+    console.error('❌ Error al generar QR de identidad:', e.message);
+    res.status(500).json({ success: false, error: 'Error interno del servidor' });
+  }
 });
 // ============================================
 // 📊 DASHBOARD
