@@ -17629,10 +17629,11 @@ async function exportFinancialData(formato = 'csv') {
     showNotification('❌ Error al exportar: ' + safeMsg, 'error');
   }
 }
-
- <!-- ✅ EXPORTAR DATOS FINANCIEROS (CORREGIDO) -->
+</script>
+<!-- ✅ EXPORTAR DATOS FINANCIEROS (CORREGIDO) -->
 <script>
-async function exportFinancialData(format = 'csv') {
+ async function exportFinancialData(format = 'csv') {   
+ 
   // ✅ Validar formato (solo permitir whitelist)
   const formatosValidos = ['csv', 'json'];
   if (!formatosValidos.includes(format)) {
