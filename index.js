@@ -5132,9 +5132,10 @@ app.get('/api/gamification/badges', (req, res) => {
 // Solo mantenemos lo que no estaba duplicado. Pero para evitar repetición,
 // aseguramos que solo existan una vez. Como en el archivo ya aparecen,
 // no los repetimos aquí.
+
 // 📱 QR GENERATOR
 const QRCode = require('qrcode');
-app.get('/api/qr/:data', authenticate, async (req, res) => {
+app.get('/api/qr/:data', async (req, res) => {
   try {
     const data = decodeURIComponent(req.params.data);
     const qrBuffer = await QRCode.toBuffer(data, {
