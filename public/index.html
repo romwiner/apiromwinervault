@@ -32,11 +32,18 @@
   <meta name="theme-color" content="#00e676">
   <meta name="msapplication-TileColor" content="#00e676">
   
-  <!-- 8. SEO Y DESCRIPCIÓN (Sin enlaces externos) -->
-  <title>ApiRomwiner Vault | Monetiza tu Identidad Digital</title>
-  <meta name="description" content="ApiRomwiner Vault - Tu identidad digital universal. Monétiza contenido, gana con referidos y controla tu información sin intermediarios. Cifrado Zero-Knowledge.">
-  <meta name="author" content="ApiRomwiner">
-  <meta name="robots" content="noindex, nofollow"> <!-- Recomendado para apps privadas/vaults -->
+ <!-- 8. SEO Y DESCRIPCIÓN (Sin enlaces externos) -->
+<title>ApiRomwiner Vault | Monetiza tu Identidad Digital</title>
+<meta name="description" content="ApiRomwiner Vault - Tu identidad digital universal. Monétiza contenido, gana con referidos y controla tu información sin intermediarios. Cifrado Zero-Knowledge.">
+<meta name="author" content="ApiRomwiner">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="ApiRomwiner Vault | Monetiza tu Identidad Digital">
+<meta property="og:description" content="Bóveda segura con cifrado militar. Sube, protege y vende tu contenido. Gana dinero real con tus archivos e identidad digital.">
+<meta property="og:url" content="https://apiromwinervault.com">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ApiRomwiner Vault">
+<meta name="twitter:description" content="Bóveda digital segura. Cifrado Zero-Knowledge. Monetiza tu contenido sin intermediarios.">
   
   <!-- 9. FAVICONS LOCALES (Evita que el navegador busque /favicon.ico en rutas externas) -->
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -5776,14 +5783,6 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 <!-- 📱 SERVICE WORKER (Modo Seguro)              -->
 <!-- ============================================ -->
 <script>
-  function addSystemLog(msg) {
-    if (typeof window.addSystemLog === 'function') {
-      window.addSystemLog(msg);
-    } else {
-      console.log('[apiromwinervault]', msg);
-    }
-  }
-
   function registerServiceWorkerSecure() {
     if (!('serviceWorker' in navigator)) {
       console.log('[apiromwinervault] Service Worker no soportado en este navegador.');
@@ -5799,11 +5798,9 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       })
       .then(reg => {
         console.log('[apiromwinervault] ✅ PWA registrado de forma segura:', reg.scope);
-        addSystemLog('📱 PWA registrado localmente con éxito');
       })
       .catch(err => {
-        console.warn('[apiromwinervault] ⚠️ PWA omitido (archivo local no disponible):', err.message);
-        addSystemLog('⚠️ PWA omitido - modo offline no disponible');
+        console.warn('[apiromwinervault] ⚠️ PWA omitido:', err.message);
       });
   }
 
@@ -5812,6 +5809,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
   } else {
     registerServiceWorkerSecure();
   }
+</script>
 </script>
   
  <script>
