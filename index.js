@@ -1480,12 +1480,35 @@ app.get('/vault/:id', authenticate, async(req, res) => {
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id) });
     if (!secret) return res.status(404).json({ error: 'Contenido no encontrado' });
-    
+
     const hasBought = Array.isArray(secret.buyers) && secret.buyers.includes(user.uid);
     if (secret.userId.toString() !== user._id.toString() && !hasBought && !secret.isForSale) {
       return res.status(403).json({ error: 'Acceso denegado: no tienes permiso para este contenido' });
     }
-    
+
+    // ☁️ ARCHIVO EN R2 — devolver URL temporal de 5 minutos
+    if (secret.r2Key) {
+      const streamUrl = await getR2Url(secret.r2Key, 300);
+      return res.json({
+        success: true,
+        secret: {
+          id: secret._id.toString(),
+          titulo: secret.titulo,
+          fileName: secret.fileName,
+          fileType: secret.fileType,
+          fileSize: secret.fileSize,
+          isForSale: secret.isForSale,
+          price: secret.price,
+          sales: secret.sales,
+          licenseDays: secret.licenseDays,
+          tags: secret.tags,
+          streamUrl,
+          expiresIn: 300
+        }
+      });
+    }
+
+    // 📦 ARCHIVO ANTIGUO EN MONGODB — compatibilidad
     let contenido = null;
     if (user.encryptedUserKey) {
       try {
@@ -1497,7 +1520,6 @@ app.get('/vault/:id', authenticate, async(req, res) => {
         }
       } catch (e) {
         logger.warn('⚠️ Fallback decryption used: ' + e.message);
-        // Intentar con el método antiguo (decryptPII) por compatibilidad
         if (secret.tipo === 'texto' && secret.contenido) {
           contenido = decryptPII({ iv: (secret.encrypted && secret.encrypted.iv), data: secret.contenido, tag: (secret.encrypted && secret.encrypted.tag) });
         } else if (secret.tipo === 'archivo' && secret.encrypted) {
@@ -1506,7 +1528,6 @@ app.get('/vault/:id', authenticate, async(req, res) => {
         }
       }
     } else {
-      // Sin clave de usuario, usar decryptPII (compatibilidad)
       if (secret.tipo === 'texto' && secret.contenido) {
         contenido = decryptPII({ iv: (secret.encrypted && secret.encrypted.iv), data: secret.contenido, tag: (secret.encrypted && secret.encrypted.tag) });
       } else if (secret.tipo === 'archivo' && secret.encrypted) {
@@ -1514,7 +1535,7 @@ app.get('/vault/:id', authenticate, async(req, res) => {
         contenido = Buffer.from(decrypted, 'base64').toString('base64');
       }
     }
-    
+
     res.json({
       success: true,
       secret: {
@@ -1544,9 +1565,23 @@ app.delete('/vault/:id', authenticate, async(req, res) => {
     if (!mongoReady || !secretsCollection) return res.json({ success: true, message: 'Eliminado en modo demo', demo: true });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const result = await secretsCollection.deleteOne({ _id: new ObjectId(req.params.id), userId: user._id });
-    if (result.deletedCount === 0) return res.status(404).json({ error: 'No autorizado: solo puedes eliminar tu propio contenido' });
-    await logAudit('vault_delete', { id: req.params.id, userId: user.uid });
+
+    // Buscar primero para obtener el r2Key antes de borrar
+    const secret = await secretsCollection.findOne({ _id: new ObjectId(req.params.id), userId: user._id });
+    if (!secret) return res.status(404).json({ error: 'No autorizado: solo puedes eliminar tu propio contenido' });
+
+    // Borrar de R2 si existe
+    if (secret.r2Key) {
+      try {
+        await deleteFromR2(secret.r2Key);
+      } catch (e) {
+        logger.warn('⚠️ No se pudo borrar de R2: ' + e.message);
+      }
+    }
+
+    // Borrar de MongoDB
+    await secretsCollection.deleteOne({ _id: secret._id });
+    await logAudit('vault_delete', { id: req.params.id, userId: user.uid, r2Key: secret.r2Key });
     res.json({ success: true, message: 'Contenido eliminado permanentemente' });
   } catch (e) {
     logger.error('❌ Vault delete error: ' + e.message);
