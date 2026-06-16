@@ -3157,7 +3157,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
     if (username.length < 3) errores.push('Usuario: mínimo 3 caracteres');
     if (!/^[a-z0-9_]+$/.test(username)) errores.push('Usuario: solo minúsculas, números y _');
     if (nombreCompleto.length < 3) errores.push('Nombre completo requerido');
-    if (password.length < 8) errores.push('Contraseña: mínimo 8 caracteres');
+    if (password.length < 12) errores.push('Contraseña: mínimo 12 caracteres');
     if (!/[A-Z]/.test(password)) errores.push('Contraseña: al menos una mayúscula');
     if (!/[0-9]/.test(password)) errores.push('Contraseña: al menos un número');
     if (!/[^a-zA-Z0-9]/.test(password)) errores.push('Contraseña: al menos un símbolo');
