@@ -2531,13 +2531,14 @@ window.cargarFeed = cargarFeedReal;
 // ============================================
 
 // ✅ Si el feed ya está visible, cargarlo
-if (getToken() && feedContainer && socialFeedPanel && !socialFeedPanel.classList.contains('hidden')) {
-  if (typeof cargarFeedReal === 'function') {
-    cargarFeedReal();
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof getToken === 'function' && getToken() && feedContainer && socialFeedPanel && !socialFeedPanel.classList.contains('hidden')) {
+    if (typeof cargarFeedReal === 'function') {
+      cargarFeedReal();
+    }
   }
-}
-
-log('🎨 Modal de publicación inicializado', 'success');
+  if (typeof log === 'function') log('🎨 Modal de publicación inicializado', 'success');
+});
 
 // ============================================
 // 📢 SECCIÓN DE ANUNCIOS - FUNCIONALIDAD COMPLETA
