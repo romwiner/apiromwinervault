@@ -6126,7 +6126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
   function registerServiceWorkerSecure() {
     if (!('serviceWorker' in navigator)) {
-      console.log console.log('[apiromwinervault] Service Worker no soportado en este navegador.');
+      console.log('[apiromwinervault] Service Worker no soportado en este navegador.');
       return;
     }
     fetch('/sw.js', { method: 'HEAD', cache: 'no-store' })
@@ -6138,7 +6138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .then(reg => {
-        console.log console.log('[apiromwinervault] ✅ PWA registrado de forma segura:', reg.scope);
+        console.log('[apiromwinervault] ✅ PWA registrado de forma segura:', reg.scope);
       })
       .catch(err => {
         console.warn('[apiromwinervault] ⚠️ PWA omitido:', err.message);
@@ -6186,7 +6186,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (logs.length > 100) logs.shift();
       localStorage.setItem('apiromwiner_logs', JSON.stringify(logs));
     } catch(e) {}
-    console.log console.log('[apiromwinervault]', logMessage);
+    console.log('[apiromwinervault]', logMessage);
   }
 
   function updateConnectionStatus(status, message) {
@@ -6307,7 +6307,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('serviceWorker' in navigator) {
       fetch('/sw.js', { method: 'HEAD', cache: 'no-store' })
         .then(res => res.ok && navigator.serviceWorker.register('/sw.js'))
-        .catch(() => console.log console.log('SW no disponible'));
+        .catch(() => console.log('SW no disponible'));
     }
   }
 
@@ -6471,7 +6471,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const landingAIAudit = document.getElementById('landingAIAudit');
     const landingAuditContent = document.getElementById('landingAuditContent');
 
-    console.log console.log('🔍 [DEBUG] Elementos cargados:', {
+    console.log('🔍 [DEBUG] Elementos cargados:', {
       btnCreateAccount: !!btnCreateAccount,
       btnShowPromo: !!btnShowPromo,
       btnShowLogin: !!btnShowLogin,
@@ -6547,7 +6547,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }, 300);
         
-        console.log console.log('✅ Solo formulario de identidad visible');
+        console.log('✅ Solo formulario de identidad visible');
       });
     }
 
@@ -7428,7 +7428,7 @@ async function obtenerUrlRegistro() {
     }
 
     function addconsole.console.console.console.console.console. console.log(msg) {
-      console.log console.log('[InstallShare]', msg);
+      console.log('[InstallShare]', msg);
       const adminLogs = document.getElementById('adminLogs');
       if (adminLogs) {
         const logEntry = document.createElement('p');
@@ -10604,7 +10604,7 @@ async function obtenerUrlRegistro() {
           alert('✅ Enlace y mensaje copiados al portapapeles para compartir.');
         }
       } catch (err) {
-        console.log console.log('El usuario canceló el compartir o no es soportado.');
+        console.log('El usuario canceló el compartir o no es soportado.');
       }
     });
   });
@@ -10624,7 +10624,7 @@ function notifySafe(message, type = 'info') {
     showNotification(message, type);
   } else {
     // Fallback mínimo: console + alert solo si es error
-    console.log console.log(`[${type.toUpperCase()}] ${message}`);
+    console.log(`[${type.toUpperCase()}] ${message}`);
     if (type === 'error') alert(message);
   }
 }
@@ -10656,7 +10656,7 @@ window.registerWebhook = async function() {
   
   try {
     // Demo: simular registro exitoso
-    console.log console.log('🔗 Webhook registrado:', { url, event, hasSecret: !!secret });
+    console.log('🔗 Webhook registrado:', { url, event, hasSecret: !!secret });
     notifySafe('✅ Webhook registrado exitosamente', 'success');
     
     // Agregar a la lista visual con sanitización para prevenir XSS
@@ -10685,7 +10685,7 @@ window.closeWebhooks = function() {
   const modal = document.getElementById('webhookModal');
   if (modal) {
     modal.classList.add('hidden');
-    console.log console.log('🔒 Modal webhooks cerrado');
+    console.log('🔒 Modal webhooks cerrado');
   }
 };
 
@@ -10694,7 +10694,7 @@ window.closeAudit = function() {
   const modal = document.getElementById('auditModal');
   if (modal) {
     modal.classList.add('hidden');
-    console.log console.log('🔒 Modal auditoría cerrado');
+    console.log('🔒 Modal auditoría cerrado');
   }
 };
 
@@ -10702,7 +10702,7 @@ window.closeAudit = function() {
 window.exportVault = async function() {
   const zkToggle = document.getElementById('zkToggle');
   const zk = zkToggle?.checked || false;
-  console.log console.log('📦 Exportando bóveda...', { zeroKnowledge: zk });
+  console.log('📦 Exportando bóveda...', { zeroKnowledge: zk });
   
   try {
     // Demo: generar JSON de exportación
@@ -10732,7 +10732,7 @@ window.exportVault = async function() {
 };
 
 window.importVault = function() {
-  console.log console.log('📥 Importando bóveda...');
+  console.log('📥 Importando bóveda...');
   notifySafe('📥 Selecciona tu archivo .json de exportación (demo)', 'info');
   // En producción: input type="file" + fetch('/api/vault/import')
 };
@@ -10774,7 +10774,7 @@ window.syncCheck = async function() {
 };
 
 window.syncPush = function() {
-  console.log console.log('🔄 Sincronizando cambios...');
+  console.log('🔄 Sincronizando cambios...');
   notifySafe('🔄 Sincronización iniciada (demo)', 'info');
 };
 
@@ -10783,7 +10783,7 @@ window.toggleZeroKnowledge = function() {
   const warning = document.getElementById('zkWarning');
   const enabled = zkToggle?.checked || false;
   if (warning) warning.style.display = enabled ? 'inline' : 'none';
-  console.log console.log('🔐 Zero-Knowledge:', enabled ? 'ACTIVADO' : 'DESACTIVADO');
+  console.log('🔐 Zero-Knowledge:', enabled ? 'ACTIVADO' : 'DESACTIVADO');
 };
 </script>
 <script>
@@ -10800,7 +10800,7 @@ function notifySafe(message, type = 'info') {
   if (typeof showNotification === 'function') {
     showNotification(message, type);
   } else {
-    console.log console.log(`[${type.toUpperCase()}] ${message}`);
+    console.log(`[${type.toUpperCase()}] ${message}`);
     if (type === 'error') alert(message);
   }
 }
@@ -10903,7 +10903,7 @@ window.loadMarketplace = async function() {
       }
     });
     
-    console.log console.log('🛍️ Marketplace cargado:', demoItems.length, 'productos');
+    console.log('🛍️ Marketplace cargado:', demoItems.length, 'productos');
   } catch (e) {
     console.error('❌ Error cargando marketplace:', e);
     if (empty) {
@@ -10919,12 +10919,12 @@ window.closeMarketplace = function() {
   const section = document.getElementById('marketplaceSection');
   if (section) {
     section.style.display = 'none';
-    console.log console.log('🔒 Marketplace cerrado');
+    console.log('🔒 Marketplace cerrado');
   }
 };
 
 window.openSecurePlayer = function(fileId, fileName) {
-  console.log console.log('🎬 Abriendo reproductor seguro:', { fileId, fileName });
+  console.log('🎬 Abriendo reproductor seguro:', { fileId, fileName });
   
   // ✅ Verificar que no haya otro modal abierto
   const existing = document.querySelector('.media-modal');
@@ -10985,12 +10985,12 @@ window.openSecurePlayer = function(fileId, fileName) {
 };
 
 window.buyItem = function(itemId) {
-  console.log console.log('💰 Comprando item:', itemId);
+  console.log('💰 Comprando item:', itemId);
   notifySafe('💰 Proceso de compra iniciado (demo)', 'info');
 };
 
 window.viewItem = function(itemId) {
-  console.log console.log('👁️ Viendo item:', itemId);
+  console.log('👁️ Viendo item:', itemId);
   notifySafe('👁️ Vista previa del producto (demo)', 'info');
 };
 
@@ -11077,7 +11077,7 @@ window.loadFeed = async function(filter = 'all') {
       }
     });
     
-    console.log console.log('📱 Feed cargado:', posts.length, 'posts');
+    console.log('📱 Feed cargado:', posts.length, 'posts');
   } catch (e) {
     console.error('❌ Error cargando feed:', e);
     container.innerHTML = '<div style="text-align:center;padding:20px;color:#ff5252" role="alert">⚠️ Error cargando feed. Intenta de nuevo.</div>';
@@ -11085,7 +11085,7 @@ window.loadFeed = async function(filter = 'all') {
 };
 
 window.loadMoreFeed = function() {
-  console.log console.log('📱 Cargando más posts...');
+  console.log('📱 Cargando más posts...');
   notifySafe('📱 Más productos cargados (demo)', 'info');
 };
 
@@ -11138,7 +11138,7 @@ window.publishProduct = function(event) {
     return false;
   }
 
-  console.log console.log('📤 Publicando producto:', { titulo, categoria, forSale, precio, hasFile: !!archivo });
+  console.log('📤 Publicando producto:', { titulo, categoria, forSale, precio, hasFile: !!archivo });
   notifySafe('✅ Producto publicado exitosamente (demo)', 'success');
   closePublishModal();
   if (typeof loadFeed === 'function') loadFeed('all');
@@ -11152,7 +11152,7 @@ function notifySafe(message, type = 'info') {
   if (typeof showNotification === 'function') {
     showNotification(message, type);
   } else {
-    console.log console.log(`[${type.toUpperCase()}] ${message}`);
+    console.log(`[${type.toUpperCase()}] ${message}`);
     if (type === 'error') alert(message);
   }
 }
@@ -11231,7 +11231,7 @@ window.closeIdModal = function() {
   if (modal) {
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true');
-    console.log console.log('🔒 Modal identidad cerrado');
+    console.log('🔒 Modal identidad cerrado');
   }
 };
 </script>
@@ -12053,7 +12053,7 @@ window.closeIdModal = function() {
           audioPlayer.classList.remove('hidden');
         }
 
-        console.log console.log('🛡️ [AUDITORÍA IA] Archivo multimedia verificado y seguro:', fileName);
+        console.log('🛡️ [AUDITORÍA IA] Archivo multimedia verificado y seguro:', fileName);
       }, 1500);
     };
 
@@ -14547,7 +14547,7 @@ function generarQRLocal(imgId, texto, tamaño = 200) {
     img.alt = 'Código QR de identidad - Escanea para verificar';
     img.style.borderRadius = '8px';
     
-    console.log console.log('🔐 QR generado localmente:', safeText.length, 'caracteres');
+    console.log('🔐 QR generado localmente:', safeText.length, 'caracteres');
     return true;
     
   } catch (error) {
@@ -14712,7 +14712,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('❌ sanitizeForDisplay no está definida');
   }
   
-  console.log console.log('✅ Sistema de identidad QR inicializado (100% local)');
+  console.log('✅ Sistema de identidad QR inicializado (100% local)');
 });
 
 // === PROMO - FUNCIONES MEJORADAS ===
@@ -15909,7 +15909,7 @@ function console.console.console.console.console.console. console.log(mensaje, t
   const icono = iconos[tipo] || 'ℹ️';
   
   // ✅ Log con formato mejorado
-  console.log console.log(
+  console.log(
     `%c${icono} [${timestamp}] ${mensaje}`,
     `color: ${color}; font-weight: bold;`
   );
@@ -17369,7 +17369,7 @@ const QRModule = (function() {
         }
       }
 
-      console.log console.log(`✅ QR generado: ${text.length} chars, versión ${getVersion(text.length, ecLevel)}, EC: ${ecLevel}`);
+      console.log(`✅ QR generado: ${text.length} chars, versión ${getVersion(text.length, ecLevel)}, EC: ${ecLevel}`);
       return canvas.toDataURL('image/png');
 
     } catch (error) {
@@ -17911,7 +17911,7 @@ function drawLineChart(canvasId, labels, data, color = '#00e676') {
     }
   };
 
-  console.log console.log(`📈 Gráfico de líneas dibujado: ${datosFinales.length} puntos`);
+  console.log(`📈 Gráfico de líneas dibujado: ${datosFinales.length} puntos`);
   return { canvas, ctx };
 }
 </script>
@@ -18056,7 +18056,7 @@ function drawDoughnutChart(canvasId, labels, data, colors = ['#00e676', '#29b6f6
     ctx.fillText(`+${labelsFinales.length - maxLabelsInLegend} más`, width / 2, legendY + 15);
   }
 
-  console.log console.log(`🥧 Gráfico de dona dibujado: ${labelsFinales.length} categorías, total ${total}`);
+  console.log(`🥧 Gráfico de dona dibujado: ${labelsFinales.length} categorías, total ${total}`);
   return { canvas, ctx };
 }
 
@@ -18138,7 +18138,7 @@ async function loadFinancialData(periodo = '30d') {
           '#00e676'
         );
         
-        console.log console.log('📈 Gráfico de ingresos dibujado');
+        console.log('📈 Gráfico de ingresos dibujado');
       } else {
         console.warn('⚠️ drawLineChart no disponible o canvas no encontrado');
       }
@@ -18158,7 +18158,7 @@ async function loadFinancialData(periodo = '30d') {
           ['#00e676', '#29b6f6', '#ab47bc', '#ffa726', '#66bb6a']
         );
         
-        console.log console.log('🥧 Gráfico de categorías dibujado');
+        console.log('🥧 Gráfico de categorías dibujado');
       }
     }
 
@@ -18173,7 +18173,7 @@ async function loadFinancialData(periodo = '30d') {
     }
 
     showNotification('✅ Datos financieros cargados', 'success');
-    console.log console.log('📊 Analytics cargados correctamente para período:', safePeriodo);
+    console.log('📊 Analytics cargados correctamente para período:', safePeriodo);
     
   } catch (error) {
     const safeMsg = error.message || 'Error desconocido';
@@ -19970,7 +19970,7 @@ document.addEventListener('DOMContentLoaded', () => {
       vault.classList.remove('hidden');
       vault.setAttribute('aria-hidden', 'false');
     }
-    console.log console.log('✅ Sesión activa detectada');
+    console.log('✅ Sesión activa detectada');
   } else {
     // ❌ No logueado: mostrar login, ocultar vault
     if (auth) {
@@ -19981,7 +19981,7 @@ document.addEventListener('DOMContentLoaded', () => {
       vault.classList.add('hidden');
       vault.setAttribute('aria-hidden', 'true');
     }
-    console.log console.log('ℹ️ Sin sesión activa');
+    console.log('ℹ️ Sin sesión activa');
   }
 });
 </script>
@@ -20014,7 +20014,7 @@ if (typeof notifySafe !== 'function') {
     if (typeof showNotification === 'function') {
       showNotification(mensaje, tipo);
     } else {
-      console.log console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+      console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
       if (tipo === 'error') alert(mensaje);
     }
   }
@@ -20551,7 +20551,7 @@ if (typeof notifySafe !== 'function') {
     if (typeof showNotification === 'function') {
       showNotification(mensaje, tipo);
     } else {
-      console.log console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+      console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
     }
   }
 }
@@ -20600,7 +20600,7 @@ async function loadFinancialData(periodo = '30d') {
     }
 
     const datos = await respuesta.json();
-    console.log console.log('📊 Analytics recibidos:', datos);
+    console.log('📊 Analytics recibidos:', datos);
 
     if (!datos.success || !datos.data) {
       console.warn('⚠️ Datos de analytics no disponibles');
@@ -20656,7 +20656,7 @@ async function loadFinancialData(periodo = '30d') {
       renderAffiliateTimeline(Array.isArray(data.affiliateHistory) ? data.affiliateHistory : []);
     }
 
-    console.log console.log('✅ Analytics cargados correctamente');
+    console.log('✅ Analytics cargados correctamente');
   } catch (error) {
     console.error('❌ Error cargando analytics:', error);
     const msg = error.message.includes('Failed to fetch')
@@ -20935,7 +20935,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
     }
   };
 
-  console.log console.log(`📈 Gráfico de líneas dibujado: ${datosFinal.length} puntos`);
+  console.log(`📈 Gráfico de líneas dibujado: ${datosFinal.length} puntos`);
 }
 <script> 
 // ==========================================
@@ -21136,7 +21136,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
     canvas.title = '';
   };
 
-  console.log console.log(`🥧 Gráfico de dona dibujado: ${labelsFinal.length} categorías, total ${total}`);
+  console.log(`🥧 Gráfico de dona dibujado: ${labelsFinal.length} categorías, total ${total}`);
 }
                                                                                 
 <script>                                        
@@ -21257,7 +21257,7 @@ function renderTopProductos(productos) {
     contenedor.appendChild(fila);
   });
 
-  console.log console.log(`🏆 Top productos renderizado: ${Math.min(productos.length, 5)} items`);
+  console.log(`🏆 Top productos renderizado: ${Math.min(productos.length, 5)} items`);
 }
 <script>
 // ==========================================
@@ -21367,7 +21367,7 @@ function renderAffiliateTimeline(timeline) {
     contenedor.appendChild(mas);
   }
 
-  console.log console.log(`📅 Timeline de afiliados renderizado: ${Math.min(timeline.length, 10)} de ${timeline.length} eventos`);
+  console.log(`📅 Timeline de afiliados renderizado: ${Math.min(timeline.length, 10)} de ${timeline.length} eventos`);
 }
 <script>
 // ==========================================
@@ -21494,7 +21494,7 @@ async function exportFinancialData(formato = 'csv') {
       alert(`✅ Archivo ${formato.toUpperCase()} descargado`);
     }
 
-    console.log console.log(`📥 Exportación completada: ${nombreArchivo}`);
+    console.log(`📥 Exportación completada: ${nombreArchivo}`);
   } catch (error) {
     console.error('❌ Error exportando:', error);
     const msg = error.message || 'Error al exportar';
@@ -21510,7 +21510,7 @@ async function exportFinancialData(formato = 'csv') {
 // 📦 FUNCIÓN PARA CARGAR Y MOSTRAR EL VAULT (CORREGIDA)
 // ==========================================
 async function cargarVault() {
-  console.log console.log("🔄 Intentando cargar el Vault...");
+  console.log("🔄 Intentando cargar el Vault...");
 
   const contenedor = document.getElementById('vaultContainer');
   if (!contenedor) {
@@ -21553,7 +21553,7 @@ async function cargarVault() {
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
-    console.log console.log("✅ Datos recibidos del servidor:", datos);
+    console.log("✅ Datos recibidos del servidor:", datos);
 
     // ✅ Validación robusta
     if (!datos || typeof datos !== 'object') {
@@ -21563,7 +21563,7 @@ async function cargarVault() {
     const items = Array.isArray(datos.items) ? datos.items : [];
 
     if (datos.success && items.length > 0) {
-      console.log console.log(`🎉 ¡Encontrados ${items.length} archivos!`);
+      console.log(`🎉 ¡Encontrados ${items.length} archivos!`);
       contenedor.innerHTML = '';
 
       // ✅ Encabezado con contador
@@ -21768,7 +21768,7 @@ async function verArchivo(id) {
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
-    console.log console.log('📦 Archivo recibido:', datos);
+    console.log('📦 Archivo recibido:', datos);
 
     // ✅ Validación robusta de respuesta
     if (!datos || typeof datos !== 'object') {
@@ -21974,7 +21974,7 @@ async function descargarArchivo(id) {
     // ✅ Cleanup con delay
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-    console.log console.log('✅ Archivo descargado:', nombre);
+    console.log('✅ Archivo descargado:', nombre);
     
     // ✅ Notificación no bloqueante
     if (typeof showNotification === 'function') {
@@ -22072,7 +22072,7 @@ async function eliminarArchivo(id) {
 // 🚀 INICIAR CUANDO CARGUE LA PÁGINA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log console.log('🚀 Aplicación iniciada');
+  console.log('🚀 Aplicación iniciada');
   if (typeof cargarVault === 'function') cargarVault();
   if (typeof loadFinancialData === 'function') loadFinancialData();
 });
@@ -22135,7 +22135,7 @@ function verificarConexion() {
 // ==========================================
 if (typeof showNotification !== 'function') {
   function showNotification(mensaje, tipo = 'info') {
-    console.log console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+    console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
     if (tipo === 'error') alert(mensaje);
   }
 }
@@ -22296,7 +22296,7 @@ async function verArchivo(id) {
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
-    console.log console.log('📦 Archivo recibido:', datos);
+    console.log('📦 Archivo recibido:', datos);
 
     if (!datos.success || !datos.secret) throw new Error('No se pudo obtener el contenido');
 
@@ -22670,7 +22670,7 @@ async function verArchivo(id) {
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
-    console.log console.log('📦 Archivo recibido:', datos);
+    console.log('📦 Archivo recibido:', datos);
 
     if (!datos.success || !datos.secret) throw new Error('No se pudo obtener el contenido');
 
@@ -22958,7 +22958,7 @@ async function copiarPortapapeles() {
       }
     }
     
-    console.log console.log(`📋 Texto copiado: ${contenidoTexto.length} caracteres`);
+    console.log(`📋 Texto copiado: ${contenidoTexto.length} caracteres`);
   } catch (error) {
     console.error('❌ Error copiando:', error);
     const msg = '❌ No se pudo copiar. Selecciona el texto manualmente.';
@@ -23205,7 +23205,7 @@ async function compartirArchivo(id) {
         ? showNotification(`✅ Enlace copiado (expira en ${horas}h)`, 'success')
         : alert(mensaje);
       
-      console.log console.log(`🔗 Link generado para: ${safeId}, expira en ${horas}h`);
+      console.log(`🔗 Link generado para: ${safeId}, expira en ${horas}h`);
       
     } catch (copyError) {
       // Si falla copiar, mostrar el link para copiar manualmente
@@ -23680,7 +23680,7 @@ async function toggleFavorito(id) {
         }
       }
       
-      console.log console.log(`✅ Favorito ${esFavoritoActual ? 'removido' : 'agregado'}: ${id}`);
+      console.log(`✅ Favorito ${esFavoritoActual ? 'removido' : 'agregado'}: ${id}`);
     } else {
       throw new Error(datos.error || 'Error del servidor');
     }
@@ -23762,7 +23762,7 @@ function cerrarVisor() {
   window.zoomActual = 1;
   window.velocidadActual = 1;
   
-  console.log console.log('🔒 Visor cerrado');
+  console.log('🔒 Visor cerrado');
 }
 
 // ==========================================
@@ -23869,7 +23869,7 @@ async function descargarArchivo(id) {
     // ✅ Cleanup inmediato
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-    console.log console.log('✅ Archivo descargado:', nombre);
+    console.log('✅ Archivo descargado:', nombre);
     
     // ✅ Notificación no bloqueante
     if (typeof showNotification === 'function') {
@@ -24091,7 +24091,7 @@ if (typeof verArchivo !== 'function') {
       if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
       const datos = await respuesta.json();
-      console.log console.log('📦 Archivo recibido:', datos);
+      console.log('📦 Archivo recibido:', datos);
 
       if (!datos.success || !datos.secret) throw new Error('No se pudo obtener el contenido');
 
@@ -24259,7 +24259,7 @@ if (typeof descargarArchivo !== 'function') {
       document.body.removeChild(enlace);
       URL.revokeObjectURL(url);
 
-      console.log console.log('✅ Archivo descargado:', nombre);
+      console.log('✅ Archivo descargado:', nombre);
     } catch (error) {
       console.error('❌ Error descargando:', error);
       alert('❌ Error al descargar: ' + error.message);
@@ -24316,7 +24316,7 @@ if (typeof eliminarArchivo !== 'function') {
 // ==========================================
 if (typeof cargarVault !== 'function') {
   async function cargarVault() {
-    console.log console.log("🔄 Intentando cargar el Vault...");
+    console.log("🔄 Intentando cargar el Vault...");
 
     const contenedor = document.getElementById('vaultContainer');
     if (!contenedor) {
@@ -24353,10 +24353,10 @@ if (typeof cargarVault !== 'function') {
       if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
       const datos = await respuesta.json();
-      console.log console.log("✅ Datos recibidos del servidor:", datos);
+      console.log("✅ Datos recibidos del servidor:", datos);
 
       if (datos.success && datos.items && datos.items.length > 0) {
-        console.log console.log(`🎉 ¡Encontrados ${datos.items.length} archivos!`);
+        console.log(`🎉 ¡Encontrados ${datos.items.length} archivos!`);
         contenedor.innerHTML = '';
 
         datos.items.forEach(archivo => {
@@ -25533,7 +25533,7 @@ strengthDiv.style.color = colors[strength];
 (function() {
   'use strict';
   
-  console.log console.log('🧠 [CEREBRO MAESTRO] Inicializando sistema unificado con IA local...');
+  console.log('🧠 [CEREBRO MAESTRO] Inicializando sistema unificado con IA local...');
   
   // ============================================
   // 🤖 MÓDULO DE IA LOCAL
@@ -25586,7 +25586,7 @@ strengthDiv.style.color = colors[strength];
     
     // Alertar sobre problemas de seguridad
     alertarSeguridad(mensaje, nivel = 'info') {
-      console.log console.log(`🛡️ [IA SEGURIDAD] ${mensaje}`);
+      console.log(`🛡️ [IA SEGURIDAD] ${mensaje}`);
       this.patrones.erroresDetectados.push({
         mensaje,
         nivel,
@@ -25660,7 +25660,7 @@ strengthDiv.style.color = colors[strength];
         }
       });
       
-      console.log console.log('✅ [CEREBRO] Controlador de vistas inicializado');
+      console.log('✅ [CEREBRO] Controlador de vistas inicializado');
     },
     
     // Mostrar una vista específica
@@ -25679,7 +25679,7 @@ strengthDiv.style.color = colors[strength];
       this.vistas[nombreVista].classList.remove('hidden');
       this.vistaActual = nombreVista;
       
-      console.log console.log(`✅ [CEREBRO] Vista "${nombreVista}" mostrada`);
+      console.log(`✅ [CEREBRO] Vista "${nombreVista}" mostrada`);
       IA.analizarComportamiento('cambio_vista', { vista: nombreVista });
       
       return true;
@@ -25721,7 +25721,7 @@ strengthDiv.style.color = colors[strength];
       localStorage.setItem('arv_tipo', tipo);
       localStorage.setItem('arv_fecha_registro', new Date().toISOString());
       
-      console.log console.log(`✅ [AUTH] Usuario registrado: ${email} (${tipo})`);
+      console.log(`✅ [AUTH] Usuario registrado: ${email} (${tipo})`);
       IA.analizarComportamiento('registro_exitoso', { email, tipo });
       
       return true;
@@ -25749,7 +25749,7 @@ strengthDiv.style.color = colors[strength];
       // Actualizar último login
       localStorage.setItem('arv_ultimo_login', new Date().toISOString());
       
-      console.log console.log(`✅ [AUTH] Login exitoso: ${emailLower}`);
+      console.log(`✅ [AUTH] Login exitoso: ${emailLower}`);
       IA.analizarComportamiento('login_exitoso', { email: emailLower });
       
       // Determinar qué vista mostrar
@@ -25784,7 +25784,7 @@ strengthDiv.style.color = colors[strength];
       localStorage.removeItem('arv_fecha_registro');
       localStorage.removeItem('arv_ultimo_login');
       
-      console.log console.log(`✅ [AUTH] Sesión cerrada: ${email}`);
+      console.log(`✅ [AUTH] Sesión cerrada: ${email}`);
       IA.analizarComportamiento('logout', { email });
       
       ControladorVistas.mostrar('landing');
@@ -25849,7 +25849,7 @@ strengthDiv.style.color = colors[strength];
         IA.analizarComportamiento('tab_cambiado', { tab: 'login' });
       });
       
-      console.log console.log('✅ [UI] Tabs inicializados');
+      console.log('✅ [UI] Tabs inicializados');
     },
     
     // Inicializar formularios
@@ -25878,7 +25878,7 @@ strengthDiv.style.color = colors[strength];
         });
       }
       
-      console.log console.log('✅ [UI] Formularios inicializados');
+      console.log('✅ [UI] Formularios inicializados');
     },
     
     // Inicializar botones de logout
@@ -25889,7 +25889,7 @@ strengthDiv.style.color = colors[strength];
         });
       });
       
-      console.log console.log('✅ [UI] Botones de logout inicializados');
+      console.log('✅ [UI] Botones de logout inicializados');
     }
   };
   
@@ -25897,7 +25897,7 @@ strengthDiv.style.color = colors[strength];
   // 🚀 INICIALIZACIÓN PRINCIPAL
   // ============================================
   function inicializar() {
-    console.log console.log('🚀 [CEREBRO] Iniciando sistema maestro...');
+    console.log('🚀 [CEREBRO] Iniciando sistema maestro...');
     
     // 1. Inicializar controlador de vistas
     ControladorVistas.inicializar();
@@ -25913,10 +25913,10 @@ strengthDiv.style.color = colors[strength];
     const nombreGuardado = localStorage.getItem('arv_nombre');
     
     if (emailGuardado && tipoGuardado && nombreGuardado) {
-      console.log console.log('✅ [CEREBRO] Sesión existente detectada');
+      console.log('✅ [CEREBRO] Sesión existente detectada');
       Autenticacion.iniciarSesion(emailGuardado);
     } else {
-      console.log console.log('ℹ️ [CEREBRO] Sin sesión activa, mostrando landing');
+      console.log('ℹ️ [CEREBRO] Sin sesión activa, mostrando landing');
       ControladorVistas.mostrar('landing');
     }
     
@@ -25929,13 +25929,13 @@ strengthDiv.style.color = colors[strength];
     setTimeout(() => {
       const recomendaciones = IA.recomendarAcciones();
       if (recomendaciones.length > 0) {
-        console.log console.log('💡 [IA] Recomendaciones:', recomendaciones);
+        console.log('💡 [IA] Recomendaciones:', recomendaciones);
       }
     }, 3000);
     
-    console.log console.log('✅ [CEREBRO] Sistema maestro inicializado correctamente');
-    console.log console.log('🤖 [IA] Módulo de inteligencia artificial activo');
-    console.log console.log('🛡️ [SEGURIDAD] Monitoreo de anomalías activo');
+    console.log('✅ [CEREBRO] Sistema maestro inicializado correctamente');
+    console.log('🤖 [IA] Módulo de inteligencia artificial activo');
+    console.log('🛡️ [SEGURIDAD] Monitoreo de anomalías activo');
   }
   
   // ============================================
@@ -26071,7 +26071,7 @@ strengthDiv.style.color = colors[strength];
       }
     }
 
-    console.log console.log('🛡️ [AUDITORÍA IA]', resultado.mensaje);
+    console.log('🛡️ [AUDITORÍA IA]', resultado.mensaje);
     return true;
   };
 </script>
@@ -26576,7 +26576,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (usernamesSupremos.includes(username)) {
         tipoUsuario = 'supremo';
         esSupremo = true;
-        console.log console.log(`👑 [SUPREMO] Usuario #1 detectado: ${username}`);
+        console.log(`👑 [SUPREMO] Usuario #1 detectado: ${username}`);
       }
             localStorage.setItem('arv_tipo', tipoUsuario);
       localStorage.setItem('arv_es_supremo', esSupremo ? 'true' : 'false');
@@ -26733,7 +26733,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, true);
     
-    console.log console.log('✅ Formulario desbloqueado mágicamente');
+    console.log('✅ Formulario desbloqueado mágicamente');
     
   }, 1000); // Esperar 1 segundo después de cargar
 });
@@ -26804,7 +26804,7 @@ if (btnCreate) {
           inputPwd.focus();
         });
         
-        console.log console.log('👁️ Botón del ojo desbloqueado');
+        console.log('👁️ Botón del ojo desbloqueado');
       }
     }
   });
@@ -27258,10 +27258,10 @@ if (btnCreate) {
  <p style="margin: 0; color: #cbd5e1; font-size: 0.82rem;">${new Date().toLocaleTimeString()} • 9 asistentes • CTO + Agente coordinados</p>`;
   }
   // Notificar al Agente Flotante
-  console.log console.log('🧠 Ingeniero Supremo v5.0 activado');
-  console.log console.log('📜 9 Leyes Fundamentales cargadas');
-  console.log console.log('🤝 Coordinación con Agente Flotante establecida');
-  console.log console.log('👑 Lealtad absoluta al Dueño Supremo');
+  console.log('🧠 Ingeniero Supremo v5.0 activado');
+  console.log('📜 9 Leyes Fundamentales cargadas');
+  console.log('🤝 Coordinación con Agente Flotante establecida');
+  console.log('👑 Lealtad absoluta al Dueño Supremo');
   })();
 </script>  
 </body>
