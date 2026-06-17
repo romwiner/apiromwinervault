@@ -15135,8 +15135,7 @@ async function loadCategories() {
     log('⚠️ Error cargando categorías: ' + e.message, 'warning');
   }
 }
-</script>  
-<script>
+
 // ✅ Cargar marketplace con sanitización completa y event listeners seguros
 async function loadMarketplace() {
   if (!token) {
@@ -15166,8 +15165,7 @@ async function loadMarketplace() {
     const q = searchInput?.value?.trim() || '';
     const cat = catSelect?.value || '';
     const priceFilter = priceSelect?.value || '';
-    </script>  
-    <script>
+   
     // ✅ Construir URL con encodeURIComponent
     let url = '/api/marketplace';
     const params = [];
