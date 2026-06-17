@@ -13218,105 +13218,6 @@ async function publish(event) {
     return;
   }
   
-  // ✅ Publicar texto con validaciones fuertes y seguridad
-async function publish(event) {
-  if (event) event.preventDefault();
-  
-  // ✅ Obtener y sanitizar inputs para prevenir XSS
-  const titleInput = document.getElementById('itemTitle');
-  const priceInput = document.getElementById('itemPrice');
-  const catSelect = document.getElementById('itemCat');
-  const forSaleCheck = document.getElementById('itemForSale');
-  
-  const rawTitle = titleInput?.value || '';
-  const titulo = sanitizeForDisplay(rawTitle, 100); // ✅ Sanitizar para XSS
-  const price = parseFloat(priceInput?.value) || 0;
-  const categoria = catSelect?.value || 'general';
-  const forSale = !!forSaleCheck?.checked;
-  
-  // ✅ Validaciones con feedback específico y visual
-  if (!titulo || titulo.length < 3) {
-    showNotification('⚠️ El título debe tener al menos 3 caracteres', 'error');
-    if (titleInput) {
-      titleInput.classList.add('error');
-      titleInput.setAttribute('aria-invalid', 'true');
-      titleInput.focus();
-      setTimeout(() => {
-        titleInput.classList.remove('error');
-        titleInput.removeAttribute('aria-invalid');
-      }, 2000);
-    }
-    return;
-  }
-  
-  // ✅ Validar precio: no negativo, máximo razonable, solo si es para venta
-  if (forSale && (isNaN(price) || price < 1 || price > 9999)) {
-    showNotification('⚠️ El precio debe estar entre $1.00 y $9,999.00 USD', 'error');
-    if (priceInput) {
-      priceInput.classList.add('error');
-      priceInput.setAttribute('aria-invalid', 'true');
-      priceInput.focus();
-      setTimeout(() => {
-        priceInput.classList.remove('error');
-        priceInput.removeAttribute('aria-invalid');
-      }, 2000);
-    }
-    return;
-  }
-  
-  // ✅ Referencia segura al botón con fallback
-  const btn = event?.currentTarget || document.querySelector('#createModal button[onclick="publish()"]');
-  
-  try {
-    // UI: estado de carga con feedback accesible
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '📤 Publicando...';
-      btn.setAttribute('aria-busy', 'true');
-    }
-    
-    // ✅ Contenido cifrado simulado (en producción: cifrado real con WebCrypto)
-    const encryptedContent = await simulateEnvelopeEncryption(titulo, categoria);
-    
-    // ✅ Enviar al backend con datos validados
-    await req('/vault', 'POST', {
-      titulo,
-      price: forSale ? price : 0,
-      categoria,
-      forSale,
-      contenido: encryptedContent,
-      encrypted: true,
-      encryptionMethod: 'envelope-v1'
-    }, false);
-    
-    addLogEntry('📦 Activo publicado y cifrado', 'success');
-    showNotification('✅ Contenido publicado', 'success');
-    
-    // ✅ Reset y refresh para mantener UI sincronizada
-    closeCreate();
-    if (typeof refresh === 'function') refresh();
-    if (typeof showVault === 'function') showVault();
-    
-  } catch (e) {
-    // ✅ Mensajes de error específicos para mejor UX
-    const msg = e.message.includes('400') ? '❌ Datos inválidos' : 
-                e.message.includes('401') ? '❌ Sesión expirada' : 
-                e.message.includes('403') ? '❌ Acceso denegado' : 
-                '❌ Error publicando';
-    
-    addLogEntry(msg + ': ' + sanitizeForDisplay(e.message, 100), 'error');
-    showNotification(msg, 'error');
-    
-  } finally {
-    // ✅ Restaurar UI siempre, incluyendo atributos ARIA
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '✅ Publicar en Venta';
-      btn.removeAttribute('aria-busy');
-    }
-  }
-}
-
 // 🔐 Simular cifrado Envelope (local, sin conexiones externas)
 async function simulateEnvelopeEncryption(titulo, categoria) {
   // ✅ En producción: usar WebCrypto API para cifrado real
@@ -14997,7 +14898,7 @@ function isValidImageUrl(url) {
     return false;
   }
 }
-</script>  
+</script>
 <script>
 // ============================================
 // 🛍️ MARKETPLACE - FUNCIONES MEJORADAS (v2.0 FINAL)
@@ -15039,7 +14940,7 @@ if (typeof scrollToAuth !== 'function') {
   };
 }
 </script>
-<script>  
+<script>
 // ✅ Mostrar marketplace con validación de sesión
 function showMarketplace() {
   if (!token) {
@@ -15077,7 +14978,7 @@ function showMarketplace() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
   log('🛍️ Marketplace abierto', 'info');
 }
-</script>  
+</script>
 <script>
 // ✅ Cerrar marketplace con limpieza de estado
 function closeMarketplace() {
@@ -15100,7 +15001,7 @@ function closeMarketplace() {
   
   log('🛍️ Marketplace cerrado', 'info');
 }
-</script>  
+</script>
 <script>
 // ✅ Cargar categorías con sanitización y createElement
 async function loadCategories() {
@@ -15195,8 +15096,6 @@ async function loadMarketplace() {
     }
     
     log(`🛍️ ${res.items.length} productos cargados`, 'success');
-    </script>  
-    <script> 
     // ✅ Crear elementos con createElement
     res.items.forEach(item => {
       try {
@@ -15686,7 +15585,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 log('🛍️ Funciones del marketplace v2.0 FINAL cargadas', 'success');
 </script>
-<script>  
+<script>
 // ============================================
 // 🛡️ UTILIDADES GLOBALES (sin dependencias externas)
 // Sistema de logs seguro
@@ -17710,7 +17609,7 @@ function drawLineChart(canvasId, labels, data, color = '#00e676') {
   return { canvas, ctx };
 }
 </script>
-<script>       
+<script>
 // ============================================
 // 🛡️ HELPER: SANITIZAR TEXTO PARA CANVAS (evita XSS)
 // ============================================
@@ -18657,7 +18556,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
-</script> 
+</script>
 
 <!-- ✅ EXPORTAR DATOS FINANCIEROS (CORREGIDO) -->
 <script>
@@ -20535,7 +20434,7 @@ async function exportFinancialData(formato = 'csv') {
   }
 }
 </script>
-<script> 
+<script>
 // ==========================================
 // 📈 FUNCIÓN: DIBUJAR GRÁFICO DE LÍNEAS (MEJORADO)
 // ==========================================
@@ -20732,7 +20631,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
 
   console.log(`📈 Gráfico de líneas dibujado: ${datosFinal.length} puntos`);
 }
-<script> 
+<script>
 // ==========================================
 // 🥧 FUNCIÓN: DIBUJAR GRÁFICO DE DONA (MEJORADO)
 // ==========================================
@@ -20934,7 +20833,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
   console.log(`🥧 Gráfico de dona dibujado: ${labelsFinal.length} categorías, total ${total}`);
 }
                                                                                 
-<script>                                        
+<script>
 // ==========================================
 // 🛡️ HELPER: VERIFICAR QUE escapeHTML EXISTE
 // ==========================================
@@ -24799,7 +24698,7 @@ strengthDiv.style.color = colors[strength];
 }
 });
 </script>
-  <script>  
+<script>
  // ============================================
 // 🔐 SUCCESS VIEW: DIAGNÓSTICO SEGURO (CSP-COMPLIANT)
 // ============================================
@@ -27058,6 +26957,7 @@ if (btnCreate) {
   console.log('🤝 Coordinación con Agente Flotante establecida');
   console.log('👑 Lealtad absoluta al Dueño Supremo');
   })();
-</script>  
+</script>
 </body>
 </HTML>
+     
