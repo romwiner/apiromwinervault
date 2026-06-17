@@ -2491,12 +2491,13 @@ if (btnSecurePublish) {
         log('⚠️ Error limpiando formulario: ' + e.message, 'warning');
       }
       
-      // ✅ Recargar feed si existe la función
+  // ✅ Recargar feed si existe la función
       if (typeof cargarFeedReal === 'function') {
         cargarFeedReal();
       }
-      } catch (err) {
-      log('❌ Error al publicar: ' + err.message, 'error');
+      
+    } catch (err) {
+      console.log('❌ Error al publicar: ' + err.message);
       
       // ✅ Mensajes de error específicos
       if (err.message.includes('Timeout')) {
@@ -2507,33 +2508,36 @@ if (btnSecurePublish) {
         showNotification('❌ ' + err.message, 'error');
       } else {
         showNotification('❌ Error al publicar: ' + err.message, 'error');
-      }  // ← ✅ ESTA LLAVE CIERRA else
-    } finally {  // ← ✅ ESTA LLAVE CIERRA catch Y ABRE finally
+      }
+    } finally {
       isPublishing = false;
       if (btnSecurePublish) {
         btnSecurePublish.disabled = false;
         btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
         btnSecurePublish.style.opacity = '1';
-      }  
-    }    
-    });  
-  }     
+      }
+    }
+  });
+}
+
 // ✅ Exponer la función para que script.js la pueda llamar
 window.cargarFeed = cargarFeedReal;
-</script>  
+</script>
+
 <script>
 // ============================================
 // 🎨 MODAL DE PUBLICACIÓN - INICIALIZACIÓN
 // ============================================
+
 // ✅ Si el feed ya está visible, cargarlo
 const token = localStorage.getItem('authToken');
-  if (token && feedContainer && socialFeedPanel && !socialFeedPanel.classList.contains('hidden')) {  
+if (token && feedContainer && socialFeedPanel && !socialFeedPanel.classList.contains('hidden')) {
   if (typeof cargarFeedReal === 'function') {
     cargarFeedReal();
   }
 }
 
-log('🎨 Modal de publicación inicializado', 'success');
+console.log('🎨 Modal de publicación inicializado');
 
 // ============================================
 // 📢 SECCIÓN DE ANUNCIOS - FUNCIONALIDAD COMPLETA
