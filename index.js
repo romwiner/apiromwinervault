@@ -5154,22 +5154,64 @@ app.get('/api/qr/:data', async (req, res) => {
     res.status(500).json({ error: 'Error generando QR' });
   }
 });
-// 📊 ANALYTICS GENERAL (ENDPOINT FALTANTE - AGREGAR ANTES DE app.listen)
-app.get('/api/analytics', authenticate, async(req, res) => {
+// 📊 ANALYTICS GENERAL (PÚBLICO PARA INICIALIZACIÓN - SIN TOKEN REQUERIDO)
+app.get('/api/analytics', async(req, res) => {
   try {
-    if (!mongoReady) {
+    // ✅ Si no hay token, devolver datos vacíos (para inicialización del frontend)
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.json({
         success: true,
-        demo: true,
+        initialized: false,
+        message: 'Usuario no autenticado - mostrando datos de demostración',
         overview: { totalRevenue: 0, totalSales: 0, activeProducts: 0, views: 0 },
-        recentActivity: []
+        recentActivity: [],
+        topProducts: [],
+        demo: true
       });
     }
-    
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    
-    // Estadísticas generales
+
+    // ✅ Si hay token, intentar autenticar
+    let user = null;
+    try {
+      const token = authHeader.replace('Bearer ', '');
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (!mongoReady || !usersCollection) {
+        return res.json({
+          success: true,
+          initialized: true,
+          overview: { totalRevenue: 0, totalSales: 0, activeProducts: 0, views: 0 },
+          recentActivity: [],
+          topProducts: [],
+          demo: true
+        });
+      }
+      user = await usersCollection.findOne({ uid: decoded.uid });
+    } catch (err) {
+      return res.json({
+        success: true,
+        initialized: false,
+        message: 'Token inválido - mostrando datos de demostración',
+        overview: { totalRevenue: 0, totalSales: 0, activeProducts: 0, views: 0 },
+        recentActivity: [],
+        topProducts: [],
+        demo: true
+      });
+    }
+
+    if (!user) {
+      return res.json({
+        success: true,
+        initialized: false,
+        message: 'Usuario no encontrado',
+        overview: { totalRevenue: 0, totalSales: 0, activeProducts: 0, views: 0 },
+        recentActivity: [],
+        topProducts: [],
+        demo: true
+      });
+    }
+
+    // ✅ Usuario autenticado - devolver datos reales
     const [totalProducts, forSale, totalSales, totalViews] = await Promise.all([
       secretsCollection.countDocuments({ userId: user._id }),
       secretsCollection.countDocuments({ userId: user._id, isForSale: true }),
@@ -5179,27 +5221,25 @@ app.get('/api/analytics', authenticate, async(req, res) => {
         { $group: { _id: null, totalViews: { $sum: { $ifNull: ['$views', 0] } } } }
       ]).toArray()
     ]);
-    
-    // Ingresos totales
+
     const revenueAgg = await transactionsCollection.aggregate([
       { $match: { seller: user.uid, type: 'sale' } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]).toArray();
-    
-    // Actividad reciente (últimas 10 transacciones)
+
     const recentActivity = await transactionsCollection.find({
       $or: [{ seller: user.uid }, { buyer: user.uid }]
     }).sort({ createdAt: -1 }).limit(10).toArray();
-    
-    // Productos más vendidos
-    const topProducts = await secretsCollection.find({ 
-      userId: user._id, 
-      isForSale: true, 
-      sales: { $gt: 0 } 
+
+    const topProducts = await secretsCollection.find({
+      userId: user._id,
+      isForSale: true,
+      sales: { $gt: 0 }
     }).sort({ sales: -1 }).limit(5).project({ titulo: 1, sales: 1, price: 1 }).toArray();
-    
+
     res.json({
       success: true,
+      initialized: true,
       overview: {
         totalRevenue: revenueAgg[0]?.total || 0,
         totalSales: totalSales,
@@ -5224,7 +5264,13 @@ app.get('/api/analytics', authenticate, async(req, res) => {
     });
   } catch (e) {
     logger.error('❌ Analytics error:', e.message);
-    res.status(500).json({ error: 'Error cargando analytics: ' + e.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error cargando analytics: ' + e.message,
+      overview: { totalRevenue: 0, totalSales: 0, activeProducts: 0, views: 0 },
+      recentActivity: [],
+      topProducts: []
+    });
   }
 });
 
