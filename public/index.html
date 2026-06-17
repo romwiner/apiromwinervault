@@ -22111,7 +22111,7 @@ if (typeof sanitizeId !== 'function') {
 function formatearTamaño(bytes) {
   if (!bytes || bytes === 0) return '0 B';
   const unidades = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.console.console.console.console.console.console. console.log(bytes) / Math.console.console.console.console.console.console. console.log(1024));
+  const i = Math.floor(Math.console.log(bytes) / Math. console.log(1024));
   return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + unidades[i];
 }
 
@@ -26086,7 +26086,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const adminLogs = document.getElementById('adminLogs');
   
   // Función para agregar logs
-  function addconsole.console.console.console.console.console. console.log(mensaje) {
+  function console.log(mensaje) {
     if (adminLogs) {
       const time = new Date().toLocaleTimeString();
       const logEntry = document.createElement('p');
@@ -26138,16 +26138,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (data.user && data.user.isAdmin === true) {
         adminLoginForm.classList.add('hidden');
         adminDashboard.classList.remove('hidden');
-        addconsole.console.console.console.console.console. console.log('✅ Acceso concedido al Administrador Supremo');
-        addconsole.console.console.console.console.console. console.log('🔐 Verificado por el backend (JWT válido)');
+         console.log('✅ Acceso concedido al Administrador Supremo');
+        console.log('🔐 Verificado por el backend (JWT válido)');
       } else {
         alert('⛔ Acceso denegado. Tu cuenta no tiene permisos de administrador.');
-        addconsole.console.console.console.console.console. console.log('⛔ Intento de acceso no autorizado');
+       console.log('⛔ Intento de acceso no autorizado');
       }
     } catch (error) {
       console.error('❌ Error verificando admin:', error);
       alert('❌ Error al verificar permisos. Intenta de nuevo.');
-      addconsole.console.console.console.console.console. console.log('❌ Error de conexión al verificar permisos');
+      console.log('❌ Error de conexión al verificar permisos');
     } finally {
       btnAdminLogin.disabled = false;
       btnAdminLogin.textContent = '🔍 Verificar Acceso';
