@@ -5954,11 +5954,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.success && data.users) {
         let userList = data.users.map(u => `${u.email} (${u.tier || 'personal'})${u.isSupremo ? ' 👑' : ''}`).join('\n');
         alert('Usuarios registrados:\n' + userList);
-        addconsole.console.console.console.console.console. console.log(`Listados ${data.users.length} usuarios.`);
+        addconsole. console.log(`Listados ${data.users.length} usuarios.`);
       } else throw new Error('Error al listar');
     } catch (err) {
       alert('Error: ' + err.message);
-      addconsole.console.console.console.console.console. console.log('Error al listar usuarios: ' + err.message, 'error');
+      addconsole. console.log('Error al listar usuarios: ' + err.message, 'error');
     }
   }
 
