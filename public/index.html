@@ -14996,6 +14996,7 @@ function isValidImageUrl(url) {
     return false;
   }
 }
+</script>  
 <script>
 // ============================================
 // 🛍️ MARKETPLACE - FUNCIONES MEJORADAS (v2.0 FINAL)
@@ -15075,7 +15076,8 @@ function showMarketplace() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
   log('🛍️ Marketplace abierto', 'info');
 }
-
+</script>  
+<script>
 // ✅ Cerrar marketplace con limpieza de estado
 function closeMarketplace() {
   const marketplaceSection = document.getElementById('marketplaceSection');
@@ -15097,7 +15099,8 @@ function closeMarketplace() {
   
   log('🛍️ Marketplace cerrado', 'info');
 }
-
+</script>  
+<script>
 // ✅ Cargar categorías con sanitización y createElement
 async function loadCategories() {
   try {
@@ -15132,7 +15135,8 @@ async function loadCategories() {
     log('⚠️ Error cargando categorías: ' + e.message, 'warning');
   }
 }
-
+</script>  
+<script>
 // ✅ Cargar marketplace con sanitización completa y event listeners seguros
 async function loadMarketplace() {
   if (!token) {
@@ -15162,7 +15166,8 @@ async function loadMarketplace() {
     const q = searchInput?.value?.trim() || '';
     const cat = catSelect?.value || '';
     const priceFilter = priceSelect?.value || '';
-    
+    </script>  
+    <script>
     // ✅ Construir URL con encodeURIComponent
     let url = '/api/marketplace';
     const params = [];
@@ -15191,7 +15196,8 @@ async function loadMarketplace() {
     }
     
     log(`🛍️ ${res.items.length} productos cargados`, 'success');
-    
+    </script>  
+    <script> 
     // ✅ Crear elementos con createElement
     res.items.forEach(item => {
       try {
