@@ -5154,6 +5154,80 @@ app.get('/api/qr/:data', async (req, res) => {
     res.status(500).json({ error: 'Error generando QR' });
   }
 });
+// 📊 ANALYTICS GENERAL (ENDPOINT FALTANTE - AGREGAR ANTES DE app.listen)
+app.get('/api/analytics', authenticate, async(req, res) => {
+  try {
+    if (!mongoReady) {
+      return res.json({
+        success: true,
+        demo: true,
+        overview: { totalRevenue: 0, totalSales: 0, activeProducts: 0, views: 0 },
+        recentActivity: []
+      });
+    }
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    // Estadísticas generales
+    const [totalProducts, forSale, totalSales, totalViews] = await Promise.all([
+      secretsCollection.countDocuments({ userId: user._id }),
+      secretsCollection.countDocuments({ userId: user._id, isForSale: true }),
+      transactionsCollection.countDocuments({ seller: user.uid, type: 'sale' }),
+      secretsCollection.aggregate([
+        { $match: { userId: user._id } },
+        { $group: { _id: null, totalViews: { $sum: { $ifNull: ['$views', 0] } } } }
+      ]).toArray()
+    ]);
+    
+    // Ingresos totales
+    const revenueAgg = await transactionsCollection.aggregate([
+      { $match: { seller: user.uid, type: 'sale' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]).toArray();
+    
+    // Actividad reciente (últimas 10 transacciones)
+    const recentActivity = await transactionsCollection.find({
+      $or: [{ seller: user.uid }, { buyer: user.uid }]
+    }).sort({ createdAt: -1 }).limit(10).toArray();
+    
+    // Productos más vendidos
+    const topProducts = await secretsCollection.find({ 
+      userId: user._id, 
+      isForSale: true, 
+      sales: { $gt: 0 } 
+    }).sort({ sales: -1 }).limit(5).project({ titulo: 1, sales: 1, price: 1 }).toArray();
+    
+    res.json({
+      success: true,
+      overview: {
+        totalRevenue: revenueAgg[0]?.total || 0,
+        totalSales: totalSales,
+        activeProducts: forSale,
+        totalProducts: totalProducts,
+        views: totalViews[0]?.totalViews || 0
+      },
+      topProducts: topProducts.map(p => ({
+        titulo: p.titulo,
+        sales: p.sales,
+        revenue: (p.sales * (p.price || 0)).toFixed(2)
+      })),
+      recentActivity: recentActivity.map(tx => ({
+        type: tx.type,
+        amount: tx.amount,
+        item: tx.item,
+        date: tx.createdAt,
+        status: tx.status
+      })),
+      period: 'all-time',
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    logger.error('❌ Analytics error:', e.message);
+    res.status(500).json({ error: 'Error cargando analytics: ' + e.message });
+  }
+});
+
 // ============================================
 // 🚀 START SERVER (único)
 // ============================================
