@@ -7897,30 +7897,23 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
   </div>
 </section>
 
-<!-- 📊 ANALYTICS FINANCIERO: apiromwinervault (Con Gráficos Visuales e IA) -->
+<!-- 📊 ANALYTICS FINANCIERO: apiromwinervault (Unificado + IA) -->
 <section id="financialAnalyticsPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 1000px; margin: 20px auto; padding: 20px;">
-  
   <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #38bdf8; border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(56, 189, 248, 0.2);">
-    
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #1e3a5f; padding-bottom: 16px; flex-wrap: wrap; gap: 12px;">
       <div>
-        <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
-          📊 Analytics Financiero
-        </h2>
+        <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">📊 Analytics Financiero</h2>
         <p style="margin: 6px 0 0 0; font-size: 0.85rem; color: #94a3b8;">Visualiza ingresos, ventas y ganancias de afiliados con IA</p>
       </div>
-      <span style="background: #38bdf8; color: #000; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
-        🤖 IA ACTIVA
-      </span>
+      <span style="background: #38bdf8; color: #000; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">🤖 IA ACTIVA</span>
     </div>
-
     <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
       <button type="button" class="date-filter-btn" data-period="7d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 7 días</button>
-      <button type="button" class="date-filter-btn" data-period="30d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 30 días</button>
+      <button type="button" class="date-filter-btn" data-period="30d" style="padding: 8px 16px; background: #38bdf8; color: #000; border: 1px solid #38bdf8; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 30 días</button>
       <button type="button" class="date-filter-btn" data-period="90d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 90 días</button>
       <button type="button" id="btnExportCSV" style="padding: 8px 16px; background: transparent; color: #059669; border: 1px solid #059669; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-left: auto;">📤 Exportar CSV</button>
+      <button type="button" id="btnExportJSON" style="padding: 8px 16px; background: transparent; color: #a78bfa; border: 1px solid #a78bfa; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">📤 Exportar JSON</button>
     </div>
-
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
       <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
         <div style="font-size: 1.5rem; margin-bottom: 8px;">💰</div>
@@ -7943,12 +7936,10 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
         <div id="activeProducts" style="font-size: 1.5rem; font-weight: bold; color: #fbbf24;">0</div>
       </div>
     </div>
-
     <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #334155;">
       <h3 style="margin: 0 0 16px 0; color: #f8fafc; font-size: 1rem;">📈 Gráfico de Ingresos</h3>
       <canvas id="revenueChart" width="800" height="300" style="width: 100%; height: auto; background: #0f172a; border-radius: 8px;"></canvas>
     </div>
-
     <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; border-radius: 12px; padding: 16px;">
       <h3 style="margin: 0 0 12px 0; color: #38bdf8; font-size: 1rem;">🤖 Auditoría IA de Finanzas</h3>
       <div id="financialAIAudit" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">
@@ -7959,422 +7950,220 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 </section>
 
 <script>
-  (function() {
-    const getToken = () => localStorage.getItem('authToken');
+(function() {
+  const getToken = () => localStorage.getItem('authToken');
+  let currentPeriod = '30d';
+  let chartData = [];
 
-    // ============================================
-    // ACCIONES RÁPIDAS (conectar a funciones reales)
-    // ============================================
-    const actionMap = {
-      refresh: () => {
-        // Actualizar métricas: recargar dashboard, wallet, analytics
-        if (window.cargarDashboard) window.cargarDashboard();
-        if (window.cargarProgresion) window.cargarProgresion();
-        if (window.cargarAnuncios) window.cargarAnuncios();
-        if (window.cargarFeed) window.cargarFeed();
-        alert('✅ Métricas actualizadas.');
-      },
-      upload: () => {
-        // Abrir modal de subida (si existe)
-        const modal = document.getElementById('uploadModal');
-        if (modal) modal.classList.remove('hidden');
-        else alert('Modal de subida no disponible.');
-      },
-      publish: () => {
-        // Abrir modal de publicación
-        if (window.abrirPublicarModal) window.abrirPublicarModal();
-        else alert('Publicación no disponible.');
-      },
-      vault: () => {
-        // Abrir modal de bóveda
-        if (window.abrirVaultModal) window.abrirVaultModal();
-        else alert('Bóveda no disponible.');
-      },
-      marketplace: () => {
-        // Navegar a la vista del marketplace (si existe)
-        const marketplace = document.getElementById('marketplaceSection');
-        if (marketplace) marketplace.classList.remove('hidden');
-        else alert('Marketplace no disponible.');
-      },
-      identity: () => {
-        // Mostrar QR de identidad
-        if (window.mostrarQRIdentidad) window.mostrarQRIdentidad();
-        else alert('QR no disponible.');
-      },
-      withdraw: () => {
-        // Abrir modal de retiro (o redirigir a wallet)
-        alert('💸 Función de retiro: contacta al administrador o usa el panel de wallet.');
-      },
-      audit: () => {
-        // Ver logs de auditoría
-        const adminLogs = document.getElementById('adminLogs');
-        if (adminLogs) adminLogs.scrollIntoView({ behavior: 'smooth' });
-        else alert('Los logs de auditoría están disponibles en el panel de administración.');
-      }
-    };
-
-    document.querySelectorAll('.quick-action-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const action = btn.dataset.action;
-        if (actionMap[action]) actionMap[action]();
-        else console.warn(`Acción ${action} no definida`);
-      });
+  // ============================================
+  // ACCIONES RÁPIDAS
+  // ============================================
+  const actionMap = {
+    refresh: () => {
+      if (window.cargarDashboard) window.cargarDashboard();
+      if (window.cargarProgresion) window.cargarProgresion();
+      if (window.cargarAnuncios) window.cargarAnuncios();
+      if (window.cargarFeed) window.cargarFeed();
+      cargarAnalytics(currentPeriod);
+    },
+    upload: () => { const m = document.getElementById('uploadModal'); if (m) m.classList.remove('hidden'); },
+    publish: () => { if (window.abrirPublicarModal) window.abrirPublicarModal(); },
+    vault: () => { if (window.abrirVaultModal) window.abrirVaultModal(); },
+    marketplace: () => { const m = document.getElementById('marketplaceSection'); if (m) m.classList.remove('hidden'); },
+    identity: () => { if (window.mostrarQRIdentidad) window.mostrarQRIdentidad(); },
+    withdraw: () => { alert('💸 Usa el panel de wallet para retirar fondos.'); },
+    audit: () => { const logs = document.getElementById('adminLogs'); if (logs) logs.scrollIntoView({ behavior: 'smooth' }); }
+  };
+  document.querySelectorAll('.quick-action-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      if (actionMap[action]) actionMap[action]();
+      else console.warn('Acción no definida:', action);
     });
+  });
 
-    // ============================================
-    // ANALYTICS FINANCIERO (real)
-    // ============================================
-    let currentPeriod = '30d';
-    let chartData = [];
-    const revenueCanvas = document.getElementById('revenueChart');
-    const ctx = revenueCanvas?.getContext('2d');
+  // ============================================
+  // GRÁFICO
+  // ============================================
+  const canvas = document.getElementById('revenueChart');
+  const ctx = canvas?.getContext('2d');
 
-    async function cargarAnalytics(period = currentPeriod) {
-      const token = getToken();
-      if (!token) return;
-      try {
-        const res = await fetch(`/api/analytics/financial?period=${period}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error);
-        const stats = data.data;
-        // Actualizar tarjetas
-        document.getElementById('totalRevenue').textContent = `$${stats.totalRevenue?.toFixed(2) || '0.00'}`;
-        document.getElementById('totalSales').textContent = stats.totalSales || 0;
-        document.getElementById('affiliateEarnings').textContent = `$${stats.affiliateEarnings?.toFixed(2) || '0.00'}`;
-        document.getElementById('activeProducts').textContent = stats.activeProducts || 0;
-        // Datos para el gráfico (revenueByDay)
-        chartData = stats.revenueByDay || [];
-        dibujarGrafico();
-        // Auditoría IA (simulada pero con datos reales)
-        const auditDiv = document.getElementById('financialAIAudit');
-        if (auditDiv) {
-          auditDiv.innerHTML = `
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
-              <strong style="color:#059669;">✅ Análisis Financiero Completado</strong><br>
-              <span style="color:#cbd5e1; font-size:0.8rem;">
-                • Período: ${period}<br>
-                • Ingreso diario promedio: $${(stats.totalRevenue / (chartData.length || 1)).toFixed(2)}<br>
-                • Productividad de ventas: ${stats.totalSales} transacciones<br>
-                • Comisiones de afiliados: $${stats.affiliateEarnings?.toFixed(2)}
-              </span>
-            </div>
-          `;
-        }
-      } catch (err) {
-        console.error('Error cargando analytics:', err);
-        document.getElementById('financialAIAudit').innerHTML = '<p style="color:#ef4444;">Error al cargar datos financieros.</p>';
-      }
+  function dibujarGrafico() {
+    if (!ctx || !canvas) return;
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    if (!chartData.length) {
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '14px system-ui';
+      ctx.fillText('No hay datos suficientes', width / 2 - 100, height / 2);
+      return;
     }
+    const maxValue = Math.max(...chartData.map(d => d.amount), 1);
+    const padding = 40;
+    const graphHeight = height - padding * 2;
+    const stepX = (width - padding * 2) / Math.max(chartData.length - 1, 1);
 
-    function dibujarGrafico() {
-      if (!ctx || !revenueCanvas) return;
-      const width = revenueCanvas.width;
-      const height = revenueCanvas.height;
-      ctx.clearRect(0, 0, width, height);
-      if (!chartData.length) {
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '14px system-ui';
-        ctx.fillText('No hay datos suficientes', width/2 - 100, height/2);
-        return;
-      }
-      const maxValue = Math.max(...chartData.map(d => d.amount), 1);
-      const stepX = width / (chartData.length - 1);
-      const padding = 30;
-      const graphHeight = height - padding * 2;
-      // Dibujar eje X
+    // Ejes
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, height - padding);
+    ctx.lineTo(width - padding, height - padding);
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Área rellena
+    ctx.beginPath();
+    chartData.forEach((d, i) => {
+      const x = padding + i * stepX;
+      const y = height - padding - (d.amount / maxValue) * graphHeight;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.lineTo(padding + (chartData.length - 1) * stepX, height - padding);
+    ctx.lineTo(padding, height - padding);
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+    ctx.fill();
+
+    // Línea
+    ctx.beginPath();
+    chartData.forEach((d, i) => {
+      const x = padding + i * stepX;
+      const y = height - padding - (d.amount / maxValue) * graphHeight;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Puntos
+    ctx.fillStyle = '#059669';
+    chartData.forEach((d, i) => {
+      const x = padding + i * stepX;
+      const y = height - padding - (d.amount / maxValue) * graphHeight;
       ctx.beginPath();
-      ctx.moveTo(padding, padding);
-      ctx.lineTo(padding, height - padding);
-      ctx.lineTo(width - padding, height - padding);
-      ctx.strokeStyle = '#334155';
-      ctx.stroke();
-      // Dibujar línea
-      ctx.beginPath();
-      for (let i = 0; i < chartData.length; i++) {
-        const x = padding + i * stepX;
-        const y = height - padding - (chartData[i].amount / maxValue) * graphHeight;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = '#059669';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      // Rellenar área
-      ctx.beginPath();
-      for (let i = 0; i < chartData.length; i++) {
-        const x = padding + i * stepX;
-        const y = height - padding - (chartData[i].amount / maxValue) * graphHeight;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.lineTo(padding + (chartData.length-1)*stepX, height - padding);
-      ctx.lineTo(padding, height - padding);
-      ctx.fillStyle = 'rgba(5, 150, 105, 0.2)';
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
       ctx.fill();
-    }
-
-    async function exportarCSV() {
-      const token = getToken();
-      if (!token) return;
-      try {
-        const res = await fetch(`/api/analytics/financial/export?format=csv&period=${currentPeriod}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success && data.data?.csv) {
-          const blob = new Blob([data.data.csv], { type: 'text/csv' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `financial_analytics_${currentPeriod}_${Date.now()}.csv`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        } else throw new Error('No se pudo generar el CSV');
-      } catch (err) {
-        alert('Error al exportar: ' + err.message);
-      }
-    }
-
-    // Inicializar analytics cuando la sección sea visible
-    window.cargarAnalytics = cargarAnalytics;
-    document.querySelectorAll('.date-filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentPeriod = btn.dataset.period;
-        cargarAnalytics(currentPeriod);
-      });
-    });
-    const btnExport = document.getElementById('btnExportCSV');
-    if (btnExport) btnExport.addEventListener('click', exportarCSV);
-
-    // Mostrar sección y cargar datos
-    const section = document.getElementById('financialAnalyticsPanel');
-    if (section && !section.classList.contains('hidden')) {
-      cargarAnalytics('30d');
-    }
-  })();
-</script>
-
-<!-- 📊 ANALYTICS FINANCIERO: apiromwinervault (Con Gráficos Visuales e IA real) -->
-<section id="financialAnalyticsPanel" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 1000px; margin: 20px auto; padding: 20px;">
-  
-  <div style="background: rgba(10, 15, 25, 0.95); border: 2px solid #38bdf8; border-radius: 20px; padding: 28px; box-shadow: 0 10px 40px rgba(56, 189, 248, 0.2);">
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid #1e3a5f; padding-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-      <div>
-        <h2 style="margin: 0; font-size: 1.5rem; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
-          📊 Analytics Financiero
-        </h2>
-        <p style="margin: 6px 0 0 0; font-size: 0.85rem; color: #94a3b8;">Visualiza ingresos, ventas y ganancias de afiliados con IA</p>
-      </div>
-      <span style="background: #38bdf8; color: #000; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
-        🤖 IA ACTIVA
-      </span>
-    </div>
-
-    <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
-      <button type="button" class="date-filter-btn" data-period="7d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 7 días</button>
-      <button type="button" class="date-filter-btn" data-period="30d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 30 días</button>
-      <button type="button" class="date-filter-btn" data-period="90d" style="padding: 8px 16px; background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">📅 90 días</button>
-      <button type="button" id="btnExportCSV" style="padding: 8px 16px; background: transparent; color: #059669; border: 1px solid #059669; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-left: auto;">📤 Exportar CSV</button>
-    </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-      <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
-        <div style="font-size: 1.5rem; margin-bottom: 8px;">💰</div>
-        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ingresos Totales</div>
-        <div id="totalRevenue" style="font-size: 1.5rem; font-weight: bold; color: #059669;">$0.00</div>
-      </div>
-      <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
-        <div style="font-size: 1.5rem; margin-bottom: 8px;">🛍️</div>
-        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ventas Completadas</div>
-        <div id="totalSales" style="font-size: 1.5rem; font-weight: bold; color: #38bdf8;">0</div>
-      </div>
-      <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
-        <div style="font-size: 1.5rem; margin-bottom: 8px;">🤝</div>
-        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Ganancias Afiliados</div>
-        <div id="affiliateEarnings" style="font-size: 1.5rem; font-weight: bold; color: #a78bfa;">$0.00</div>
-      </div>
-      <div style="background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155;">
-        <div style="font-size: 1.5rem; margin-bottom: 8px;">📦</div>
-        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Productos Activos</div>
-        <div id="activeProducts" style="font-size: 1.5rem; font-weight: bold; color: #fbbf24;">0</div>
-      </div>
-    </div>
-
-    <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #334155;">
-      <h3 style="margin: 0 0 16px 0; color: #f8fafc; font-size: 1rem;">📈 Gráfico de Ingresos</h3>
-      <canvas id="revenueChart" width="800" height="300" style="width: 100%; height: auto; background: #0f172a; border-radius: 8px;"></canvas>
-    </div>
-
-    <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8; border-radius: 12px; padding: 16px;">
-      <h3 style="margin: 0 0 12px 0; color: #38bdf8; font-size: 1rem;">🤖 Auditoría IA de Finanzas</h3>
-      <div id="financialAIAudit" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;">
-        <p style="margin: 0;">⏳ Analizando patrones financieros...</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<script>
-  (function() {
-    const getToken = () => localStorage.getItem('authToken');
-    let currentPeriod = '30d';
-    let chartData = []; // array de objetos {date, amount}
-    const canvas = document.getElementById('revenueChart');
-    const ctx = canvas?.getContext('2d');
-
-    // Actualizar tarjetas y gráfico con datos reales
-    async function cargarAnalytics(period = currentPeriod) {
-      const token = getToken();
-      if (!token) return;
-      try {
-        const res = await fetch(`/api/analytics/financial?period=${period}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error);
-        const stats = data.data;
-        document.getElementById('totalRevenue').textContent = `$${stats.totalRevenue?.toFixed(2) || '0.00'}`;
-        document.getElementById('totalSales').textContent = stats.totalSales || 0;
-        document.getElementById('affiliateEarnings').textContent = `$${stats.affiliateEarnings?.toFixed(2) || '0.00'}`;
-        document.getElementById('activeProducts').textContent = stats.activeProducts || 0;
-        chartData = stats.revenueByDay || [];
-        dibujarGrafico();
-        // Auditoría IA con datos reales
-        const auditDiv = document.getElementById('financialAIAudit');
-        if (auditDiv) {
-          const avgDaily = chartData.length ? (stats.totalRevenue / chartData.length).toFixed(2) : 0;
-          auditDiv.innerHTML = `
-            <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
-              <strong style="color:#059669;">✅ Análisis Financiero Completado</strong><br>
-              <span style="color:#cbd5e1; font-size:0.8rem;">
-                • Período: ${period}<br>
-                • Ingreso diario promedio: $${avgDaily}<br>
-                • Productividad de ventas: ${stats.totalSales} transacciones<br>
-                • Comisiones de afiliados: $${stats.affiliateEarnings?.toFixed(2)}<br>
-                • Tendencia: ${chartData.length > 1 && chartData[chartData.length-1]?.amount > chartData[0]?.amount ? '↑ Positiva' : '→ Estable'}
-              </span>
-            </div>
-          `;
-        }
-      } catch (err) {
-        console.error('Error cargando analytics:', err);
-        document.getElementById('financialAIAudit').innerHTML = '<p style="color:#ef4444;">Error al cargar datos financieros.</p>';
-      }
-    }
-
-    // Dibujar gráfico de línea con canvas (inspirado en tu diseño)
-    function dibujarGrafico() {
-      if (!ctx || !canvas) return;
-      const width = canvas.width;
-      const height = canvas.height;
-      ctx.clearRect(0, 0, width, height);
-      if (!chartData.length) {
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '14px system-ui';
-        ctx.fillText('No hay datos suficientes', width/2 - 100, height/2);
-        return;
-      }
-      const maxValue = Math.max(...chartData.map(d => d.amount), 1);
-      const padding = 40;
-      const graphHeight = height - padding * 2;
-      const stepX = (width - padding * 2) / (chartData.length - 1);
-
-      // Dibujar ejes
-      ctx.beginPath();
-      ctx.moveTo(padding, padding);
-      ctx.lineTo(padding, height - padding);
-      ctx.lineTo(width - padding, height - padding);
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Dibujar línea
-      ctx.beginPath();
-      for (let i = 0; i < chartData.length; i++) {
-        const x = padding + i * stepX;
-        const y = height - padding - (chartData[i].amount / maxValue) * graphHeight;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Dibujar puntos
-      ctx.fillStyle = '#38bdf8';
-      for (let i = 0; i < chartData.length; i++) {
-        const x = padding + i * stepX;
-        const y = height - padding - (chartData[i].amount / maxValue) * graphHeight;
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    // Exportar CSV real
-    async function exportarCSV() {
-      const token = getToken();
-      if (!token) return;
-      const btn = document.getElementById('btnExportCSV');
-      btn.disabled = true;
-      btn.textContent = '⏳ Generando...';
-      try {
-        const res = await fetch(`/api/analytics/financial/export?format=csv&period=${currentPeriod}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.success && data.data?.csv) {
-          const blob = new Blob([data.data.csv], { type: 'text/csv' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `financial_analytics_${currentPeriod}_${Date.now()}.csv`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        } else throw new Error('No se pudo generar el CSV');
-      } catch (err) {
-        alert('Error al exportar: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '📤 Exportar CSV';
-      }
-    }
-
-    // Filtros
-    document.querySelectorAll('.date-filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentPeriod = btn.dataset.period;
-        // Estilo activo
-        document.querySelectorAll('.date-filter-btn').forEach(b => {
-          b.style.background = '#1e293b';
-          b.style.color = '#94a3b8';
-        });
-        btn.style.background = '#38bdf8';
-        btn.style.color = '#000';
-        cargarAnalytics(currentPeriod);
-      });
     });
 
-    const exportBtn = document.getElementById('btnExportCSV');
-    if (exportBtn) exportBtn.addEventListener('click', exportarCSV);
+    // Etiquetas de fecha
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px system-ui';
+    chartData.forEach((d, i) => {
+      if (i % Math.ceil(chartData.length / 6) === 0) {
+        const x = padding + i * stepX;
+        ctx.fillText(d.date?.slice(5) || '', x - 15, height - 8);
+      }
+    });
+  }
 
-    // Mostrar sección y cargar datos si está visible
-    const panel = document.getElementById('financialAnalyticsPanel');
-    if (panel && !panel.classList.contains('hidden')) {
-      cargarAnalytics('30d');
+  // ============================================
+  // CARGAR ANALYTICS
+  // ============================================
+  async function cargarAnalytics(period = currentPeriod) {
+    const token = getToken();
+    if (!token) return;
+    const auditDiv = document.getElementById('financialAIAudit');
+    if (auditDiv) auditDiv.innerHTML = '<p style="margin:0;color:#94a3b8;">⏳ Cargando datos...</p>';
+    try {
+      const res = await fetch(`/api/analytics/financial?period=${period}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401) { if (typeof handleSessionExpired === 'function') handleSessionExpired(); return; }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      const stats = data.data;
+
+      document.getElementById('totalRevenue').textContent = `$${Number(stats.totalRevenue || 0).toFixed(2)}`;
+      document.getElementById('totalSales').textContent = stats.totalSales || 0;
+      document.getElementById('affiliateEarnings').textContent = `$${Number(stats.affiliateEarnings || 0).toFixed(2)}`;
+      document.getElementById('activeProducts').textContent = stats.activeProducts || 0;
+
+      chartData = Array.isArray(stats.revenueByDay) ? stats.revenueByDay : [];
+      dibujarGrafico();
+
+      const avgDaily = chartData.length ? (Number(stats.totalRevenue || 0) / chartData.length).toFixed(2) : '0.00';
+      const tendencia = chartData.length > 1 && chartData[chartData.length - 1]?.amount > chartData[0]?.amount ? '↑ Positiva' : '→ Estable';
+
+      if (auditDiv) {
+        auditDiv.innerHTML = `
+          <div style="background:#0f172a; padding:12px; border-radius:8px; border-left:3px solid #059669;">
+            <strong style="color:#059669;">✅ Análisis Financiero Completado</strong><br>
+            <span style="color:#cbd5e1; font-size:0.8rem;">
+              • Período: ${period}<br>
+              • Ingreso diario promedio: $${avgDaily}<br>
+              • Ventas completadas: ${stats.totalSales}<br>
+              • Comisiones afiliados: $${Number(stats.affiliateEarnings || 0).toFixed(2)}<br>
+              • Tendencia: ${tendencia}
+            </span>
+          </div>`;
+      }
+    } catch (err) {
+      console.error('Error cargando analytics:', err);
+      if (auditDiv) auditDiv.innerHTML = '<p style="color:#ef4444;">❌ Error al cargar datos financieros.</p>';
     }
-    // Exponer función para que script.js la llame si es necesario
-    window.cargarAnalytics = cargarAnalytics;
-  })();
-</script>
+  }
 
+  // ============================================
+  // EXPORTAR
+  // ============================================
+  async function exportarDatos(formato = 'csv') {
+    const token = getToken();
+    if (!token) { alert('Debes iniciar sesión'); return; }
+    const btn = formato === 'csv' ? document.getElementById('btnExportCSV') : document.getElementById('btnExportJSON');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando...'; }
+    try {
+      const res = await fetch(`/api/analytics/financial/export?format=${formato}&period=${currentPeriod}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      let contenido, tipo, nombre;
+      const fecha = new Date().toISOString().slice(0, 10);
+      if (formato === 'csv' && data.data?.csv) {
+        contenido = data.data.csv;
+        tipo = 'text/csv;charset=utf-8';
+        nombre = `analytics_${currentPeriod}_${fecha}.csv`;
+      } else if (formato === 'json' && data.data?.json) {
+        contenido = JSON.stringify(data.data.json, null, 2);
+        tipo = 'application/json;charset=utf-8';
+        nombre = `analytics_${currentPeriod}_${fecha}.json`;
+      } else throw new Error('No hay datos para exportar');
+      const blob = new Blob([contenido], { type: tipo });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = nombre; a.style.display = 'none';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      alert('Error al exportar: ' + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = formato === 'csv' ? '📤 Exportar CSV' : '📤 Exportar JSON'; }
+    }
+  }
+
+  // ============================================
+  // FILTROS Y EVENTOS
+  // ============================================
+  document.querySelectorAll('.date-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentPeriod = btn.dataset.period;
+      document.querySelectorAll('.date-filter-btn').forEach(b => { b.style.background = '#1e293b'; b.style.color = '#94a3b8'; b.style.borderColor = '#334155'; });
+      btn.style.background = '#38bdf8'; btn.style.color = '#000'; btn.style.borderColor = '#38bdf8';
+      cargarAnalytics(currentPeriod);
+    });
+  });
+
+  const btnCSV = document.getElementById('btnExportCSV');
+  const btnJSON = document.getElementById('btnExportJSON');
+  if (btnCSV) btnCSV.addEventListener('click', () => exportarDatos('csv'));
+  if (btnJSON) btnJSON.addEventListener('click', () => exportarDatos('json'));
+
+  // Exponer y cargar
+  window.cargarAnalytics = cargarAnalytics;
+  const panel = document.getElementById('financialAnalyticsPanel');
+  if (panel && !panel.classList.contains('hidden')) cargarAnalytics('30d');
+})();
+</script>
 <!-- 🔗 MODAL DE WEBHOOKS SEGURO: apiromwinervault (Con Auditoría IA y Validación de URLs) -->
 <section id="webhookModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 10002; padding: 16px; font-family: system-ui, -apple-system, sans-serif; backdrop-filter: blur(8px);">
   
