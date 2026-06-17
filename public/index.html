@@ -2495,8 +2495,7 @@ if (btnSecurePublish) {
       if (typeof cargarFeedReal === 'function') {
         cargarFeedReal();
       }
-      
-    } catch (err) {
+      } catch (err) {
       log('❌ Error al publicar: ' + err.message, 'error');
       
       // ✅ Mensajes de error específicos
@@ -2508,17 +2507,17 @@ if (btnSecurePublish) {
         showNotification('❌ ' + err.message, 'error');
       } else {
         showNotification('❌ Error al publicar: ' + err.message, 'error');
-        
-    } finally {
-    isPublishing = false;
-    if (btnSecurePublish) {
-      btnSecurePublish.disabled = false;
-      btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
-      btnSecurePublish.style.opacity = '1';
-    }  
+      }  // ← ✅ ESTA LLAVE CIERRA else
+    } finally {  // ← ✅ ESTA LLAVE CIERRA catch Y ABRE finally
+      isPublishing = false;
+      if (btnSecurePublish) {
+        btnSecurePublish.disabled = false;
+        btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
+        btnSecurePublish.style.opacity = '1';
+      }  
     }    
     });  
-  }  
+  }     
 // ✅ Exponer la función para que script.js la pueda llamar
 window.cargarFeed = cargarFeedReal;
 </script>  
