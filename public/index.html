@@ -2523,6 +2523,8 @@ if (btnSecurePublish) {
 
 // ✅ Exponer la función para que script.js la pueda llamar
 window.cargarFeed = cargarFeedReal;
+ }); // cierre del DOMContentLoaded
+})(); // cierre del IIFE   
 </script>
 <!-- ✅ JavaScript separado correctamente -->
 <script>
