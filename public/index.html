@@ -15062,11 +15062,14 @@ async function loadFinancialData(period = '30d') {
     }
   } catch (e) {
     console.error('❌ Error en loadFinancialData:', e.message);
-  }
 }
+}
+</script>
+<script>
 // ============================================
 // 🛡️ UTILIDADES GLOBALES (sin dependencias externas)
-
+// Sistema de logs seguro
+function log(mensaje, tipo = 'info') {
 // Sistema de logs seguro
 function log(mensaje, tipo = 'info') {
   const timestamp = new Date().toLocaleTimeString();
