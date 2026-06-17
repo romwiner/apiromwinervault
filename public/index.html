@@ -2519,6 +2519,8 @@ if (btnSecurePublish) {
       }
     }
   });
+}
+
 // ✅ Exponer la función para que script.js la pueda llamar
 window.cargarFeed = cargarFeedReal; 
 </script>
@@ -13169,6 +13171,10 @@ function closeCreate() {
   
   addLogEntry('🔒 Modal de creación cerrado', 'info');
 }
+
+// ✅ Publicar texto con validaciones fuertes y seguridad
+async function publish(event) {
+  if (event) event.preventDefault();
   
   // ✅ Obtener y sanitizar inputs para prevenir XSS
   const titleInput = document.getElementById('itemTitle');
