@@ -15759,21 +15759,6 @@ if (typeof sanitizeForDisplay !== 'function') {
   };
 }
 
-// ============================================
-// 🛡️ UTILIDADES GLOBALES (sin dependencias externas)
-// Sistema de logs seguro
-function log(mensaje, tipo = 'info') {
-  const timestamp = new Date().toLocaleTimeString();
-  const colores = { 
-    info: '#8ab4f8', 
-    error: '#ff5252', 
-    success: '#00e676', 
-    warning: '#ffab40' 
-  };
-  const color = colores[tipo] || colores.info;
-  console.log(`%c[${timestamp}] ${mensaje}`, `color: ${color}`);
-}
-
 // Sistema de notificaciones
 function showNotification(mensaje, tipo = 'info') {
   const anterior = document.getElementById('appNotification');
