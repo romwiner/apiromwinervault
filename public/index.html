@@ -2311,79 +2311,227 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
       return data;
     }
 
-    // Eventos del modal de publicación (solo si existe el modal)
-    if (btnOpenPublish) {
-      btnOpenPublish.addEventListener('click', () => {
-        if (!getToken()) {
-          alert('Debes iniciar sesión para publicar activos.');
-          return;
-        }
-        publishModal.classList.remove('hidden');
-      });
+   // ============================================
+// 🎨 EVENTOS DEL MODAL DE PUBLICACIÓN (v2.0)
+// ============================================
+
+// ✅ Debounce para prevenir spam de clicks
+let isPublishing = false;
+
+// ✅ Validación robusta de archivos
+function validateFile(file) {
+  const allowedExtensions = ['.txt', '.mp3', '.mp4', '.rar', '.zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv'];
+  const allowedMimeTypes = [
+    'text/plain', 'audio/mpeg', 'video/mp4', 'application/x-rar-compressed',
+    'application/zip', 'application/pdf', 'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/csv'
+  ];
+  
+  const maxSize = 50 * 1024 * 1024; // 50MB
+  const fileName = file.name.toLowerCase();
+  const isValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+  const isValidMime = allowedMimeTypes.includes(file.type);
+  
+  if (!isValidExtension || !isValidMime) {
+    throw new Error(`Tipo de archivo no permitido. Solo: ${allowedExtensions.join(', ')}`);
+  }
+  
+  if (file.size > maxSize) {
+    throw new Error(`Archivo muy grande. Máximo: ${Math.round(maxSize / 1024 / 1024)}MB`);
+  }
+  
+  if (file.size === 0) {
+    throw new Error('El archivo está vacío');
+  }
+  
+  return true;
+}
+
+// ✅ Sanitizar título
+function sanitizeTitle(title) {
+  return title
+    .replace(/[<>\"\'\`]/g, '') // Remover caracteres peligrosos
+    .replace(/\s+/g, ' ') // Normalizar espacios
+    .trim()
+    .substring(0, 200); // Limitar longitud
+}
+
+// ✅ Validar precio
+function validatePrice(priceStr) {
+  const price = parseFloat(priceStr);
+  if (isNaN(price) || price <= 0) {
+    throw new Error('Precio inválido. Debe ser mayor a 0');
+  }
+  if (price > 10000) {
+    throw new Error('Precio máximo: $10,000 USD');
+  }
+  return price;
+}
+
+// Eventos del modal de publicación
+if (btnOpenPublish) {
+  btnOpenPublish.addEventListener('click', () => {
+    if (!getToken()) {
+      showNotification('⚠️ Debes iniciar sesión para publicar activos', 'warning');
+      return;
+    }
+    publishModal.classList.remove('hidden');
+    publishModal.setAttribute('aria-hidden', 'false');
+    
+    // ✅ Focus en el primer input
+    setTimeout(() => {
+      if (pubTitle) pubTitle.focus();
+    }, 100);
+  });
+}
+
+if (btnClosePublish) {
+  btnClosePublish.addEventListener('click', () => {
+    publishModal.classList.add('hidden');
+    publishModal.setAttribute('aria-hidden', 'true');
+    
+    // ✅ Limpiar campos de forma segura
+    try {
+      if (pubFile) pubFile.value = '';
+      if (pubTitle) pubTitle.value = '';
+      if (pubCat) pubCat.value = 'educacion';
+      if (pubPrice) pubPrice.value = '';
+    } catch (e) {
+      log('⚠️ Error limpiando formulario: ' + e.message, 'warning');
+    }
+  });
+}
+
+// ✅ Cerrar modal con Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && publishModal && !publishModal.classList.contains('hidden')) {
+    publishModal.classList.add('hidden');
+    publishModal.setAttribute('aria-hidden', 'true');
+  }
+});
+
+if (btnSecurePublish) {
+  btnSecurePublish.addEventListener('click', async () => {
+    // ✅ Prevenir múltiples clicks
+    if (isPublishing) {
+      showNotification('⏳ Ya hay una publicación en progreso', 'warning');
+      return;
     }
 
-    if (btnClosePublish) {
-      btnClosePublish.addEventListener('click', () => {
-        publishModal.classList.add('hidden');
+    try {
+      // ✅ Validaciones con mensajes claros
+      if (!pubFile || !pubFile.files || pubFile.files.length === 0) {
+        showNotification('⚠️ Selecciona un archivo', 'warning');
+        if (pubFile) pubFile.focus();
+        return;
+      }
+
+      if (!pubTitle || !pubTitle.value.trim()) {
+        showNotification('⚠️ Ingresa un título', 'warning');
+        if (pubTitle) pubTitle.focus();
+        return;
+      }
+
+      if (!pubPrice || !pubPrice.value) {
+        showNotification('⚠️ Ingresa un precio', 'warning');
+        if (pubPrice) pubPrice.focus();
+        return;
+      }
+
+      const file = pubFile.files[0];
+      
+      // ✅ Validar archivo
+      validateFile(file);
+      
+      // ✅ Sanitizar título
+      const titulo = sanitizeTitle(pubTitle.value.trim());
+      if (titulo.length < 3) {
+        showNotification('⚠️ El título debe tener al menos 3 caracteres', 'warning');
+        return;
+      }
+      
+      // ✅ Validar precio
+      const price = validatePrice(pubPrice.value);
+      
+      // ✅ Deshabilitar botón y mostrar progreso
+      isPublishing = true;
+      btnSecurePublish.disabled = true;
+      const originalText = btnSecurePublish.textContent;
+      btnSecurePublish.textContent = '🔄 Publicando...';
+      btnSecurePublish.style.opacity = '0.6';
+      
+      showNotification('📤 Subiendo archivo...', 'info');
+      
+      // ✅ Timeout de 60 segundos
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: la operación tardó demasiado')), 60000)
+      );
+      
+      // ✅ Publicar con timeout
+      await Promise.race([
+        publicarActivo(file, titulo, pubCat?.value || 'educacion', price),
+        timeoutPromise
+      ]);
+      
+      showNotification('✅ Activo publicado correctamente', 'success');
+      
+      // ✅ Cerrar modal
+      publishModal.classList.add('hidden');
+      publishModal.setAttribute('aria-hidden', 'true');
+      
+      // ✅ Limpiar campos
+      try {
         if (pubFile) pubFile.value = '';
         if (pubTitle) pubTitle.value = '';
         if (pubCat) pubCat.value = 'educacion';
         if (pubPrice) pubPrice.value = '';
-      });
-    }
-
-    if (btnSecurePublish) {
-      btnSecurePublish.addEventListener('click', async () => {
-        if (!pubFile.files.length || !pubTitle.value.trim() || !pubPrice.value) {
-          alert('Completa todos los campos (archivo, título, precio)');
-          return;
-        }
-        const file = pubFile.files[0];
-        const allowedExtensions = ['.txt', '.mp3', '.mp4', '.rar', '.zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv'];
-        const fileName = file.name.toLowerCase();
-        const isValid = allowedExtensions.some(ext => fileName.endsWith(ext));
-        if (!isValid) {
-          alert('Tipo de archivo no permitido. Solo: ' + allowedExtensions.join(', '));
-          return;
-        }
-        const price = parseFloat(pubPrice.value);
-        if (isNaN(price) || price <= 0) {
-          alert('Ingresa un precio válido mayor a 0.');
-          return;
-        }
-
-        btnSecurePublish.disabled = true;
-        btnSecurePublish.textContent = '🔄 Publicando...';
-
-        try {
-          await publicarActivo(file, pubTitle.value.trim(), pubCat.value, price);
-          alert('✅ Activo publicado correctamente. Aparecerá en el feed.');
-          publishModal.classList.add('hidden');
-          // Limpiar campos
-          pubFile.value = '';
-          pubTitle.value = '';
-          pubCat.value = 'educacion';
-          pubPrice.value = '';
-          // Recargar feed
-          cargarFeedReal();
-        } catch (err) {
-          alert('❌ Error al publicar: ' + err.message);
-        } finally {
-          btnSecurePublish.disabled = false;
-          btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
-        }
-      });
-    }
-
-    // Exponer la función para que script.js la pueda llamar cuando se muestre el panel
-    window.cargarFeed = cargarFeedReal;
-
-    // Si el feed ya está visible (porque el usuario ya estaba logueado), cargarlo
-    if (getToken() && feedContainer && socialFeedPanel && socialFeedPanel.classList.contains('hidden') === false) {
-      cargarFeedReal();
+      } catch (e) {
+        log('⚠️ Error limpiando formulario: ' + e.message, 'warning');
+      }
+      
+      // ✅ Recargar feed si existe la función
+      if (typeof cargarFeedReal === 'function') {
+        cargarFeedReal();
+      }
+      
+    } catch (err) {
+      log('❌ Error al publicar: ' + err.message, 'error');
+      
+      // ✅ Mensajes de error específicos
+      if (err.message.includes('Timeout')) {
+        showNotification('⏱️ La operación tardó demasiado. Intenta con un archivo más pequeño', 'error');
+      } else if (err.message.includes('Tipo de archivo')) {
+        showNotification('❌ ' + err.message, 'error');
+      } else if (err.message.includes('Archivo muy grande')) {
+        showNotification('❌ ' + err.message, 'error');
+      } else {
+        showNotification('❌ Error al publicar: ' + err.message, 'error');
+      }
+    } finally {
+      // ✅ Rehabilitar botón de forma segura
+      isPublishing = false;
+      if (btnSecurePublish) {
+        btnSecurePublish.disabled = false;
+        btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
+        btnSecurePublish.style.opacity = '1';
+      }
     }
   });
-</script>
+}
+
+// ✅ Exponer la función para que script.js la pueda llamar
+window.cargarFeed = cargarFeedReal;
+
+// ✅ Si el feed ya está visible, cargarlo
+if (getToken() && feedContainer && socialFeedPanel && !socialFeedPanel.classList.contains('hidden')) {
+  if (typeof cargarFeedReal === 'function') {
+    cargarFeedReal();
+  }
+}
+
+log('🎨 Modal de publicación inicializado', 'success');
 <!-- 📢 SECCIÓN ANUNCIOS: apiromwinervault (Recompensas Seguras con IA Interna) -->
 <section id="adsSection" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 800px; margin: 0 auto; padding: 20px;">
   
@@ -15033,36 +15181,163 @@ async function loadFinancialData(period = '30d') {
       }
     });
     
-    // 📈 Gráfico de ingresos con barras CSS nativas (createElement)
-    const revBox = document.getElementById('revenueChartNative');
-    if (revBox && Array.isArray(res.data.revenueByDay) && res.data.revenueByDay.length > 0) {
-      revBox.innerHTML = '';
-      const max = Math.max(...res.data.revenueByDay.map(d => Number(d.amount || 0)), 1);
-      
-      res.data.revenueByDay.forEach(d => {
-        const amount = Number(d.amount || 0);
-        const h = Math.max(4, (amount / max) * 100);
-        const safeDate = sanitizeForDisplay(d.date?.slice(5), 10) || '';
-        
-        const barContainer = document.createElement('div');
-        barContainer.style.cssText = 'flex:1;min-width:20px;display:flex;flex-direction:column;align-items:center';
-        
-        const bar = document.createElement('div');
-        bar.style.cssText = `width:100%;background:linear-gradient(to top,#00e676,#00c853);border-radius:4px 4px 0 0;height:${h}%;min-height:4px`;
-        bar.setAttribute('aria-label', `${safeDate}: $${amount.toFixed(2)}`);
-        barContainer.appendChild(bar);
-        
-        const label = document.createElement('span');
-        label.style.cssText = 'font-size:0.65rem;color:#8b95a5;margin-top:4px;transform:rotate(-45deg);transform-origin:left';
-        label.textContent = safeDate;
-        barContainer.appendChild(label);
-        
-     revBox.appendChild(barContainer);
-      });
-    }
-  } catch (e) {
-    console.error('❌ Error en loadFinancialData:', e.message);
+ <script>
+// ============================================
+// 🛡️ UTILIDADES GLOBALES (sin dependencias externas)
+// Sistema de logs seguro
+function log(mensaje, tipo = 'info') {
+  const timestamp = new Date().toLocaleTimeString();
+  const colores = { 
+    info: '#8ab4f8', 
+    error: '#ff5252', 
+    success: '#00e676', 
+    warning: '#ffab40' 
+  };
+  const color = colores[tipo] || colores.info;
+  console.log(`%c[${timestamp}] ${mensaje}`, `color: ${color}`);
+}
+
+// ✅ Sistema de notificaciones mejorado con cola
+const NotificationQueue = {
+  queue: [],
+  maxVisible: 3,
+  currentVisible: 0
+};
+
+function showNotification(mensaje, tipo = 'info', duration = 4000) {
+  // ✅ Sanitizar mensaje para prevenir XSS
+  const safeMessage = String(mensaje).replace(/[<>'"]/g, (char) => {
+    const entities = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return entities[char] || char;
+  });
+
+  // ✅ Cola de notificaciones
+  if (NotificationQueue.currentVisible >= NotificationQueue.maxVisible) {
+    NotificationQueue.queue.push({ mensaje: safeMessage, tipo, duration });
+    return;
   }
+
+  const colores = { 
+    info: { bg: '#1a2332', border: '#8ab4f8', text: '#8ab4f8', icon: 'ℹ️' },
+    error: { bg: '#2a1520', border: '#ff5252', text: '#ff5252', icon: '❌' },
+    success: { bg: '#152a1a', border: '#00e676', text: '#00e676', icon: '✅' },
+    warning: { bg: '#2a2415', border: '#ffab40', text: '#ffab40', icon: '⚠️' }
+  };
+  const c = colores[tipo] || colores.info;
+
+  // ✅ CSS para animaciones (inyectado una sola vez)
+  if (!document.getElementById('notificationStyles')) {
+    const style = document.createElement('style');
+    style.id = 'notificationStyles';
+    style.textContent = `
+      @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes fadeOut {
+        from { opacity: 1; transform: translateX(0); }
+        to { opacity: 0; transform: translateX(100%); }
+      }
+      .notification-item {
+        transition: all 0.3s ease;
+      }
+      .notification-item:hover {
+        transform: translateX(-5px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // ✅ Crear contenedor si no existe
+  let container = document.getElementById('notificationContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'notificationContainer';
+    container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:320px';
+    document.body.appendChild(container);
+  }
+
+  const notif = document.createElement('div');
+  notif.className = 'notification-item';
+  notif.setAttribute('role', 'alert');
+  notif.setAttribute('aria-live', 'polite');
+  notif.style.cssText = `
+    background: ${c.bg}; 
+    border-left: 4px solid ${c.border};
+    color: ${c.text}; 
+    padding: 12px 20px; 
+    border-radius: 8px;
+    font-family: system-ui, sans-serif; 
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: slideInRight 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  `;
+  
+  // ✅ Icono + Mensaje
+  const icon = document.createElement('span');
+  icon.style.cssText = 'font-size:1.2rem;flex-shrink:0';
+  icon.textContent = c.icon;
+  
+  const text = document.createElement('span');
+  text.style.cssText = 'flex:1;line-height:1.4';
+  text.textContent = safeMessage;
+  
+  notif.appendChild(icon);
+  notif.appendChild(text);
+  
+  // ✅ Click para cerrar
+  notif.addEventListener('click', () => {
+    closeNotification(notif);
+  });
+
+  container.appendChild(notif);
+  NotificationQueue.currentVisible++;
+
+  // ✅ Auto-cerrar
+  const timeoutId = setTimeout(() => {
+    closeNotification(notif);
+  }, duration);
+
+  // ✅ Guardar timeout para poder cancelarlo
+  notif._timeoutId = timeoutId;
+}
+
+function closeNotification(notif) {
+  if (notif._closed) return;
+  notif._closed = true;
+  
+  if (notif._timeoutId) {
+    clearTimeout(notif._timeoutId);
+  }
+  
+  notif.style.animation = 'fadeOut 0.3s ease-out';
+  setTimeout(() => {
+    notif.remove();
+    NotificationQueue.currentVisible--;
+    
+    // ✅ Procesar cola
+    if (NotificationQueue.queue.length > 0) {
+      const next = NotificationQueue.queue.shift();
+      showNotification(next.mensaje, next.tipo, next.duration);
+    }
+  }, 300);
+}
+
+// ✅ Función helper para sanitizar (si no existe)
+if (typeof sanitizeForDisplay !== 'function') {
+  window.sanitizeForDisplay = function(text, maxLength = 100) {
+    if (!text) return '';
+    const safe = String(text).replace(/[<>'"&]/g, (char) => {
+      const entities = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' };
+      return entities[char] || char;
+    });
+    return safe.length > maxLength ? safe.substring(0, maxLength) + '...' : safe;
+  };
 }
 </script>
 <script>
