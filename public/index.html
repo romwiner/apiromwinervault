@@ -2515,10 +2515,10 @@ if (btnSecurePublish) {
         btnSecurePublish.disabled = false;
         btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
         btnSecurePublish.style.opacity = '1';
-      }
-    }
-  });
-}
+      }        // ← ✅ Cierra: if (btnSecurePublish) dentro del finally
+    }          // ← ✅ Cierra: finally
+      });      // ← ✅ Cierra: addEventListener('click', async () => {
+    }          // ← ✅ Cierra: if (btnSecurePublish) externo
 
 // ✅ Exponer la función para que script.js la pueda llamar
 window.cargarFeed = cargarFeedReal;
