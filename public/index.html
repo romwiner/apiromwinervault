@@ -2499,8 +2499,9 @@ if (typeof cargarFeedReal === 'function') {
 } catch (err) {
   console.log('❌ Error al publicar: ' + err.message);
   
+  // ✅ Mensajes de error específicos
   if (err.message.includes('Timeout')) {
-    showNotification('⏱️ La operación tardó demasiado', 'error');
+    showNotification('⏱️ La operación tardó demasiado. Intenta con un archivo más pequeño', 'error');
   } else if (err.message.includes('Tipo de archivo')) {
     showNotification('❌ ' + err.message, 'error');
   } else if (err.message.includes('Archivo muy grande')) {
@@ -2521,7 +2522,6 @@ if (typeof cargarFeedReal === 'function') {
 
 // ✅ Exponer la función para que script.js la pueda llamar
 window.cargarFeed = cargarFeedReal;
-}    
 </script>
 
 <script>
@@ -2538,7 +2538,6 @@ if (token && typeof feedContainer !== 'undefined' && typeof socialFeedPanel !== 
 }
 
 console.log('🎨 Modal de publicación inicializado');
-
 // ============================================
 // 📢 SECCIÓN DE ANUNCIOS - FUNCIONALIDAD COMPLETA
 // ============================================
