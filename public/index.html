@@ -13215,9 +13215,24 @@ async function publish(event) {
         priceInput.removeAttribute('aria-invalid');
       }, 2000);
     }
-    return;
+  return;
   }
   
+  const btn = event?.currentTarget || document.querySelector('#createModal button');
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = '📤 Publicando...'; }
+    const encryptedContent = await simulateEnvelopeEncryption(titulo, categoria);
+    await req('/vault', 'POST', { titulo, price: forSale ? price : 0, categoria, forSale, contenido: encryptedContent, encrypted: true });
+    showNotification('✅ Contenido publicado', 'success');
+    closeCreate();
+    if (typeof refresh === 'function') refresh();
+  } catch (e) {
+    showNotification('❌ Error publicando', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✅ Publicar en Venta'; }
+  }
+}
+
 // 🔐 Simular cifrado Envelope (local, sin conexiones externas)
 async function simulateEnvelopeEncryption(titulo, categoria) {
   // ✅ En producción: usar WebCrypto API para cifrado real
