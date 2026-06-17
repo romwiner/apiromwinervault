@@ -15057,12 +15057,15 @@ async function loadFinancialData(period = '30d') {
         label.textContent = safeDate;
         barContainer.appendChild(label);
         
-        revBox.appendChild(barContainer);
+     revBox.appendChild(barContainer);
       });
     }
-  // ============================================
-// 🛡️ UTILIDADES GLOBALES (sin dependencias externas)
+  } catch (e) {
+    console.error('❌ Error en loadFinancialData:', e.message);
+  }
+}
 // ============================================
+// 🛡️ UTILIDADES GLOBALES (sin dependencias externas)
 
 // Sistema de logs seguro
 function log(mensaje, tipo = 'info') {
