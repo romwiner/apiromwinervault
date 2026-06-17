@@ -2481,44 +2481,43 @@ if (btnSecurePublish) {
       publishModal.classList.add('hidden');
       publishModal.setAttribute('aria-hidden', 'true');
       
-          // ✅ Limpiar campos
-      try {
-        if (pubFile) pubFile.value = '';
-        if (pubTitle) pubTitle.value = '';
-        if (pubCat) pubCat.value = 'educacion';
-        if (pubPrice) pubPrice.value = '';
-      } catch (e) {
-           console.log('⚠️ Error limpiando formulario: ' + e.message);
-      }
-      
-  // ✅ Recargar feed si existe la función
-      if (typeof cargarFeedReal === 'function') {
-        cargarFeedReal();
-      }
-      
-    } catch (err) {
-      console.log('❌ Error al publicar: ' + err.message);
-      
-         // ✅ Mensajes de error específicos
-      if (err.message.includes('Timeout')) {
-        showNotification('⏱️ La operación tardó demasiado. Intenta con un archivo más pequeño', 'error');
-      } else if (err.message.includes('Tipo de archivo')) {
-        showNotification('❌ ' + err.message, 'error');
-      } else if (err.message.includes('Archivo muy grande')) {
-        showNotification('❌ ' + err.message, 'error');
-      } else {
-        showNotification('❌ Error al publicar: ' + err.message, 'error');
-      }
-    } finally {
-      isPublishing = false;
-      if (btnSecurePublish) {
-        btnSecurePublish.disabled = false;
-        btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
-        btnSecurePublish.style.opacity = '1';
-      }        // ← ✅ Cierra: if (btnSecurePublish) dentro del finally
-    }          // ← ✅ Cierra: finally
-      });      // ← ✅ Cierra: addEventListener('click', async () => {
-    }          // ← ✅ Cierra: if (btnSecurePublish) externo
+      // ✅ Limpiar campos
+try {
+  if (pubFile) pubFile.value = '';
+  if (pubTitle) pubTitle.value = '';
+  if (pubCat) pubCat.value = 'educacion';
+  if (pubPrice) pubPrice.value = '';
+} catch (e) {
+  console.log('⚠️ Error limpiando formulario: ' + e.message);
+}
+
+// ✅ Recargar feed si existe la función
+if (typeof cargarFeedReal === 'function') {
+  cargarFeedReal();
+}
+
+} catch (err) {
+  console.log('❌ Error al publicar: ' + err.message);
+  
+  if (err.message.includes('Timeout')) {
+    showNotification('⏱️ La operación tardó demasiado', 'error');
+  } else if (err.message.includes('Tipo de archivo')) {
+    showNotification('❌ ' + err.message, 'error');
+  } else if (err.message.includes('Archivo muy grande')) {
+    showNotification('❌ ' + err.message, 'error');
+  } else {
+    showNotification('❌ Error al publicar: ' + err.message, 'error');
+  }
+} finally {
+  isPublishing = false;
+  if (btnSecurePublish) {
+    btnSecurePublish.disabled = false;
+    btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
+    btnSecurePublish.style.opacity = '1';
+  }
+}
+});
+}
 
 // ✅ Exponer la función para que script.js la pueda llamar
 window.cargarFeed = cargarFeedReal;
