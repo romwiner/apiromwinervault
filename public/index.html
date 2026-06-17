@@ -2178,8 +2178,8 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
 
   // Cargar feed cuando la sección se haga visible (desde la función de cambio de vista)
   // Además, exponer la función para que sea llamada desde script.js cuando se muestre el panel
-  window.cargarFeed = cargarFeed;
-})();
+ window.cargarFeed = cargarFeedReal; 
+  }); // cierre DOMContentLoaded
 </script>
 <!-- 🧠 LÓGICA REAL DEL FEED (Cero enlaces externos, conecta con backend) -->
 <script>
