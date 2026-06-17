@@ -2866,6 +2866,7 @@ body.registro-activo #vistaLanding { display: none !important; visibility: hidde
   
   // ========== AÑADIR CAMPO "CONFIRMAR CONTRASEÑA" ==========
   const passwordField = $('#regPassword');
+  if (!passwordField) return;
   const confirmContainer = document.createElement('div');
   confirmContainer.style.marginBottom = '16px';
   
