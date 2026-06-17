@@ -2399,7 +2399,7 @@ if (btnClosePublish) {
       if (pubCat) pubCat.value = 'educacion';
       if (pubPrice) pubPrice.value = '';
     } catch (e) {
-      log('⚠️ Error limpiando formulario: ' + e.message, 'warning');
+      console.log('⚠️ Error limpiando formulario: ' + e.message, 'warning');
     }
   });
 }
@@ -2488,7 +2488,7 @@ if (btnSecurePublish) {
         if (pubCat) pubCat.value = 'educacion';
         if (pubPrice) pubPrice.value = '';
       } catch (e) {
-        log('⚠️ Error limpiando formulario: ' + e.message, 'warning');
+        console.log('⚠️ Error limpiando formulario: ' + e.message, 'warning');
       }
       
       // ✅ Recargar feed si existe la función
@@ -2497,7 +2497,7 @@ if (btnSecurePublish) {
       }
       
     } catch (err) {
-      log('❌ Error al publicar: ' + err.message, 'error');
+      console.log('❌ Error al publicar: ' + err.message, 'error');
       
       // ✅ Mensajes de error específicos
       if (err.message.includes('Timeout')) {
@@ -2537,7 +2537,7 @@ document.addEventListener('DOMContentLoaded', function() {
       cargarFeedReal();
     }
   }
-  if (typeof log === 'function') log('🎨 Modal de publicación inicializado', 'success');
+  if (typeof log === 'function') console.log('🎨 Modal de publicación inicializado', 'success');
 });
 
 // ============================================
@@ -2572,7 +2572,7 @@ async function loadAvailableAds() {
   const btnRefresh = document.getElementById('btnRefreshAds');
 
   if (!adsContainer || !adsStatus) {
-    log('❌ Elementos de anuncios no encontrados', 'error');
+    console.log('❌ Elementos de anuncios no encontrados', 'error');
     adsState.loading = false;
     return;
   }
@@ -2688,7 +2688,7 @@ async function loadAvailableAds() {
     adsState.loaded = true;
 
   } catch (error) {
-    log('❌ Error cargando anuncios: ' + error.message, 'error');
+    console.log('❌ Error cargando anuncios: ' + error.message, 'error');
     adsContainer.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #ef4444;">
         <p style="font-size: 1.1rem; margin-bottom: 8px;">❌ Error cargando anuncios</p>
@@ -2888,7 +2888,7 @@ async function watchAd(adId) {
         throw new Error(res.error || 'Error procesando recompensa');
       }
     } catch (error) {
-      log('❌ Error reclamando recompensa: ' + error.message, 'error');
+      console.log('❌ Error reclamando recompensa: ' + error.message, 'error');
       showNotification('❌ Error: ' + error.message, 'error');
     }
   });
@@ -2943,7 +2943,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    log('📢 Sección de anuncios inicializada', 'success');
+    console.log('📢 Sección de anuncios inicializada', 'success');
   }
 });
 </script>
@@ -3570,7 +3570,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const hiddenRef = document.getElementById('regRefCode');
     if (hiddenRef) hiddenRef.value = refCodeParam;
     // También podemos mostrarlo al usuario (opcional)
-    console.log('Código de referido detectado:', refCodeParam);
+    console.console.log('Código de referido detectado:', refCodeParam);
   }
   
   // ========== ENVÍO DEL FORMULARIO (BACKEND REAL) ==========
@@ -5596,7 +5596,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getToken = () => localStorage.getItem('authToken');
 
-    function addLog(message, type = 'info') {
+    function addconsole.log(message, type = 'info') {
       const logEntry = document.createElement('p');
       logEntry.style.margin = '4px 0';
       logEntry.style.color = type === 'error' ? '#ef4444' : (type === 'success' ? '#059669' : '#94a3b8');
@@ -5619,7 +5619,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.success && (data.profile?.isAdmin || data.user?.isAdmin)) {
           const esSupremo = data.user?.esSupremo || data.profile?.esSupremo;
           roleDisplay.textContent = esSupremo ? '👑 DUEÑO SUPREMO' : '🔐 ADMINISTRADOR';
-          addLog('Acceso administrativo verificado.', 'success');
+          addconsole.log('Acceso administrativo verificado.', 'success');
           return true;
         } else {
           adminPanel.classList.add('hidden');
@@ -5650,11 +5650,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.success && data.users) {
           let userList = data.users.map(u => `${u.email} (${u.tier || 'personal'})${u.isSupremo ? ' 👑' : ''}`).join('\n');
           alert('Usuarios registrados:\n' + userList);
-          addLog(`Listados ${data.users.length} usuarios.`);
+          addconsole.log(`Listados ${data.users.length} usuarios.`);
         } else throw new Error('Error al listar');
       } catch (err) {
         alert('Error: ' + err.message);
-        addLog('Error al listar usuarios: ' + err.message, 'error');
+        addconsole.log('Error al listar usuarios: ' + err.message, 'error');
       }
     }
 
@@ -5682,11 +5682,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.success) {
           alert(`Cuenta regalada a ${email}. Contraseña temporal: ${data.tempPassword || 'N/A'}`);
-          addLog(`Cuenta regalada a ${email} con $${balance} y plan ${tier}.`);
+          addconsole.log(`Cuenta regalada a ${email} con $${balance} y plan ${tier}.`);
         } else throw new Error(data.error);
       } catch (err) {
         alert('Error: ' + err.message);
-        addLog('Error al regalar cuenta: ' + err.message, 'error');
+        addconsole.log('Error al regalar cuenta: ' + err.message, 'error');
       }
     }
 
@@ -5704,11 +5704,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.success) {
           alert(`Usuario ${email} eliminado.`);
-          addLog(`Usuario ${email} eliminado.`);
+          addconsole.log(`Usuario ${email} eliminado.`);
         } else throw new Error(data.error);
       } catch (err) {
         alert('Error: ' + err.message);
-        addLog('Error al eliminar usuario: ' + err.message, 'error');
+        addconsole.log('Error al eliminar usuario: ' + err.message, 'error');
       }
     }
 
@@ -5734,11 +5734,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.success) {
           alert(`Contraseña de ${email} actualizada.`);
-          addLog(`Contraseña restablecida para ${email}.`);
+          addconsole.log(`Contraseña restablecida para ${email}.`);
         } else throw new Error(data.error);
       } catch (err) {
         alert('Error: ' + err.message);
-        addLog('Error al resetear contraseña: ' + err.message, 'error');
+        addconsole.log('Error al resetear contraseña: ' + err.message, 'error');
       }
     }
 
@@ -5753,11 +5753,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.success) {
           alert('Rotación de claves iniciada. Se rotarán las claves de usuarios elegibles.');
-          addLog('Rotación de claves solicitada.');
+          addconsole.log('Rotación de claves solicitada.');
         } else throw new Error(data.error);
       } catch (err) {
         alert('Error: ' + err.message);
-        addLog('Error al rotar claves: ' + err.message, 'error');
+        addconsole.log('Error al rotar claves: ' + err.message, 'error');
       }
     }
 
@@ -5772,13 +5772,13 @@ document.addEventListener('DOMContentLoaded', () => {
       // Como simplificación, enviaremos un endpoint que deberías agregar (o usar /api/admin/funds/grant con el userId)
       // Por ahora, simulamos una respuesta exitosa y agregamos log.
       alert('Funcionalidad pendiente: implementar endpoint de pago admin.');
-      addLog(`Intento de pago a ${email} por $${amount} (pendiente de implementación).`, 'error');
+      addconsole.log(`Intento de pago a ${email} por $${amount} (pendiente de implementación).`, 'error');
     }
 
     // Transferir poderes (solo dueño supremo)
     async function transferirPoderes() {
       alert('Esta acción solo es posible mediante contrato legal. Contacta al administrador.');
-      addLog('Intento de transferencia de poderes (no implementado).');
+      addconsole.log('Intento de transferencia de poderes (no implementado).');
     }
 
     // Auditoría IA (solo simulada, pero real en backend ya existe)
@@ -5788,7 +5788,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch('/api/security/status');
         const data = await res.json();
         alert(`Estado de seguridad:\nCifrado: ${data.encryption?.algorithm}\nZero-Knowledge: ${data.encryption?.zeroKnowledgeReady}`);
-        addLog('Auditoría IA de seguridad ejecutada.');
+        addconsole.log('Auditoría IA de seguridad ejecutada.');
       } catch (err) {
         alert('Error al obtener auditoría');
       }
@@ -5800,7 +5800,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const confirmation = prompt('Escribe "BORRAR" para proceder:');
         if (confirmation === 'BORRAR') {
           alert('Esta acción no está implementada por seguridad. Solo el dueño supremo puede realizarla vía backend.');
-          addLog('Intento de nuke (no implementado).');
+          addconsole.log('Intento de nuke (no implementado).');
         } else {
           alert('Cancelado.');
         }
@@ -5905,7 +5905,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const roleDisplay = document.getElementById('adminRoleDisplay');
   const getToken = () => localStorage.getItem('authToken');
 
-  function addLog(message, type = 'info') {
+  function addconsole.log(message, type = 'info') {
     const logEntry = document.createElement('p');
     logEntry.style.margin = '4px 0';
     logEntry.style.color = type === 'error' ? '#ef4444' : (type === 'success' ? '#059669' : '#94a3b8');
@@ -5928,7 +5928,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.success && (data.profile?.isAdmin || data.user?.isAdmin)) {
         const esSupremo = data.user?.esSupremo || data.profile?.esSupremo;
         roleDisplay.textContent = esSupremo ? '👑 DUEÑO SUPREMO' : '🔐 ADMINISTRADOR';
-        addLog('Acceso administrativo verificado.', 'success');
+        addconsole.log('Acceso administrativo verificado.', 'success');
         adminPanel.classList.remove('hidden');
         return true;
       } else {
@@ -5956,11 +5956,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.success && data.users) {
         let userList = data.users.map(u => `${u.email} (${u.tier || 'personal'})${u.isSupremo ? ' 👑' : ''}`).join('\n');
         alert('Usuarios registrados:\n' + userList);
-        addLog(`Listados ${data.users.length} usuarios.`);
+        addconsole.log(`Listados ${data.users.length} usuarios.`);
       } else throw new Error('Error al listar');
     } catch (err) {
       alert('Error: ' + err.message);
-      addLog('Error al listar usuarios: ' + err.message, 'error');
+      addconsole.log('Error al listar usuarios: ' + err.message, 'error');
     }
   }
 
@@ -5987,11 +5987,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (data.success) {
         alert(`Cuenta regalada a ${email}. Contraseña temporal: ${data.tempPassword || 'N/A'}`);
-        addLog(`Cuenta regalada a ${email} con $${balance} y plan ${tier}.`);
+        addconsole.log(`Cuenta regalada a ${email} con $${balance} y plan ${tier}.`);
       } else throw new Error(data.error);
     } catch (err) {
       alert('Error: ' + err.message);
-      addLog('Error al regalar cuenta: ' + err.message, 'error');
+      addconsole.log('Error al regalar cuenta: ' + err.message, 'error');
     }
   }
 
@@ -6008,11 +6008,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (data.success) {
         alert(`Usuario ${email} eliminado.`);
-        addLog(`Usuario ${email} eliminado.`);
+        addconsole.log(`Usuario ${email} eliminado.`);
       } else throw new Error(data.error);
     } catch (err) {
       alert('Error: ' + err.message);
-      addLog('Error al eliminar usuario: ' + err.message, 'error');
+      addconsole.log('Error al eliminar usuario: ' + err.message, 'error');
     }
   }
 
@@ -6037,11 +6037,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (data.success) {
         alert(`Contraseña de ${email} actualizada.`);
-        addLog(`Contraseña restablecida para ${email}.`);
+        addconsole.log(`Contraseña restablecida para ${email}.`);
       } else throw new Error(data.error);
     } catch (err) {
       alert('Error: ' + err.message);
-      addLog('Error al resetear contraseña: ' + err.message, 'error');
+      addconsole.log('Error al resetear contraseña: ' + err.message, 'error');
     }
   }
 
@@ -6055,11 +6055,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (data.success) {
         alert('Rotación de claves iniciada. Se rotarán las claves de usuarios elegibles.');
-        addLog('Rotación de claves solicitada.');
+        addconsole.log('Rotación de claves solicitada.');
       } else throw new Error(data.error);
     } catch (err) {
       alert('Error: ' + err.message);
-      addLog('Error al rotar claves: ' + err.message, 'error');
+      addconsole.log('Error al rotar claves: ' + err.message, 'error');
     }
   }
 
@@ -6069,12 +6069,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const amount = parseFloat(prompt('Monto a acreditar (USD):'));
     if (isNaN(amount) || amount <= 0) return;
     alert('Funcionalidad pendiente: implementar endpoint de pago admin.');
-    addLog(`Intento de pago a ${email} por $${amount} (pendiente).`, 'error');
+    addconsole.log(`Intento de pago a ${email} por $${amount} (pendiente).`, 'error');
   }
 
   function transferirPoderes() {
     alert('Esta acción solo es posible mediante contrato legal. Contacta al administrador.');
-    addLog('Intento de transferencia de poderes (no implementado).');
+    addconsole.log('Intento de transferencia de poderes (no implementado).');
   }
 
   async function auditoriaIA() {
@@ -6083,7 +6083,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/security/status');
       const data = await res.json();
       alert(`Estado de seguridad:\nCifrado: ${data.encryption?.algorithm}\nZero-Knowledge: ${data.encryption?.zeroKnowledgeReady}`);
-      addLog('Auditoría IA de seguridad ejecutada.');
+      addconsole.log('Auditoría IA de seguridad ejecutada.');
     } catch (err) {
       alert('Error al obtener auditoría');
     }
@@ -6094,7 +6094,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const confirmation = prompt('Escribe "BORRAR" para proceder:');
       if (confirmation === 'BORRAR') {
         alert('Esta acción no está implementada por seguridad. Solo el dueño supremo puede realizarla vía backend.');
-        addLog('Intento de nuke (no implementado).');
+        addconsole.log('Intento de nuke (no implementado).');
       } else {
         alert('Cancelado.');
       }
@@ -6128,7 +6128,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
   function registerServiceWorkerSecure() {
     if (!('serviceWorker' in navigator)) {
-      console.log('[apiromwinervault] Service Worker no soportado en este navegador.');
+      console.console.log('[apiromwinervault] Service Worker no soportado en este navegador.');
       return;
     }
     fetch('/sw.js', { method: 'HEAD', cache: 'no-store' })
@@ -6140,7 +6140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .then(reg => {
-        console.log('[apiromwinervault] ✅ PWA registrado de forma segura:', reg.scope);
+        console.console.log('[apiromwinervault] ✅ PWA registrado de forma segura:', reg.scope);
       })
       .catch(err => {
         console.warn('[apiromwinervault] ⚠️ PWA omitido:', err.message);
@@ -6170,7 +6170,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Función auxiliar para logs
-  function addSystemLog(message) {
+  function addSystemconsole.log(message) {
     const timestamp = new Date().toLocaleTimeString();
     const logMessage = `[${timestamp}] ${message}`;
     const adminLogs = document.getElementById('adminLogs');
@@ -6188,7 +6188,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (logs.length > 100) logs.shift();
       localStorage.setItem('apiromwiner_logs', JSON.stringify(logs));
     } catch(e) {}
-    console.log('[apiromwinervault]', logMessage);
+    console.console.log('[apiromwinervault]', logMessage);
   }
 
   function updateConnectionStatus(status, message) {
@@ -6285,7 +6285,7 @@ document.addEventListener('DOMContentLoaded', () => {
           status: 'success', attempt, server: data, ai_audit: aiAudit, timestamp: new Date().toISOString()
         }, null, 2);
         responsePre.style.color = data.status === 'ok' ? '#00e676' : '#ffb74d';
-        addSystemLog(`✅ API conectada (intento ${attempt}) - IA: ${aiAudit.verdict}`);
+        addSystemconsole.log(`✅ API conectada (intento ${attempt}) - IA: ${aiAudit.verdict}`);
         updateConnectionStatus('connected', `Conectado • IA: ${aiAudit.verdict}`);
         return { success: true, data, audit: aiAudit };
       } catch (e) {
@@ -6299,7 +6299,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Todos los intentos fallaron
     responsePre.textContent = `❌ Error tras ${CONFIG.MAX_RETRIES} intentos: ${lastError?.message || 'Sin conexión'}`;
     responsePre.style.color = '#ff5252';
-    addSystemLog(`❌ API inaccesible: ${lastError?.message}`);
+    addSystemconsole.log(`❌ API inaccesible: ${lastError?.message}`);
     updateConnectionStatus('disconnected', 'Desconectado');
     return { success: false, error: lastError };
   }
@@ -6309,7 +6309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('serviceWorker' in navigator) {
       fetch('/sw.js', { method: 'HEAD', cache: 'no-store' })
         .then(res => res.ok && navigator.serviceWorker.register('/sw.js'))
-        .catch(() => console.log('SW no disponible'));
+        .catch(() => console.console.log('SW no disponible'));
     }
   }
 
@@ -6321,19 +6321,19 @@ document.addEventListener('DOMContentLoaded', () => {
       secure_context: window.isSecureContext || location.hostname === 'localhost'
     };
     const allPassed = Object.values(checks).every(v => v === true);
-    addSystemLog(`🛡️ Verificación de integridad: ${allPassed ? 'APROBADA' : 'ADVERTENCIA'}`);
+    addSystemconsole.log(`🛡️ Verificación de integridad: ${allPassed ? 'APROBADA' : 'ADVERTENCIA'}`);
     if (!checks.secure_context) console.warn('Contexto no seguro');
     return { passed: allPassed, checks };
   }
 
   function initializeSecureApp() {
-    addSystemLog('🚀 Iniciando apiromwinervault...');
-    addSystemLog(`👑 Propietario: ${CONFIG.OWNER_NAME}`);
+    addSystemconsole.log('🚀 Iniciando apiromwinervault...');
+    addSystemconsole.log(`👑 Propietario: ${CONFIG.OWNER_NAME}`);
     verifySystemIntegrity();
     registerServiceWorkerSecure();
     setTimeout(() => checkAPI(), 1000);
     setInterval(() => checkAPI(), 60000);
-    addSystemLog('✅ Sistema inicializado correctamente');
+    addSystemconsole.log('✅ Sistema inicializado correctamente');
   }
 
   window.apiromwiner = {
@@ -6473,7 +6473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const landingAIAudit = document.getElementById('landingAIAudit');
     const landingAuditContent = document.getElementById('landingAuditContent');
 
-    console.log('🔍 [DEBUG] Elementos cargados:', {
+    console.console.log('🔍 [DEBUG] Elementos cargados:', {
       btnCreateAccount: !!btnCreateAccount,
       btnShowPromo: !!btnShowPromo,
       btnShowLogin: !!btnShowLogin,
@@ -6549,7 +6549,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }, 300);
         
-        console.log('✅ Solo formulario de identidad visible');
+        console.console.log('✅ Solo formulario de identidad visible');
       });
     }
 
@@ -7174,7 +7174,7 @@ document.addEventListener('DOMContentLoaded', () => {
           qrImg.src = '/api/qr/' + urlSanitizada;
         }, 2000);
       };
-      console.log('QR generado con URL:', url);
+      console.console.log('QR generado con URL:', url);
     }
 
     // ========== COMPARTIR NATIVO ==========
@@ -7188,7 +7188,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         if (navigator.share && navigator.canShare(shareData)) {
           await navigator.share(shareData);
-          addLog('✅ App compartida vía nativa');
+          addconsole.log('✅ App compartida vía nativa');
         } else {
           copyToClipboard(url);
         }
@@ -7202,7 +7202,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => {
           mostrarFeedback(btnCopyLink, '✅ ¡Enlace copiado!');
-          addLog('📋 Enlace copiado al portapapeles');
+          addconsole.log('📋 Enlace copiado al portapapeles');
         });
       } else {
         const textarea = document.createElement('textarea');
@@ -7228,8 +7228,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 2000);
     }
 
-    function addLog(msg) {
-      console.log('[InstallShare]', msg);
+    function addconsole.log(msg) {
+      console.console.log('[InstallShare]', msg);
       const adminLogs = document.getElementById('adminLogs');
       if (adminLogs) {
         const logEntry = document.createElement('p');
@@ -7251,7 +7251,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       deferredPrompt = e;
       if (btnInstallPWA) btnInstallPWA.style.display = 'flex';
-      addLog('📲 App detectable como instalable');
+      addconsole.log('📲 App detectable como instalable');
     });
     if (btnInstallPWA) {
       btnInstallPWA.addEventListener('click', async () => {
@@ -7262,17 +7262,17 @@ document.addEventListener('DOMContentLoaded', () => {
           await deferredPrompt.prompt();
           const { outcome } = await deferredPrompt.userChoice;
           if (outcome === 'accepted') {
-            addLog('✅ App instalada exitosamente');
+            addconsole.log('✅ App instalada exitosamente');
             btnInstallPWA.innerHTML = '✅ ¡App Instalada!';
             btnInstallPWA.style.background = '#334155';
           } else {
-            addLog('❌ Instalación cancelada');
+            addconsole.log('❌ Instalación cancelada');
             btnInstallPWA.innerHTML = '📲 Instalar App';
             btnInstallPWA.disabled = false;
           }
           deferredPrompt = null;
         } catch (err) {
-          addLog('⚠️ Error instalación: ' + err.message);
+          addconsole.log('⚠️ Error instalación: ' + err.message);
           btnInstallPWA.innerHTML = '📲 Instalar App';
           btnInstallPWA.disabled = false;
         }
@@ -10405,7 +10405,7 @@ document.addEventListener('DOMContentLoaded', () => {
           alert('✅ Enlace y mensaje copiados al portapapeles para compartir.');
         }
       } catch (err) {
-        console.log('El usuario canceló el compartir o no es soportado.');
+        console.console.log('El usuario canceló el compartir o no es soportado.');
       }
     });
   });
@@ -10425,7 +10425,7 @@ function notifySafe(message, type = 'info') {
     showNotification(message, type);
   } else {
     // Fallback mínimo: console + alert solo si es error
-    console.log(`[${type.toUpperCase()}] ${message}`);
+    console.console.log(`[${type.toUpperCase()}] ${message}`);
     if (type === 'error') alert(message);
   }
 }
@@ -10457,7 +10457,7 @@ window.registerWebhook = async function() {
   
   try {
     // Demo: simular registro exitoso
-    console.log('🔗 Webhook registrado:', { url, event, hasSecret: !!secret });
+    console.console.log('🔗 Webhook registrado:', { url, event, hasSecret: !!secret });
     notifySafe('✅ Webhook registrado exitosamente', 'success');
     
     // Agregar a la lista visual con sanitización para prevenir XSS
@@ -10486,7 +10486,7 @@ window.closeWebhooks = function() {
   const modal = document.getElementById('webhookModal');
   if (modal) {
     modal.classList.add('hidden');
-    console.log('🔒 Modal webhooks cerrado');
+    console.console.log('🔒 Modal webhooks cerrado');
   }
 };
 
@@ -10495,7 +10495,7 @@ window.closeAudit = function() {
   const modal = document.getElementById('auditModal');
   if (modal) {
     modal.classList.add('hidden');
-    console.log('🔒 Modal auditoría cerrado');
+    console.console.log('🔒 Modal auditoría cerrado');
   }
 };
 
@@ -10503,7 +10503,7 @@ window.closeAudit = function() {
 window.exportVault = async function() {
   const zkToggle = document.getElementById('zkToggle');
   const zk = zkToggle?.checked || false;
-  console.log('📦 Exportando bóveda...', { zeroKnowledge: zk });
+  console.console.log('📦 Exportando bóveda...', { zeroKnowledge: zk });
   
   try {
     // Demo: generar JSON de exportación
@@ -10533,7 +10533,7 @@ window.exportVault = async function() {
 };
 
 window.importVault = function() {
-  console.log('📥 Importando bóveda...');
+  console.console.log('📥 Importando bóveda...');
   notifySafe('📥 Selecciona tu archivo .json de exportación (demo)', 'info');
   // En producción: input type="file" + fetch('/api/vault/import')
 };
@@ -10575,7 +10575,7 @@ window.syncCheck = async function() {
 };
 
 window.syncPush = function() {
-  console.log('🔄 Sincronizando cambios...');
+  console.console.log('🔄 Sincronizando cambios...');
   notifySafe('🔄 Sincronización iniciada (demo)', 'info');
 };
 
@@ -10584,7 +10584,7 @@ window.toggleZeroKnowledge = function() {
   const warning = document.getElementById('zkWarning');
   const enabled = zkToggle?.checked || false;
   if (warning) warning.style.display = enabled ? 'inline' : 'none';
-  console.log('🔐 Zero-Knowledge:', enabled ? 'ACTIVADO' : 'DESACTIVADO');
+  console.console.log('🔐 Zero-Knowledge:', enabled ? 'ACTIVADO' : 'DESACTIVADO');
 };
 </script>
 <script>
@@ -10601,7 +10601,7 @@ function notifySafe(message, type = 'info') {
   if (typeof showNotification === 'function') {
     showNotification(message, type);
   } else {
-    console.log(`[${type.toUpperCase()}] ${message}`);
+    console.console.log(`[${type.toUpperCase()}] ${message}`);
     if (type === 'error') alert(message);
   }
 }
@@ -10704,7 +10704,7 @@ window.loadMarketplace = async function() {
       }
     });
     
-    console.log('🛍️ Marketplace cargado:', demoItems.length, 'productos');
+    console.console.log('🛍️ Marketplace cargado:', demoItems.length, 'productos');
   } catch (e) {
     console.error('❌ Error cargando marketplace:', e);
     if (empty) {
@@ -10720,12 +10720,12 @@ window.closeMarketplace = function() {
   const section = document.getElementById('marketplaceSection');
   if (section) {
     section.style.display = 'none';
-    console.log('🔒 Marketplace cerrado');
+    console.console.log('🔒 Marketplace cerrado');
   }
 };
 
 window.openSecurePlayer = function(fileId, fileName) {
-  console.log('🎬 Abriendo reproductor seguro:', { fileId, fileName });
+  console.console.log('🎬 Abriendo reproductor seguro:', { fileId, fileName });
   
   // ✅ Verificar que no haya otro modal abierto
   const existing = document.querySelector('.media-modal');
@@ -10786,12 +10786,12 @@ window.openSecurePlayer = function(fileId, fileName) {
 };
 
 window.buyItem = function(itemId) {
-  console.log('💰 Comprando item:', itemId);
+  console.console.log('💰 Comprando item:', itemId);
   notifySafe('💰 Proceso de compra iniciado (demo)', 'info');
 };
 
 window.viewItem = function(itemId) {
-  console.log('👁️ Viendo item:', itemId);
+  console.console.log('👁️ Viendo item:', itemId);
   notifySafe('👁️ Vista previa del producto (demo)', 'info');
 };
 
@@ -10878,7 +10878,7 @@ window.loadFeed = async function(filter = 'all') {
       }
     });
     
-    console.log('📱 Feed cargado:', posts.length, 'posts');
+    console.console.log('📱 Feed cargado:', posts.length, 'posts');
   } catch (e) {
     console.error('❌ Error cargando feed:', e);
     container.innerHTML = '<div style="text-align:center;padding:20px;color:#ff5252" role="alert">⚠️ Error cargando feed. Intenta de nuevo.</div>';
@@ -10886,7 +10886,7 @@ window.loadFeed = async function(filter = 'all') {
 };
 
 window.loadMoreFeed = function() {
-  console.log('📱 Cargando más posts...');
+  console.console.log('📱 Cargando más posts...');
   notifySafe('📱 Más productos cargados (demo)', 'info');
 };
 
@@ -10939,7 +10939,7 @@ window.publishProduct = function(event) {
     return false;
   }
 
-  console.log('📤 Publicando producto:', { titulo, categoria, forSale, precio, hasFile: !!archivo });
+  console.console.log('📤 Publicando producto:', { titulo, categoria, forSale, precio, hasFile: !!archivo });
   notifySafe('✅ Producto publicado exitosamente (demo)', 'success');
   closePublishModal();
   if (typeof loadFeed === 'function') loadFeed('all');
@@ -10953,7 +10953,7 @@ function notifySafe(message, type = 'info') {
   if (typeof showNotification === 'function') {
     showNotification(message, type);
   } else {
-    console.log(`[${type.toUpperCase()}] ${message}`);
+    console.console.log(`[${type.toUpperCase()}] ${message}`);
     if (type === 'error') alert(message);
   }
 }
@@ -11032,7 +11032,7 @@ window.closeIdModal = function() {
   if (modal) {
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true');
-    console.log('🔒 Modal identidad cerrado');
+    console.console.log('🔒 Modal identidad cerrado');
   }
 };
 </script>
@@ -11854,7 +11854,7 @@ window.closeIdModal = function() {
           audioPlayer.classList.remove('hidden');
         }
 
-        console.log('🛡️ [AUDITORÍA IA] Archivo multimedia verificado y seguro:', fileName);
+        console.console.log('🛡️ [AUDITORÍA IA] Archivo multimedia verificado y seguro:', fileName);
       }, 1500);
     };
 
@@ -11889,7 +11889,7 @@ let currentMarketItem = null;
 // === UTILIDADES MEJORADAS ===
 
 // ✅ Helper para sanitizar texto (previene XSS en log y notificaciones)
-function sanitizeForLog(str) {
+function sanitizeForconsole.log(str) {
   if (!str) return '';
   return String(str)
     .replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
@@ -11957,12 +11957,12 @@ async function init() {
         if (s.status === 'online' || s.success) {
           statusDot.className = 'status-dot online';
           statusText.textContent = `✅ Online • ${s.database || 'MongoDB'}`;
-          log('🟢 API responde', 'success');
+          console.log('🟢 API responde', 'success');
           showNotification('✅ Conectado al servidor', 'success', 3000);
         } else {
           statusDot.className = 'status-dot offline';
           statusText.textContent = '⚠️ Mantenimiento';
-          log('⚠️ API en mantenimiento', 'warning');
+          console.log('⚠️ API en mantenimiento', 'warning');
         }
       }
       
@@ -11972,14 +11972,14 @@ async function init() {
       retries++;
       // ✅ Sanitizar mensaje de error antes de loguear (previene XSS)
       const safeMsg = sanitizeErrorMessage(e.message);
-      log(`⚠️ Intento ${retries}/${maxRetries}: ${safeMsg}`, 'warning');
+      console.log(`⚠️ Intento ${retries}/${maxRetries}: ${safeMsg}`, 'warning');
       
       if (retries === maxRetries) {
         const statusDot = document.getElementById('apiStatus');
         const statusText = document.getElementById('statusText');
         if (statusDot) statusDot.className = 'status-dot offline';
         if (statusText) statusText.textContent = '❌ Sin conexión';
-        log('❌ API no responde tras 3 intentos', 'error');
+        console.log('❌ API no responde tras 3 intentos', 'error');
         showNotification('❌ Error de conexión. Verifica tu internet.', 'error');
       } else {
         await new Promise(resolve => setTimeout(resolve, 1000 * retries));
@@ -11999,7 +11999,7 @@ async function init() {
     } catch (e) {
       // ✅ Sanitizar mensaje de error
       const safeMsg = sanitizeErrorMessage(e.message);
-      log('⚠️ Error cargando usuario: ' + safeMsg, 'warning');
+      console.log('⚠️ Error cargando usuario: ' + safeMsg, 'warning');
       // No cerrar sesión automáticamente, permitir reintentar
     }
   }
@@ -12021,7 +12021,7 @@ function setupGlobalListeners() {
         if (!modal.classList.contains('hidden')) {
           modal.classList.add('hidden');
           modal.setAttribute('aria-hidden', 'true');
-          log('🔒 Modal cerrado con Escape', 'info');
+          console.log('🔒 Modal cerrado con Escape', 'info');
         }
       });
     }
@@ -12033,7 +12033,7 @@ function setupGlobalListeners() {
       if (!modal.classList.contains('hidden') && e.target === modal) {
         modal.classList.add('hidden');
         modal.setAttribute('aria-hidden', 'true');
-        log('🔒 Modal cerrado al hacer clic fuera', 'info');
+        console.log('🔒 Modal cerrado al hacer clic fuera', 'info');
       }
     });
   });
@@ -12342,7 +12342,7 @@ function closeUpload() {
   }
   if (priceSection) priceSection.style.display = 'none';
   
-  log('🔒 Modal de upload cerrado', 'info');
+  console.log('🔒 Modal de upload cerrado', 'info');
 }
 
 // === EXPORT/IMPORT: FUNCIONES MEJORADAS ===
@@ -13693,12 +13693,12 @@ async function showVault() {
       }
     });
     
-    log(`🗄️ Vault: ${items.length} activos`, 'success');
+    console.log(`🗄️ Vault: ${items.length} activos`, 'success');
     
   } catch (e) {
     // ✅ Mensaje seguro: no exponer detalles internos
     const safeMsg = 'Error cargando vault';
-    log('❌ Vault: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Vault: ' + sanitizeForDisplay(e.message, 100), 'error');
     
     const list = document.getElementById('vaultList');
     if (list) {
@@ -13714,7 +13714,7 @@ function closeVault() {
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
   }
-  log('🔒 Modal de vault cerrado', 'info');
+  console.log('🔒 Modal de vault cerrado', 'info');
 }
 
 // === VAULT: ACTIONS - FUNCIONES MEJORADAS ===
@@ -13758,12 +13758,12 @@ async function shareFile(fileId) {
       showNotification('✅ Enlace copiado', 'success');
     }
     
-    log(`🔗 Share generado para: ${safeId}`, 'info');
+    console.log(`🔗 Share generado para: ${safeId}`, 'info');
     
   } catch (e) {
     // ✅ Mensaje seguro: no exponer detalles internos
     const safeMsg = 'Error al generar enlace de compartir';
-    log('❌ Share: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Share: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -13777,13 +13777,13 @@ async function genThumb(fileId) {
   }
   
   try {
-    log('🖼️ Generando thumbnail...', 'info');
+    console.log('🖼️ Generando thumbnail...', 'info');
     await req(`/api/vault/${safeId}/thumbnail`, 'POST');
     showNotification('✅ Thumbnail generado', 'success');
-    log('✅ Thumbnail listo', 'success');
+    console.log('✅ Thumbnail listo', 'success');
   } catch (e) {
     const safeMsg = 'Error generando thumbnail';
-    log('❌ Thumb: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Thumb: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -13817,7 +13817,7 @@ async function showVersions(fileId) {
     
   } catch (e) {
     const safeMsg = 'Error cargando historial de versiones';
-    log('❌ Versiones: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Versiones: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -13839,10 +13839,10 @@ async function addComment(fileId) {
   try {
     await req(`/api/vault/${safeId}/comments`, 'POST', { content: safeTxt });
     showNotification('✅ Comentario enviado', 'success');
-    log('✅ Comentario cifrado', 'success');
+    console.log('✅ Comentario cifrado', 'success');
   } catch (e) {
     const safeMsg = 'Error enviando comentario';
-    log('❌ Comment: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Comment: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -13876,7 +13876,7 @@ async function loadComments(fileId) {
     
   } catch (e) {
     const safeMsg = 'Error cargando comentarios';
-    log('❌ LoadComments: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ LoadComments: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 } 
@@ -13902,13 +13902,13 @@ function sanitizeJSONForDisplay(obj, maxLen = 80) {
 // === AUDIT - FUNCIONES MEJORADAS ===
 
 // ✅ Mostrar auditoría con sanitización y accesibilidad
-async function showAuditLog() {
+async function showAuditconsole.log() {
   try {
     const modal = document.getElementById('auditModal');
     const logEl = document.getElementById('auditLog');
     
     if (!modal || !logEl) {
-      log('⚠️ Elementos de auditoría no encontrados', 'warning');
+      console.log('⚠️ Elementos de auditoría no encontrados', 'warning');
       return;
     }
     
@@ -13959,12 +13959,12 @@ async function showAuditLog() {
       }
     });
     
-    log('📋 Auditoría cargada', 'success');
+    console.log('📋 Auditoría cargada', 'success');
     
   } catch (e) {
     // ✅ Mensaje seguro: no exponer detalles internos
     const safeMsg = 'Error cargando auditoría';
-    log('❌ Auditoría: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Auditoría: ' + sanitizeForDisplay(e.message, 100), 'error');
     
     const logEl = document.getElementById('auditLog');
     if (logEl) {
@@ -13980,14 +13980,14 @@ function closeAudit() {
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
   }
-  log('🔒 Modal de auditoría cerrado', 'info');
+  console.log('🔒 Modal de auditoría cerrado', 'info');
 }
 
 // ✅ Exportar auditoría con sanitización y validación
 async function exportAudit(type) {
   // ✅ Validar tier antes de continuar
   if (!['business', 'enterprise'].includes(userTier)) {
-    log('⚠️ Esta función requiere plan Business o Enterprise', 'warning');
+    console.log('⚠️ Esta función requiere plan Business o Enterprise', 'warning');
     showNotification('⚠️ Función exclusiva para planes superiores', 'warning');
     return;
   }
@@ -13995,12 +13995,12 @@ async function exportAudit(type) {
   // ✅ Sanitizar tipo antes de usar en URL
   const safeType = sanitizeForDisplay(type, 20).replace(/[^a-z]/gi, '').toLowerCase();
   if (!['gdpr', 'soc2', 'full'].includes(safeType)) {
-    log('⚠️ Tipo de reporte inválido', 'warning');
+    console.log('⚠️ Tipo de reporte inválido', 'warning');
     return;
   }
   
   try {
-    log(`📄 Generando reporte ${safeType.toUpperCase()}...`, 'info');
+    console.log(`📄 Generando reporte ${safeType.toUpperCase()}...`, 'info');
     
     // ✅ Usar query params seguros (no interpolación directa)
     const res = await req(`/api/audit/export?type=${encodeURIComponent(safeType)}`);
@@ -14019,12 +14019,12 @@ async function exportAudit(type) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url); // ✅ Cleanup
     
-    log(`✅ Reporte ${safeType} descargado`, 'success');
+    console.log(`✅ Reporte ${safeType} descargado`, 'success');
     showNotification('✅ Reporte descargado', 'success');
     
   } catch (e) {
     const safeMsg = 'Error exportando reporte';
-    log('❌ Export: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Export: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -14034,7 +14034,7 @@ async function exportAudit(type) {
 // ✅ Mostrar webhooks con validación de tier
 function showWebhooks() {
   if (userTier !== 'enterprise') {
-    log('⚠️ Webhooks exclusivos para plan Enterprise', 'warning');
+    console.log('⚠️ Webhooks exclusivos para plan Enterprise', 'warning');
     showNotification('⚠️ Función exclusiva para Enterprise', 'warning');
     return;
   }
@@ -14054,7 +14054,7 @@ function closeWebhooks() {
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true');
   }
-  log('🔒 Modal de webhooks cerrado', 'info');
+  console.log('🔒 Modal de webhooks cerrado', 'info');
 }
 
 // ✅ Cargar webhooks con mensaje seguro
@@ -14092,13 +14092,13 @@ async function registerWebhook() {
       secret: sanitizeForDisplay(secret, 100) 
     });
     
-    log('✅ Webhook registrado', 'success');
+    console.log('✅ Webhook registrado', 'success');
     closeWebhooks();
     showNotification('✅ Webhook registrado', 'success');
     
   } catch (e) {
     const safeMsg = 'Error registrando webhook';
-    log('❌ Webhook: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Webhook: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -14108,23 +14108,23 @@ async function registerWebhook() {
 // ✅ Rotar claves con validación de tier y sanitización
 async function rotateKeys() {
   if (userTier !== 'enterprise') {
-    log('⚠️ Rotación de claves exclusiva para Enterprise', 'warning');
+    console.log('⚠️ Rotación de claves exclusiva para Enterprise', 'warning');
     showNotification('⚠️ Función exclusiva para Enterprise', 'warning');
     return;
   }
   
   try {
-    log('🔄 Iniciando rotación de claves...', 'info');
+    console.log('🔄 Iniciando rotación de claves...', 'info');
     const res = await req('/api/admin/rotate-keys', 'POST', {});
     
     // ✅ Sanitizar mensaje de respuesta antes de mostrar
     const safeMsg = sanitizeForDisplay(res.message || 'Rotación programada', 100);
-    log('✅ ' + safeMsg, 'success');
+    console.log('✅ ' + safeMsg, 'success');
     showNotification('✅ Rotación programada', 'success');
     
   } catch (e) {
     const safeMsg = 'Error en rotación de claves';
-    log('❌ Rotación: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Rotación: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -14133,7 +14133,7 @@ async function rotateKeys() {
 
 // ✅ Retiro con mensaje seguro y logging
 async function withdraw() {
-  log('💸 Solicitud enviada. Te contactaremos para el pago seguro.', 'info');
+  console.log('💸 Solicitud enviada. Te contactaremos para el pago seguro.', 'info');
   showNotification('💸 Solicitud de retiro enviada', 'info');
 }
 
@@ -14264,7 +14264,7 @@ function generarQRLocal(imgId, texto, tamaño = 200) {
     img.alt = 'Código QR de identidad - Escanea para verificar';
     img.style.borderRadius = '8px';
     
-    console.log('🔐 QR generado localmente:', safeText.length, 'caracteres');
+    console.console.log('🔐 QR generado localmente:', safeText.length, 'caracteres');
     return true;
     
   } catch (error) {
@@ -14277,7 +14277,7 @@ function generarQRLocal(imgId, texto, tamaño = 200) {
 function showIdentityQR() {
   // ✅ Validar sesión
   if (!currentUser) {
-    log('⚠️ Sesión no válida', 'warning');
+    console.log('⚠️ Sesión no válida', 'warning');
     showNotification('⚠️ Inicia sesión para ver tu identidad', 'warning');
     return false;
   }
@@ -14312,7 +14312,7 @@ function showIdentityQR() {
     // ✅ Validar que los datos sean seguros para QR
     if (!validateQRData(safeData)) {
       showNotification('❌ Datos de identidad inválidos', 'error');
-      log('❌ Datos QR inválidos', 'error');
+      console.log('❌ Datos QR inválidos', 'error');
       return false;
     }
     
@@ -14323,7 +14323,7 @@ function showIdentityQR() {
     
     if (!qrGenerated) {
       showNotification('❌ Error generando QR. Intenta de nuevo.', 'error');
-      log('❌ QR no generado', 'error');
+      console.log('❌ QR no generado', 'error');
       return false;
     }
     
@@ -14354,7 +14354,7 @@ function showIdentityQR() {
       }, 100);
     }
     
-    log('🆔 QR de identidad generado (100% local)', 'success');
+    console.log('🆔 QR de identidad generado (100% local)', 'success');
     showNotification('✅ QR generado exitosamente', 'success', 3000);
     
     return true;
@@ -14362,7 +14362,7 @@ function showIdentityQR() {
   } catch (error) {
     console.error('❌ Error en showIdentityQR:', error);
     showNotification('❌ Error generando QR: ' + error.message, 'error');
-    log('❌ Error QR: ' + error.message, 'error');
+    console.log('❌ Error QR: ' + error.message, 'error');
     return false;
   }
 }
@@ -14388,7 +14388,7 @@ function closeIdModal() {
     }
   }
   
-  log('🔒 Modal de identidad cerrado', 'info');
+  console.log('🔒 Modal de identidad cerrado', 'info');
 }
 
 // ✅ FUNCIÓN ALIAS: genQR() para compatibilidad con código existente
@@ -14429,7 +14429,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('❌ sanitizeForDisplay no está definida');
   }
   
-  console.log('✅ Sistema de identidad QR inicializado (100% local)');
+  console.console.log('✅ Sistema de identidad QR inicializado (100% local)');
 });
 
 // === PROMO - FUNCIONES MEJORADAS ===
@@ -14441,11 +14441,11 @@ async function checkPromo() {
     if (s?.active) {
       // ✅ Sanitizar mensaje antes de loguear (previene XSS)
       const safeMsg = sanitizeForDisplay(s.message, 200);
-      log('🎁 ' + safeMsg, 'info');
+      console.log('🎁 ' + safeMsg, 'info');
     }
   } catch (e) {
     // ✅ No exponer detalles de error
-    log('⚠️ Error verificando promo', 'warning');
+    console.log('⚠️ Error verificando promo', 'warning');
   }
 }
 
@@ -14453,13 +14453,13 @@ async function checkPromo() {
 async function showPromo() {
   if (!token) {
     scrollToAuth();
-    log('⚠️ Inicia sesión para acceder a la promo', 'warning');
+    console.log('⚠️ Inicia sesión para acceder a la promo', 'warning');
     return;
   }
   try {
     const r = await req('/api/promo/checkout', 'POST');
     if (r?.demo) {
-      log('✅ Pago promocional activado ($25)', 'success');
+      console.log('✅ Pago promocional activado ($25)', 'success');
       refresh();
       showNotification('✅ Promo activada', 'success');
     } else if (r?.url) {
@@ -14467,14 +14467,14 @@ async function showPromo() {
       if (isValidInternalUrl(r.url)) {
         window.location.href = r.url;
       } else {
-        log('⚠️ URL de redirección inválida', 'warning');
+        console.log('⚠️ URL de redirección inválida', 'warning');
         showNotification('⚠️ Error de redirección', 'error');
       }
     }
   } catch (e) {
     // ✅ Mensaje seguro: no exponer detalles internos
     const safeMsg = 'Error procesando promo';
-    log('❌ ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -14494,7 +14494,7 @@ window.addEventListener('beforeinstallprompt', function(e) {
     installBtn.setAttribute('aria-label', 'Instalar aplicación');
   }
   
-  log('📲 App lista para instalar', 'info');
+  console.log('📲 App lista para instalar', 'info');
   showNotification('📲 App lista para instalar', 'info');
 });
 
@@ -14503,17 +14503,17 @@ function installApp() {
     deferredPrompt.prompt();
     deferredPrompt.userChoice?.then(function(res) {
       if (res?.outcome === 'accepted') {
-        log('✅ App instalada', 'success');
+        console.log('✅ App instalada', 'success');
         showNotification('✅ App instalada', 'success');
       }
       deferredPrompt = null;
       const installBtn = document.getElementById('installBtn');
       if (installBtn) installBtn.style.display = 'none';
     }).catch(() => {
-      log('⚠️ Instalación cancelada', 'warning');
+      console.log('⚠️ Instalación cancelada', 'warning');
     });
   } else {
-    log('ℹ️ Usa el menú del navegador → "Agregar a pantalla de inicio"', 'info');
+    console.log('ℹ️ Usa el menú del navegador → "Agregar a pantalla de inicio"', 'info');
     showNotification('ℹ️ Usa el menú del navegador para instalar', 'info');
   }
 }
@@ -14526,8 +14526,8 @@ if ('serviceWorker' in navigator) {
     const alreadyRegistered = registrations.some(r => r.scope === window.location.origin + '/');
     if (!alreadyRegistered) {
       navigator.serviceWorker.register('/sw.js')
-        .then(() => log('🛡️ Sistema seguro activo', 'success'))
-        .catch(e => log('⚠️ SW: ' + sanitizeForDisplay(e.message, 100), 'warning'));
+        .then(() => console.log('🛡️ Sistema seguro activo', 'success'))
+        .catch(e => console.log('⚠️ SW: ' + sanitizeForDisplay(e.message, 100), 'warning'));
     }
   });
 }
@@ -14553,7 +14553,7 @@ function toggleZeroKnowledge() {
       exportWarning.setAttribute('aria-hidden', enabled ? 'false' : 'true');
     }
     
-    log(enabled ? '🔐 Zero-Knowledge: ACTIVADO' : '🔓 Zero-Knowledge: desactivado', 'info');
+    console.log(enabled ? '🔐 Zero-Knowledge: ACTIVADO' : '🔓 Zero-Knowledge: desactivado', 'info');
   }
 }
 
@@ -14595,7 +14595,7 @@ function updateOnlineStatus(isOnline) {
 // ✅ Exportar bóveda con validaciones
 async function exportVault() {
   if (!token) {
-    log('⚠️ Inicia sesión primero', 'warning');
+    console.log('⚠️ Inicia sesión primero', 'warning');
     showNotification('⚠️ Inicia sesión para exportar', 'warning');
     return;
   }
@@ -14626,7 +14626,7 @@ async function doExportVault() {
   const status = document.getElementById('exportStatus');
   
   if (!btn || !status) {
-    log('⚠️ Elementos de exportación no encontrados', 'warning');
+    console.log('⚠️ Elementos de exportación no encontrados', 'warning');
     return;
   }
   
@@ -14659,7 +14659,7 @@ async function doExportVault() {
       status.textContent = '✅ Exportación descargada. Guarda este archivo en un lugar seguro.';
       status.style.color = '#00e676';
       
-      log(`📦 Bóveda exportada: ${itemCount} items`, 'success');
+      console.log(`📦 Bóveda exportada: ${itemCount} items`, 'success');
       
       if (localStorage.getItem('zeroKnowledge') === 'true') {
         showNotification('🔐 Recuerda cifrar este archivo con tu clave maestra', 'warning', 8000);
@@ -14671,7 +14671,7 @@ async function doExportVault() {
     const safeMsg = 'Error exportando bóveda';
     status.textContent = `❌ ${safeMsg}`;
     status.style.color = '#ff5252';
-    log('❌ Export: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Export: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   } finally {
     if (btn) {
@@ -14685,7 +14685,7 @@ async function doExportVault() {
 // ✅ Importar bóveda con validaciones fuertes
 function importVault() {
   if (!token) {
-    log('⚠️ Inicia sesión primero', 'warning');
+    console.log('⚠️ Inicia sesión primero', 'warning');
     showNotification('⚠️ Inicia sesión para importar', 'warning');
     return;
   }
@@ -14724,7 +14724,7 @@ async function doImportVault() {
   const force = forceCheck?.checked || false;
   
   if (!file || !btn || !status) {
-    log('⚠️ Elementos del modal no encontrados', 'warning');
+    console.log('⚠️ Elementos del modal no encontrados', 'warning');
     return;
   }
   
@@ -14773,14 +14773,14 @@ async function doImportVault() {
     status.textContent = `✅ ${imported} items restaurados`;
     status.style.color = '#00e676';
     
-    log(`📥 Importación: ${imported} items, ${errors} errores`, 'success');
+    console.log(`📥 Importación: ${imported} items, ${errors} errores`, 'success');
     
     // ✅ Sanitizar lista de errores antes de loguear
     if (res.errors?.length > 0) {
       const safeErrors = res.errors.slice(0, 5).map(e => 
         sanitizeForDisplay(e.titulo || e.itemId || 'item desconocido', 50)
       ).join(', ');
-      log('⚠️ Errores: ' + safeErrors, 'warning');
+      console.log('⚠️ Errores: ' + safeErrors, 'warning');
     }
     
     setTimeout(() => {
@@ -14795,7 +14795,7 @@ async function doImportVault() {
     const safeMsg = e.message.includes('JSON') ? '❌ Archivo JSON inválido' : '❌ Error importando';
     status.textContent = safeMsg;
     status.style.color = '#ff5252';
-    log('❌ Import: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Import: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(safeMsg.replace('❌ ', ''), 'error');
   } finally {
     if (btn) {
@@ -14809,7 +14809,7 @@ async function doImportVault() {
 // ✅ SyncCheck con sanitización y createElement para seguridad
 async function syncCheck() {
   if (!token) {
-    log('⚠️ Inicia sesión primero', 'warning');
+    console.log('⚠️ Inicia sesión primero', 'warning');
     return;
   }
   
@@ -14845,7 +14845,7 @@ async function syncCheck() {
       });
       status.appendChild(downloadBtn);
       
-      log(`📥 Sync: ${changesCount} cambios disponibles`, 'info');
+      console.log(`📥 Sync: ${changesCount} cambios disponibles`, 'info');
     } else {
       status.textContent = '✅ Todo sincronizado';
       status.style.color = '#00e676';
@@ -14855,7 +14855,7 @@ async function syncCheck() {
   } catch (e) {
     status.textContent = '⚠️ Sin conexión - Cambios se sincronizarán después';
     status.style.color = '#ffb74d';
-    log('⚠️ Sync check: ' + sanitizeForDisplay(e.message, 100), 'warning');
+    console.log('⚠️ Sync check: ' + sanitizeForDisplay(e.message, 100), 'warning');
   }
 }
 
@@ -14875,12 +14875,12 @@ async function syncPull() {
     status.textContent = '✅ Cambios sincronizados';
     status.style.color = '#00e676';
     
-    log('📥 Sync pull completado', 'success');
+    console.log('📥 Sync pull completado', 'success');
     showNotification('✅ Cambios sincronizados', 'success');
   } catch (e) {
     const safeMsg = 'Error sincronizando cambios';
     status.textContent = `❌ ${safeMsg}`;
-    log('❌ Sync pull: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Sync pull: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -14959,7 +14959,7 @@ if (typeof scrollToAuth !== 'function') {
 // ✅ Mostrar marketplace con validación de sesión
 function showMarketplace() {
   if (!token) {
-    log('⚠️ Inicia sesión para acceder al marketplace', 'warning');
+    console.log('⚠️ Inicia sesión para acceder al marketplace', 'warning');
     showNotification('⚠️ Inicia sesión para acceder', 'info');
     return scrollToAuth();
   }
@@ -14968,7 +14968,7 @@ function showMarketplace() {
   const marketplaceSection = document.getElementById('marketplaceSection');
   
   if (!dashboard || !marketplaceSection) {
-    log('⚠️ Elementos del marketplace no encontrados', 'warning');
+    console.log('⚠️ Elementos del marketplace no encontrados', 'warning');
     showNotification('❌ Error: marketplace no disponible', 'error');
     return;
   }
@@ -14991,7 +14991,7 @@ function showMarketplace() {
   if (typeof loadRecommendations === 'function') loadRecommendations();
   
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  log('🛍️ Marketplace abierto', 'info');
+  console.log('🛍️ Marketplace abierto', 'info');
 }
 </script>
 <script>
@@ -15014,7 +15014,7 @@ function closeMarketplace() {
     });
   }
   
-  log('🛍️ Marketplace cerrado', 'info');
+  console.log('🛍️ Marketplace cerrado', 'info');
 }
 </script>
 <script>
@@ -15025,7 +15025,7 @@ async function loadCategories() {
     const sel = document.getElementById('marketCategory');
     
     if (!sel) {
-      log('⚠️ Selector de categorías no encontrado', 'warning');
+      console.log('⚠️ Selector de categorías no encontrado', 'warning');
       return;
     }
     
@@ -15047,16 +15047,16 @@ async function loadCategories() {
       });
     }
     
-    log('📂 Categorías cargadas', 'success');
+    console.log('📂 Categorías cargadas', 'success');
   } catch (e) {
-    log('⚠️ Error cargando categorías: ' + e.message, 'warning');
+    console.log('⚠️ Error cargando categorías: ' + e.message, 'warning');
   }
 }
 
 // ✅ Cargar marketplace con sanitización completa y event listeners seguros
 async function loadMarketplace() {
   if (!token) {
-    log('⚠️ No hay token, no se puede cargar marketplace', 'warning');
+    console.log('⚠️ No hay token, no se puede cargar marketplace', 'warning');
     return;
   }
   
@@ -15065,7 +15065,7 @@ async function loadMarketplace() {
   const empty = document.getElementById('marketEmpty');
   
   if (!grid || !load || !empty) {
-    log('⚠️ Elementos del marketplace no encontrados', 'warning');
+    console.log('⚠️ Elementos del marketplace no encontrados', 'warning');
     return;
   }
   
@@ -15106,11 +15106,11 @@ async function loadMarketplace() {
     if (!res.items || !Array.isArray(res.items) || res.items.length === 0) {
       empty.classList.remove('hidden');
       empty.setAttribute('aria-hidden', 'false');
-      log('📭 No hay productos en el marketplace', 'info');
+      console.log('📭 No hay productos en el marketplace', 'info');
       return;
     }
     
-    log(`🛍️ ${res.items.length} productos cargados`, 'success');
+    console.log(`🛍️ ${res.items.length} productos cargados`, 'success');
     // ✅ Crear elementos con createElement
     res.items.forEach(item => {
       try {
@@ -15258,16 +15258,16 @@ async function loadMarketplace() {
         grid.appendChild(card);
         
       } catch (itemError) {
-        log('⚠️ Error renderizando producto: ' + itemError.message, 'warning');
+        console.log('⚠️ Error renderizando producto: ' + itemError.message, 'warning');
       }
     });
     
-    log(`🛍️ Marketplace: ${res.items.length} items`, 'success');
+    console.log(`🛍️ Marketplace: ${res.items.length} items`, 'success');
     
   } catch (e) {
     load.classList.add('hidden');
     grid.innerHTML = `<p class="market-empty" role="alert">❌ Error cargando marketplace</p>`;
-    log('❌ Marketplace: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Marketplace: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification('❌ Error cargando marketplace', 'error');
   }
 }
@@ -15347,7 +15347,7 @@ async function loadRecommendations() {
   } catch (e) {
     const container = document.getElementById('marketRecommendations');
     if (container) container.classList.add('hidden');
-    log('⚠️ Error cargando recomendaciones', 'warning');
+    console.log('⚠️ Error cargando recomendaciones', 'warning');
   }
 }
 
@@ -15355,7 +15355,7 @@ async function loadRecommendations() {
 async function openMarketItem(itemId) {
   const safeId = sanitizeIdForEvent(itemId);
   if (!safeId) {
-    log('⚠️ ID de producto inválido', 'warning');
+    console.log('⚠️ ID de producto inválido', 'warning');
     showNotification('⚠️ Producto no válido', 'error');
     return;
   }
@@ -15447,7 +15447,7 @@ async function openMarketItem(itemId) {
     
   } catch (e) {
     const safeMsg = 'Error cargando producto';
-    log('❌ Detalle item: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Detalle item: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -15460,14 +15460,14 @@ function closeMarketItemModal() {
     modal.setAttribute('aria-hidden', 'true');
   }
   currentMarketItem = null;
-  log('🔒 Modal de producto cerrado', 'info');
+  console.log('🔒 Modal de producto cerrado', 'info');
 }
 
 // ✅ Comprar producto con validaciones y sanitización
 async function buyMarketItem(itemId) {
   const id = sanitizeIdForEvent(itemId || currentMarketItem?.id);
   if (!id) {
-    log('⚠️ Selecciona un producto', 'warning');
+    console.log('⚠️ Selecciona un producto', 'warning');
     showNotification('⚠️ Selecciona un producto', 'warning');
     return;
   }
@@ -15487,7 +15487,7 @@ async function buyMarketItem(itemId) {
   }
   
   try {
-    log('💰 Procesando compra...', 'info');
+    console.log('💰 Procesando compra...', 'info');
     showNotification('💰 Procesando compra...', 'info');
     
     const res = await req(`/api/buy/${id}`, 'POST');
@@ -15499,13 +15499,13 @@ async function buyMarketItem(itemId) {
       if (typeof showVault === 'function') await showVault();
       if (typeof refresh === 'function') await refresh();
       
-      log('✅ Compra completada', 'success');
+      console.log('✅ Compra completada', 'success');
     } else {
       throw new Error(res.error || 'Error en la compra');
     }
   } catch (e) {
     const safeMsg = 'Error procesando compra';
-    log('❌ Compra: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Compra: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
   }
 }
@@ -15524,10 +15524,10 @@ async function toggleFavorite() {
       itemId: safeId, 
       action: 'toggle' 
     });
-    log('❤️ Favorito actualizado', 'success');
+    console.log('❤️ Favorito actualizado', 'success');
     showNotification('✅ Favorito actualizado', 'success');
   } catch (e) {
-    log('❌ Favorito: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Favorito: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification('❌ Error actualizando favorito', 'error');
   }
 }
@@ -15539,14 +15539,14 @@ function showAdminTools() {
   
   if (!isAdmin) {
     showNotification('⚠️ Solo administradores', 'error');
-    log('⚠️ Intento de acceso a herramientas de admin sin permisos', 'warning');
+    console.log('⚠️ Intento de acceso a herramientas de admin sin permisos', 'warning');
     return;
   }
   
   const msg = `🛠️ Herramientas de Admin:\n\n• Regalar cuenta: /api/admin/gift-account\n• Eliminar usuario: /api/admin/users/:email\n• Rotar claves: /api/admin/rotate-keys\n• Ver usuarios: /api/admin/users\n\nEstas funciones están disponibles vía API.`;
   
   alert(msg);
-  log('🛠️ Herramientas de admin mostradas', 'info');
+  console.log('🛠️ Herramientas de admin mostradas', 'info');
 }
 
 // === DOM READY - MEJORADO ===
@@ -15563,7 +15563,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // 📊 Analytics Financiero
   if (typeof loadFinancialData === 'function') {
     loadFinancialData('30d').catch(e => {
-      log('⚠️ Error cargando analytics: ' + sanitizeForDisplay(e.message, 100), 'warning');
+      console.log('⚠️ Error cargando analytics: ' + sanitizeForDisplay(e.message, 100), 'warning');
     });
   }
   
@@ -15595,16 +15595,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  log('🛍️ Marketplace inicializado', 'success');
+  console.log('🛍️ Marketplace inicializado', 'success');
 });
 
-log('🛍️ Funciones del marketplace v2.0 FINAL cargadas', 'success');
+console.log('🛍️ Funciones del marketplace v2.0 FINAL cargadas', 'success');
 </script>
 <script>  
 // ============================================
 // 🛡️ UTILIDADES GLOBALES (sin dependencias externas)
 // Sistema de logs seguro
-function log(mensaje, tipo = 'info') {
+function console.log(mensaje, tipo = 'info') {
   const timestamp = new Date().toLocaleTimeString();
   const colores = { 
     info: '#8ab4f8', 
@@ -15613,7 +15613,7 @@ function log(mensaje, tipo = 'info') {
     warning: '#ffab40' 
   };
   const color = colores[tipo] || colores.info;
-  console.log(`%c[${timestamp}] ${mensaje}`, `color: ${color}`);
+  console.console.log(`%c[${timestamp}] ${mensaje}`, `color: ${color}`);
 }
 
 // ✅ Sistema de notificaciones mejorado con cola
@@ -15830,7 +15830,7 @@ async function req(url, metodoOpciones, bodyOpcional) {
     const texto = await respuesta.text();
     return texto ? JSON.parse(texto) : {};
   } catch (error) {
-    log(`❌ Error en ${url}: ${error.message}`, 'error');
+    console.log(`❌ Error en ${url}: ${error.message}`, 'error');
     throw error;
   }
 }
@@ -15860,7 +15860,7 @@ function updateOnlineStatus(online) {
     indicador.textContent = online ? '🟢 En línea' : '🔴 Sin conexión';
     indicador.style.color = online ? '#00e676' : '#ff5252';
   }
-  log(online ? 'Conexión restaurada' : 'Sin conexión', online ? 'success' : 'warning');
+  console.log(online ? 'Conexión restaurada' : 'Sin conexión', online ? 'success' : 'warning');
 }
 
 // ============================================
@@ -15870,7 +15870,7 @@ async function renderFinancialAnalytics(res) {
   try {
     // ✅ Validación robusta de la respuesta
     if (!res || !res.data) {
-      log('⚠️ Respuesta de analytics vacía o inválida', 'warning');
+      console.log('⚠️ Respuesta de analytics vacía o inválida', 'warning');
       return;
     }
 
@@ -15901,15 +15901,15 @@ async function renderFinancialAnalytics(res) {
         catBox.appendChild(row);
       });
       
-      log('📊 Categorías renderizadas correctamente', 'success');
+      console.log('📊 Categorías renderizadas correctamente', 'success');
     } else if (catBox) {
       catBox.innerHTML = '<p style="color:#8b95a5;text-align:center;padding:20px">📭 Sin datos de categorías</p>';
     }
     
-    log('📊 Analytics cargados (versión nativa)', 'success');
+    console.log('📊 Analytics cargados (versión nativa)', 'success');
     
   } catch (e) {
-    log('⚠️ Error cargando analytics financieros: ' + e.message, 'warning');
+    console.log('⚠️ Error cargando analytics financieros: ' + e.message, 'warning');
     // ✅ No exponer detalles técnicos al usuario
   }
 }
@@ -15919,7 +15919,7 @@ async function renderFinancialAnalytics(res) {
 // ============================================
 async function init() {
   try {
-    log('🚀 Iniciando aplicación...', 'info');
+    console.log('🚀 Iniciando aplicación...', 'info');
     
     // Cargar analytics
     const res = await req('/api/analytics');
@@ -15929,7 +15929,7 @@ async function init() {
     
     showNotification('✅ Aplicación iniciada', 'success');
   } catch (e) {
-    log('❌ Error en inicialización: ' + e.message, 'error');
+    console.log('❌ Error en inicialización: ' + e.message, 'error');
     showNotification('❌ Error cargando analytics', 'error');
   }
 }
@@ -15961,7 +15961,7 @@ window.addEventListener('offline', () => {
 // ✅ Variable global para el fileId actual del modal
 let currentGitFileId = null;
 
-async function showGitLog(fileId) {
+async function showGitconsole.log(fileId) {
   if (!fileId) {
     showNotification('❌ ID de archivo no válido', 'error');
     return;
@@ -16076,7 +16076,7 @@ async function showGitLog(fileId) {
     }).join('');
     
   } catch (e) {
-    log('Error cargando historial Git: ' + e.message, 'error');
+    console.log('Error cargando historial Git: ' + e.message, 'error');
     content.innerHTML = `<p style="color:#ff5252">❌ ${sanitizeForDisplay(e.message, 100)}</p>`;
   }
 }
@@ -16111,7 +16111,7 @@ async function createGitCommit() {
     inputMensaje.value = '';
     
     // Recargar historial
-    await showGitLog(currentGitFileId);
+    await showGitconsole.log(currentGitFileId);
     
   } catch (e) {
     showNotification('❌ ' + e.message, 'error');
@@ -16200,7 +16200,7 @@ function playMedia(fileId, fileType, fileName = 'Multimedia') {
     const playPromise = video.play();
     if (playPromise !== undefined) {
       playPromise.catch(error => {
-        log('⚠️ Autoplay bloqueado. Haz clic en play.', 'warning');
+        console.log('⚠️ Autoplay bloqueado. Haz clic en play.', 'warning');
         showNotification('▶️ Haz clic en el video para reproducir', 'info');
       });
     }
@@ -16210,7 +16210,7 @@ function playMedia(fileId, fileType, fileName = 'Multimedia') {
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch(error => {
-        log('⚠️ Autoplay bloqueado. Haz clic en play.', 'warning');
+        console.log('⚠️ Autoplay bloqueado. Haz clic en play.', 'warning');
         showNotification('▶️ Haz clic en el audio para reproducir', 'info');
       });
     }
@@ -16248,7 +16248,7 @@ function closeMediaPlayer() {
 // Inicializar canvas cuando el DOM esté listo
 function initSignatureCanvas() {
   if (!sigCanvas) {
-    log('⚠️ Canvas de firma no encontrado', 'warning');
+    console.log('⚠️ Canvas de firma no encontrado', 'warning');
     return;
   }
 
@@ -16315,7 +16315,7 @@ function initSignatureCanvas() {
     isDrawing = false;
   });
 
-  log('✅ Canvas de firma inicializado', 'success');
+  console.log('✅ Canvas de firma inicializado', 'success');
 }
 
 // Inicializar cuando el DOM esté listo
@@ -16399,7 +16399,7 @@ async function handleAvatar(evento) {
       showNotification('✅ Foto guardada en tu dispositivo', 'success');
     } catch (error) {
       // localStorage puede estar lleno
-      log('⚠️ No se pudo guardar en localStorage: ' + error.message, 'warning');
+      console.log('⚠️ No se pudo guardar en localStorage: ' + error.message, 'warning');
       showNotification('✅ Foto cargada (no se pudo guardar permanentemente)', 'warning');
     }
   };
@@ -16419,7 +16419,7 @@ function loadSavedAvatar() {
   const avatarGuardado = localStorage.getItem('romwiner_avatar');
   if (avatarGuardado) {
     avatarImg.src = avatarGuardado;
-    log('✅ Avatar cargado desde almacenamiento local', 'success');
+    console.log('✅ Avatar cargado desde almacenamiento local', 'success');
   }
 }
 
@@ -16502,7 +16502,7 @@ async function loadContacts() {
     });
 
   } catch (error) {
-    log('Error cargando contactos: ' + error.message, 'error');
+    console.log('Error cargando contactos: ' + error.message, 'error');
     contenedor.innerHTML = '<p style="font-size:0.75rem;color:#ff5252">❌ Error al cargar contactos</p>';
   }
 }
@@ -16532,7 +16532,7 @@ async function deleteContact(id) {
 async function generateIdenticon(elementoId, datos) {
   const elemento = document.getElementById(elementoId);
   if (!elemento) {
-    log(`⚠️ Elemento #${elementoId} no encontrado`, 'warning');
+    console.log(`⚠️ Elemento #${elementoId} no encontrado`, 'warning');
     return;
   }
 
@@ -16541,7 +16541,7 @@ async function generateIdenticon(elementoId, datos) {
     const hashCompleto = await hashLocal(JSON.stringify(datos), true);
     
     if (hashCompleto === 'none') {
-      log('⚠️ No se pudo generar hash para identicon', 'warning');
+      console.log('⚠️ No se pudo generar hash para identicon', 'warning');
       return;
     }
 
@@ -16589,10 +16589,10 @@ async function generateIdenticon(elementoId, datos) {
     elemento.alt = 'Identicon de identidad';
     elemento.style.borderRadius = '8px';
     
-    log('🎨 Identicon generado (100% local, único para este usuario)', 'success');
+    console.log('🎨 Identicon generado (100% local, único para este usuario)', 'success');
     
   } catch (error) {
-    log('❌ Error generando identicon: ' + error.message, 'error');
+    console.log('❌ Error generando identicon: ' + error.message, 'error');
   }
 }
 
@@ -17063,7 +17063,7 @@ const QRModule = (function() {
         }
       }
 
-      console.log(`✅ QR generado: ${text.length} chars, versión ${getVersion(text.length, ecLevel)}, EC: ${ecLevel}`);
+      console.console.log(`✅ QR generado: ${text.length} chars, versión ${getVersion(text.length, ecLevel)}, EC: ${ecLevel}`);
       return canvas.toDataURL('image/png');
 
     } catch (error) {
@@ -17089,7 +17089,7 @@ async function hashLocal(data, longitudCompleta = false) {
   
   // ✅ Validar que crypto.subtle esté disponible
   if (typeof crypto === 'undefined' || !crypto.subtle) {
-    log('⚠️ crypto.subtle no disponible (requiere HTTPS)', 'warning');
+    console.log('⚠️ crypto.subtle no disponible (requiere HTTPS)', 'warning');
     return 'none';
   }
 
@@ -17103,7 +17103,7 @@ async function hashLocal(data, longitudCompleta = false) {
     // ✅ Devolver hash completo o truncado según se solicite
     return longitudCompleta ? hashHex : hashHex.slice(0, 16);
   } catch (error) {
-    log('⚠️ Error generando hash: ' + sanitizeForDisplay(error.message, 100), 'warning');
+    console.log('⚠️ Error generando hash: ' + sanitizeForDisplay(error.message, 100), 'warning');
     return 'none';
   }
 }
@@ -17114,7 +17114,7 @@ async function hashLocal(data, longitudCompleta = false) {
 async function generateIdentityCode(tipo = 'identicon') {
   const elemento = document.getElementById('idQR');
   if (!elemento) {
-    log('⚠️ Elemento #idQR no encontrado', 'warning');
+    console.log('⚠️ Elemento #idQR no encontrado', 'warning');
     return;
   }
 
@@ -17170,19 +17170,19 @@ async function generateIdentityCode(tipo = 'identicon') {
         elemento.src = qrImagen;
         elemento.alt = 'QR de Identidad (escaneable)';
         elemento.style.borderRadius = '8px';
-        log('📱 QR real generado y escaneable', 'success');
+        console.log('📱 QR real generado y escaneable', 'success');
         showNotification('✅ QR generado correctamente', 'success');
       } else {
         throw new Error('QRModule retornó imagen vacía');
       }
     } catch (error) {
-      log('⚠️ QR falló, usando identicon: ' + sanitizeForDisplay(error.message, 100), 'warning');
+      console.log('⚠️ QR falló, usando identicon: ' + sanitizeForDisplay(error.message, 100), 'warning');
       
       // ✅ Verificar que generateIdenticon exista antes de usarlo
       if (typeof generateIdenticon === 'function') {
         await generateIdenticon('idQR', datosIdentidad);
       } else {
-        log('❌ generateIdenticon no disponible', 'error');
+        console.log('❌ generateIdenticon no disponible', 'error');
         showNotification('❌ No se pudo generar código de identidad', 'error');
       }
     }
@@ -17191,7 +17191,7 @@ async function generateIdentityCode(tipo = 'identicon') {
     if (typeof generateIdenticon === 'function') {
       await generateIdenticon('idQR', datosIdentidad);
     } else {
-      log('❌ generateIdenticon no disponible', 'error');
+      console.log('❌ generateIdenticon no disponible', 'error');
       showNotification('❌ No se pudo generar identicon', 'error');
     }
   }
@@ -17265,7 +17265,7 @@ async function toggleMultisig() {
       activado ? '✅ Multifirma activada' : '🔓 Multifirma desactivada', 
       'success'
     );
-    log(activado ? '🔐 Multifirma ACTIVADA' : '🔓 Multifirma DESACTIVADA', 'success');
+    console.log(activado ? '🔐 Multifirma ACTIVADA' : '🔓 Multifirma DESACTIVADA', 'success');
   } catch (error) {
     // ✅ Revertir el checkbox si falla
     checkbox.checked = !activado;
@@ -17273,7 +17273,7 @@ async function toggleMultisig() {
     // ✅ Sanitizar mensaje de error
     const safeMsg = sanitizeForDisplay(error.message, 100);
     showNotification('❌ Error: ' + safeMsg, 'error');
-    log('❌ Error en multifirma: ' + safeMsg, 'error');
+    console.log('❌ Error en multifirma: ' + safeMsg, 'error');
   }
 }
 
@@ -17284,7 +17284,7 @@ function showProfileSection() {
   const panel = document.getElementById('digitalIdentityPanel');
   
   if (!panel) {
-    log('⚠️ Panel de identidad digital no encontrado', 'warning');
+    console.log('⚠️ Panel de identidad digital no encontrado', 'warning');
     return;
   }
 
@@ -17315,13 +17315,13 @@ function showProfileSection() {
   req('/api/profile')
     .then(respuesta => {
       if (!respuesta || typeof respuesta !== 'object') {
-        log('⚠️ Respuesta de perfil inválida', 'warning');
+        console.log('⚠️ Respuesta de perfil inválida', 'warning');
         return;
       }
 
       const user = respuesta.user || respuesta.profile;
       if (!user) {
-        log('⚠️ Sin datos de usuario en respuesta', 'warning');
+        console.log('⚠️ Sin datos de usuario en respuesta', 'warning');
         return;
       }
 
@@ -17343,7 +17343,7 @@ function showProfileSection() {
           // ✅ Rechazar URL externa: usar placeholder seguro
           avatarElemento.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="40" fill="%23151922" stroke="%2300e676" stroke-width="4"/%3E%3Ctext x="50" y="65" font-size="30" fill="%2300e676" text-anchor="middle"%3E👤%3C/text%3E%3C/svg%3E';
           avatarElemento.setAttribute('aria-label', 'Avatar predeterminado');
-          log('⚠️ Avatar externo bloqueado por seguridad (cero enlaces externos)', 'warning');
+          console.log('⚠️ Avatar externo bloqueado por seguridad (cero enlaces externos)', 'warning');
         }
       }
       
@@ -17356,22 +17356,22 @@ function showProfileSection() {
         emailElemento.setAttribute('aria-label', `Usuario: ${safeEmail}`);
       }
       
-      log('✅ Perfil cargado correctamente', 'success');
+      console.log('✅ Perfil cargado correctamente', 'success');
     })
     .catch(error => {
       // ✅ Manejo específico según tipo de error
       const msg = error.message || '';
       if (msg.includes('401')) {
-        log('⚠️ Sesión expirada al cargar perfil', 'warning');
+        console.log('⚠️ Sesión expirada al cargar perfil', 'warning');
         showNotification('⚠️ Sesión expirada. Inicia sesión nuevamente.', 'warning');
         if (typeof handleSessionExpired === 'function') handleSessionExpired();
       } else if (msg.includes('403')) {
-        log('⚠️ Acceso denegado al perfil', 'warning');
+        console.log('⚠️ Acceso denegado al perfil', 'warning');
       } else {
         const safeMsg = typeof sanitizeForDisplay === 'function'
           ? sanitizeForDisplay(msg, 100)
           : String(msg).substring(0, 100);
-        log('⚠️ Error cargando perfil: ' + safeMsg, 'warning');
+        console.log('⚠️ Error cargando perfil: ' + safeMsg, 'warning');
       }
     });
 }
@@ -17605,7 +17605,7 @@ function drawLineChart(canvasId, labels, data, color = '#00e676') {
     }
   };
 
-  console.log(`📈 Gráfico de líneas dibujado: ${datosFinales.length} puntos`);
+  console.console.log(`📈 Gráfico de líneas dibujado: ${datosFinales.length} puntos`);
   return { canvas, ctx };
 }
 </script>
@@ -17750,7 +17750,7 @@ function drawDoughnutChart(canvasId, labels, data, colors = ['#00e676', '#29b6f6
     ctx.fillText(`+${labelsFinales.length - maxLabelsInLegend} más`, width / 2, legendY + 15);
   }
 
-  console.log(`🥧 Gráfico de dona dibujado: ${labelsFinales.length} categorías, total ${total}`);
+  console.console.log(`🥧 Gráfico de dona dibujado: ${labelsFinales.length} categorías, total ${total}`);
   return { canvas, ctx };
 }
 
@@ -17832,7 +17832,7 @@ async function loadFinancialData(periodo = '30d') {
           '#00e676'
         );
         
-        console.log('📈 Gráfico de ingresos dibujado');
+        console.console.log('📈 Gráfico de ingresos dibujado');
       } else {
         console.warn('⚠️ drawLineChart no disponible o canvas no encontrado');
       }
@@ -17852,7 +17852,7 @@ async function loadFinancialData(periodo = '30d') {
           ['#00e676', '#29b6f6', '#ab47bc', '#ffa726', '#66bb6a']
         );
         
-        console.log('🥧 Gráfico de categorías dibujado');
+        console.console.log('🥧 Gráfico de categorías dibujado');
       }
     }
 
@@ -17867,7 +17867,7 @@ async function loadFinancialData(periodo = '30d') {
     }
 
     showNotification('✅ Datos financieros cargados', 'success');
-    console.log('📊 Analytics cargados correctamente para período:', safePeriodo);
+    console.console.log('📊 Analytics cargados correctamente para período:', safePeriodo);
     
   } catch (error) {
     const safeMsg = error.message || 'Error desconocido';
@@ -18093,11 +18093,11 @@ async function exportFinancialData(formato = 'csv') {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     showNotification(`✅ Archivo ${formato.toUpperCase()} descargado: ${nombreArchivo}`, 'success');
-    log(`📤 Exportación completada: ${nombreArchivo}`, 'success');
+    console.log(`📤 Exportación completada: ${nombreArchivo}`, 'success');
     
   } catch (error) {
     const safeMsg = error.message || 'Error desconocido';
-    log('❌ Error exportando datos: ' + safeMsg, 'error');
+    console.log('❌ Error exportando datos: ' + safeMsg, 'error');
     showNotification('❌ Error al exportar: ' + safeMsg, 'error');
   }
 }
@@ -18254,7 +18254,7 @@ async function openSecurePlayer(fileUrl, fileName) {
       }) 
     }).catch(() => {});
     
-    log(`🎬 Reproduciendo: ${safeFileName}`, 'success');
+    console.log(`🎬 Reproduciendo: ${safeFileName}`, 'success');
   } catch (e) {
     // ✅ Cleanup si falla
     if (currentBlobUrl) {
@@ -18289,7 +18289,7 @@ function closeSecurePlayer() {
   }
   
   securePlayerActive = false;
-  log('🎬 Reproductor cerrado', 'info');
+  console.log('🎬 Reproductor cerrado', 'info');
 }
 
 // ✅ Event listeners seguros (no inline)
@@ -18359,7 +18359,7 @@ async function loadAnalytics() {
     }
 
     if (!res.ok) {
-      log('⚠️ Analytics: HTTP ' + res.status, 'warning');
+      console.log('⚠️ Analytics: HTTP ' + res.status, 'warning');
       return;
     }
 
@@ -18409,9 +18409,9 @@ async function loadAnalytics() {
     const panel = document.getElementById('analyticsPanel');
     if (panel) panel.style.display = 'block';
     
-    log('📊 Analytics cargados', 'success');
+    console.log('📊 Analytics cargados', 'success');
   } catch (e) { 
-    log('⚠️ Analytics: ' + sanitizeForDisplay(e.message, 100), 'warning');
+    console.log('⚠️ Analytics: ' + sanitizeForDisplay(e.message, 100), 'warning');
   }
 }
 
@@ -18462,7 +18462,7 @@ async function analyzeFileForUpload(fileName, fileType, fileSize) {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     userUid = user.uid || 'demo';
   } catch (e) {
-    log('⚠️ Error parseando user: ' + e.message, 'warning');
+    console.log('⚠️ Error parseando user: ' + e.message, 'warning');
   }
 
   try {
@@ -18487,7 +18487,7 @@ async function analyzeFileForUpload(fileName, fileType, fileSize) {
     }
 
     if (!res.ok) {
-      log('⚠️ AI analyze: HTTP ' + res.status, 'warning');
+      console.log('⚠️ AI analyze: HTTP ' + res.status, 'warning');
       return;
     }
 
@@ -18532,9 +18532,9 @@ async function analyzeFileForUpload(fileName, fileType, fileSize) {
       }
     }
 
-    log('🤖 Análisis IA completado', 'success');
+    console.log('🤖 Análisis IA completado', 'success');
   } catch(e) { 
-    log('⚠️ AI analysis: ' + sanitizeForDisplay(e.message, 100), 'warning');
+    console.log('⚠️ AI analysis: ' + sanitizeForDisplay(e.message, 100), 'warning');
   }
 }
 
@@ -18610,9 +18610,9 @@ async function exportFinancialData(format = 'csv') {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     
     showNotification(`✅ ${format.toUpperCase()} descargado: ${nombreArchivo}`, 'success');
-    log(`📤 Exportado: ${format}`, 'success');
+    console.log(`📤 Exportado: ${format}`, 'success');
   } catch (e) {
-    log('❌ Export: ' + sanitizeForDisplay(e.message, 100), 'error');
+    console.log('❌ Export: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification('❌ Error exportando: ' + (e.message || 'Desconocido'), 'error');
   }
 }
@@ -18769,7 +18769,7 @@ async function openSecurePlayer(fileUrl, fileName) {
       }) 
     }).catch(() => {});
     
-    log(`🎬 Reproduciendo: ${safeFileName}`, 'success');
+    console.log(`🎬 Reproduciendo: ${safeFileName}`, 'success');
   } catch (e) {
     // ✅ Cleanup si falla
     if (currentBlobUrl) {
@@ -18804,7 +18804,7 @@ function closeSecurePlayer() {
   }
   
   securePlayerActive = false;
-  log('🎬 Reproductor cerrado', 'info');
+  console.log('🎬 Reproductor cerrado', 'info');
 }
 
 // ✅ Event listeners seguros (no inline)
@@ -18874,7 +18874,7 @@ async function loadAnalytics() {
     }
 
     if (!res.ok) {
-      log('⚠️ Analytics: HTTP ' + res.status, 'warning');
+      console.log('⚠️ Analytics: HTTP ' + res.status, 'warning');
       return;
     }
 
@@ -18924,9 +18924,9 @@ async function loadAnalytics() {
     const panel = document.getElementById('analyticsPanel');
     if (panel) panel.style.display = 'block';
     
-    log('📊 Analytics cargados', 'success');
+    console.log('📊 Analytics cargados', 'success');
   } catch (e) { 
-    log('⚠️ Analytics: ' + sanitizeForDisplay(e.message, 100), 'warning');
+    console.log('⚠️ Analytics: ' + sanitizeForDisplay(e.message, 100), 'warning');
   }
 }
 
@@ -18977,7 +18977,7 @@ async function analyzeFileForUpload(fileName, fileType, fileSize) {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     userUid = user.uid || 'demo';
   } catch (e) {
-    log('⚠️ Error parseando user: ' + e.message, 'warning');
+    console.log('⚠️ Error parseando user: ' + e.message, 'warning');
   }
 
   try {
@@ -19002,7 +19002,7 @@ async function analyzeFileForUpload(fileName, fileType, fileSize) {
     }
 
     if (!res.ok) {
-      log('⚠️ AI analyze: HTTP ' + res.status, 'warning');
+      console.log('⚠️ AI analyze: HTTP ' + res.status, 'warning');
       return;
     }
 
@@ -19047,9 +19047,9 @@ async function analyzeFileForUpload(fileName, fileType, fileSize) {
       }
     }
 
-    log('🤖 Análisis IA completado', 'success');
+    console.log('🤖 Análisis IA completado', 'success');
   } catch(e) { 
-    log('⚠️ AI analysis: ' + sanitizeForDisplay(e.message, 100), 'warning');
+    console.log('⚠️ AI analysis: ' + sanitizeForDisplay(e.message, 100), 'warning');
   }
 }
 
@@ -19664,7 +19664,7 @@ document.addEventListener('DOMContentLoaded', () => {
       vault.classList.remove('hidden');
       vault.setAttribute('aria-hidden', 'false');
     }
-    console.log('✅ Sesión activa detectada');
+    console.console.log('✅ Sesión activa detectada');
   } else {
     // ❌ No logueado: mostrar login, ocultar vault
     if (auth) {
@@ -19675,7 +19675,7 @@ document.addEventListener('DOMContentLoaded', () => {
       vault.classList.add('hidden');
       vault.setAttribute('aria-hidden', 'true');
     }
-    console.log('ℹ️ Sin sesión activa');
+    console.console.log('ℹ️ Sin sesión activa');
   }
 });
 </script>
@@ -19708,7 +19708,7 @@ if (typeof notifySafe !== 'function') {
     if (typeof showNotification === 'function') {
       showNotification(mensaje, tipo);
     } else {
-      console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+      console.console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
       if (tipo === 'error') alert(mensaje);
     }
   }
@@ -20245,7 +20245,7 @@ if (typeof notifySafe !== 'function') {
     if (typeof showNotification === 'function') {
       showNotification(mensaje, tipo);
     } else {
-      console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+      console.console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
     }
   }
 }
@@ -20294,7 +20294,7 @@ async function loadFinancialData(periodo = '30d') {
     }
 
     const datos = await respuesta.json();
-    console.log('📊 Analytics recibidos:', datos);
+    console.console.log('📊 Analytics recibidos:', datos);
 
     if (!datos.success || !datos.data) {
       console.warn('⚠️ Datos de analytics no disponibles');
@@ -20350,7 +20350,7 @@ async function loadFinancialData(periodo = '30d') {
       renderAffiliateTimeline(Array.isArray(data.affiliateHistory) ? data.affiliateHistory : []);
     }
 
-    console.log('✅ Analytics cargados correctamente');
+    console.console.log('✅ Analytics cargados correctamente');
   } catch (error) {
     console.error('❌ Error cargando analytics:', error);
     const msg = error.message.includes('Failed to fetch')
@@ -20629,7 +20629,7 @@ function dibujarGraficoLineas(canvasId, labels, datos, color = '#00e676') {
     }
   };
 
-  console.log(`📈 Gráfico de líneas dibujado: ${datosFinal.length} puntos`);
+  console.console.log(`📈 Gráfico de líneas dibujado: ${datosFinal.length} puntos`);
 }
 <script>
 // ==========================================
@@ -20830,7 +20830,7 @@ function dibujarGraficoDona(canvasId, labels, datos, colores = ['#00e676', '#29b
     canvas.title = '';
   };
 
-  console.log(`🥧 Gráfico de dona dibujado: ${labelsFinal.length} categorías, total ${total}`);
+  console.console.log(`🥧 Gráfico de dona dibujado: ${labelsFinal.length} categorías, total ${total}`);
 }
                                                                                 
 <script>
@@ -20951,7 +20951,7 @@ function renderTopProductos(productos) {
     contenedor.appendChild(fila);
   });
 
-  console.log(`🏆 Top productos renderizado: ${Math.min(productos.length, 5)} items`);
+  console.console.log(`🏆 Top productos renderizado: ${Math.min(productos.length, 5)} items`);
 }
 <script>
 // ==========================================
@@ -21061,7 +21061,7 @@ function renderAffiliateTimeline(timeline) {
     contenedor.appendChild(mas);
   }
 
-  console.log(`📅 Timeline de afiliados renderizado: ${Math.min(timeline.length, 10)} de ${timeline.length} eventos`);
+  console.console.log(`📅 Timeline de afiliados renderizado: ${Math.min(timeline.length, 10)} de ${timeline.length} eventos`);
 }
 <script>
 // ==========================================
@@ -21188,7 +21188,7 @@ async function exportFinancialData(formato = 'csv') {
       alert(`✅ Archivo ${formato.toUpperCase()} descargado`);
     }
 
-    console.log(`📥 Exportación completada: ${nombreArchivo}`);
+    console.console.log(`📥 Exportación completada: ${nombreArchivo}`);
   } catch (error) {
     console.error('❌ Error exportando:', error);
     const msg = error.message || 'Error al exportar';
@@ -21204,7 +21204,7 @@ async function exportFinancialData(formato = 'csv') {
 // 📦 FUNCIÓN PARA CARGAR Y MOSTRAR EL VAULT (CORREGIDA)
 // ==========================================
 async function cargarVault() {
-  console.log("🔄 Intentando cargar el Vault...");
+  console.console.log("🔄 Intentando cargar el Vault...");
 
   const contenedor = document.getElementById('vaultContainer');
   if (!contenedor) {
@@ -21247,7 +21247,7 @@ async function cargarVault() {
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
-    console.log("✅ Datos recibidos del servidor:", datos);
+    console.console.log("✅ Datos recibidos del servidor:", datos);
 
     // ✅ Validación robusta
     if (!datos || typeof datos !== 'object') {
@@ -21257,7 +21257,7 @@ async function cargarVault() {
     const items = Array.isArray(datos.items) ? datos.items : [];
 
     if (datos.success && items.length > 0) {
-      console.log(`🎉 ¡Encontrados ${items.length} archivos!`);
+      console.console.log(`🎉 ¡Encontrados ${items.length} archivos!`);
       contenedor.innerHTML = '';
 
       // ✅ Encabezado con contador
@@ -21462,7 +21462,7 @@ async function verArchivo(id) {
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
-    console.log('📦 Archivo recibido:', datos);
+    console.console.log('📦 Archivo recibido:', datos);
 
     // ✅ Validación robusta de respuesta
     if (!datos || typeof datos !== 'object') {
@@ -21668,7 +21668,7 @@ async function descargarArchivo(id) {
     // ✅ Cleanup con delay
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-    console.log('✅ Archivo descargado:', nombre);
+    console.console.log('✅ Archivo descargado:', nombre);
     
     // ✅ Notificación no bloqueante
     if (typeof showNotification === 'function') {
@@ -21766,7 +21766,7 @@ async function eliminarArchivo(id) {
 // 🚀 INICIAR CUANDO CARGUE LA PÁGINA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Aplicación iniciada');
+  console.console.log('🚀 Aplicación iniciada');
   if (typeof cargarVault === 'function') cargarVault();
   if (typeof loadFinancialData === 'function') loadFinancialData();
 });
@@ -21805,7 +21805,7 @@ if (typeof sanitizeId !== 'function') {
 function formatearTamaño(bytes) {
   if (!bytes || bytes === 0) return '0 B';
   const unidades = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const i = Math.floor(Math.console.log(bytes) / Math.console.log(1024));
   return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + unidades[i];
 }
 
@@ -21829,7 +21829,7 @@ function verificarConexion() {
 // ==========================================
 if (typeof showNotification !== 'function') {
   function showNotification(mensaje, tipo = 'info') {
-    console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+    console.console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
     if (tipo === 'error') alert(mensaje);
   }
 }
@@ -21990,7 +21990,7 @@ async function verArchivo(id) {
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
-    console.log('📦 Archivo recibido:', datos);
+    console.console.log('📦 Archivo recibido:', datos);
 
     if (!datos.success || !datos.secret) throw new Error('No se pudo obtener el contenido');
 
@@ -22364,7 +22364,7 @@ async function verArchivo(id) {
     if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
     const datos = await respuesta.json();
-    console.log('📦 Archivo recibido:', datos);
+    console.console.log('📦 Archivo recibido:', datos);
 
     if (!datos.success || !datos.secret) throw new Error('No se pudo obtener el contenido');
 
@@ -22652,7 +22652,7 @@ async function copiarPortapapeles() {
       }
     }
     
-    console.log(`📋 Texto copiado: ${contenidoTexto.length} caracteres`);
+    console.console.log(`📋 Texto copiado: ${contenidoTexto.length} caracteres`);
   } catch (error) {
     console.error('❌ Error copiando:', error);
     const msg = '❌ No se pudo copiar. Selecciona el texto manualmente.';
@@ -22899,7 +22899,7 @@ async function compartirArchivo(id) {
         ? showNotification(`✅ Enlace copiado (expira en ${horas}h)`, 'success')
         : alert(mensaje);
       
-      console.log(`🔗 Link generado para: ${safeId}, expira en ${horas}h`);
+      console.console.log(`🔗 Link generado para: ${safeId}, expira en ${horas}h`);
       
     } catch (copyError) {
       // Si falla copiar, mostrar el link para copiar manualmente
@@ -23374,7 +23374,7 @@ async function toggleFavorito(id) {
         }
       }
       
-      console.log(`✅ Favorito ${esFavoritoActual ? 'removido' : 'agregado'}: ${id}`);
+      console.console.log(`✅ Favorito ${esFavoritoActual ? 'removido' : 'agregado'}: ${id}`);
     } else {
       throw new Error(datos.error || 'Error del servidor');
     }
@@ -23456,7 +23456,7 @@ function cerrarVisor() {
   window.zoomActual = 1;
   window.velocidadActual = 1;
   
-  console.log('🔒 Visor cerrado');
+  console.console.log('🔒 Visor cerrado');
 }
 
 // ==========================================
@@ -23563,7 +23563,7 @@ async function descargarArchivo(id) {
     // ✅ Cleanup inmediato
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-    console.log('✅ Archivo descargado:', nombre);
+    console.console.log('✅ Archivo descargado:', nombre);
     
     // ✅ Notificación no bloqueante
     if (typeof showNotification === 'function') {
@@ -23785,7 +23785,7 @@ if (typeof verArchivo !== 'function') {
       if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
       const datos = await respuesta.json();
-      console.log('📦 Archivo recibido:', datos);
+      console.console.log('📦 Archivo recibido:', datos);
 
       if (!datos.success || !datos.secret) throw new Error('No se pudo obtener el contenido');
 
@@ -23953,7 +23953,7 @@ if (typeof descargarArchivo !== 'function') {
       document.body.removeChild(enlace);
       URL.revokeObjectURL(url);
 
-      console.log('✅ Archivo descargado:', nombre);
+      console.console.log('✅ Archivo descargado:', nombre);
     } catch (error) {
       console.error('❌ Error descargando:', error);
       alert('❌ Error al descargar: ' + error.message);
@@ -24010,7 +24010,7 @@ if (typeof eliminarArchivo !== 'function') {
 // ==========================================
 if (typeof cargarVault !== 'function') {
   async function cargarVault() {
-    console.log("🔄 Intentando cargar el Vault...");
+    console.console.log("🔄 Intentando cargar el Vault...");
 
     const contenedor = document.getElementById('vaultContainer');
     if (!contenedor) {
@@ -24047,10 +24047,10 @@ if (typeof cargarVault !== 'function') {
       if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
       const datos = await respuesta.json();
-      console.log("✅ Datos recibidos del servidor:", datos);
+      console.console.log("✅ Datos recibidos del servidor:", datos);
 
       if (datos.success && datos.items && datos.items.length > 0) {
-        console.log(`🎉 ¡Encontrados ${datos.items.length} archivos!`);
+        console.console.log(`🎉 ¡Encontrados ${datos.items.length} archivos!`);
         contenedor.innerHTML = '';
 
         datos.items.forEach(archivo => {
@@ -24785,13 +24785,13 @@ strengthDiv.style.color = colors[strength];
       diagnosticEntries = diagnosticEntries.slice(-20);
     }
     
-    renderDiagnosticLog();
+    renderDiagnosticconsole.log();
   }
   
   /**
    * Renderiza el log de diagnóstico
    */
-  function renderDiagnosticLog() {
+  function renderDiagnosticconsole.log() {
     const logEl = document.getElementById('diagnosticLog');
     if (!logEl) return;
     
@@ -25227,7 +25227,7 @@ strengthDiv.style.color = colors[strength];
 (function() {
   'use strict';
   
-  console.log('🧠 [CEREBRO MAESTRO] Inicializando sistema unificado con IA local...');
+  console.console.log('🧠 [CEREBRO MAESTRO] Inicializando sistema unificado con IA local...');
   
   // ============================================
   // 🤖 MÓDULO DE IA LOCAL
@@ -25280,7 +25280,7 @@ strengthDiv.style.color = colors[strength];
     
     // Alertar sobre problemas de seguridad
     alertarSeguridad(mensaje, nivel = 'info') {
-      console.log(`🛡️ [IA SEGURIDAD] ${mensaje}`);
+      console.console.log(`🛡️ [IA SEGURIDAD] ${mensaje}`);
       this.patrones.erroresDetectados.push({
         mensaje,
         nivel,
@@ -25354,7 +25354,7 @@ strengthDiv.style.color = colors[strength];
         }
       });
       
-      console.log('✅ [CEREBRO] Controlador de vistas inicializado');
+      console.console.log('✅ [CEREBRO] Controlador de vistas inicializado');
     },
     
     // Mostrar una vista específica
@@ -25373,7 +25373,7 @@ strengthDiv.style.color = colors[strength];
       this.vistas[nombreVista].classList.remove('hidden');
       this.vistaActual = nombreVista;
       
-      console.log(`✅ [CEREBRO] Vista "${nombreVista}" mostrada`);
+      console.console.log(`✅ [CEREBRO] Vista "${nombreVista}" mostrada`);
       IA.analizarComportamiento('cambio_vista', { vista: nombreVista });
       
       return true;
@@ -25415,7 +25415,7 @@ strengthDiv.style.color = colors[strength];
       localStorage.setItem('arv_tipo', tipo);
       localStorage.setItem('arv_fecha_registro', new Date().toISOString());
       
-      console.log(`✅ [AUTH] Usuario registrado: ${email} (${tipo})`);
+      console.console.log(`✅ [AUTH] Usuario registrado: ${email} (${tipo})`);
       IA.analizarComportamiento('registro_exitoso', { email, tipo });
       
       return true;
@@ -25443,7 +25443,7 @@ strengthDiv.style.color = colors[strength];
       // Actualizar último login
       localStorage.setItem('arv_ultimo_login', new Date().toISOString());
       
-      console.log(`✅ [AUTH] Login exitoso: ${emailLower}`);
+      console.console.log(`✅ [AUTH] Login exitoso: ${emailLower}`);
       IA.analizarComportamiento('login_exitoso', { email: emailLower });
       
       // Determinar qué vista mostrar
@@ -25478,7 +25478,7 @@ strengthDiv.style.color = colors[strength];
       localStorage.removeItem('arv_fecha_registro');
       localStorage.removeItem('arv_ultimo_login');
       
-      console.log(`✅ [AUTH] Sesión cerrada: ${email}`);
+      console.console.log(`✅ [AUTH] Sesión cerrada: ${email}`);
       IA.analizarComportamiento('logout', { email });
       
       ControladorVistas.mostrar('landing');
@@ -25543,7 +25543,7 @@ strengthDiv.style.color = colors[strength];
         IA.analizarComportamiento('tab_cambiado', { tab: 'login' });
       });
       
-      console.log('✅ [UI] Tabs inicializados');
+      console.console.log('✅ [UI] Tabs inicializados');
     },
     
     // Inicializar formularios
@@ -25572,7 +25572,7 @@ strengthDiv.style.color = colors[strength];
         });
       }
       
-      console.log('✅ [UI] Formularios inicializados');
+      console.console.log('✅ [UI] Formularios inicializados');
     },
     
     // Inicializar botones de logout
@@ -25583,7 +25583,7 @@ strengthDiv.style.color = colors[strength];
         });
       });
       
-      console.log('✅ [UI] Botones de logout inicializados');
+      console.console.log('✅ [UI] Botones de logout inicializados');
     }
   };
   
@@ -25591,7 +25591,7 @@ strengthDiv.style.color = colors[strength];
   // 🚀 INICIALIZACIÓN PRINCIPAL
   // ============================================
   function inicializar() {
-    console.log('🚀 [CEREBRO] Iniciando sistema maestro...');
+    console.console.log('🚀 [CEREBRO] Iniciando sistema maestro...');
     
     // 1. Inicializar controlador de vistas
     ControladorVistas.inicializar();
@@ -25607,10 +25607,10 @@ strengthDiv.style.color = colors[strength];
     const nombreGuardado = localStorage.getItem('arv_nombre');
     
     if (emailGuardado && tipoGuardado && nombreGuardado) {
-      console.log('✅ [CEREBRO] Sesión existente detectada');
+      console.console.log('✅ [CEREBRO] Sesión existente detectada');
       Autenticacion.iniciarSesion(emailGuardado);
     } else {
-      console.log('ℹ️ [CEREBRO] Sin sesión activa, mostrando landing');
+      console.console.log('ℹ️ [CEREBRO] Sin sesión activa, mostrando landing');
       ControladorVistas.mostrar('landing');
     }
     
@@ -25623,13 +25623,13 @@ strengthDiv.style.color = colors[strength];
     setTimeout(() => {
       const recomendaciones = IA.recomendarAcciones();
       if (recomendaciones.length > 0) {
-        console.log('💡 [IA] Recomendaciones:', recomendaciones);
+        console.console.log('💡 [IA] Recomendaciones:', recomendaciones);
       }
     }, 3000);
     
-    console.log('✅ [CEREBRO] Sistema maestro inicializado correctamente');
-    console.log('🤖 [IA] Módulo de inteligencia artificial activo');
-    console.log('🛡️ [SEGURIDAD] Monitoreo de anomalías activo');
+    console.console.log('✅ [CEREBRO] Sistema maestro inicializado correctamente');
+    console.console.log('🤖 [IA] Módulo de inteligencia artificial activo');
+    console.console.log('🛡️ [SEGURIDAD] Monitoreo de anomalías activo');
   }
   
   // ============================================
@@ -25765,7 +25765,7 @@ strengthDiv.style.color = colors[strength];
       }
     }
 
-    console.log('🛡️ [AUDITORÍA IA]', resultado.mensaje);
+    console.console.log('🛡️ [AUDITORÍA IA]', resultado.mensaje);
     return true;
   };
 </script>
@@ -25780,7 +25780,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const adminLogs = document.getElementById('adminLogs');
   
   // Función para agregar logs
-  function addLog(mensaje) {
+  function addconsole.log(mensaje) {
     if (adminLogs) {
       const time = new Date().toLocaleTimeString();
       const logEntry = document.createElement('p');
@@ -25832,16 +25832,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (data.user && data.user.isAdmin === true) {
         adminLoginForm.classList.add('hidden');
         adminDashboard.classList.remove('hidden');
-        addLog('✅ Acceso concedido al Administrador Supremo');
-        addLog('🔐 Verificado por el backend (JWT válido)');
+        addconsole.log('✅ Acceso concedido al Administrador Supremo');
+        addconsole.log('🔐 Verificado por el backend (JWT válido)');
       } else {
         alert('⛔ Acceso denegado. Tu cuenta no tiene permisos de administrador.');
-        addLog('⛔ Intento de acceso no autorizado');
+        addconsole.log('⛔ Intento de acceso no autorizado');
       }
     } catch (error) {
       console.error('❌ Error verificando admin:', error);
       alert('❌ Error al verificar permisos. Intenta de nuevo.');
-      addLog('❌ Error de conexión al verificar permisos');
+      addconsole.log('❌ Error de conexión al verificar permisos');
     } finally {
       btnAdminLogin.disabled = false;
       btnAdminLogin.textContent = '🔍 Verificar Acceso';
@@ -25853,7 +25853,7 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function() {
       const tool = this.dataset.tool;
       handleAdminTool(tool);
-      addLog(`🛠️ Herramienta abierta: ${tool}`);
+      addconsole.log(`🛠️ Herramienta abierta: ${tool}`);
     });
   });
   
@@ -25922,7 +25922,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Ya es admin, mostrar dashboard directamente
         adminLoginForm.classList.add('hidden');
         adminDashboard.classList.remove('hidden');
-        addLog('✅ Sesión admin activa detectada');
+        addconsole.log('✅ Sesión admin activa detectada');
       }
     })
     .catch(() => {}); // Ignorar errores
@@ -26270,7 +26270,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (usernamesSupremos.includes(username)) {
         tipoUsuario = 'supremo';
         esSupremo = true;
-        console.log(`👑 [SUPREMO] Usuario #1 detectado: ${username}`);
+        console.console.log(`👑 [SUPREMO] Usuario #1 detectado: ${username}`);
       }
             localStorage.setItem('arv_tipo', tipoUsuario);
       localStorage.setItem('arv_es_supremo', esSupremo ? 'true' : 'false');
@@ -26427,7 +26427,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, true);
     
-    console.log('✅ Formulario desbloqueado mágicamente');
+    console.console.log('✅ Formulario desbloqueado mágicamente');
     
   }, 1000); // Esperar 1 segundo después de cargar
 });
@@ -26498,7 +26498,7 @@ if (btnCreate) {
           inputPwd.focus();
         });
         
-        console.log('👁️ Botón del ojo desbloqueado');
+        console.console.log('👁️ Botón del ojo desbloqueado');
       }
     }
   });
@@ -26952,10 +26952,10 @@ if (btnCreate) {
  <p style="margin: 0; color: #cbd5e1; font-size: 0.82rem;">${new Date().toLocaleTimeString()} • 9 asistentes • CTO + Agente coordinados</p>`;
   }
   // Notificar al Agente Flotante
-  console.log('🧠 Ingeniero Supremo v5.0 activado');
-  console.log('📜 9 Leyes Fundamentales cargadas');
-  console.log('🤝 Coordinación con Agente Flotante establecida');
-  console.log('👑 Lealtad absoluta al Dueño Supremo');
+  console.console.log('🧠 Ingeniero Supremo v5.0 activado');
+  console.console.log('📜 9 Leyes Fundamentales cargadas');
+  console.console.log('🤝 Coordinación con Agente Flotante establecida');
+  console.console.log('👑 Lealtad absoluta al Dueño Supremo');
   })();
 </script>
 </body>
