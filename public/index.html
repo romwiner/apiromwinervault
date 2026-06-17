@@ -2524,6 +2524,12 @@ if (btnSecurePublish) {
 // ✅ Exponer la función para que script.js la pueda llamar
 window.cargarFeed = cargarFeedReal;
 
+<!-- ✅ JavaScript separado correctamente -->
+<script>
+// ============================================
+// 🎨 MODAL DE PUBLICACIÓN - INICIALIZACIÓN
+// ============================================
+
 // ✅ Si el feed ya está visible, cargarlo
 if (getToken() && feedContainer && socialFeedPanel && !socialFeedPanel.classList.contains('hidden')) {
   if (typeof cargarFeedReal === 'function') {
@@ -2532,6 +2538,415 @@ if (getToken() && feedContainer && socialFeedPanel && !socialFeedPanel.classList
 }
 
 log('🎨 Modal de publicación inicializado', 'success');
+
+// ============================================
+// 📢 SECCIÓN DE ANUNCIOS - FUNCIONALIDAD COMPLETA
+// ============================================
+
+// ✅ Estado global de anuncios
+const adsState = {
+  loaded: false,
+  loading: false,
+  watchedToday: 0,
+  dailyEarnings: 0,
+  currentAds: [],
+  refreshCooldown: false
+};
+
+// ✅ Cargar anuncios disponibles
+async function loadAvailableAds() {
+  if (adsState.loading) {
+    showNotification('⏳ Ya hay una carga en progreso', 'warning');
+    return;
+  }
+
+  if (!getToken()) {
+    showNotification('⚠️ Debes iniciar sesión para ver anuncios', 'warning');
+    return;
+  }
+
+  adsState.loading = true;
+  const adsContainer = document.getElementById('adsContainer');
+  const adsStatus = document.getElementById('adsStatus');
+  const btnRefresh = document.getElementById('btnRefreshAds');
+
+  if (!adsContainer || !adsStatus) {
+    log('❌ Elementos de anuncios no encontrados', 'error');
+    adsState.loading = false;
+    return;
+  }
+
+  try {
+    adsStatus.textContent = '🔄 Cargando anuncios disponibles...';
+    adsStatus.style.color = '#38bdf8';
+
+    const res = await req('/api/ads/available');
+
+    if (!res.success) {
+      throw new Error(res.error || 'Error cargando anuncios');
+    }
+
+    adsState.currentAds = res.ads || [];
+    adsState.watchedToday = res.watchedToday || 0;
+    const remaining = res.remaining || 0;
+
+    // ✅ Actualizar contador
+    const adsCounter = document.getElementById('adsCounter');
+    if (adsCounter) {
+      adsCounter.textContent = `${adsState.watchedToday} / 20`;
+    }
+
+    // ✅ Renderizar anuncios
+    if (adsState.currentAds.length === 0) {
+      adsContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #64748b;">
+          <p style="font-size: 1.1rem; margin-bottom: 8px;">📭 No hay anuncios disponibles</p>
+          <p style="font-size: 0.85rem;">Vuelve más tarde o intenta refrescar</p>
+        </div>
+      `;
+      adsStatus.textContent = remaining === 0 
+        ? '⏰ Límite diario alcanzado. Vuelve mañana para más recompensas.'
+        : '✅ No hay anuncios en este momento';
+      adsStatus.style.color = remaining === 0 ? '#fbbf24' : '#64748b';
+    } else {
+      adsContainer.innerHTML = adsState.currentAds.map(ad => `
+        <div class="ad-card" data-ad-id="${ad.id}" style="
+          background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+          border: 1px solid #334155;
+          border-radius: 12px;
+          padding: 16px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+        " onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(56, 189, 248, 0.2)'"
+           onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+          
+          <div style="position: absolute; top: 8px; right: 8px; background: #059669; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: bold;">
+            💰 $${parseFloat(ad.reward).toFixed(2)}
+          </div>
+          
+          ${ad.imageUrl ? `
+            <img src="${sanitizeForDisplay(ad.imageUrl, 500)}" 
+                 alt="${sanitizeForDisplay(ad.title, 50)}"
+                 style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;"
+                 onerror="this.style.display='none'">
+          ` : ''}
+          
+          <h3 style="margin: 0 0 8px 0; font-size: 1rem; color: #f8fafc; line-height: 1.3;">
+            ${sanitizeForDisplay(ad.title, 60)}
+          </h3>
+          
+          <p style="margin: 0 0 12px 0; font-size: 0.8rem; color: #94a3b8; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+            ${sanitizeForDisplay(ad.description, 100)}
+          </p>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155;">
+            <span style="font-size: 0.75rem; color: #64748b;">
+              ${sanitizeForDisplay(ad.advertiser || 'Anunciante', 30)}
+            </span>
+            <button class="btn-watch-ad" data-ad-id="${ad.id}" style="
+              background: #059669;
+              color: white;
+              border: none;
+              padding: 6px 12px;
+              border-radius: 6px;
+              font-size: 0.75rem;
+              font-weight: bold;
+              cursor: pointer;
+              transition: all 0.2s;
+            " onmouseover="this.style.background='#047857'"
+               onmouseout="this.style.background='#059669'">
+              ▶️ Ver
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      // ✅ Agregar event listeners a los botones de ver
+      document.querySelectorAll('.btn-watch-ad').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const adId = btn.getAttribute('data-ad-id');
+          watchAd(adId);
+        });
+      });
+
+      // ✅ Click en tarjeta completa también abre el anuncio
+      document.querySelectorAll('.ad-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const adId = card.getAttribute('data-ad-id');
+          watchAd(adId);
+        });
+      });
+
+      adsStatus.textContent = `✅ ${adsState.currentAds.length} anuncios disponibles | ${remaining} restantes hoy`;
+      adsStatus.style.color = '#059669';
+    }
+
+    adsState.loaded = true;
+
+  } catch (error) {
+    log('❌ Error cargando anuncios: ' + error.message, 'error');
+    adsContainer.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #ef4444;">
+        <p style="font-size: 1.1rem; margin-bottom: 8px;">❌ Error cargando anuncios</p>
+        <p style="font-size: 0.85rem; color: #94a3b8;">${sanitizeForDisplay(error.message, 100)}</p>
+      </div>
+    `;
+    adsStatus.textContent = '❌ Error - Intenta de nuevo';
+    adsStatus.style.color = '#ef4444';
+    showNotification('❌ Error cargando anuncios: ' + error.message, 'error');
+  } finally {
+    adsState.loading = false;
+  }
+}
+
+// ✅ Ver anuncio y ganar recompensa
+async function watchAd(adId) {
+  if (!getToken()) {
+    showNotification('⚠️ Debes iniciar sesión para ver anuncios', 'warning');
+    return;
+  }
+
+  if (adsState.watchedToday >= 20) {
+    showNotification('⏰ Has alcanzado el límite diario de 20 anuncios', 'warning');
+    return;
+  }
+
+  const ad = adsState.currentAds.find(a => a.id === adId);
+  if (!ad) {
+    showNotification('❌ Anuncio no encontrado', 'error');
+    return;
+  }
+
+  // ✅ Crear modal de visualización
+  const modal = document.createElement('div');
+  modal.id = 'adWatchModal';
+  modal.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+  `;
+
+  let countdown = 15;
+  let canClose = false;
+
+  modal.innerHTML = `
+    <div style="
+      background: #0f172a;
+      border: 2px solid #1e3a5f;
+      border-radius: 16px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      position: relative;
+    ">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #1e3a5f; padding-bottom: 16px;">
+        <h3 style="margin: 0; color: #f8fafc; font-size: 1.3rem;">
+          📺 ${sanitizeForDisplay(ad.title, 50)}
+        </h3>
+        <div id="adCountdown" style="
+          background: #fbbf24;
+          color: #0f172a;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-weight: bold;
+          font-size: 0.9rem;
+        ">
+          ${countdown}s
+        </div>
+      </div>
+
+      ${ad.imageUrl ? `
+        <img src="${sanitizeForDisplay(ad.imageUrl, 500)}" 
+             alt="${sanitizeForDisplay(ad.title, 50)}"
+             style="width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px; margin-bottom: 20px;">
+      ` : ''}
+
+      <div style="background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <p style="color: #e2e8f0; line-height: 1.6; margin: 0;">
+          ${sanitizeForDisplay(ad.description, 500)}
+        </p>
+      </div>
+
+      <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px;">
+        <p style="color: #94a3b8; margin: 0 0 8px 0; font-size: 0.9rem;">
+          Recompensa por ver este anuncio:
+        </p>
+        <p style="color: #059669; margin: 0; font-size: 2rem; font-weight: bold;">
+          $${parseFloat(ad.reward).toFixed(2)} USD
+        </p>
+      </div>
+
+      <button id="btnCloseAd" disabled style="
+        width: 100%;
+        margin-top: 20px;
+        padding: 14px;
+        background: #334155;
+        color: #64748b;
+        border: none;
+        border-radius: 10px;
+        font-weight: bold;
+        cursor: not-allowed;
+        transition: all 0.3s;
+      ">
+        ⏳ Espera ${countdown} segundos para cerrar
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // ✅ Countdown timer
+  const countdownInterval = setInterval(() => {
+    countdown--;
+    const countdownEl = document.getElementById('adCountdown');
+    const closeBtn = document.getElementById('btnCloseAd');
+
+    if (countdownEl) {
+      countdownEl.textContent = `${countdown}s`;
+    }
+
+    if (countdown <= 0) {
+      clearInterval(countdownInterval);
+      canClose = true;
+
+      if (countdownEl) {
+        countdownEl.textContent = '✅';
+        countdownEl.style.background = '#059669';
+        countdownEl.style.color = 'white';
+      }
+
+      if (closeBtn) {
+        closeBtn.disabled = false;
+        closeBtn.style.background = '#059669';
+        closeBtn.style.color = 'white';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.textContent = '✅ Cerrar y reclamar recompensa';
+      }
+    } else {
+      if (closeBtn) {
+        closeBtn.textContent = `⏳ Espera ${countdown} segundos para cerrar`;
+      }
+    }
+  }, 1000);
+
+  // ✅ Close button handler
+  document.getElementById('btnCloseAd').addEventListener('click', async () => {
+    if (!canClose) return;
+
+    clearInterval(countdownInterval);
+    modal.remove();
+
+    // ✅ Registrar visualización y ganar recompensa
+    try {
+      showNotification('🔄 Procesando recompensa...', 'info');
+
+      const res = await req(`/api/ads/watch/${adId}`, 'POST', { watchTime: 15 });
+
+      if (res.success) {
+        adsState.watchedToday++;
+        adsState.dailyEarnings += res.earned || 0;
+
+        // ✅ Actualizar UI
+        const adsCounter = document.getElementById('adsCounter');
+        if (adsCounter) {
+          adsCounter.textContent = `${adsState.watchedToday} / 20`;
+        }
+
+        const dailyEarnings = document.getElementById('dailyEarnings');
+        if (dailyEarnings) {
+          dailyEarnings.textContent = `$${adsState.dailyEarnings.toFixed(2)} USD`;
+        }
+
+        showNotification(`✅ ¡Ganaste $${res.earned.toFixed(2)} USD!`, 'success');
+
+        // ✅ Remover anuncio de la lista
+        adsState.currentAds = adsState.currentAds.filter(a => a.id !== adId);
+
+        // ✅ Recargar anuncios si quedan pocos
+        if (adsState.currentAds.length < 3) {
+          setTimeout(() => loadAvailableAds(), 2000);
+        } else {
+          // ✅ Actualizar contenedor
+          const adCard = document.querySelector(`[data-ad-id="${adId}"]`);
+          if (adCard) {
+            adCard.style.opacity = '0.3';
+            adCard.style.pointerEvents = 'none';
+          }
+        }
+      } else {
+        throw new Error(res.error || 'Error procesando recompensa');
+      }
+    } catch (error) {
+      log('❌ Error reclamando recompensa: ' + error.message, 'error');
+      showNotification('❌ Error: ' + error.message, 'error');
+    }
+  });
+
+  // ✅ Cerrar con Escape
+  const escapeHandler = (e) => {
+    if (e.key === 'Escape' && canClose) {
+      clearInterval(countdownInterval);
+      modal.remove();
+      document.removeEventListener('keydown', escapeHandler);
+    }
+  };
+  document.addEventListener('keydown', escapeHandler);
+}
+
+// ✅ Inicializar sección de anuncios cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+  const adsSection = document.getElementById('adsSection');
+  const btnRefresh = document.getElementById('btnRefreshAds');
+
+  if (adsSection && btnRefresh) {
+    // ✅ Cargar anuncios cuando se muestra la sección
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          if (!adsSection.classList.contains('hidden') && !adsState.loaded) {
+            loadAvailableAds();
+          }
+        }
+      });
+    });
+
+    observer.observe(adsSection, { attributes: true });
+
+    // ✅ Botón refrescar
+    btnRefresh.addEventListener('click', () => {
+      if (adsState.refreshCooldown) {
+        showNotification('⏳ Espera 30 segundos antes de refrescar', 'warning');
+        return;
+      }
+
+      adsState.refreshCooldown = true;
+      btnRefresh.disabled = true;
+      btnRefresh.textContent = '⏳ Refrescando...';
+
+      loadAvailableAds().finally(() => {
+        setTimeout(() => {
+          adsState.refreshCooldown = false;
+          btnRefresh.disabled = false;
+          btnRefresh.textContent = '🔄 Solicitar Nuevos Anuncios';
+        }, 30000); // 30 segundos cooldown
+      });
+    });
+
+    log('📢 Sección de anuncios inicializada', 'success');
+  }
+});
+</script>
+
 <!-- 📢 SECCIÓN ANUNCIOS: apiromwinervault (Recompensas Seguras con IA Interna) -->
 <section id="adsSection" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 800px; margin: 0 auto; padding: 20px;">
   
