@@ -2399,7 +2399,7 @@ if (btnClosePublish) {
       if (pubCat) pubCat.value = 'educacion';
       if (pubPrice) pubPrice.value = '';
     } catch (e) {
-      console.console.console.console.console.console.console.log('⚠️ Error limpiando formulario: ' + e.message, 'warning');
+      console.log('⚠️ Error limpiando formulario: ' + e.message, 'warning');
     }
   });
 }
@@ -2488,7 +2488,7 @@ try {
   if (pubCat) pubCat.value = 'educacion';
   if (pubPrice) pubPrice.value = '';
 } catch (e) {
-  console.console.console.console.console.console.console.console.log('⚠️ Error limpiando formulario: ' + e.message);
+ console.log('⚠️ Error limpiando formulario: ' + e.message);
 }
 
 // ✅ Recargar feed si existe la función
@@ -2497,7 +2497,7 @@ if (typeof cargarFeedReal === 'function') {
 }
 
 } catch (err) {
-  console.console.console.console.console.console.console.console.log('❌ Error al publicar: ' + err.message);
+ console.log('❌ Error al publicar: ' + err.message);
   
   // ✅ Mensajes de error específicos
   if (err.message.includes('Timeout')) {
@@ -2537,7 +2537,7 @@ if (token && typeof feedContainer !== 'undefined' && typeof socialFeedPanel !== 
   }
 }
 
-console.console.console.console.console.console.console.console.log('🎨 Modal de publicación inicializado');
+console.log('🎨 Modal de publicación inicializado');
 // ============================================
 // 📢 SECCIÓN DE ANUNCIOS - FUNCIONALIDAD COMPLETA
 // ============================================
@@ -2570,7 +2570,7 @@ async function loadAvailableAds() {
   const btnRefresh = document.getElementById('btnRefreshAds');
 
   if (!adsContainer || !adsStatus) {
-    console.console.console.console.console.console.console.log('❌ Elementos de anuncios no encontrados', 'error');
+   console.log('❌ Elementos de anuncios no encontrados', 'error');
     adsState.loading = false;
     return;
   }
@@ -2686,7 +2686,7 @@ async function loadAvailableAds() {
     adsState.loaded = true;
 
   } catch (error) {
-    console.console.console.console.console.console.console.log('❌ Error cargando anuncios: ' + error.message, 'error');
+    console.log('❌ Error cargando anuncios: ' + error.message, 'error');
     adsContainer.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #ef4444;">
         <p style="font-size: 1.1rem; margin-bottom: 8px;">❌ Error cargando anuncios</p>
@@ -2886,7 +2886,7 @@ async function watchAd(adId) {
         throw new Error(res.error || 'Error procesando recompensa');
       }
     } catch (error) {
-      console.console.console.console.console.console.console.log('❌ Error reclamando recompensa: ' + error.message, 'error');
+      console.log('❌ Error reclamando recompensa: ' + error.message, 'error');
       showNotification('❌ Error: ' + error.message, 'error');
     }
   });
@@ -2941,7 +2941,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    console.console.console.console.console.console.console.log('📢 Sección de anuncios inicializada', 'success');
+    console.log('📢 Sección de anuncios inicializada', 'success');
   }
 });
 </script>
@@ -3568,7 +3568,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const hiddenRef = document.getElementById('regRefCode');
     if (hiddenRef) hiddenRef.value = refCodeParam;
     // También podemos mostrarlo al usuario (opcional)
-    console.console.console.console.console.console.console.console.log('Código de referido detectado:', refCodeParam);
+    console.log('Código de referido detectado:', refCodeParam);
   }
   
   // ========== ENVÍO DEL FORMULARIO (BACKEND REAL) ==========
@@ -5594,7 +5594,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getToken = () => localStorage.getItem('authToken');
 
-    function addconsole.console.console.console.console.console.console.log(message, type = 'info') {
+    function addconsole.console.log(message, type = 'info') {
       const logEntry = document.createElement('p');
       logEntry.style.margin = '4px 0';
       logEntry.style.color = type === 'error' ? '#ef4444' : (type === 'success' ? '#059669' : '#94a3b8');
@@ -5617,7 +5617,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.success && (data.profile?.isAdmin || data.user?.isAdmin)) {
           const esSupremo = data.user?.esSupremo || data.profile?.esSupremo;
           roleDisplay.textContent = esSupremo ? '👑 DUEÑO SUPREMO' : '🔐 ADMINISTRADOR';
-          addconsole.console.console.console.console.console.console.log('Acceso administrativo verificado.', 'success');
+          addconsole.console.log('Acceso administrativo verificado.', 'success');
           return true;
         } else {
           adminPanel.classList.add('hidden');
@@ -5648,11 +5648,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.success && data.users) {
           let userList = data.users.map(u => `${u.email} (${u.tier || 'personal'})${u.isSupremo ? ' 👑' : ''}`).join('\n');
           alert('Usuarios registrados:\n' + userList);
-          addconsole.console.console.console.console.console.console.log(`Listados ${data.users.length} usuarios.`);
+          addconsole.console.log(`Listados ${data.users.length} usuarios.`);
         } else throw new Error('Error al listar');
       } catch (err) {
         alert('Error: ' + err.message);
-        addconsole.console.console.console.console.console.console.log('Error al listar usuarios: ' + err.message, 'error');
+        addconsole.console.log('Error al listar usuarios: ' + err.message, 'error');
       }
     }
 
@@ -5680,11 +5680,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.success) {
           alert(`Cuenta regalada a ${email}. Contraseña temporal: ${data.tempPassword || 'N/A'}`);
-          addconsole.console.console.console.console.console.console.log(`Cuenta regalada a ${email} con $${balance} y plan ${tier}.`);
+          addconsole..console.log(`Cuenta regalada a ${email} con $${balance} y plan ${tier}.`);
         } else throw new Error(data.error);
       } catch (err) {
         alert('Error: ' + err.message);
-        addconsole.console.console.console.console.console.console.log('Error al regalar cuenta: ' + err.message, 'error');
+        addconsole.console.log('Error al regalar cuenta: ' + err.message, 'error');
       }
     }
 
@@ -5702,11 +5702,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.success) {
           alert(`Usuario ${email} eliminado.`);
-          addconsole.console.console.console.console.console.console.log(`Usuario ${email} eliminado.`);
+          addconsole.console.log(`Usuario ${email} eliminado.`);
         } else throw new Error(data.error);
       } catch (err) {
         alert('Error: ' + err.message);
-        addconsole.console.console.console.console.console.console.log('Error al eliminar usuario: ' + err.message, 'error');
+        addconsole.console.log('Error al eliminar usuario: ' + err.message, 'error');
       }
     }
 
@@ -5732,11 +5732,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.success) {
           alert(`Contraseña de ${email} actualizada.`);
-          addconsole.console.console.console.console.console.console.log(`Contraseña restablecida para ${email}.`);
+          addconsole.console.log(`Contraseña restablecida para ${email}.`);
         } else throw new Error(data.error);
       } catch (err) {
         alert('Error: ' + err.message);
-        addconsole.console.console.console.console.console.console.log('Error al resetear contraseña: ' + err.message, 'error');
+        addconsole.console.log('Error al resetear contraseña: ' + err.message, 'error');
       }
     }
 
