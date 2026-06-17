@@ -14997,7 +14997,46 @@ function isValidImageUrl(url) {
   }
 }
 
-// === MARKETPLACE - FUNCIONES MEJORADAS ===
+<script>
+// ============================================
+// 🛍️ MARKETPLACE - FUNCIONES MEJORADAS (v2.0 FINAL)
+// ============================================
+
+// ✅ Funciones auxiliares (si no existen)
+if (typeof sanitizeIdForEvent !== 'function') {
+  window.sanitizeIdForEvent = function(id) {
+    if (!id) return '';
+    return String(id).replace(/[^a-zA-Z0-9_-]/g, '');
+  };
+}
+
+if (typeof isValidImageUrl !== 'function') {
+  window.isValidImageUrl = function(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+      const parsed = new URL(url);
+      return ['http:', 'https:'].includes(parsed.protocol) && 
+             /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(parsed.pathname);
+    } catch {
+      return false;
+    }
+  };
+}
+
+if (typeof scrollToAuth !== 'function') {
+  window.scrollToAuth = function() {
+    const authSection = document.getElementById('authSection') || 
+                       document.querySelector('[data-auth]') ||
+                       document.querySelector('.login-form');
+    if (authSection) {
+      authSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const firstInput = authSection.querySelector('input');
+      if (firstInput) setTimeout(() => firstInput.focus(), 500);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+}
 
 // ✅ Mostrar marketplace con validación de sesión
 function showMarketplace() {
@@ -15012,6 +15051,7 @@ function showMarketplace() {
   
   if (!dashboard || !marketplaceSection) {
     log('⚠️ Elementos del marketplace no encontrados', 'warning');
+    showNotification('❌ Error: marketplace no disponible', 'error');
     return;
   }
   
@@ -15019,7 +15059,7 @@ function showMarketplace() {
   dashboard.querySelectorAll('.glass').forEach(el => {
     if (el.id !== 'marketplaceSection' && !el.classList.contains('hidden')) {
       el.style.display = 'none';
-      el.setAttribute('aria-hidden', 'true'); // ✅ Accesibilidad
+      el.setAttribute('aria-hidden', 'true');
     }
   });
   
@@ -15064,9 +15104,11 @@ async function loadCategories() {
     const res = await req('/api/marketplace/categories');
     const sel = document.getElementById('marketCategory');
     
-    if (!sel) return;
+    if (!sel) {
+      log('⚠️ Selector de categorías no encontrado', 'warning');
+      return;
+    }
     
-    // ✅ Crear opciones con createElement (más seguro que innerHTML)
     sel.innerHTML = '';
     
     const defaultOpt = document.createElement('option');
@@ -15077,23 +15119,26 @@ async function loadCategories() {
     if (res.categories && Array.isArray(res.categories)) {
       res.categories.forEach(c => {
         const opt = document.createElement('option');
-        opt.value = sanitizeIdForEvent(c.id); // ✅ Sanitizar value
-        // ✅ Sanitizar texto antes de insertar
+        opt.value = sanitizeIdForEvent(c.id);
         const safeName = sanitizeForDisplay(c.name, 50);
         const safeCount = Number(c.count || 0);
         opt.textContent = `${safeName} (${safeCount})`;
         sel.appendChild(opt);
       });
     }
+    
+    log('📂 Categorías cargadas', 'success');
   } catch (e) {
-    // ✅ No exponer detalles de error
-    log('⚠️ Error cargando categorías', 'warning');
+    log('⚠️ Error cargando categorías: ' + e.message, 'warning');
   }
 }
 
 // ✅ Cargar marketplace con sanitización completa y event listeners seguros
 async function loadMarketplace() {
-  if (!token) return;
+  if (!token) {
+    log('⚠️ No hay token, no se puede cargar marketplace', 'warning');
+    return;
+  }
   
   const grid = document.getElementById('marketGrid');
   const load = document.getElementById('marketLoading');
@@ -15106,7 +15151,7 @@ async function loadMarketplace() {
   
   grid.innerHTML = '';
   load.classList.remove('hidden');
-  load.setAttribute('aria-live', 'polite'); // ✅ Accesibilidad
+  load.setAttribute('aria-live', 'polite');
   empty.classList.add('hidden');
   
   try {
@@ -15118,7 +15163,7 @@ async function loadMarketplace() {
     const cat = catSelect?.value || '';
     const priceFilter = priceSelect?.value || '';
     
-    // ✅ Construir URL con encodeURIComponent para cada param
+    // ✅ Construir URL con encodeURIComponent
     let url = '/api/marketplace';
     const params = [];
     if (q) params.push(`q=${encodeURIComponent(q)}`);
@@ -15141,27 +15186,38 @@ async function loadMarketplace() {
     if (!res.items || !Array.isArray(res.items) || res.items.length === 0) {
       empty.classList.remove('hidden');
       empty.setAttribute('aria-hidden', 'false');
+      log('📭 No hay productos en el marketplace', 'info');
       return;
     }
     
-    // ✅ Crear elementos con createElement en lugar de innerHTML
+    log(`🛍️ ${res.items.length} productos cargados`, 'success');
+    
+    // ✅ Crear elementos con createElement
     res.items.forEach(item => {
       try {
         const card = document.createElement('div');
         card.className = 'market-item';
         card.setAttribute('role', 'listitem');
+        card.setAttribute('tabindex', '0');
         card.setAttribute('aria-label', `${item.titulo || 'Producto'}, precio $${item.precio || 0}`);
         
-        // ✅ Preview con validación de URL y createElement
+        // ✅ Preview con validación de URL
         const preview = document.createElement('div');
         preview.className = 'market-preview';
         
         if (item.thumbnailUrl && isValidImageUrl(item.thumbnailUrl)) {
           const img = document.createElement('img');
-          img.src = item.thumbnailUrl; // ✅ URL ya validada
+          img.src = item.thumbnailUrl;
           img.alt = sanitizeForDisplay(item.titulo, 100) || 'Vista previa';
           img.style.cssText = 'width:100%;height:100%;object-fit:cover';
-          img.setAttribute('loading', 'lazy'); // ✅ Mejora rendimiento
+          img.setAttribute('loading', 'lazy');
+          img.onerror = function() {
+            this.style.display = 'none';
+            const placeholder = document.createElement('span');
+            placeholder.style.cssText = 'color:#8b95a5;font-size:0.8rem';
+            placeholder.textContent = '📦 Sin imagen';
+            preview.appendChild(placeholder);
+          };
           preview.appendChild(img);
         } else {
           const placeholder = document.createElement('span');
@@ -15182,12 +15238,6 @@ async function loadMarketplace() {
         vendor.className = 'market-item-vendor';
         vendor.textContent = sanitizeForDisplay(item.vendedor?.displayName, 50) || 'Anónimo';
         card.appendChild(vendor);
-        
-        // ✅ Precio
-        const price = document.createElement('div');
-        price.className = 'market-item-price';
-        price.textContent = `$${Number(item.precio || 0).toFixed(2)} USD`;
-        card.appendChild(price);
         
         // ✅ Rating
         const rating = document.createElement('div');
@@ -15210,7 +15260,13 @@ async function loadMarketplace() {
         }
         card.appendChild(tags);
         
-        // ✅ Actions con event listeners (no onclick inline)
+        // ✅ Precio
+        const price = document.createElement('div');
+        price.className = 'market-item-price';
+        price.textContent = `$${Number(item.precio || 0).toFixed(2)} USD`;
+        card.appendChild(price);
+        
+        // ✅ Actions con event listeners
         const actions = document.createElement('div');
         actions.className = 'market-item-actions';
         
@@ -15247,9 +15303,43 @@ async function loadMarketplace() {
           }
         });
         
+        // ✅ Accesibilidad: Enter para ver detalles
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (typeof openMarketItem === 'function') {
+              openMarketItem(sanitizeIdForEvent(item.id));
+            }
+          }
+        });
+        
+        // ✅ Hover effect para la card
+        card.style.cssText = `
+          background: rgba(30, 41, 59, 0.5);
+          border: 1px solid #334155;
+          border-radius: 12px;
+          padding: 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        `;
+        
+        card.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-4px)';
+          this.style.boxShadow = '0 8px 24px rgba(56, 189, 248, 0.2)';
+          this.style.borderColor = '#38bdf8';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+          this.style.boxShadow = 'none';
+          this.style.borderColor = '#334155';
+        });
+        
+        // ✅ Agregar la card al grid
         grid.appendChild(card);
-      } catch (e) {
-        console.error('❌ Error renderizando item:', item.id, e);
+        
+      } catch (itemError) {
+        log('⚠️ Error renderizando producto: ' + itemError.message, 'warning');
       }
     });
     
@@ -15257,7 +15347,6 @@ async function loadMarketplace() {
     
   } catch (e) {
     load.classList.add('hidden');
-    // ✅ Mensaje seguro: no exponer detalles internos
     grid.innerHTML = `<p class="market-empty" role="alert">❌ Error cargando marketplace</p>`;
     log('❌ Marketplace: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification('❌ Error cargando marketplace', 'error');
@@ -15281,7 +15370,6 @@ async function loadRecommendations() {
     container.classList.remove('hidden');
     container.setAttribute('aria-hidden', 'false');
     
-    // ✅ Crear elementos con createElement
     grid.innerHTML = '';
     res.recommendations.forEach(item => {
       try {
@@ -15346,7 +15434,6 @@ async function loadRecommendations() {
 
 // ✅ Abrir detalle de producto con sanitización completa
 async function openMarketItem(itemId) {
-  // ✅ Sanitizar ID antes de usar
   const safeId = sanitizeIdForEvent(itemId);
   if (!safeId) {
     log('⚠️ ID de producto inválido', 'warning');
@@ -15440,7 +15527,6 @@ async function openMarketItem(itemId) {
     }
     
   } catch (e) {
-    // ✅ Mensaje seguro: no exponer detalles internos
     const safeMsg = 'Error cargando producto';
     log('❌ Detalle item: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
@@ -15473,7 +15559,6 @@ async function buyMarketItem(itemId) {
     return;
   }
   
-  // ✅ Sanitizar datos antes de mostrar en confirmación
   const safeTitulo = sanitizeForDisplay(item.titulo, 100) || 'este producto';
   const safePrecio = Number(item.precio || 0).toFixed(2);
   const safeVendedor = sanitizeForDisplay(item.vendedor?.displayName, 50) || '?';
@@ -15492,7 +15577,6 @@ async function buyMarketItem(itemId) {
       showNotification('✅ ¡Compra exitosa! Contenido desbloqueado.', 'success');
       closeMarketItemModal();
       
-      // ✅ Actualizar UI si las funciones existen
       if (typeof showVault === 'function') await showVault();
       if (typeof refresh === 'function') await refresh();
       
@@ -15501,7 +15585,6 @@ async function buyMarketItem(itemId) {
       throw new Error(res.error || 'Error en la compra');
     }
   } catch (e) {
-    // ✅ Mensaje seguro: no exponer detalles internos
     const safeMsg = 'Error procesando compra';
     log('❌ Compra: ' + sanitizeForDisplay(e.message, 100), 'error');
     showNotification(`❌ ${safeMsg}`, 'error');
@@ -15532,9 +15615,7 @@ async function toggleFavorite() {
 
 // === ADMIN TOOLS - MEJORADO ===
 
-// ✅ Mostrar herramientas de admin con validación
 function showAdminTools() {
-  // ✅ Verificar isAdmin de forma segura
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   
   if (!isAdmin) {
@@ -15543,7 +15624,6 @@ function showAdminTools() {
     return;
   }
   
-  // ✅ Mensaje estático (no dinámico) para evitar inyección
   const msg = `🛠️ Herramientas de Admin:\n\n• Regalar cuenta: /api/admin/gift-account\n• Eliminar usuario: /api/admin/users/:email\n• Rotar claves: /api/admin/rotate-keys\n• Ver usuarios: /api/admin/users\n\nEstas funciones están disponibles vía API.`;
   
   alert(msg);
@@ -15553,7 +15633,6 @@ function showAdminTools() {
 // === DOM READY - MEJORADO ===
 
 document.addEventListener('DOMContentLoaded', function() {
-  // ✅ Verificar isAdmin de forma segura
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   const panel = document.getElementById('transparencyPanel');
   
@@ -15562,19 +15641,47 @@ document.addEventListener('DOMContentLoaded', function() {
     panel.setAttribute('aria-hidden', 'false');
   }
   
-  // 📊 Analytics Financiero (versión 100% nativa, sin Chart.js)
+  // 📊 Analytics Financiero
   if (typeof loadFinancialData === 'function') {
-    // Cargar datos por defecto
     loadFinancialData('30d').catch(e => {
       log('⚠️ Error cargando analytics: ' + sanitizeForDisplay(e.message, 100), 'warning');
     });
   }
+  
+  // ✅ Búsqueda con debounce
+  const searchInput = document.getElementById('marketSearch');
+  const catSelect = document.getElementById('marketCategory');
+  const priceSelect = document.getElementById('marketPriceFilter');
+  
+  let searchTimeout;
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        loadMarketplace();
+      }, 500);
+    });
+  }
+  
+  if (catSelect) {
+    catSelect.addEventListener('change', () => {
+      loadMarketplace();
+    });
+  }
+  
+  if (priceSelect) {
+    priceSelect.addEventListener('change', () => {
+      loadMarketplace();
+    });
+  }
+  
+  log('🛍️ Marketplace inicializado', 'success');
 });
 
 // ✅ Analytics Financiero con sanitización y createElement
 async function loadFinancialData(period = '30d') {
   try {
-    // ✅ Sanitizar period antes de usar en URL
     const safePeriod = sanitizeForDisplay(period, 20).replace(/[^a-z0-9]/gi, '') || '30d';
     const res = await req(`/api/analytics/financial?period=${encodeURIComponent(safePeriod)}`);
     
@@ -15596,7 +15703,16 @@ async function loadFinancialData(period = '30d') {
       }
     });
     
- <script>
+    log('📊 Analytics financieros actualizados', 'success');
+    
+  } catch (e) {
+    log('❌ Error cargando analytics: ' + sanitizeForDisplay(e.message, 100), 'error');
+  }
+}
+
+log('🛍️ Funciones del marketplace v2.0 FINAL cargadas', 'success');
+</script>
+<script>  
 // ============================================
 // 🛡️ UTILIDADES GLOBALES (sin dependencias externas)
 // Sistema de logs seguro
@@ -15755,7 +15871,6 @@ if (typeof sanitizeForDisplay !== 'function') {
   };
 }
 </script>
-<script>
 // ============================================
 // 🛡️ UTILIDADES GLOBALES (sin dependencias externas)
 // Sistema de logs seguro
@@ -17620,7 +17735,8 @@ function drawLineChart(canvasId, labels, data, color = '#00e676') {
   console.log(`📈 Gráfico de líneas dibujado: ${datosFinales.length} puntos`);
   return { canvas, ctx };
 }
-
+</script>
+<script>       
 // ============================================
 // 🛡️ HELPER: SANITIZAR TEXTO PARA CANVAS (evita XSS)
 // ============================================
