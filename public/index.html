@@ -14996,7 +14996,6 @@ function isValidImageUrl(url) {
     return false;
   }
 }
-
 <script>
 // ============================================
 // 🛍️ MARKETPLACE - FUNCIONES MEJORADAS (v2.0 FINAL)
@@ -15678,37 +15677,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   log('🛍️ Marketplace inicializado', 'success');
 });
-
-// ✅ Analytics Financiero con sanitización y createElement
-async function loadFinancialData(period = '30d') {
-  try {
-    const safePeriod = sanitizeForDisplay(period, 20).replace(/[^a-z0-9]/gi, '') || '30d';
-    const res = await req(`/api/analytics/financial?period=${encodeURIComponent(safePeriod)}`);
-    
-    if (!res.success) return;
-    
-    // ✅ Actualizar tarjetas con null checks y sanitización
-    const fields = [
-      { id: 'totalRevenue', value: res.data.totalRevenue, prefix: '$', suffix: '' },
-      { id: 'totalSales', value: res.data.totalSales, prefix: '', suffix: '' },
-      { id: 'affiliateEarnings', value: res.data.affiliateEarnings, prefix: '$', suffix: '' },
-      { id: 'activeProducts', value: res.data.activeProducts, prefix: '', suffix: '' }
-    ];
-    
-    fields.forEach(({ id, value, prefix, suffix }) => {
-      const el = document.getElementById(id);
-      if (el) {
-        const num = Number(value || 0);
-        el.textContent = `${prefix}${prefix ? num.toFixed(2) : num}${suffix}`;
-      }
-    });
-    
-    log('📊 Analytics financieros actualizados', 'success');
-    
-  } catch (e) {
-    log('❌ Error cargando analytics: ' + sanitizeForDisplay(e.message, 100), 'error');
-  }
-}
 
 log('🛍️ Funciones del marketplace v2.0 FINAL cargadas', 'success');
 </script>
