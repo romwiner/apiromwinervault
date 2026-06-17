@@ -2481,14 +2481,14 @@ if (btnSecurePublish) {
       publishModal.classList.add('hidden');
       publishModal.setAttribute('aria-hidden', 'true');
       
-      // ✅ Limpiar campos
+          // ✅ Limpiar campos
       try {
         if (pubFile) pubFile.value = '';
         if (pubTitle) pubTitle.value = '';
         if (pubCat) pubCat.value = 'educacion';
         if (pubPrice) pubPrice.value = '';
       } catch (e) {
-        log('⚠️ Error limpiando formulario: ' + e.message, 'warning');
+           console.log('⚠️ Error limpiando formulario: ' + e.message);
       }
       
   // ✅ Recargar feed si existe la función
@@ -2551,7 +2551,7 @@ const adsState = {
   dailyEarnings: 0,
   currentAds: [],
   refreshCooldown: false
-};
+};  // ← ✅ HASTA AQUÍ ESTÁ BIEN
 
 // ✅ Cargar anuncios disponibles
 async function loadAvailableAds() {
