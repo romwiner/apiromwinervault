@@ -2509,22 +2509,19 @@ if (btnSecurePublish) {
       } else {
         showNotification('❌ Error al publicar: ' + err.message, 'error');
       }
-    } finally {
-      // ✅ Rehabilitar botón de forma segura
-      isPublishing = false;
-      if (btnSecurePublish) {
-        btnSecurePublish.disabled = false;
-        btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
-        btnSecurePublish.style.opacity = '1';
-    }
-    }
-  });
-}
-}
+         } finally {
+        isPublishing = false;
+        if (btnSecurePublish) {
+          btnSecurePublish.disabled = false;
+          btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
+          btnSecurePublish.style.opacity = '1';
+        }  
+      }  
+    });  
+  }  
 // ✅ Exponer la función para que script.js la pueda llamar
 window.cargarFeed = cargarFeedReal;
-
-<!-- ✅ JavaScript separado correctamente -->
+</script>  
 <script>
 // ============================================
 // 🎨 MODAL DE PUBLICACIÓN - INICIALIZACIÓN
