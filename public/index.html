@@ -3,7 +3,7 @@
 <head>
   <!-- 1. CHARSET PRIMERO: Previene ataques de inyección de codificación -->
   <meta charset="UTF-8">
-  
+  F
   <!-- 2. COMPATIBILIDAD Y RENDERIZADO SEGURO -->
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -2747,9 +2747,9 @@ try {
   
   // Exponer función globalmente
   window.cargarFeed = cargarFeedReal;
-  
 })();
 </script>
+  
 // ============================================
 // 📢 SECCIÓN DE ANUNCIOS - FUNCIONALIDAD COMPLETA
 // ============================================
@@ -3012,30 +3012,131 @@ async function watchAd(adId) {
         ⏳ Espera ${countdown} segundos para cerrar
       </button>
     </div>
+   <div>`;
+</button>
+    </div>
+   <div>`;
+</section> 
+<section>
+// ✅ Ver anuncio y ganar recompensa
+async function watchAd(adId) {
+  if (!getToken()) {
+    showNotification('⚠️ Debes iniciar sesión para ver anuncios', 'warning');
+    return;
+  }
+  
+  if (adsState.watchedToday >= 20) {
+    showNotification('⏰ Has alcanzado el límite diario de 20 anuncios', 'warning');
+    return;
+  }
+  
+  const ad = adsState.currentAds.find(a => a.id === adId);
+  if (!ad) {
+    showNotification('❌ Anuncio no encontrado', 'error');
+    return;
+  }
+  
+  // ✅ Crear modal de visualización
+  const modal = document.createElement('div');
+  modal.id = 'adWatchModal';
+  modal.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
   `;
-
+  
+  let countdown = 15;
+  let canClose = false;
+  
+  modal.innerHTML = `
+    <div style="
+      background: #0f172a;
+      border: 2px solid #1e3a5f;
+      border-radius: 16px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      position: relative;
+    ">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #1e3a5f; padding-bottom: 16px;">
+        <h3 style="margin: 0; color: #f8fafc; font-size: 1.3rem;">
+          📺 ${sanitizeForDisplay(ad.title, 50)}
+        </h3>
+        <div id="adCountdown" style="
+          background: #fbbf24;
+          color: #0f172a;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-weight: bold;
+          font-size: 0.9rem;
+        ">
+          ${countdown}s
+        </div>
+      </div>
+      ${ad.imageUrl ? `
+        <img src="${sanitizeForDisplay(ad.imageUrl, 500)}" 
+             alt="${sanitizeForDisplay(ad.title, 50)}"
+             style="width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px; margin-bottom: 20px;">
+      ` : ''}
+      <div style="background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <p style="color: #e2e8f0; line-height: 1.6; margin: 0;">
+          ${sanitizeForDisplay(ad.description, 500)}
+        </p>
+      </div>
+      <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px;">
+        <p style="color: #94a3b8; margin: 0 0 8px 0; font-size: 0.9rem;">
+          Recompensa por ver este anuncio:
+        </p>
+        <p style="color: #059669; margin: 0; font-size: 2rem; font-weight: bold;">
+          $${parseFloat(ad.reward).toFixed(2)} USD
+        </p>
+      </div>
+      <button id="btnCloseAd" disabled style="
+        width: 100%;
+        margin-top: 20px;
+        padding: 14px;
+        background: #334155;
+        color: #64748b;
+        border: none;
+        border-radius: 10px;
+        font-weight: bold;
+        cursor: not-allowed;
+        transition: all 0.3s;
+      ">
+        ⏳ Espera ${countdown} segundos para cerrar
+      </button>
+    </div>
+  `;
+  <script>
   document.body.appendChild(modal);
-
+  
   // ✅ Countdown timer
   const countdownInterval = setInterval(() => {
     countdown--;
     const countdownEl = document.getElementById('adCountdown');
     const closeBtn = document.getElementById('btnCloseAd');
-
+    
     if (countdownEl) {
       countdownEl.textContent = `${countdown}s`;
     }
-
+    
     if (countdown <= 0) {
       clearInterval(countdownInterval);
       canClose = true;
-
+      
       if (countdownEl) {
         countdownEl.textContent = '✅';
         countdownEl.style.background = '#059669';
         countdownEl.style.color = 'white';
       }
-
+      
       if (closeBtn) {
         closeBtn.disabled = false;
         closeBtn.style.background = '#059669';
@@ -3049,40 +3150,40 @@ async function watchAd(adId) {
       }
     }
   }, 1000);
-
+  
   // ✅ Close button handler
   document.getElementById('btnCloseAd').addEventListener('click', async () => {
     if (!canClose) return;
-
+    
     clearInterval(countdownInterval);
     modal.remove();
-
+    
     // ✅ Registrar visualización y ganar recompensa
     try {
       showNotification('🔄 Procesando recompensa...', 'info');
-
+      
       const res = await req(`/api/ads/watch/${adId}`, 'POST', { watchTime: 15 });
-
+      
       if (res.success) {
         adsState.watchedToday++;
         adsState.dailyEarnings += res.earned || 0;
-
+        
         // ✅ Actualizar UI
         const adsCounter = document.getElementById('adsCounter');
         if (adsCounter) {
           adsCounter.textContent = `${adsState.watchedToday} / 20`;
         }
-
+        
         const dailyEarnings = document.getElementById('dailyEarnings');
         if (dailyEarnings) {
           dailyEarnings.textContent = `$${adsState.dailyEarnings.toFixed(2)} USD`;
         }
-
+        
         showNotification(`✅ ¡Ganaste $${res.earned.toFixed(2)} USD!`, 'success');
-
+        
         // ✅ Remover anuncio de la lista
         adsState.currentAds = adsState.currentAds.filter(a => a.id !== adId);
-
+        
         // ✅ Recargar anuncios si quedan pocos
         if (adsState.currentAds.length < 3) {
           setTimeout(() => loadAvailableAds(), 2000);
@@ -3098,11 +3199,11 @@ async function watchAd(adId) {
         throw new Error(res.error || 'Error procesando recompensa');
       }
     } catch (error) {
-       console.log('❌ Error reclamando recompensa: ' + error.message, 'error');
+      console.error('❌ Error reclamando recompensa:', error.message);
       showNotification('❌ Error: ' + error.message, 'error');
     }
   });
-
+  
   // ✅ Cerrar con Escape
   const escapeHandler = (e) => {
     if (e.key === 'Escape' && canClose) {
@@ -3118,7 +3219,7 @@ async function watchAd(adId) {
 document.addEventListener('DOMContentLoaded', () => {
   const adsSection = document.getElementById('adsSection');
   const btnRefresh = document.getElementById('btnRefreshAds');
-
+  
   if (adsSection && btnRefresh) {
     // ✅ Cargar anuncios cuando se muestra la sección
     const observer = new MutationObserver((mutations) => {
@@ -3130,20 +3231,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     });
-
+    
     observer.observe(adsSection, { attributes: true });
-
+    
     // ✅ Botón refrescar
     btnRefresh.addEventListener('click', () => {
       if (adsState.refreshCooldown) {
         showNotification('⏳ Espera 30 segundos antes de refrescar', 'warning');
         return;
       }
-
+      
       adsState.refreshCooldown = true;
       btnRefresh.disabled = true;
       btnRefresh.textContent = '⏳ Refrescando...';
-
+      
       loadAvailableAds().finally(() => {
         setTimeout(() => {
           adsState.refreshCooldown = false;
@@ -3152,11 +3253,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 30000); // 30 segundos cooldown
       });
     });
-
-     console.log('📢 Sección de anuncios inicializada', 'success');
+    
+    console.log('📢 Sección de anuncios inicializada');
   }
 });
-</script>
 
 <!-- 📢 SECCIÓN ANUNCIOS: apiromwinervault (Recompensas Seguras con IA Interna) -->
 <section id="adsSection" class="hidden" style="font-family: system-ui, -apple-system, sans-serif; color: #e2e8f0; max-width: 800px; margin: 0 auto; padding: 20px;">
@@ -3569,9 +3669,8 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </section>
-
+<section>
 <!-- 🛡️ SISTEMA UNIFICADO: Registro Militar + Funciones Post-Registro (BACKEND REAL + CONFIRMAR PASSWORD) -->
-<script>
 (function() {
   'use strict';
   
@@ -4389,7 +4488,6 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </section>
-
 <script>
 // ============================================
 // 🗄️ MODAL DE BÓVEDA REAL (CRUD con backend)
@@ -4824,9 +4922,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 })();
 </script>
- 
+<section> 
 <!-- 🧠 LÓGICA REAL DE VISUALIZACIÓN DE BÓVEDA (con backend) -->
-<script>
   document.addEventListener('DOMContentLoaded', function() {
     // Referencias a elementos del DOM (dentro del modal principal)
     const vaultModal = document.getElementById('vaultModal');
@@ -5060,7 +5157,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnCloseVault) {
       btnCloseVault.addEventListener('click', () => vaultModal.classList.add('hidden'));
     }
-
+ </section>         
+ <section>
     // ========== FUNCIONES AUXILIARES ==========
     function getCategoryIcon(category) {
       const icons = {
@@ -26170,16 +26268,16 @@ strengthDiv.style.color = colors[strength];
     // Utilidades
     esAdmin: (email) => email && email.toLowerCase().trim() === Autenticacion.ADMIN_EMAIL
   };
-  
+  </section>
   // ============================================
   // 🎯 EJECUTAR AL CARGAR EL DOM
   // ============================================
+  <section>      
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', inicializar);
   } else {
     inicializar();
   }
-  
 })();
 </script>
 <!-- 🛡️ VALIDADOR DE LISTA BLANCA: apiromwinervault (Seguridad Militar) -->
