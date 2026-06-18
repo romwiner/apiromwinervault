@@ -2491,53 +2491,265 @@ try {
   console.log('⚠️ Error limpiando formulario: ' + e.message);
 }
 
-// ✅ Recargar feed si existe la función
-if (typeof cargarFeedReal === 'function') {
-  cargarFeedReal();
-}
-
-} catch (err) {
-  console.log('❌ Error al publicar: ' + err.message);
-  
-  // ✅ Mensajes de error específicos
-  if (err.message.includes('Timeout')) {
-    showNotification('⏱️ La operación tardó demasiado. Intenta con un archivo más pequeño', 'error');
-  } else if (err.message.includes('Tipo de archivo')) {
-    showNotification('❌ ' + err.message, 'error');
-  } else if (err.message.includes('Archivo muy grande')) {
-    showNotification('❌ ' + err.message, 'error');
-  } else {
-    showNotification('❌ Error al publicar: ' + err.message, 'error');
-  }
-} finally {
-  isPublishing = false;
-  if (btnSecurePublish) {
-    btnSecurePublish.disabled = false;
-    btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
-    btnSecurePublish.style.opacity = '1';
-  }
-}
-});
-}
-
-// ✅ Exponer la función para que script.js la pueda llamar
-window.cargarFeed = cargarFeedReal;
-</script>
-
 <script>
 // ============================================
-// 🎨 MODAL DE PUBLICACIÓN - INICIALIZACIÓN
+// 🚀 MÓDULO DE PUBLICACIÓN v6.0 - INGENIERO SUPREMO
+// Reescrito completamente siguiendo las 9 Leyes
 // ============================================
-
-// ✅ Si el feed ya está visible, cargarlo
-const token = localStorage.getItem('authToken');
-if (token && typeof feedContainer !== 'undefined' && typeof socialFeedPanel !== 'undefined' && !socialFeedPanel.classList.contains('hidden')) {
-  if (typeof cargarFeedReal === 'function') {
+(function() {
+  'use strict';
+  
+  // ========== VARIABLES PRIVADAS DEL MÓDULO ==========
+  let isPublishing = false;
+  let cargarFeedReal = null;
+  
+  // ========== REFERENCIAS AL DOM (con validación) ==========
+  const DOM = {
+    btnSecurePublish: document.getElementById('btnSecurePublish'),
+    publishModal: document.getElementById('publishModal'),
+    pubFile: document.getElementById('pubFile'),
+    pubTitle: document.getElementById('pubTitle'),
+    pubCat: document.getElementById('pubCat'),
+    pubPrice: document.getElementById('pubPrice'),
+    feedContainer: document.getElementById('feedContainer'),
+    socialFeedPanel: document.getElementById('socialFeedPanel')
+  };
+  
+  // ========== HELPER: OBTENER TOKEN SEGURO ==========
+  function getToken() {
+    return localStorage.getItem('authToken') || 
+           localStorage.getItem('token') || 
+           localStorage.getItem('auth_token');
+  }
+  
+  // ========== HELPER: NOTIFICACIÓN SEGURA ==========
+  function mostrarNotificacion(mensaje, tipo = 'info') {
+    if (typeof showNotification === 'function') {
+      showNotification(mensaje, tipo);
+    } else {
+      console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+      if (tipo === 'error') alert(mensaje);
+    }
+  }
+  
+  // ========== FUNCIÓN: VALIDAR ARCHIVO ==========
+  function validarArchivo(file) {
+    const extensionesPermitidas = ['.txt', '.mp3', '.mp4', '.rar', '.zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv'];
+    const nombreArchivo = file.name.toLowerCase();
+    const extensionValida = extensionesPermitidas.some(ext => nombreArchivo.endsWith(ext));
+    const tamanioMaximo = 50 * 1024 * 1024; // 50MB
+    
+    if (!extensionValida) {
+      throw new Error('Tipo de archivo no permitido. Solo: ' + extensionesPermitidas.join(', '));
+    }
+    if (file.size > tamanioMaximo) {
+      throw new Error('Archivo muy grande. Máximo: 50MB');
+    }
+    if (file.size === 0) {
+      throw new Error('El archivo está vacío');
+    }
+    return true;
+  }
+  
+  // ========== FUNCIÓN: PUBLICAR ACTIVO EN BACKEND ==========
+  async function publicarActivo(file, titulo, categoria, precio) {
+    const token = getToken();
+    if (!token) throw new Error('No autenticado');
+    
+    const formData = new FormData();
+    formData.append('archivo', file);
+    formData.append('titulo', titulo);
+    formData.append('categoria', categoria);
+    formData.append('forSale', 'true');
+    formData.append('price', precio.toString());
+    
+    const response = await fetch('/vault', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: formData
+    });
+    
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error || 'Error al publicar');
+    return data;
+  }
+  
+  // ========== FUNCIÓN: CARGAR FEED REAL ==========
+  async function cargarFeedReal() {
+    const token = getToken();
+    if (!token || !DOM.feedContainer) return;
+    
+    try {
+      DOM.feedContainer.innerHTML = '<p style="text-align: center; color: #cbd5e1;">Cargando publicaciones...</p>';
+      
+      const response = await fetch('/api/feed', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Error al cargar feed');
+      
+      const posts = data.posts || [];
+      if (posts.length === 0) {
+        DOM.feedContainer.innerHTML = '<p style="text-align: center; color: #64748b;">No hay publicaciones aún. ¡Sé el primero!</p>';
+        return;
+      }
+      
+      DOM.feedContainer.innerHTML = '';
+      posts.forEach(post => {
+        const postDiv = document.createElement('div');
+        postDiv.style.cssText = 'background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; transition: transform 0.2s;';
+        postDiv.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+            <div>
+              <h3 style="margin: 0 0 4px 0; color: #f8fafc;">${post.titulo || 'Sin título'}</h3>
+              <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Vendedor: ${post.vendedor?.displayName || 'Anónimo'}</p>
+            </div>
+            <span style="background: #059669; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">$${post.precio} USD</span>
+          </div>
+          <p style="margin: 8px 0; color: #cbd5e1;">${post.descripcion || 'Sin descripción'}</p>
+          <button class="buy-btn" data-id="${post.id}" style="width: 100%; padding: 8px; background: #00e676; color: #0b0c10; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">💰 Comprar</button>
+        `;
+        DOM.feedContainer.appendChild(postDiv);
+      });
+      
+      // Agregar eventos a botones de compra
+      DOM.feedContainer.querySelectorAll('.buy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const productId = btn.dataset.id;
+          console.log('💰 Comprando producto:', productId);
+          mostrarNotificacion('💰 Proceso de compra iniciado', 'info');
+        });
+      });
+      
+      console.log('✅ Feed recargado:', posts.length, 'publicaciones');
+    } catch (error) {
+      console.error('❌ Error cargando feed:', error);
+      DOM.feedContainer.innerHTML = '<p style="text-align: center; color: #ef4444;">Error al cargar el feed. Intenta más tarde.</p>';
+    }
+  }
+  
+  // ========== EVENT LISTENER: BOTÓN PUBLICAR ==========
+  if (DOM.btnSecurePublish) {
+    DOM.btnSecurePublish.addEventListener('click', async function() {
+      // Prevenir múltiples clicks
+      if (isPublishing) {
+        mostrarNotificacion('⏳ Ya hay una publicación en progreso', 'warning');
+        return;
+      }
+      
+      // Validar campos
+      if (!DOM.pubFile || !DOM.pubFile.files || DOM.pubFile.files.length === 0) {
+        mostrarNotificacion('⚠️ Selecciona un archivo', 'warning');
+        return;
+      }
+      if (!DOM.pubTitle || !DOM.pubTitle.value.trim()) {
+        mostrarNotificacion('⚠️ Ingresa un título', 'warning');
+        return;
+      }
+      if (!DOM.pubPrice || !DOM.pubPrice.value) {
+        mostrarNotificacion('⚠️ Ingresa un precio', 'warning');
+        return;
+      }
+      
+      const file = DOM.pubFile.files[0];
+      
+      // Validar archivo
+      try {
+        validarArchivo(file);
+      } catch (error) {
+        mostrarNotificacion('❌ ' + error.message, 'error');
+        return;
+      }
+      
+      const titulo = DOM.pubTitle.value.trim();
+      if (titulo.length < 3) {
+        mostrarNotificacion('⚠️ El título debe tener al menos 3 caracteres', 'warning');
+        return;
+      }
+      
+      const precio = parseFloat(DOM.pubPrice.value);
+      if (isNaN(precio) || precio <= 0) {
+        mostrarNotificacion('⚠️ Precio inválido', 'warning');
+        return;
+      }
+      
+      // Iniciar publicación
+      isPublishing = true;
+      DOM.btnSecurePublish.disabled = true;
+      DOM.btnSecurePublish.textContent = '🔄 Publicando...';
+      DOM.btnSecurePublish.style.opacity = '0.6';
+      
+      mostrarNotificacion('📤 Subiendo archivo...', 'info');
+      
+      // Publicar con timeout
+      try {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout: la operación tardó demasiado')), 60000)
+        );
+        
+        await Promise.race([
+          publicarActivo(file, titulo, DOM.pubCat?.value || 'educacion', precio),
+          timeoutPromise
+        ]);
+        
+        mostrarNotificacion('✅ Activo publicado correctamente', 'success');
+        
+        // Cerrar modal
+        if (DOM.publishModal) {
+          DOM.publishModal.classList.add('hidden');
+        }
+        
+        // Limpiar campos
+        try {
+          if (DOM.pubFile) DOM.pubFile.value = '';
+          if (DOM.pubTitle) DOM.pubTitle.value = '';
+          if (DOM.pubCat) DOM.pubCat.value = 'educacion';
+          if (DOM.pubPrice) DOM.pubPrice.value = '';
+        } catch (e) {
+          console.log('⚠️ Error limpiando formulario:', e.message);
+        }
+        
+        // Recargar feed
+        await cargarFeedReal();
+        
+      } catch (error) {
+        console.log('❌ Error al publicar:', error.message);
+        
+        // Mensajes de error específicos
+        if (error.message.includes('Timeout')) {
+          mostrarNotificacion('⏱️ La operación tardó demasiado. Intenta con un archivo más pequeño', 'error');
+        } else if (error.message.includes('Tipo de archivo')) {
+          mostrarNotificacion('❌ ' + error.message, 'error');
+        } else if (error.message.includes('Archivo muy grande')) {
+          mostrarNotificacion('❌ ' + error.message, 'error');
+        } else {
+          mostrarNotificacion('❌ Error al publicar: ' + error.message, 'error');
+        }
+      } finally {
+        // Siempre restaurar el botón
+        isPublishing = false;
+        DOM.btnSecurePublish.disabled = false;
+        DOM.btnSecurePublish.textContent = '🛡️ Cifrar, Auditar con IA y Publicar';
+        DOM.btnSecurePublish.style.opacity = '1';
+      }
+    });
+  }
+  
+  // ========== INICIALIZACIÓN ==========
+  console.log('✅ Módulo de publicación v6.0 inicializado');
+  
+  // Si el feed ya está visible, cargarlo
+  const token = getToken();
+  if (token && DOM.feedContainer && DOM.socialFeedPanel && !DOM.socialFeedPanel.classList.contains('hidden')) {
     cargarFeedReal();
   }
-}
-
- console.log('🎨 Modal de publicación inicializado');
+  
+  // Exponer función globalmente
+  window.cargarFeed = cargarFeedReal;
+  
+})();
+</script>
 // ============================================
 // 📢 SECCIÓN DE ANUNCIOS - FUNCIONALIDAD COMPLETA
 // ============================================
