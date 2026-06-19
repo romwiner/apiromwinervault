@@ -598,78 +598,131 @@ body{font-family:'Inter',sans-serif;background:var(--bg-primary);background-imag
       <i class="ri-menu-line"></i>
     </div>
 
-    <!-- DASHBOARD -->
-    <div class="page active" id="page-dashboard">
-      <div class="welcome-back">
-        <div class="welcome-avatar" id="welcomeAvatar"><i class="ri-user-fill"></i></div>
-        <div class="welcome-text">
-          <h2>¡Bienvenido, <span id="welcomeName">Usuario</span>!</h2>
-          <div class="welcome-sub">
-            <i class="ri-shield-check-fill"></i> Bóveda cifrada Zero-Knowledge · Nivel: <span id="welcomeLevel">Bronce</span>
-          </div>
-          <div class="welcome-stats">
-            <div class="welcome-stat"><div class="num" id="statFiles">0</div><div class="lbl">Archivos</div></div>
-            <div class="welcome-stat"><div class="num" id="statEarnings">$0</div><div class="lbl">Ganancias</div></div>
-            <div class="welcome-stat"><div class="num" id="statSales">0</div><div class="lbl">Ventas</div></div>
-            <div class="welcome-stat"><div class="num" id="statXP">0</div><div class="lbl">XP</div></div>
-          </div>
-        </div>
+<!-- ============ DASHBOARD ============ -->
+<div class="page active" id="page-dashboard">
+  <div class="welcome-back">
+    <div class="welcome-avatar" id="welcomeAvatar"><i class="ri-user-fill"></i></div>
+    <div class="welcome-text">
+      <h2>¡Bienvenido, <span id="welcomeName">Usuario</span>!</h2>
+      <div class="welcome-sub">
+        <i class="ri-shield-check-fill"></i> Bóveda cifrada Zero-Knowledge · Nivel: <span id="welcomeLevel">Bronce</span>
       </div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon" style="background:rgba(212,175,55,0.15);color:var(--gold-bright)"><i class="ri-file-fill"></i></div>
-          <div class="stat-value" id="dashFiles">0</div>
-          <div class="stat-label">Total Archivos</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background:rgba(46,204,113,0.15);color:var(--green-bright)"><i class="ri-money-dollar-circle-fill"></i></div>
-          <div class="stat-value" id="dashWallet">$0</div>
-          <div class="stat-label">Balance Wallet</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background:rgba(192,192,192,0.15);color:var(--silver)"><i class="ri-store-2-fill"></i></div>
-          <div class="stat-value" id="dashMarket">0</div>
-          <div class="stat-label">En Marketplace</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa"><i class="ri-lock-fill"></i></div>
-          <div class="stat-value" id="dashTier">Personal</div>
-          <div class="stat-label">Tu Plan</div>
-        </div>
+      <div class="welcome-stats">
+        <div class="welcome-stat"><div class="num" id="statFiles">0</div><div class="lbl">Archivos</div></div>
+        <div class="welcome-stat"><div class="num" id="statEarnings">$0</div><div class="lbl">Ganancias</div></div>
+        <div class="welcome-stat"><div class="num" id="statSales">0</div><div class="lbl">Ventas</div></div>
+        <div class="welcome-stat"><div class="num" id="statXP">0</div><div class="lbl">XP</div></div>
       </div>
-      <div class="page-header" style="margin-bottom:16px">
-        <h2 style="font-size:20px">Archivos Recientes</h2>
-        <button class="btn-gold" onclick="navigateTo('upload')"><i class="ri-add-line"></i> Subir Archivo</button>
-      </div>
-      <div class="files-grid" id="recentFiles"></div>
     </div>
-
-    <!-- FILES -->
-    <div class="page" id="page-files">
-      <div class="page-header">
-        <div>
-          <h2>Mis Archivos</h2>
-          <p>Bóveda cifrada con Zero-Knowledge</p>
-        </div>
-        <div class="header-actions">
-          <div class="search-box">
-            <i class="ri-search-line"></i>
-            <input type="text" placeholder="🤖 Búsqueda IA..." id="fileSearch" onkeyup="searchFiles()">
-          </div>
-          <button class="btn-gold" onclick="navigateTo('upload')"><i class="ri-add-line"></i> Nuevo</button>
-        </div>
-      </div>
-      <div class="filter-tabs">
-        <div class="filter-tab active" onclick="filterByType('all',this)">Todos</div>
-        <div class="filter-tab" onclick="filterByType('documentos',this)">Documentos</div>
-        <div class="filter-tab" onclick="filterByType('imagenes',this)">Imágenes</div>
-        <div class="filter-tab" onclick="filterByType('audio',this)">Audio</div>
-        <div class="filter-tab" onclick="filterByType('video',this)">Video</div>
-        <div class="filter-tab" onclick="filterByType('comprimidos',this)">Comprimidos</div>
-      </div>
-      <div class="files-grid" id="allFilesGrid"></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(212,175,55,0.15);color:var(--gold-bright)"><i class="ri-file-fill"></i></div>
+      <div class="stat-value" id="dashFiles">0</div>
+      <div class="stat-label">Total Archivos</div>
     </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(46,204,113,0.15);color:var(--green-bright)"><i class="ri-money-dollar-circle-fill"></i></div>
+      <div class="stat-value" id="dashWallet">$0</div>
+      <div class="stat-label">Balance Wallet</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(192,192,192,0.15);color:var(--silver)"><i class="ri-store-2-fill"></i></div>
+      <div class="stat-value" id="dashMarket">0</div>
+      <div class="stat-label">En Marketplace</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa"><i class="ri-lock-fill"></i></div>
+      <div class="stat-value" id="dashTier">Personal</div>
+      <div class="stat-label">Tu Plan</div>
+    </div>
+  </div>
+  <div class="page-header" style="margin-bottom:16px">
+    <h2 style="font-size:20px">Archivos Recientes</h2>
+    <button class="btn-gold" onclick="navigateTo('upload')"><i class="ri-add-line"></i> Subir Archivo</button>
+  </div>
+  <div class="files-grid" id="recentFiles"></div>
+</div>
 
+<!-- ============ FEED SOCIAL (TIPO FACEBOOK) ============ -->
+<div class="page" id="page-social-feed">
+  <div class="page-header">
+    <div>
+      <h2>🌍 Feed Social</h2>
+      <p>Comparte fotos, textos y momentos con la comunidad</p>
+    </div>
+    <button class="btn-gold" onclick="openCreatePostModal()">
+      <i class="ri-add-line"></i> Nueva Publicación
+    </button>
+  </div>
+  <div class="filter-tabs" style="margin-bottom:20px">
+    <div class="filter-tab active" onclick="loadSocialFeed('all', this)">🌍 Todos</div>
+    <div class="filter-tab" onclick="loadSocialFeed('following', this)">👥 Siguiendo</div>
+    <div class="filter-tab" onclick="loadSocialFeed('mine', this)">📝 Míos</div>
+  </div>
+  <div id="socialFeedContainer">
+    <div class="loading">
+      <i class="ri-loader-4-line"></i>
+      <p>Cargando publicaciones...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: CREAR PUBLICACIÓN ============ -->
+<div class="modal-overlay" id="createPostModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h2><i class="ri-quill-pen-fill"></i> Nueva Publicación</h2>
+      <button class="modal-close" onclick="closeModal('createPostModal')"><i class="ri-close-line"></i></button>
+    </div>
+    <div class="form-group">
+      <label>¿Qué quieres compartir?</label>
+      <textarea class="form-input" id="postText" rows="5" placeholder="Escribe algo..." style="resize:vertical"></textarea>
+    </div>
+    <div class="form-group">
+      <label>📷 Imagen (opcional)</label>
+      <input type="file" id="postImage" accept="image/*" class="form-input">
+      <div id="imagePreview" style="margin-top:8px"></div>
+    </div>
+    <div class="form-group">
+      <label>🔒 Privacidad</label>
+      <select class="form-input" id="postPrivacy">
+        <option value="public">🌍 Público</option>
+        <option value="friends">👥 Amigos</option>
+        <option value="private">🔒 Privado</option>
+      </select>
+    </div>
+    <button class="btn-gold" style="width:100%;justify-content:center" onclick="createSocialPost()" id="createPostBtn">
+      <i class="ri-send-plane-fill"></i> Publicar
+    </button>
+  </div>
+</div>
+
+<!-- ============ FILES ============ -->
+<div class="page" id="page-files">
+  <div class="page-header">
+    <div>
+      <h2>Mis Archivos</h2>
+      <p>Bóveda cifrada con Zero-Knowledge</p>
+    </div>
+    <div class="header-actions">
+      <div class="search-box">
+        <i class="ri-search-line"></i>
+        <input type="text" placeholder="🤖 Búsqueda IA..." id="fileSearch" onkeyup="searchFiles()">
+      </div>
+      <button class="btn-gold" onclick="navigateTo('upload')"><i class="ri-add-line"></i> Nuevo</button>
+    </div>
+  </div>
+  <div class="filter-tabs">
+    <div class="filter-tab active" onclick="filterByType('all',this)">Todos</div>
+    <div class="filter-tab" onclick="filterByType('documentos',this)">Documentos</div>
+    <div class="filter-tab" onclick="filterByType('imagenes',this)">Imágenes</div>
+    <div class="filter-tab" onclick="filterByType('audio',this)">Audio</div>
+    <div class="filter-tab" onclick="filterByType('video',this)">Video</div>
+    <div class="filter-tab" onclick="filterByType('comprimidos',this)">Comprimidos</div>
+  </div>
+  <div class="files-grid" id="allFilesGrid"></div>
+</div>
     <!-- UPLOAD -->
     <div class="page" id="page-upload">
       <div class="page-header">
