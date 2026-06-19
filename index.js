@@ -323,8 +323,14 @@ let webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitie
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
 let reviewsCollection, favoritesCollection, commitsCollection;
 let adsCollection, adImpressionsCollection, organizationsCollection;
+// ✅ Colecciones de negocio y social
 let followsCollection, postLikesCollection;
+
+// ✅ NUEVAS: Feed Social tipo Facebook
 let socialPostsCollection, socialCommentsCollection, socialLikesCollection;
+
+// ✅ NUEVAS: Notificaciones y Stories
+let notificationsCollection, storiesCollection;
 
 let mongoReady = false;
 
@@ -371,19 +377,49 @@ async function connectToMongo() {
     favoritesCollection = db.collection('favorites');
     commitsCollection = db.collection('vaultCommits');
     
-    // Colecciones de negocio
+      // Colecciones de negocio
     adsCollection = db.collection('ads');
     adImpressionsCollection = db.collection('adImpressions');
     organizationsCollection = db.collection('organizations');
     followsCollection = db.collection('follows');
     postLikesCollection = db.collection('post_likes');
     
-    // ✅ NUEVAS COLECCIONES PARA FEED SOCIAL
+    // ✅ NUEVAS COLECCIONES: FEED SOCIAL (tipo Facebook)
     socialPostsCollection = db.collection('socialPosts');
     socialCommentsCollection = db.collection('socialComments');
     socialLikesCollection = db.collection('socialLikes');
+    
+    // ✅ NUEVAS COLECCIONES: NOTIFICACIONES Y STORIES
+    notificationsCollection = db.collection('notifications');
+    storiesCollection = db.collection('stories');
 
     logger.info('✅ Colecciones asignadas correctamente');
+
+    // ============================================
+    // 📊 ÍNDICES ADICIONALES PARA NUEVAS COLECCIONES
+    // ============================================
+    logger.info('🔧 Creando índices para nuevas colecciones...');
+    
+    try {
+      // Índices para Feed Social
+      await socialPostsCollection.createIndex({ userId: 1, createdAt: -1 });
+      await socialPostsCollection.createIndex({ createdAt: -1 });
+      await socialPostsCollection.createIndex({ privacy: 1 });
+      await socialCommentsCollection.createIndex({ postId: 1, createdAt: -1 });
+      await socialLikesCollection.createIndex({ postId: 1, userId: 1 }, { unique: true });
+      
+      // Índices para Notificaciones
+      await notificationsCollection.createIndex({ userId: 1, createdAt: -1 });
+      await notificationsCollection.createIndex({ read: 1, createdAt: -1 });
+      
+      // Índices para Stories (expiran automáticamente en 24h)
+      await storiesCollection.createIndex({ userId: 1, createdAt: -1 });
+      await storiesCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+      
+      logger.info('✅ Índices de nuevas colecciones creados correctamente');
+    } catch (e) {
+      logger.warn('⚠️ Algunos índices ya existían o hubo un warning: ' + e.message);
+    }
 
     // ============================================
     // 📊 CREACIÓN DE ÍNDICES (OPTIMIZADO)
