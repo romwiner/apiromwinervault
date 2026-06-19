@@ -561,7 +561,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg-primary);background-imag
     <div class="nav-section">
       <div class="nav-section-title">Comercio</div>
       <div class="nav-item" data-page="marketplace"><i class="ri-store-2-fill"></i> Marketplace</div>
-      <div class="nav-item" data-page="feed"><i class="ri-rss-fill"></i> Feed Social</div>
+     <div class="nav-item" data-page="social-feed">
+  <i class="ri-rss-fill"></i> Feed Social 
+  <span class="badge" style="background:var(--green-bright);color:#000">🔥 Nuevo</span>
+</div>
       <div class="nav-item" data-page="favorites"><i class="ri-heart-fill"></i> Favoritos</div>
       <div class="nav-item" data-page="ads"><i class="ri-money-dollar-circle-fill"></i> Ver Anuncios <span class="badge" style="background:var(--green-bright)">💰</span></div>
     </div>
@@ -760,7 +763,67 @@ body{font-family:'Inter',sans-serif;background:var(--bg-primary);background-imag
       </div>
       <div class="marketplace-grid" id="marketplaceGrid"></div>
     </div>
+<!-- ============ FEED SOCIAL (TIPO FACEBOOK) ============ -->
+<div class="page" id="page-social-feed">
+  <div class="page-header">
+    <div>
+      <h2>🌍 Feed Social</h2>
+      <p>Comparte fotos, textos y momentos con la comunidad</p>
+    </div>
+    <button class="btn-gold" onclick="openCreatePostModal()">
+      <i class="ri-add-line"></i> Nueva Publicación
+    </button>
+  </div>
 
+  <!-- Filtros -->
+  <div class="filter-tabs" style="margin-bottom:20px">
+    <div class="filter-tab active" onclick="loadSocialFeed('all', this)">🌍 Todos</div>
+    <div class="filter-tab" onclick="loadSocialFeed('following', this)">👥 Siguiendo</div>
+    <div class="filter-tab" onclick="loadSocialFeed('mine', this)">📝 Míos</div>
+  </div>
+
+  <!-- Contenedor del feed -->
+  <div id="socialFeedContainer">
+    <div class="loading">
+      <i class="ri-loader-4-line"></i>
+      <p>Cargando publicaciones...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: CREAR PUBLICACIÓN ============ -->
+<div class="modal-overlay" id="createPostModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h2><i class="ri-quill-pen-fill"></i> Nueva Publicación</h2>
+      <button class="modal-close" onclick="closeModal('createPostModal')"><i class="ri-close-line"></i></button>
+    </div>
+
+    <div class="form-group">
+      <label>¿Qué quieres compartir?</label>
+      <textarea class="form-input" id="postText" rows="5" placeholder="Escribe algo... (máx 5000 caracteres)" style="resize:vertical"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>📷 Imagen (opcional)</label>
+      <input type="file" id="postImage" accept="image/*" class="form-input">
+      <div id="imagePreview" style="margin-top:8px"></div>
+    </div>
+
+    <div class="form-group">
+      <label>🔒 Privacidad</label>
+      <select class="form-input" id="postPrivacy">
+        <option value="public">🌍 Público - Todos pueden ver</option>
+        <option value="friends">👥 Amigos - Solo quienes sigues</option>
+        <option value="private">🔒 Privado - Solo tú</option>
+      </select>
+    </div>
+
+    <button class="btn-gold" style="width:100%;justify-content:center" onclick="createSocialPost()" id="createPostBtn">
+      <i class="ri-send-plane-fill"></i> Publicar
+    </button>
+  </div>
+</div>
     <!-- FEED -->
     <div class="page" id="page-feed">
       <div class="page-header">
@@ -1733,7 +1796,297 @@ async function toggleFavorite(id) {
     showNotification('success','Favorito',data.message || 'Añadido a favoritos');
   } catch (e) { showNotification('error','Error',e.message); }
 }
+// ============================================
+// 📱 FEED SOCIAL (TIPO FACEBOOK) - NUEVO
+// ============================================
 
+let socialFeedFilter = 'all';
+
+// Cargar feed social
+async function loadSocialFeed(filter = 'all', el) {
+  if (el) {
+    document.querySelectorAll('#page-social-feed .filter-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+  socialFeedFilter = filter;
+  
+  const container = document.getElementById('socialFeedContainer');
+  container.innerHTML = '<div class="loading"><i class="ri-loader-4-line"></i><p>Cargando publicaciones...</p></div>';
+  
+  try {
+    const data = await api(`/api/social/feed?filter=${filter}&limit=20`);
+    const posts = data.posts || [];
+    
+    if (posts.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="ri-rss-fill"></i>
+          <h3 style="color:var(--gold-light);margin:12px 0">No hay publicaciones aún</h3>
+          <p style="color:var(--text-secondary)">¡Sé el primero en compartir algo!</p>
+          <button class="btn-gold" onclick="openCreatePostModal()" style="margin-top:16px">
+            <i class="ri-add-line"></i> Crear primera publicación
+          </button>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = posts.map(post => renderSocialPost(post)).join('');
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><i class="ri-error-warning-fill"></i><p>Error: ${e.message}</p></div>`;
+  }
+}
+
+// Renderizar publicación
+function renderSocialPost(post) {
+  const timeAgo = getTimeAgo(new Date(post.createdAt));
+  const avatarHtml = post.author.avatarUrl 
+    ? `<img src="${post.author.avatarUrl}" style="width:100%;height:100%;object-fit:cover">`
+    : '<i class="ri-user-fill"></i>';
+  
+  const isOwner = currentUser && post.author.uid === currentUser.uid;
+  
+  return `
+    <div class="feed-post" id="post-${post.id}">
+      <div class="feed-header">
+        <div class="feed-avatar">${avatarHtml}</div>
+        <div class="feed-user">
+          <h4>${post.author.displayName || post.author.username}</h4>
+          <span>@${post.author.username} · ${timeAgo}
+            ${post.privacy === 'friends' ? ' · 👥' : post.privacy === 'private' ? ' · 🔒' : ' · 🌍'}
+          </span>
+        </div>
+        ${isOwner ? `
+          <button onclick="deleteSocialPost('${post.id}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:18px">
+            <i class="ri-delete-bin-line"></i>
+          </button>
+        ` : ''}
+      </div>
+      
+      ${post.text ? `<div class="feed-content" style="white-space:pre-wrap">${escapeHtml(post.text)}</div>` : ''}
+      
+      ${post.imageUrl ? `
+        <div style="margin:12px 0;border-radius:12px;overflow:hidden;border:1px solid var(--border-gold)">
+          <img src="${post.imageUrl}" style="width:100%;max-height:500px;object-fit:cover;display:block" onerror="this.parentElement.style.display='none'">
+        </div>
+      ` : ''}
+      
+      <div class="feed-actions" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-gold)">
+        <button class="feed-action-btn ${post.engagement.userLiked ? 'liked' : ''}" onclick="likeSocialPost('${post.id}', this)">
+          <i class="ri-heart-${post.engagement.userLiked ? 'fill' : 'line'}"></i> 
+          <span>${post.engagement.likes || 0}</span>
+        </button>
+        <button class="feed-action-btn" onclick="toggleCommentBox('${post.id}')">
+          <i class="ri-chat-3-line"></i> ${post.engagement.comments || 0}
+        </button>
+        <button class="feed-action-btn" onclick="shareSocialPost('${post.id}')">
+          <i class="ri-share-line"></i> Compartir
+        </button>
+      </div>
+      
+      ${post.recentComments && post.recentComments.length > 0 ? `
+        <div style="margin-top:12px;padding:12px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border-green)">
+          ${post.recentComments.map(c => `
+            <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border-green)">
+              <strong style="color:var(--gold-light);font-size:12px">${c.author.displayName || c.author.username}</strong>
+              <p style="font-size:12px;color:var(--text-secondary);margin-top:2px">${escapeHtml(c.text)}</p>
+              <span style="font-size:10px;color:var(--text-muted)">${getTimeAgo(new Date(c.createdAt))}</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      
+      <div style="margin-top:12px;display:none;gap:8px" id="comment-box-${post.id}">
+        <input type="text" class="form-input" placeholder="Escribe un comentario..." id="comment-input-${post.id}" style="flex:1;padding:8px 12px" onkeypress="if(event.key==='Enter')addSocialComment('${post.id}')">
+        <button class="btn-green" style="padding:8px 16px" onclick="addSocialComment('${post.id}')">
+          <i class="ri-send-plane-fill"></i>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// Abrir modal
+function openCreatePostModal() {
+  document.getElementById('postText').value = '';
+  document.getElementById('postImage').value = '';
+  document.getElementById('imagePreview').innerHTML = '';
+  document.getElementById('createPostModal').classList.add('active');
+}
+
+// Preview imagen
+document.addEventListener('DOMContentLoaded', function() {
+  const imgInput = document.getElementById('postImage');
+  if (imgInput) {
+    imgInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const preview = document.getElementById('imagePreview');
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          preview.innerHTML = `<img src="${ev.target.result}" style="max-width:100%;max-height:200px;border-radius:8px">`;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.innerHTML = '';
+      }
+    });
+  }
+});
+
+// Crear publicación
+async function createSocialPost() {
+  const text = document.getElementById('postText').value.trim();
+  const imageFile = document.getElementById('postImage').files[0];
+  const privacy = document.getElementById('postPrivacy').value;
+  const btn = document.getElementById('createPostBtn');
+  
+  if (!text && !imageFile) {
+    showNotification('error', 'Error', 'Escribe algo o sube una imagen');
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ri-loader-4-line"></i> Publicando...';
+  
+  try {
+    let imageUrl = null;
+    
+    if (imageFile) {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      const uploadRes = await fetch(API_URL + '/api/social/upload-image', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + authToken },
+        body: formData
+      });
+      
+      const uploadData = await uploadRes.json();
+      if (uploadData.success) {
+        imageUrl = uploadData.imageUrl;
+      }
+    }
+    
+    const data = await api('/api/social/posts', {
+      method: 'POST',
+      body: { text, imageUrl, privacy }
+    });
+    
+    if (data.success) {
+      showNotification('success', '¡Publicado!', 'Tu publicación está en el feed');
+      closeModal('createPostModal');
+      loadSocialFeed(socialFeedFilter);
+    }
+  } catch (e) {
+    showNotification('error', 'Error', e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ri-send-plane-fill"></i> Publicar';
+  }
+}
+
+// Like
+async function likeSocialPost(postId, btn) {
+  try {
+    const data = await api(`/api/social/posts/${postId}/like`, { method: 'POST' });
+    
+    if (data.liked) {
+      btn.classList.add('liked');
+      btn.querySelector('i').className = 'ri-heart-fill';
+      const span = btn.querySelector('span');
+      span.textContent = parseInt(span.textContent || 0) + 1;
+    } else {
+      btn.classList.remove('liked');
+      btn.querySelector('i').className = 'ri-heart-line';
+      const span = btn.querySelector('span');
+      span.textContent = Math.max(0, parseInt(span.textContent || 0) - 1);
+    }
+  } catch (e) {
+    showNotification('error', 'Error', e.message);
+  }
+}
+
+// Toggle comentarios
+function toggleCommentBox(postId) {
+  const box = document.getElementById(`comment-box-${postId}`);
+  if (box) {
+    box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+    if (box.style.display === 'flex') {
+      document.getElementById(`comment-input-${postId}`).focus();
+    }
+  }
+}
+
+// Añadir comentario
+async function addSocialComment(postId) {
+  const input = document.getElementById(`comment-input-${postId}`);
+  const text = input.value.trim();
+  
+  if (!text) return;
+  
+  try {
+    const data = await api(`/api/social/posts/${postId}/comment`, {
+      method: 'POST',
+      body: { text }
+    });
+    
+    if (data.success) {
+      input.value = '';
+      showNotification('success', 'Comentario publicado', '');
+      loadSocialFeed(socialFeedFilter);
+    }
+  } catch (e) {
+    showNotification('error', 'Error', e.message);
+  }
+}
+
+// Eliminar publicación
+async function deleteSocialPost(postId) {
+  if (!confirm('¿Eliminar esta publicación?')) return;
+  
+  try {
+    const data = await api(`/api/social/posts/${postId}`, { method: 'DELETE' });
+    if (data.success) {
+      showNotification('success', 'Publicación eliminada', '');
+      loadSocialFeed(socialFeedFilter);
+    }
+  } catch (e) {
+    showNotification('error', 'Error', e.message);
+  }
+}
+
+// Compartir
+function shareSocialPost(postId) {
+  const url = `${window.location.origin}/social/post/${postId}`;
+  navigator.clipboard.writeText(url).then(() => {
+    showNotification('success', 'Enlace copiado', 'Comparte este enlace');
+  });
+}
+
+// Funciones auxiliares
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function getTimeAgo(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  if (seconds < 60) return 'ahora mismo';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `hace ${days}d`;
+  return date.toLocaleDateString();
+}
+
+// ============================================
+// AQUÍ CONTINÚA TU CÓDIGO EXISTENTE DEL FEED DE PRODUCTOS
+// ============================================
 // ============ FEED ============
 async function loadFeed(filter, el) {
   if (el) {
