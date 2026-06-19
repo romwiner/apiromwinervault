@@ -3266,25 +3266,41 @@ app.post('/api/feed/:id/comment', authenticate, async (req, res) => {
   }
 });
 // ============================================
-// 📱 FEED SOCIAL GENERAL (TIPO FACEBOOK)
+// 📱 FEED SOCIAL + NOTIFICACIONES + UPLOAD (TODO INTEGRADO)
 // ============================================
 
-// Crear publicación social (texto, foto, video)
+// 🔔 Función auxiliar para crear notificaciones
+async function createNotification({ userId, type, fromUserId, fromUsername, fromAvatar, postId = null, message }) {
+  if (!mongoReady || !notificationsCollection) return;
+  try {
+    await notificationsCollection.insertOne({
+      userId,
+      type,
+      fromUserId,
+      fromUsername,
+      fromAvatar,
+      postId,
+      message,
+      read: false,
+      createdAt: new Date()
+    });
+  } catch (e) {
+    logger.warn('⚠️ Notification creation failed: ' + e.message);
+  }
+}
+
+// 📝 Crear publicación social (texto + imagen opcional)
 app.post('/api/social/posts', authenticate, async (req, res) => {
   try {
     const { text, imageUrl, videoUrl, privacy = 'public' } = req.body;
-    
     if (!text && !imageUrl && !videoUrl) {
       return res.status(400).json({ error: 'Debes proporcionar texto, imagen o video' });
     }
-    
     if (!mongoReady || !socialPostsCollection) {
       return res.status(503).json({ error: 'Base de datos no disponible' });
     }
-    
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    
     const profile = await profilesCollection.findOne({ userId: user._id });
     
     const post = {
@@ -3292,7 +3308,7 @@ app.post('/api/social/posts', authenticate, async (req, res) => {
       userUid: user.uid,
       username: user.username,
       displayName: profile?.displayName || user.username,
-      avatarUrl: profile?.avatarUrl || null,
+      avatarUrl: profile?.avatarUrl || user.avatar || null,
       text: text?.substring(0, 5000) || null,
       imageUrl: imageUrl || null,
       videoUrl: videoUrl || null,
@@ -3305,18 +3321,13 @@ app.post('/api/social/posts', authenticate, async (req, res) => {
     };
     
     const result = await socialPostsCollection.insertOne(post);
-    
-    // Dar XP por publicar
-    if (typeof addXP === 'function') {
-      await addXP(user._id, 10, null);
-    }
-    
+    if (typeof addXP === 'function') await addXP(user._id, 10, null);
     await logAudit('social_post_created', { userId: user.uid, postId: result.insertedId });
     
-    res.status(201).json({
-      success: true,
-      message: '✅ Publicación creada',
-      post: { ...post, id: result.insertedId }
+    res.status(201).json({ 
+      success: true, 
+      message: '✅ Publicación creada', 
+      post: { ...post, id: result.insertedId } 
     });
   } catch (e) {
     logger.error('❌ Social post error: ' + e.message);
@@ -3324,37 +3335,30 @@ app.post('/api/social/posts', authenticate, async (req, res) => {
   }
 });
 
-// Obtener feed social general
+// 📰 Obtener feed social (con filtros: all, following, mine)
 app.get('/api/social/feed', authenticate, async (req, res) => {
   try {
     if (!mongoReady || !socialPostsCollection) {
       return res.json({ success: true, posts: [], demo: true });
     }
-    
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     
     const { page = 1, limit = 20, filter = 'all' } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
     let filterQuery = {};
     
-    // Filtros
     if (filter === 'following') {
       const following = await followsCollection.find({ followerId: user._id }).toArray();
       const followingIds = following.map(f => f.followingId);
-      if (followingIds.length === 0) {
-        return res.json({ success: true, posts: [], pagination: { total: 0 } });
-      }
+      if (followingIds.length === 0) return res.json({ success: true, posts: [], pagination: { total: 0 } });
       filterQuery.userId = { $in: followingIds };
     } else if (filter === 'mine') {
       filterQuery.userId = user._id;
     }
     
-    // Solo publicaciones públicas o de usuarios que sigo
     const following = await followsCollection.find({ followerId: user._id }).toArray();
     const followingIds = following.map(f => f.followingId);
-    
     filterQuery.$or = [
       { privacy: 'public' },
       { userId: user._id },
@@ -3362,25 +3366,17 @@ app.get('/api/social/feed', authenticate, async (req, res) => {
     ];
     
     const [posts, total] = await Promise.all([
-      socialPostsCollection.find(filterQuery)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .toArray(),
+      socialPostsCollection.find(filterQuery).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)).toArray(),
       socialPostsCollection.countDocuments(filterQuery)
     ]);
     
-    // Enriquecer publicaciones
     const enrichedPosts = [];
     for (const post of posts) {
       const likesCount = await socialLikesCollection.countDocuments({ postId: post._id });
       const commentsCount = await socialCommentsCollection.countDocuments({ postId: post._id });
       const userLiked = await socialLikesCollection.findOne({ postId: post._id, userId: user._id });
-      
       const recentComments = await socialCommentsCollection.find({ postId: post._id })
-        .sort({ createdAt: -1 })
-        .limit(3)
-        .toArray();
+        .sort({ createdAt: -1 }).limit(3).toArray();
       
       enrichedPosts.push({
         id: post._id.toString(),
@@ -3388,41 +3384,32 @@ app.get('/api/social/feed', authenticate, async (req, res) => {
         imageUrl: post.imageUrl,
         videoUrl: post.videoUrl,
         privacy: post.privacy,
-        author: {
-          uid: post.userUid,
-          username: post.username,
-          displayName: post.displayName,
-          avatarUrl: post.avatarUrl
+        author: { 
+          uid: post.userUid, 
+          username: post.username, 
+          displayName: post.displayName, 
+          avatarUrl: post.avatarUrl 
         },
-        engagement: {
-          likes: likesCount,
-          comments: commentsCount,
-          shares: post.sharesCount || 0,
-          userLiked: !!userLiked
+        engagement: { 
+          likes: likesCount, 
+          comments: commentsCount, 
+          shares: post.sharesCount || 0, 
+          userLiked: !!userLiked 
         },
         recentComments: recentComments.map(c => ({
-          id: c._id.toString(),
+          id: c._id.toString(), 
           text: c.text,
-          author: {
-            username: c.username,
-            displayName: c.displayName,
-            avatarUrl: c.avatarUrl
-          },
+          author: { username: c.username, displayName: c.displayName, avatarUrl: c.avatarUrl },
           createdAt: c.createdAt
         })),
         createdAt: post.createdAt
       });
     }
     
-    res.json({
-      success: true,
-      posts: enrichedPosts,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
+    res.json({ 
+      success: true, 
+      posts: enrichedPosts, 
+      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) } 
     });
   } catch (e) {
     logger.error('❌ Social feed error: ' + e.message);
@@ -3430,13 +3417,10 @@ app.get('/api/social/feed', authenticate, async (req, res) => {
   }
 });
 
-// Dar/quitar like a una publicación social
+// ❤️ Like/unlike publicación social (con notificación al autor)
 app.post('/api/social/posts/:id/like', authenticate, async (req, res) => {
   try {
-    if (!mongoReady || !socialLikesCollection || !socialPostsCollection) {
-      return res.json({ success: true, liked: false, demo: true });
-    }
-    
+    if (!mongoReady) return res.json({ success: true, liked: false, demo: true });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     
@@ -3451,14 +3435,20 @@ app.post('/api/social/posts/:id/like', authenticate, async (req, res) => {
       await logAudit('social_post_unliked', { userId: user.uid, postId: req.params.id });
       res.json({ success: true, liked: false, message: 'Like eliminado' });
     } else {
-      await socialLikesCollection.insertOne({
-        postId,
-        userId: user._id,
-        createdAt: new Date()
-      });
+      await socialLikesCollection.insertOne({ postId, userId: user._id, createdAt: new Date() });
+      if (typeof addXP === 'function') await addXP(user._id, 2, null);
       
-      if (typeof addXP === 'function') {
-        await addXP(user._id, 2, null);
+      // 🔔 Notificar al autor
+      if (post.userId.toString() !== user._id.toString()) {
+        await createNotification({
+          userId: post.userId,
+          type: 'like',
+          fromUserId: user._id,
+          fromUsername: user.username,
+          fromAvatar: user.avatar || null,
+          postId: post._id.toString(),
+          message: 'le dio like a tu publicación'
+        });
       }
       
       await logAudit('social_post_liked', { userId: user.uid, postId: req.params.id });
@@ -3470,48 +3460,52 @@ app.post('/api/social/posts/:id/like', authenticate, async (req, res) => {
   }
 });
 
-// Comentar en una publicación social
+// 💬 Comentar en publicación social (con notificación al autor)
 app.post('/api/social/posts/:id/comment', authenticate, async (req, res) => {
   try {
     const { text } = req.body;
-    if (!text || text.trim().length < 1) {
-      return res.status(400).json({ error: 'Comentario no puede estar vacío' });
-    }
-    
-    if (!mongoReady || !socialCommentsCollection || !socialPostsCollection) {
-      return res.json({ success: true, demo: true });
-    }
+    if (!text || text.trim().length < 1) return res.status(400).json({ error: 'Comentario vacío' });
+    if (!mongoReady) return res.json({ success: true, demo: true });
     
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    
     const profile = await profilesCollection.findOne({ userId: user._id });
+    
     const postId = new ObjectId(req.params.id);
     const post = await socialPostsCollection.findOne({ _id: postId });
     if (!post) return res.status(404).json({ error: 'Publicación no encontrada' });
     
     const comment = {
-      postId,
-      userId: user._id,
+      postId, 
+      userId: user._id, 
       username: user.username,
       displayName: profile?.displayName || user.username,
-      avatarUrl: profile?.avatarUrl || null,
-      text: text.substring(0, 1000),
+      avatarUrl: profile?.avatarUrl || user.avatar || null,
+      text: text.substring(0, 1000), 
       createdAt: new Date()
     };
     
     const result = await socialCommentsCollection.insertOne(comment);
+    if (typeof addXP === 'function') await addXP(user._id, 5, null);
     
-    if (typeof addXP === 'function') {
-      await addXP(user._id, 5, null);
+    // 🔔 Notificar al autor
+    if (post.userId.toString() !== user._id.toString()) {
+      await createNotification({
+        userId: post.userId,
+        type: 'comment',
+        fromUserId: user._id,
+        fromUsername: user.username,
+        fromAvatar: user.avatar || null,
+        postId: post._id.toString(),
+        message: `comentó: "${text.substring(0, 50)}..."`
+      });
     }
     
     await logAudit('social_comment_created', { userId: user.uid, postId: req.params.id });
-    
-    res.status(201).json({
-      success: true,
-      message: 'Comentario publicado',
-      comment: { ...comment, id: result.insertedId }
+    res.status(201).json({ 
+      success: true, 
+      message: 'Comentario publicado', 
+      comment: { ...comment, id: result.insertedId } 
     });
   } catch (e) {
     logger.error('❌ Social comment error: ' + e.message);
@@ -3519,23 +3513,17 @@ app.post('/api/social/posts/:id/comment', authenticate, async (req, res) => {
   }
 });
 
-// Eliminar publicación propia
+// 🗑️ Eliminar publicación propia
 app.delete('/api/social/posts/:id', authenticate, async (req, res) => {
   try {
-    if (!mongoReady || !socialPostsCollection) {
-      return res.json({ success: true, message: 'Demo: publicación eliminada', demo: true });
-    }
-    
+    if (!mongoReady) return res.json({ success: true, message: 'Demo', demo: true });
     const user = await usersCollection.findOne({ uid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     
     const postId = new ObjectId(req.params.id);
     const post = await socialPostsCollection.findOne({ _id: postId });
-    
     if (!post) return res.status(404).json({ error: 'Publicación no encontrada' });
-    if (post.userUid !== user.uid) {
-      return res.status(403).json({ error: 'Solo puedes eliminar tus propias publicaciones' });
-    }
+    if (post.userUid !== user.uid) return res.status(403).json({ error: 'Solo puedes eliminar tus publicaciones' });
     
     await Promise.all([
       socialPostsCollection.deleteOne({ _id: postId }),
@@ -3544,13 +3532,271 @@ app.delete('/api/social/posts/:id', authenticate, async (req, res) => {
     ]);
     
     await logAudit('social_post_deleted', { userId: user.uid, postId: req.params.id });
-    
     res.json({ success: true, message: 'Publicación eliminada' });
   } catch (e) {
     logger.error('❌ Delete post error: ' + e.message);
-    res.status(500).json({ error: 'Error eliminando publicación: ' + e.message });
+    res.status(500).json({ error: 'Error eliminando: ' + e.message });
   }
 });
+
+// 📷 Subir imagen para publicación social
+app.post('/api/social/upload-image', authenticate, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No se proporcionó imagen' });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const r2Key = `social/${user.uid}/${Date.now()}_${req.file.originalname}`;
+    await uploadToR2(req.file.buffer, r2Key, req.file.mimetype);
+    const imageUrl = await getR2Url(r2Key, 3600 * 24 * 365);
+    
+    res.json({ success: true, imageUrl, message: 'Imagen subida' });
+  } catch (e) {
+    logger.error('❌ Upload image error: ' + e.message);
+    res.status(500).json({ error: 'Error subiendo imagen: ' + e.message });
+  }
+});
+// ============================================
+// 🔔 SISTEMA DE NOTIFICACIONES
+// ============================================
+
+// 📬 Obtener notificaciones del usuario
+app.get('/api/notifications', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady || !notificationsCollection) {
+      return res.json({ success: true, notifications: [], unreadCount: 0, demo: true });
+    }
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const { limit = 50 } = req.query;
+    const notifications = await notificationsCollection.find({ userId: user._id })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .toArray();
+    
+    const unreadCount = await notificationsCollection.countDocuments({ userId: user._id, read: false });
+    
+    res.json({
+      success: true,
+      notifications: notifications.map(n => ({
+        id: n._id.toString(),
+        type: n.type,
+        from: { username: n.fromUsername, avatarUrl: n.fromAvatar },
+        postId: n.postId,
+        message: n.message,
+        read: n.read,
+        createdAt: n.createdAt
+      })),
+      unreadCount
+    });
+  } catch (e) {
+    logger.error('❌ Notifications error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando notificaciones: ' + e.message });
+  }
+});
+
+// 🔢 Contador de notificaciones no leídas (para badge en frontend)
+app.get('/api/notifications/unread-count', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady || !notificationsCollection) {
+      return res.json({ success: true, count: 0, demo: true });
+    }
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const count = await notificationsCollection.countDocuments({ userId: user._id, read: false });
+    res.json({ success: true, count });
+  } catch (e) {
+    logger.error('❌ Unread count error: ' + e.message);
+    res.status(500).json({ error: 'Error: ' + e.message });
+  }
+});
+
+// ✅ Marcar notificación como leída
+app.patch('/api/notifications/:id/read', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady) return res.json({ success: true, demo: true });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    await notificationsCollection.updateOne(
+      { _id: new ObjectId(req.params.id), userId: user._id },
+      { $set: { read: true, readAt: new Date() } }
+    );
+    res.json({ success: true, message: 'Notificación marcada como leída' });
+  } catch (e) {
+    logger.error('❌ Mark read error: ' + e.message);
+    res.status(500).json({ error: 'Error: ' + e.message });
+  }
+});
+
+// ✅✅ Marcar TODAS las notificaciones como leídas
+app.patch('/api/notifications/read-all', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady) return res.json({ success: true, demo: true });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const result = await notificationsCollection.updateMany(
+      { userId: user._id, read: false },
+      { $set: { read: true, readAt: new Date() } }
+    );
+    res.json({ success: true, message: `${result.modifiedCount} notificaciones marcadas como leídas` });
+  } catch (e) {
+    logger.error('❌ Mark all read error: ' + e.message);
+    res.status(500).json({ error: 'Error: ' + e.message });
+  }
+});
+
+// ============================================
+// 📸 STORIES (ESTADOS TEMPORALES 24H)
+// ============================================
+
+// 📤 Crear story (imagen o video de 24h)
+app.post('/api/stories', authenticate, upload.single('media'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Imagen o video requerido' });
+    if (!mongoReady || !storiesCollection) return res.status(503).json({ error: 'Base de datos no disponible' });
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const profile = await profilesCollection.findOne({ userId: user._id });
+    
+    const r2Key = `stories/${user.uid}/${Date.now()}_${req.file.originalname}`;
+    await uploadToR2(req.file.buffer, r2Key, req.file.mimetype);
+    const mediaUrl = await getR2Url(r2Key, 3600 * 24);
+    
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
+    const story = {
+      userId: user._id,
+      userUid: user.uid,
+      username: user.username,
+      displayName: profile?.displayName || user.username,
+      avatarUrl: profile?.avatarUrl || user.avatar || null,
+      mediaUrl,
+      mediaType: req.file.mimetype.startsWith('video/') ? 'video' : 'image',
+      caption: req.body.caption?.substring(0, 200) || null,
+      views: [],
+      expiresAt,
+      createdAt: new Date()
+    };
+    
+    const result = await storiesCollection.insertOne(story);
+    res.status(201).json({ 
+      success: true, 
+      message: '✅ Story publicada (expira en 24h)', 
+      story: { ...story, id: result.insertedId } 
+    });
+  } catch (e) {
+    logger.error('❌ Story create error: ' + e.message);
+    res.status(500).json({ error: 'Error creando story: ' + e.message });
+  }
+});
+
+// 👀 Obtener stories (de usuarios que sigo + míos)
+app.get('/api/stories', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady || !storiesCollection) {
+      return res.json({ success: true, stories: [], demo: true });
+    }
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const following = await followsCollection.find({ followerId: user._id }).toArray();
+    const followingIds = following.map(f => f.followingId);
+    followingIds.push(user._id);
+    
+    const stories = await storiesCollection.find({
+      userId: { $in: followingIds },
+      expiresAt: { $gt: new Date() }
+    })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .toArray();
+    
+    const grouped = {};
+    for (const story of stories) {
+      const key = story.userUid;
+      if (!grouped[key]) {
+        grouped[key] = {
+          user: {
+            uid: story.userUid,
+            username: story.username,
+            displayName: story.displayName,
+            avatarUrl: story.avatarUrl
+          },
+          stories: []
+        };
+      }
+      grouped[key].stories.push({
+        id: story._id.toString(),
+        mediaUrl: story.mediaUrl,
+        mediaType: story.mediaType,
+        caption: story.caption,
+        views: story.views.length,
+        viewed: story.views.includes(user.uid),
+        createdAt: story.createdAt,
+        expiresAt: story.expiresAt
+      });
+    }
+    
+    res.json({ success: true, stories: Object.values(grouped) });
+  } catch (e) {
+    logger.error('❌ Stories error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando stories: ' + e.message });
+  }
+});
+
+// 👁️ Ver story (registrar vista)
+app.post('/api/stories/:id/view', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady) return res.json({ success: true, demo: true });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const storyId = new ObjectId(req.params.id);
+    const story = await storiesCollection.findOne({ _id: storyId });
+    if (!story) return res.status(404).json({ error: 'Story no encontrada' });
+    
+    if (!story.views.includes(user.uid)) {
+      await storiesCollection.updateOne(
+        { _id: storyId },
+        { $push: { views: user.uid } }
+      );
+    }
+    
+    res.json({ success: true, message: 'Vista registrada' });
+  } catch (e) {
+    logger.error('❌ Story view error: ' + e.message);
+    res.status(500).json({ error: 'Error: ' + e.message });
+  }
+});
+
+// 🗑️ Eliminar story propia
+app.delete('/api/stories/:id', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady) return res.json({ success: true, demo: true });
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const storyId = new ObjectId(req.params.id);
+    const story = await storiesCollection.findOne({ _id: storyId });
+    if (!story) return res.status(404).json({ error: 'Story no encontrada' });
+    if (story.userUid !== user.uid) return res.status(403).json({ error: 'Solo puedes eliminar tus stories' });
+    
+    await storiesCollection.deleteOne({ _id: storyId });
+    res.json({ success: true, message: 'Story eliminada' });
+  } catch (e) {
+    logger.error('❌ Story delete error: ' + e.message);
+    res.status(500).json({ error: 'Error: ' + e.message });
+  }
+});
+// ============================================
+// 🛍️ MARKETPLACE REAL (CATÁLOGO + DETALLE)
+// ============================================
+
 // ============================================
 // 🛍️ MARKETPLACE REAL (CATÁLOGO + DETALLE)
 // ============================================
