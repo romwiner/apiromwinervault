@@ -395,48 +395,15 @@ async function connectToMongo() {
 
     logger.info('✅ Colecciones asignadas correctamente');
 
-    // ============================================
-    // 📊 ÍNDICES ADICIONALES PARA NUEVAS COLECCIONES
-    // ============================================
-    logger.info('🔧 Creando índices para nuevas colecciones...');
-    
-    try {
-      // Índices para Feed Social
-      await socialPostsCollection.createIndex({ userId: 1, createdAt: -1 });
-      await socialPostsCollection.createIndex({ createdAt: -1 });
-      await socialPostsCollection.createIndex({ privacy: 1 });
-      await socialCommentsCollection.createIndex({ postId: 1, createdAt: -1 });
-      await socialLikesCollection.createIndex({ postId: 1, userId: 1 }, { unique: true });
-      
-      // Índices para Notificaciones
-      await notificationsCollection.createIndex({ userId: 1, createdAt: -1 });
-      await notificationsCollection.createIndex({ read: 1, createdAt: -1 });
-      
-      // Índices para Stories (expiran automáticamente en 24h)
-      await storiesCollection.createIndex({ userId: 1, createdAt: -1 });
-      await storiesCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-      
-      logger.info('✅ Índices de nuevas colecciones creados correctamente');
-    } catch (e) {
-      logger.warn('⚠️ Algunos índices ya existían o hubo un warning: ' + e.message);
-    }
-
-    // ============================================
-    // 📊 CREACIÓN DE ÍNDICES (OPTIMIZADO)
+       // ============================================
+    // 📊 CREACIÓN DE ÍNDICES (OPTIMIZADO - UN SOLO BLOQUE)
     // ============================================
     logger.info('🔧 Creando índices de base de datos...');
     
-    // Crear índices en paralelo para mayor velocidad
     await Promise.all([
       // Índices de usuarios
-      (async () => {
-        try { await usersCollection.createIndex({ email: 1 }, { unique: true }); } 
-        catch(e) { logger.warn('⚠️ Index email ya existe'); }
-      })(),
-      (async () => {
-        try { await usersCollection.createIndex({ username: 1 }, { unique: true, sparse: true }); } 
-        catch(e) { logger.warn('⚠️ Index username ya existe'); }
-      })(),
+      (async () => { try { await usersCollection.createIndex({ email: 1 }, { unique: true }); } catch(e) { logger.warn('⚠️ Index email ya existe'); } })(),
+      (async () => { try { await usersCollection.createIndex({ username: 1 }, { unique: true, sparse: true }); } catch(e) { logger.warn('⚠️ Index username ya existe'); } })(),
       usersCollection.createIndex({ uid: 1 }, { unique: true }),
       usersCollection.createIndex({ tier: 1 }),
       usersCollection.createIndex({ companyId: 1 }),
@@ -470,7 +437,7 @@ async function connectToMongo() {
       // Índices de versiones
       versionsCollection.createIndex({ fileId: 1, versionNumber: -1 }),
       
-      // Índices de comentarios
+      // Índices de comentarios (productos)
       commentsCollection.createIndex({ postId: 1, createdAt: -1 }),
       commentsCollection.createIndex({ fileId: 1, createdAt: -1 }),
       
@@ -500,7 +467,7 @@ async function connectToMongo() {
       followsCollection.createIndex({ followerId: 1, followingId: 1 }, { unique: true }),
       followsCollection.createIndex({ followingId: 1 }),
       
-      // Índices de likes
+      // Índices de likes (productos)
       postLikesCollection.createIndex({ userId: 1, postId: 1 }, { unique: true }),
       
       // Índices de organizaciones
@@ -515,15 +482,23 @@ async function connectToMongo() {
       adImpressionsCollection.createIndex({ userId: 1, watchedAt: -1 }),
       adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 }),
       
-      // ✅ NUEVOS ÍNDICES PARA FEED SOCIAL
+      // ✅ ÍNDICES PARA FEED SOCIAL (tipo Facebook)
       socialPostsCollection.createIndex({ userId: 1, createdAt: -1 }),
       socialPostsCollection.createIndex({ createdAt: -1 }),
       socialPostsCollection.createIndex({ privacy: 1 }),
       socialCommentsCollection.createIndex({ postId: 1, createdAt: -1 }),
-      socialLikesCollection.createIndex({ postId: 1, userId: 1 }, { unique: true })
+      socialLikesCollection.createIndex({ postId: 1, userId: 1 }, { unique: true }),
+      
+      // ✅ ÍNDICES PARA NOTIFICACIONES
+      notificationsCollection.createIndex({ userId: 1, createdAt: -1 }),
+      notificationsCollection.createIndex({ read: 1, createdAt: -1 }),
+      
+      // ✅ ÍNDICES PARA STORIES (expiran automáticamente en 24h)
+      storiesCollection.createIndex({ userId: 1, createdAt: -1 }),
+      storiesCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
     ]);
 
-    logger.info('✅ Índices creados correctamente');
+    logger.info('✅ Todos los índices creados correctamente');
     mongoReady = true;
     logger.info('✅ MongoDB Atlas conectado y listo');
     
@@ -539,7 +514,6 @@ async function connectToMongo() {
     }, 5000);
   }
 }
-
 // 🔐 SEGURIDAD MÁXIMA - SIN ENLACES EXTERNOS
 app.use(helmet({
   contentSecurityPolicy: {
