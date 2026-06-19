@@ -310,22 +310,45 @@ const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 10000;
 
-// 🔐 MONGODB
+// ============================================
+// 🔐 MONGODB - CONEXIÓN Y CONFIGURACIÓN
+// ============================================
 const MONGODB_URI = process.env.MONGODB_URI;
-// ✅ Declaración de TODAS las colecciones (incluyendo nuevas)
-let db, usersCollection, secretsCollection, affiliatesCollection, identityCollection, transactionsCollection, profilesCollection, walletCollection, auditCollection, webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
+
+// ✅ Declaración de TODAS las colecciones (UNA SOLA VEZ)
+let db;
+let usersCollection, secretsCollection, affiliatesCollection, identityCollection;
+let transactionsCollection, profilesCollection, walletCollection, auditCollection;
+let webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
-let reviewsCollection, favoritesCollection, commitsCollection, adsCollection, adImpressionsCollection, organizationsCollection;
-let followsCollection, postLikesCollection;  // 👈 AÑADIDAS
+let reviewsCollection, favoritesCollection, commitsCollection;
+let adsCollection, adImpressionsCollection, organizationsCollection;
+let followsCollection, postLikesCollection;
+let socialPostsCollection, socialCommentsCollection, socialLikesCollection;
+
 let mongoReady = false;
 
+// ============================================
+// 🔌 FUNCIÓN DE CONEXIÓN A MONGODB
+// ============================================
 async function connectToMongo() {
   try {
-    const client = new MongoClient(MONGODB_URI);
+    logger.info('🔄 Conectando a MongoDB Atlas...');
+    const client = new MongoClient(MONGODB_URI, {
+      maxPoolSize: 50,
+      minPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    
     await client.connect();
     db = client.db('apiromwinervault');
+
+    // ============================================
+    // 📦 ASIGNACIÓN DE COLECCIONES (SIN DUPLICADOS)
+    // ============================================
     
-    // ✅ Asignar TODAS las colecciones
+    // Colecciones principales
     usersCollection = db.collection('users');
     secretsCollection = db.collection('secrets');
     affiliatesCollection = db.collection('affiliates');
@@ -338,6 +361,8 @@ async function connectToMongo() {
     promoCollection = db.collection('promo_codes');
     cryptoKeysCollection = db.collection('cryptoKeys');
     verifiedIdentitiesCollection = db.collection('verifiedIdentities');
+    
+    // Colecciones de archivos
     sharedLinksCollection = db.collection('sharedLinks');
     thumbnailsCollection = db.collection('thumbnails');
     versionsCollection = db.collection('fileVersions');
@@ -346,69 +371,136 @@ async function connectToMongo() {
     favoritesCollection = db.collection('favorites');
     commitsCollection = db.collection('vaultCommits');
     
-    // ✅ NUEVAS COLECCIONES
-    followsCollection = db.collection('follows');
-    postLikesCollection = db.collection('post_likes');
+    // Colecciones de negocio
     adsCollection = db.collection('ads');
     adImpressionsCollection = db.collection('adImpressions');
     organizationsCollection = db.collection('organizations');
+    followsCollection = db.collection('follows');
+    postLikesCollection = db.collection('post_likes');
     
-    // =====================================================
-    // ÍNDICES
-    // =====================================================
-    // Seguidores
-    await followsCollection.createIndex({ followerId: 1, followingId: 1 }, { unique: true });
-    // Likes
-    await postLikesCollection.createIndex({ userId: 1, postId: 1 }, { unique: true });
-    // Comentarios (para feed)
-    await commentsCollection.createIndex({ postId: 1, createdAt: -1 });
-    // Organizaciones
-    await organizationsCollection.createIndex({ name: 1 }, { unique: true });
-    await organizationsCollection.createIndex({ taxId: 1 }, { unique: true, sparse: true });
-    await organizationsCollection.createIndex({ 'members.userId': 1 });
-    await organizationsCollection.createIndex({ expiresAt: 1 });
-    // Publicidad
-    await adsCollection.createIndex({ active: 1, budget: -1, startDate: 1, endDate: 1 });
-    await adsCollection.createIndex({ advertiserId: 1, createdAt: -1 });
-    await adImpressionsCollection.createIndex({ userId: 1, watchedAt: -1 });
-    await adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 });
+    // ✅ NUEVAS COLECCIONES PARA FEED SOCIAL
+    socialPostsCollection = db.collection('socialPosts');
+    socialCommentsCollection = db.collection('socialComments');
+    socialLikesCollection = db.collection('socialLikes');
+
+    logger.info('✅ Colecciones asignadas correctamente');
+
+    // ============================================
+    // 📊 CREACIÓN DE ÍNDICES (OPTIMIZADO)
+    // ============================================
+    logger.info('🔧 Creando índices de base de datos...');
     
-    // ✅ Índices existentes (con manejo de errores para evitar duplicados)
-    try {
-      await usersCollection.createIndex({ email: 1 }, { unique: true });
-    } catch(e) { logger.warn('Index email ya existe'); }
-    try {
-      await usersCollection.createIndex({ username: 1 }, { unique: true, sparse: true });
-    } catch(e) { logger.warn('Index username ya existe'); }
-    await usersCollection.createIndex({ uid: 1 }, { unique: true });
-    await usersCollection.createIndex({ tier: 1 });
-    await usersCollection.createIndex({ companyId: 1 });
-    await secretsCollection.createIndex({ userId: 1 });
-    await secretsCollection.createIndex({ isForSale: 1 });
-    await secretsCollection.createIndex({ titulo: 'text' });
-    await profilesCollection.createIndex({ userId: 1 }, { unique: true });
-    await walletCollection.createIndex({ userId: 1 }, { unique: true });
-    await auditCollection.createIndex({ createdAt: -1 });
-    await auditCollection.createIndex({ userId: 1, timestamp: -1 });
-    await sharedLinksCollection.createIndex({ token: 1 }, { unique: true });
-    await sharedLinksCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-    await versionsCollection.createIndex({ fileId: 1, versionNumber: -1 });
-    await commentsCollection.createIndex({ fileId: 1, createdAt: -1 });
-    await webhooksCollection.createIndex({ userId: 1 });
-    await promoCollection.createIndex({ code: 1 }, { unique: true });
-    await cryptoKeysCollection.createIndex({ publicKey: 1 }, { unique: true });
-    await cryptoKeysCollection.createIndex({ userId: 1 });
-    await verifiedIdentitiesCollection.createIndex({ userId: 1 }, { unique: true });
-    await verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, sparse: true });
-    await verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true });
-    await reviewsCollection.createIndex({ itemId: 1, createdAt: -1 });
-    await favoritesCollection.createIndex({ userId: 1, itemId: 1 }, { unique: true });
-    
+    // Crear índices en paralelo para mayor velocidad
+    await Promise.all([
+      // Índices de usuarios
+      (async () => {
+        try { await usersCollection.createIndex({ email: 1 }, { unique: true }); } 
+        catch(e) { logger.warn('⚠️ Index email ya existe'); }
+      })(),
+      (async () => {
+        try { await usersCollection.createIndex({ username: 1 }, { unique: true, sparse: true }); } 
+        catch(e) { logger.warn('⚠️ Index username ya existe'); }
+      })(),
+      usersCollection.createIndex({ uid: 1 }, { unique: true }),
+      usersCollection.createIndex({ tier: 1 }),
+      usersCollection.createIndex({ companyId: 1 }),
+      usersCollection.createIndex({ referredBy: 1 }),
+      usersCollection.createIndex({ refCode: 1 }, { unique: true, sparse: true }),
+      
+      // Índices de secretos/vault
+      secretsCollection.createIndex({ userId: 1 }),
+      secretsCollection.createIndex({ isForSale: 1 }),
+      secretsCollection.createIndex({ titulo: 'text' }),
+      secretsCollection.createIndex({ categoria: 1 }),
+      secretsCollection.createIndex({ createdAt: -1 }),
+      secretsCollection.createIndex({ tags: 1 }),
+      
+      // Índices de perfiles
+      profilesCollection.createIndex({ userId: 1 }, { unique: true }),
+      profilesCollection.createIndex({ displayName: 'text' }),
+      
+      // Índices de wallet
+      walletCollection.createIndex({ userId: 1 }, { unique: true }),
+      
+      // Índices de auditoría
+      auditCollection.createIndex({ createdAt: -1 }),
+      auditCollection.createIndex({ userId: 1, timestamp: -1 }),
+      auditCollection.createIndex({ action: 1 }),
+      
+      // Índices de enlaces compartidos
+      sharedLinksCollection.createIndex({ token: 1 }, { unique: true }),
+      sharedLinksCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+      
+      // Índices de versiones
+      versionsCollection.createIndex({ fileId: 1, versionNumber: -1 }),
+      
+      // Índices de comentarios
+      commentsCollection.createIndex({ postId: 1, createdAt: -1 }),
+      commentsCollection.createIndex({ fileId: 1, createdAt: -1 }),
+      
+      // Índices de webhooks
+      webhooksCollection.createIndex({ userId: 1 }),
+      
+      // Índices de códigos promocionales
+      promoCollection.createIndex({ code: 1 }, { unique: true }),
+      
+      // Índices de claves criptográficas
+      cryptoKeysCollection.createIndex({ publicKey: 1 }, { unique: true }),
+      cryptoKeysCollection.createIndex({ userId: 1 }),
+      
+      // Índices de identidades verificadas
+      verifiedIdentitiesCollection.createIndex({ userId: 1 }, { unique: true }),
+      verifiedIdentitiesCollection.createIndex({ email: 1 }, { unique: true, sparse: true }),
+      verifiedIdentitiesCollection.createIndex({ legalId: 1 }, { sparse: true }),
+      
+      // Índices de reseñas
+      reviewsCollection.createIndex({ itemId: 1, createdAt: -1 }),
+      reviewsCollection.createIndex({ buyerUid: 1 }),
+      
+      // Índices de favoritos
+      favoritesCollection.createIndex({ userId: 1, itemId: 1 }, { unique: true }),
+      
+      // Índices de seguidores
+      followsCollection.createIndex({ followerId: 1, followingId: 1 }, { unique: true }),
+      followsCollection.createIndex({ followingId: 1 }),
+      
+      // Índices de likes
+      postLikesCollection.createIndex({ userId: 1, postId: 1 }, { unique: true }),
+      
+      // Índices de organizaciones
+      organizationsCollection.createIndex({ name: 1 }, { unique: true }),
+      organizationsCollection.createIndex({ taxId: 1 }, { unique: true, sparse: true }),
+      organizationsCollection.createIndex({ 'members.userId': 1 }),
+      organizationsCollection.createIndex({ expiresAt: 1 }),
+      
+      // Índices de publicidad
+      adsCollection.createIndex({ active: 1, budget: -1, startDate: 1, endDate: 1 }),
+      adsCollection.createIndex({ advertiserId: 1, createdAt: -1 }),
+      adImpressionsCollection.createIndex({ userId: 1, watchedAt: -1 }),
+      adImpressionsCollection.createIndex({ adId: 1, watchedAt: -1 }),
+      
+      // ✅ NUEVOS ÍNDICES PARA FEED SOCIAL
+      socialPostsCollection.createIndex({ userId: 1, createdAt: -1 }),
+      socialPostsCollection.createIndex({ createdAt: -1 }),
+      socialPostsCollection.createIndex({ privacy: 1 }),
+      socialCommentsCollection.createIndex({ postId: 1, createdAt: -1 }),
+      socialLikesCollection.createIndex({ postId: 1, userId: 1 }, { unique: true })
+    ]);
+
+    logger.info('✅ Índices creados correctamente');
     mongoReady = true;
-    logger.info('✅ MongoDB Atlas conectado');
+    logger.info('✅ MongoDB Atlas conectado y listo');
+    
   } catch (err) {
-    logger.error('⚠️ MongoDB fallback activo: ' + err.message);
+    logger.error('❌ Error crítico al conectar MongoDB: ' + err.message);
+    logger.error('Stack trace:', err.stack);
     mongoReady = false;
+    
+    // Intentar reconectar después de 5 segundos
+    setTimeout(() => {
+      logger.info('🔄 Intentando reconectar a MongoDB...');
+      connectToMongo().catch(e => logger.error('❌ Reintento fallido: ' + e.message));
+    }, 5000);
   }
 }
 
@@ -3163,7 +3255,292 @@ app.post('/api/feed/:id/comment', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Error publicando comentario' });
   }
 });
+// ============================================
+// 📱 FEED SOCIAL GENERAL (TIPO FACEBOOK)
+// ============================================
 
+// Crear publicación social (texto, foto, video)
+app.post('/api/social/posts', authenticate, async (req, res) => {
+  try {
+    const { text, imageUrl, videoUrl, privacy = 'public' } = req.body;
+    
+    if (!text && !imageUrl && !videoUrl) {
+      return res.status(400).json({ error: 'Debes proporcionar texto, imagen o video' });
+    }
+    
+    if (!mongoReady || !socialPostsCollection) {
+      return res.status(503).json({ error: 'Base de datos no disponible' });
+    }
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const profile = await profilesCollection.findOne({ userId: user._id });
+    
+    const post = {
+      userId: user._id,
+      userUid: user.uid,
+      username: user.username,
+      displayName: profile?.displayName || user.username,
+      avatarUrl: profile?.avatarUrl || null,
+      text: text?.substring(0, 5000) || null,
+      imageUrl: imageUrl || null,
+      videoUrl: videoUrl || null,
+      privacy,
+      likesCount: 0,
+      commentsCount: 0,
+      sharesCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const result = await socialPostsCollection.insertOne(post);
+    
+    // Dar XP por publicar
+    if (typeof addXP === 'function') {
+      await addXP(user._id, 10, null);
+    }
+    
+    await logAudit('social_post_created', { userId: user.uid, postId: result.insertedId });
+    
+    res.status(201).json({
+      success: true,
+      message: '✅ Publicación creada',
+      post: { ...post, id: result.insertedId }
+    });
+  } catch (e) {
+    logger.error('❌ Social post error: ' + e.message);
+    res.status(500).json({ error: 'Error creando publicación: ' + e.message });
+  }
+});
+
+// Obtener feed social general
+app.get('/api/social/feed', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady || !socialPostsCollection) {
+      return res.json({ success: true, posts: [], demo: true });
+    }
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const { page = 1, limit = 20, filter = 'all' } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    let filterQuery = {};
+    
+    // Filtros
+    if (filter === 'following') {
+      const following = await followsCollection.find({ followerId: user._id }).toArray();
+      const followingIds = following.map(f => f.followingId);
+      if (followingIds.length === 0) {
+        return res.json({ success: true, posts: [], pagination: { total: 0 } });
+      }
+      filterQuery.userId = { $in: followingIds };
+    } else if (filter === 'mine') {
+      filterQuery.userId = user._id;
+    }
+    
+    // Solo publicaciones públicas o de usuarios que sigo
+    const following = await followsCollection.find({ followerId: user._id }).toArray();
+    const followingIds = following.map(f => f.followingId);
+    
+    filterQuery.$or = [
+      { privacy: 'public' },
+      { userId: user._id },
+      { userId: { $in: followingIds }, privacy: 'friends' }
+    ];
+    
+    const [posts, total] = await Promise.all([
+      socialPostsCollection.find(filterQuery)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .toArray(),
+      socialPostsCollection.countDocuments(filterQuery)
+    ]);
+    
+    // Enriquecer publicaciones
+    const enrichedPosts = [];
+    for (const post of posts) {
+      const likesCount = await socialLikesCollection.countDocuments({ postId: post._id });
+      const commentsCount = await socialCommentsCollection.countDocuments({ postId: post._id });
+      const userLiked = await socialLikesCollection.findOne({ postId: post._id, userId: user._id });
+      
+      const recentComments = await socialCommentsCollection.find({ postId: post._id })
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .toArray();
+      
+      enrichedPosts.push({
+        id: post._id.toString(),
+        text: post.text,
+        imageUrl: post.imageUrl,
+        videoUrl: post.videoUrl,
+        privacy: post.privacy,
+        author: {
+          uid: post.userUid,
+          username: post.username,
+          displayName: post.displayName,
+          avatarUrl: post.avatarUrl
+        },
+        engagement: {
+          likes: likesCount,
+          comments: commentsCount,
+          shares: post.sharesCount || 0,
+          userLiked: !!userLiked
+        },
+        recentComments: recentComments.map(c => ({
+          id: c._id.toString(),
+          text: c.text,
+          author: {
+            username: c.username,
+            displayName: c.displayName,
+            avatarUrl: c.avatarUrl
+          },
+          createdAt: c.createdAt
+        })),
+        createdAt: post.createdAt
+      });
+    }
+    
+    res.json({
+      success: true,
+      posts: enrichedPosts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (e) {
+    logger.error('❌ Social feed error: ' + e.message);
+    res.status(500).json({ error: 'Error cargando feed: ' + e.message });
+  }
+});
+
+// Dar/quitar like a una publicación social
+app.post('/api/social/posts/:id/like', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady || !socialLikesCollection || !socialPostsCollection) {
+      return res.json({ success: true, liked: false, demo: true });
+    }
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const postId = new ObjectId(req.params.id);
+    const post = await socialPostsCollection.findOne({ _id: postId });
+    if (!post) return res.status(404).json({ error: 'Publicación no encontrada' });
+    
+    const existingLike = await socialLikesCollection.findOne({ postId, userId: user._id });
+    
+    if (existingLike) {
+      await socialLikesCollection.deleteOne({ _id: existingLike._id });
+      await logAudit('social_post_unliked', { userId: user.uid, postId: req.params.id });
+      res.json({ success: true, liked: false, message: 'Like eliminado' });
+    } else {
+      await socialLikesCollection.insertOne({
+        postId,
+        userId: user._id,
+        createdAt: new Date()
+      });
+      
+      if (typeof addXP === 'function') {
+        await addXP(user._id, 2, null);
+      }
+      
+      await logAudit('social_post_liked', { userId: user.uid, postId: req.params.id });
+      res.json({ success: true, liked: true, message: 'Te gusta esta publicación' });
+    }
+  } catch (e) {
+    logger.error('❌ Social like error: ' + e.message);
+    res.status(500).json({ error: 'Error procesando like: ' + e.message });
+  }
+});
+
+// Comentar en una publicación social
+app.post('/api/social/posts/:id/comment', authenticate, async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || text.trim().length < 1) {
+      return res.status(400).json({ error: 'Comentario no puede estar vacío' });
+    }
+    
+    if (!mongoReady || !socialCommentsCollection || !socialPostsCollection) {
+      return res.json({ success: true, demo: true });
+    }
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const profile = await profilesCollection.findOne({ userId: user._id });
+    const postId = new ObjectId(req.params.id);
+    const post = await socialPostsCollection.findOne({ _id: postId });
+    if (!post) return res.status(404).json({ error: 'Publicación no encontrada' });
+    
+    const comment = {
+      postId,
+      userId: user._id,
+      username: user.username,
+      displayName: profile?.displayName || user.username,
+      avatarUrl: profile?.avatarUrl || null,
+      text: text.substring(0, 1000),
+      createdAt: new Date()
+    };
+    
+    const result = await socialCommentsCollection.insertOne(comment);
+    
+    if (typeof addXP === 'function') {
+      await addXP(user._id, 5, null);
+    }
+    
+    await logAudit('social_comment_created', { userId: user.uid, postId: req.params.id });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Comentario publicado',
+      comment: { ...comment, id: result.insertedId }
+    });
+  } catch (e) {
+    logger.error('❌ Social comment error: ' + e.message);
+    res.status(500).json({ error: 'Error publicando comentario: ' + e.message });
+  }
+});
+
+// Eliminar publicación propia
+app.delete('/api/social/posts/:id', authenticate, async (req, res) => {
+  try {
+    if (!mongoReady || !socialPostsCollection) {
+      return res.json({ success: true, message: 'Demo: publicación eliminada', demo: true });
+    }
+    
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    const postId = new ObjectId(req.params.id);
+    const post = await socialPostsCollection.findOne({ _id: postId });
+    
+    if (!post) return res.status(404).json({ error: 'Publicación no encontrada' });
+    if (post.userUid !== user.uid) {
+      return res.status(403).json({ error: 'Solo puedes eliminar tus propias publicaciones' });
+    }
+    
+    await Promise.all([
+      socialPostsCollection.deleteOne({ _id: postId }),
+      socialLikesCollection.deleteMany({ postId }),
+      socialCommentsCollection.deleteMany({ postId })
+    ]);
+    
+    await logAudit('social_post_deleted', { userId: user.uid, postId: req.params.id });
+    
+    res.json({ success: true, message: 'Publicación eliminada' });
+  } catch (e) {
+    logger.error('❌ Delete post error: ' + e.message);
+    res.status(500).json({ error: 'Error eliminando publicación: ' + e.message });
+  }
+});
 // ============================================
 // 🛍️ MARKETPLACE REAL (CATÁLOGO + DETALLE)
 // ============================================
@@ -5303,6 +5680,10 @@ async function startServer() {
     if (FEATURES.WEB3_LOGIN) logger.info('🔗 Login Web3: ACTIVADO');
     if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
     if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA');
+    // ✅ NUEVAS COLECCIONES PARA FEED SOCIAL
+socialPostsCollection = db.collection('socialPosts');
+socialCommentsCollection = db.collection('socialComments');
+socialLikesCollection = db.collection('socialLikes');
   });
 }
 
