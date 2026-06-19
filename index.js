@@ -1,5 +1,37 @@
 // === INICIO: index.js - APIROMWINER VAULT CON IA INTERNA ===
+// ============================================
+// 🚀 INICIO: APIROMWINER VAULT CON IA INTERNA
+// ============================================
 require('dotenv').config();
+
+// ============================================
+// 🔐 VALIDACIÓN ESTRICTA DE VARIABLES DE ENTORNO
+// ============================================
+const REQUIRED_ENV_VARS = [
+  'JWT_SECRET',
+  'MASTER_KEY', 
+  'STRIPE_SECRET_KEY',
+  'MONGODB_URI',
+  'R2_ENDPOINT',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+  'R2_BUCKET_NAME'
+];
+
+const missingVars = REQUIRED_ENV_VARS.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('❌ ERROR CRÍTICO: Faltan variables de entorno obligatorias:');
+  missingVars.forEach(v => console.error(`   - ${v}`));
+  console.error('\n📝 Configura estas variables en Render Dashboard → Settings → Environment');
+  process.exit(1);
+}
+
+console.log('✅ Variables de entorno verificadas correctamente');
+
+// ============================================
+// 📦 IMPORTS Y DEPENDENCIAS (Organizados)
+// ============================================
 const express = require('express');
 const cors = require('cors');
 const CryptoJS = require('crypto-js');
@@ -12,13 +44,27 @@ const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs').promises;
-const pino = require('pino');
-const logger = pino({ level: 'info' });
 const fetch = require('node-fetch');
-// ☁️ CLOUDFLARE R2
-const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+
+// ============================================
+// 📝 LOGGER MEJORADO
+// ============================================
+const pino = require('pino');
+const logger = pino({ 
+  level: process.env.LOG_LEVEL || 'info',
+  timestamp: () => `,"time":"${new Date().toISOString()}"`,
+  base: { service: 'apiromwinervault' }
+});
+
+// ============================================
+// ☁️ CLOUDFLARE R2 - CONFIGURACIÓN ROBUSTA
+// ============================================
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
+const R2_BUCKET = process.env.R2_BUCKET_NAME || 'apiromwinervault-files';
+
+// Configuración mejorada de R2 con retry y timeout
 const r2 = new S3Client({
   region: 'auto',
   endpoint: process.env.R2_ENDPOINT,
@@ -26,71 +72,149 @@ const r2 = new S3Client({
     accessKeyId: process.env.R2_ACCESS_KEY_ID,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
   },
+  forcePathStyle: true,
+  maxAttempts: 3, // ✅ Reintentar 3 veces si falla
+  requestHandler: {
+    connectionTimeout: 5000, // ✅ 5 segundos timeout de conexión
+    socketTimeout: 30000, // ✅ 30 segundos para operaciones largas
+  }
 });
-const R2_BUCKET = process.env.R2_BUCKET_NAME || 'apiromwinervault-files';
 
+// ============================================
+// 📤 FUNCIÓN MEJORADA: SUBIR A R2
+// ============================================
 async function uploadToR2(buffer, key, mimeType) {
-  await r2.send(new PutObjectCommand({
-    Bucket: R2_BUCKET,
-    Key: key,
-    Body: buffer,
-    ContentType: mimeType,
-  }));
-  return key;
+  try {
+    logger.debug({ key, size: buffer.length, mimeType }, '📤 Subiendo archivo a R2');
+    
+    await r2.send(new PutObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: key,
+      Body: buffer,
+      ContentType: mimeType,
+      Metadata: {
+        'uploaded-at': new Date().toISOString(),
+        'original-size': buffer.length.toString()
+      }
+    }));
+    
+    logger.info({ key, size: buffer.length }, '✅ Archivo subido a R2');
+    return key;
+  } catch (e) {
+    logger.error({ key, error: e.message, stack: e.stack }, '❌ Error subiendo a R2');
+    throw new Error(`Error subiendo archivo a R2: ${e.message}`);
+  }
 }
 
-async function getR2Url(key, expiresIn = 300) {
-  return getSignedUrl(r2, new GetObjectCommand({
-    Bucket: R2_BUCKET,
-    Key: key,
-  }), { expiresIn });
+// ============================================
+// 🔗 FUNCIÓN MEJORADA: OBTENER URL DE R2
+// ============================================
+async function getR2Url(key, expiresIn = 604800) { // ✅ 7 días por defecto (ANTES 300s = 5 min)
+  try {
+    const url = await getSignedUrl(r2, new GetObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: key,
+    }), { expiresIn });
+    
+    return url;
+  } catch (e) {
+    logger.error({ key, error: e.message }, '❌ Error generando URL de R2');
+    return null;
+  }
 }
 
+// ============================================
+// 🗑️ FUNCIÓN MEJORADA: ELIMINAR DE R2
+// ============================================
 async function deleteFromR2(key) {
-  await r2.send(new DeleteObjectCommand({
-    Bucket: R2_BUCKET,
-    Key: key,
-  }));
+  try {
+    logger.debug({ key }, '🗑️ Eliminando archivo de R2');
+    
+    await r2.send(new DeleteObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: key,
+    }));
+    
+    logger.info({ key }, '✅ Archivo eliminado de R2');
+    return true;
+  } catch (e) {
+    logger.error({ key, error: e.message }, '❌ Error eliminando de R2');
+    return false;
+  }
 }
+
+// ============================================
+// ✅ NUEVA FUNCIÓN: VERIFICAR CONEXIÓN R2
+// ============================================
+async function verifyR2Connection() {
+  try {
+    await r2.send(new ListObjectsV2Command({
+      Bucket: R2_BUCKET,
+      MaxKeys: 1
+    }));
+    
+    logger.info({ bucket: R2_BUCKET }, '✅ Conexión a R2 verificada');
+    return true;
+  } catch (e) {
+    logger.error({ error: e.message }, '❌ Error conectando a R2');
+    return false;
+  }
+}
+
+// ============================================
+// 📚 IMPORTS ADICIONALES
+// ============================================
 const sharp = require('sharp');
 const diffLib = require('diff');
-// ❌ ELIMINADA: const fileType = require('file-type');  // Ya no se usa así
 const { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } = require('@simplewebauthn/server');
 const { ethers } = require('ethers');
 const { createFromURL } = require('@helia/http');
 const { unixfs } = require('@helia/unixfs');
+
+// ============================================
 // 🤖 IA INTERNA: Natural para NLP ligero
+// ============================================
 const natural = require('natural');
 const tokenizer = new natural.WordTokenizer();
 const stemmer = natural.PorterStemmer;
 
-// 🔐 CLAVES + ADMINS (definir constantes PRIMERO)
-// 1. Claves críticas: sin fallbacks, la app NO debe arrancar si faltan
+// ============================================
+// 🔐 CLAVES CRÍTICAS (Ya validadas arriba)
+// ============================================
 const JWT_SECRET = process.env.JWT_SECRET;
 const MASTER_KEY = process.env.MASTER_KEY;
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 
-// Validación estricta (mata el proceso si falta alguna)
+// Doble verificación de seguridad
 if (!JWT_SECRET || !MASTER_KEY || !STRIPE_SECRET_KEY) {
-  console.error('❌ ERROR CRÍTICO: Faltan variables de entorno obligatorias:');
-  if (!JWT_SECRET) console.error('   - JWT_SECRET');
-  if (!MASTER_KEY) console.error('   - MASTER_KEY');
-  if (!STRIPE_SECRET_KEY) console.error('   - STRIPE_SECRET_KEY');
-  console.error('   El servidor NO puede iniciar sin ellas.');
+  logger.error('❌ ERROR CRÍTICO: Claves críticas no disponibles después de validación');
   process.exit(1);
 }
 
-// ========== CONFIGURACIÓN SEGURA DE MULTER (VALIDACIÓN POR NÚMEROS MÁGICOS) ==========
+logger.info('🔐 Claves críticas cargadas correctamente');
+logger.info('🚀 APIROMWINER VAULT inicializando...');
+
+// ============================================
+// 📤 CONFIGURACIÓN SEGURA DE MULTER (MEJORADA)
+// ============================================
 const fileFilter = async (req, file, cb) => {
   if (!file.buffer) {
+    logger.warn('⚠️ Archivo sin buffer recibido');
     return cb(new Error('Solo se permiten archivos en memoria'), false);
   }
+  
   try {
+    logger.debug({ 
+      originalname: file.originalname, 
+      size: file.size, 
+      mimetype: file.mimetype 
+    }, '🔍 Validando archivo');
+    
     const { fileTypeFromBuffer } = await import('file-type');
     const buffer = file.buffer.slice(0, 4100);
     const type = await fileTypeFromBuffer(buffer);
 
-    // ✅ Lista ampliada de tipos permitidos (ajústala según necesites)
+    // ✅ Lista ampliada de tipos permitidos
     const allowedMimes = [
       'image/jpeg', 'image/png', 'image/gif', 'image/webp',
       'application/pdf', 'application/msword',
@@ -105,12 +229,28 @@ const fileFilter = async (req, file, cb) => {
       const originalName = file.originalname;
       const newExt = type.ext;
       file.originalname = originalName.replace(/\.[^/.]+$/, '') + '.' + newExt;
+      
+      logger.info({ 
+        originalname: originalName,
+        validatedName: file.originalname,
+        type: type.mime,
+        size: file.size
+      }, '✅ Archivo validado correctamente');
+      
       cb(null, true);
     } else {
+      logger.warn({ 
+        originalname: file.originalname,
+        detectedType: type ? type.mime : 'desconocido'
+      }, '⚠️ Tipo de archivo no permitido');
+      
       cb(new Error(`Tipo real no permitido: ${type ? type.mime : 'desconocido'}`), false);
     }
   } catch (error) {
-    console.error('Error en fileFilter:', error);
+    logger.error({ 
+      originalname: file.originalname,
+      error: error.message 
+    }, '❌ Error en fileFilter');
     cb(new Error('Error interno al validar archivo'), false);
   }
 };
@@ -118,8 +258,13 @@ const fileFilter = async (req, file, cb) => {
 const upload = multer({
   storage: multer.memoryStorage(),
   fileFilter: fileFilter,
- limits: { fileSize: 500 * 1024 * 1024 }
+  limits: { 
+    fileSize: 500 * 1024 * 1024 // 500MB
+  }
 });
+
+logger.info('📤 Multer configurado correctamente');
+
 // =====================================================================================
 
 // El resto de tu código (middlewares, rutas, etc.) continúa aquí...
