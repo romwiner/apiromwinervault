@@ -1250,7 +1250,6 @@ app.post('/register', async(req, res) => {
     res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 });
-    
     // =====================================================
     // CADENA DE REFERIDOS (3 niveles)
     // =====================================================
@@ -1270,7 +1269,7 @@ app.post('/register', async(req, res) => {
         }
       }
     }
-    
+
     const hashed = await bcrypt.hash(password, 10);
     const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
     const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
