@@ -305,42 +305,99 @@ body{font-family:'Inter',sans-serif;background:var(--bg-primary);background-imag
     <h1>APIROMWINEVAULT</h1>
     <div class="tagline">⚜ Tu Bóveda Digital Secreta ⚜</div>
   </div>
-  <div class="welcome-cards">
+  
+  <!-- 🔐 TARJETA DE LOGIN - DESTACADA -->
+  <div style="max-width:500px;width:100%;margin:0 auto 30px;position:relative;z-index:2">
+    <div class="welcome-card paid" onclick="openLogin()" style="border-color:var(--gold);background:linear-gradient(135deg,rgba(212,175,55,0.15) 0%,var(--bg-card) 100%);padding:28px">
+      <i class="ri-login-box-fill" style="font-size:56px;color:var(--gold-bright)"></i>
+      <h3 style="font-size:24px;margin-bottom:8px">INICIAR SESIÓN</h3>
+      <p style="color:var(--gold);font-size:13px;font-weight:700;letter-spacing:1px;margin-bottom:8px">ACCESO A TU BÓVEDA</p>
+      <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px">¿Ya tienes cuenta? Entra a tu bóveda personal segura</p>
+      <button class="btn-gold" style="width:100%;justify-content:center;padding:14px">
+        <i class="ri-shield-keyhole-fill"></i> Entrar a mi Bóveda
+      </button>
+    </div>
+  </div>
+  
+  <div class="welcome-cards" style="grid-template-columns:repeat(2, 1fr); max-width:900px;">
+    
+    <!-- 👤 FREEMIUM -->
     <div class="welcome-card free" onclick="openRegister('free')">
       <i class="ri-gift-fill"></i>
       <h3>SUSCRÍBETE GRATIS</h3>
       <div class="price">€0<span>/mes</span></div>
       <p style="color:var(--silver);font-size:12px;font-weight:700;letter-spacing:1px">PLAN FREEMIUM</p>
       <ul>
-        <li><i class="ri-check-line"></i> 10 GB de almacenamiento</li>
-        <li><i class="ri-check-line"></i> Subida de archivos cifrados</li>
-        <li><i class="ri-check-line"></i> Visor básico</li>
-        <li><i class="ri-check-line"></i> Marketplace limitado</li>
-        <li><i class="ri-check-line"></i> Programa de afiliados</li>
+        <li><i class="ri-check-line"></i> Gana dinero vendiendo</li>
+        <li><i class="ri-check-line"></i> Comisiones de afiliados</li>
+        <li><i class="ri-check-line"></i> Ver anuncios y ganar</li>
+        <li><i class="ri-check-line"></i> Participar en sorteos</li>
+        <li><i class="ri-check-line"></i> Recibir donativos</li>
       </ul>
       <button class="btn-silver" style="width:100%;justify-content:center;margin-top:12px">
-        <i class="ri-user-add-line"></i> Usuario Normal
+        <i class="ri-user-add-line"></i> Registrarme Gratis
       </button>
     </div>
+    
+    <!-- ⭐ PREMIUM -->
     <div class="welcome-card paid" onclick="openRegister('paid')">
       <span class="card-badge">⭐ PREMIUM</span>
       <i class="ri-vip-crown-2-fill"></i>
       <h3>USUARIO PREMIUM</h3>
-      <div class="price">$5<span> bienvenida</span></div>
-      <p style="color:var(--gold);font-size:12px;font-weight:700;letter-spacing:1px">REGISTRO PREMIUM</p>
+      <div class="price">$10<span>/mes</span></div>
+      <p style="color:var(--gold);font-size:12px;font-weight:700;letter-spacing:1px">PLAN PREMIUM</p>
       <ul>
-        <li><i class="ri-check-line"></i> SUSCRIBETE POR $25 USD</li>
-        <li><i class="ri-check-line"></i> Cifrado Zero-Knowledge</li>
-        <li><i class="ri-check-line"></i> Marketplace completo</li>
-        <li><i class="ri-check-line"></i> Wallet con donativos</li>
-        <li><i class="ri-check-line"></i> Huella digital (WebAuthn)</li>
-        <li><i class="ri-check-line"></i> Soporte prioritario 24/7</li>
+        <li><i class="ri-check-line"></i> Todo lo de Freemium</li>
+        <li><i class="ri-check-line"></i> Retirar dinero ganado</li>
+        <li><i class="ri-check-line"></i> Transferir a otros</li>
+        <li><i class="ri-check-line"></i> Enviar donativos</li>
+        <li><i class="ri-check-line"></i> Soporte prioritario</li>
       </ul>
       <button class="btn-gold" style="width:100%;justify-content:center;margin-top:12px">
         <i class="ri-vip-crown-2-fill"></i> Registrarme Premium
       </button>
     </div>
+    
+    <!-- 💎 ENTERPRISE -->
+    <div class="welcome-card paid" onclick="openRegister('enterprise')" style="border-color:var(--gold)">
+      <span class="card-badge" style="background:linear-gradient(135deg, var(--gold), var(--gold-dark))">💎 EMPRESA</span>
+      <i class="ri-building-2-fill" style="color:var(--gold-bright)"></i>
+      <h3 style="background:linear-gradient(135deg,var(--gold-bright),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent">ENTERPRISE</h3>
+      <div class="price" style="color:var(--gold-bright)">$100<span>/mes</span></div>
+      <p style="color:var(--gold);font-size:12px;font-weight:700;letter-spacing:1px">PARA EMPRESAS</p>
+      <ul>
+        <li><i class="ri-check-line" style="color:var(--gold-bright)"></i> Espacio ilimitado</li>
+        <li><i class="ri-check-line" style="color:var(--gold-bright)"></i> API completa</li>
+        <li><i class="ri-check-line" style="color:var(--gold-bright)"></i> Soporte 24/7</li>
+        <li><i class="ri-check-line" style="color:var(--gold-bright)"></i> Panel admin</li>
+        <li><i class="ri-check-line" style="color:var(--gold-bright)"></i> Funciones personalizadas</li>
+      </ul>
+      <button class="btn-gold" style="width:100%;justify-content:center;margin-top:12px">
+        <i class="ri-building-2-fill"></i> Registrar Empresa
+      </button>
+    </div>
+    
+    <!-- 🏛️ CORPORACIÓN -->
+    <div class="welcome-card paid" onclick="openRegister('corporation')" style="border-color:#9b59b6;background:linear-gradient(135deg,rgba(155,89,182,0.1) 0%,var(--bg-card) 100%)">
+      <span class="card-badge" style="background:linear-gradient(135deg, #9b59b6, #8e44ad);color:white">🏛️ CORPORACIÓN</span>
+      <i class="ri-community-fill" style="color:#9b59b6"></i>
+      <h3 style="background:linear-gradient(135deg,#9b59b6,#8e44ad);-webkit-background-clip:text;-webkit-text-fill-color:transparent">CORPORACIÓN</h3>
+      <div class="price" style="color:#9b59b6">$500<span>/mes</span></div>
+      <p style="color:#9b59b6;font-size:12px;font-weight:700;letter-spacing:1px">PARA ORGANIZACIONES</p>
+      <ul>
+        <li><i class="ri-check-line" style="color:#9b59b6"></i> Hasta 100 miembros</li>
+        <li><i class="ri-check-line" style="color:#9b59b6"></i> Admin centralizada</li>
+        <li><i class="ri-check-line" style="color:#9b59b6"></i> Permisos por roles</li>
+        <li><i class="ri-check-line" style="color:#9b59b6"></i> Facturación unificada</li>
+        <li><i class="ri-check-line" style="color:#9b59b6"></i> Soporte dedicado</li>
+      </ul>
+      <button class="btn-gold" style="width:100%;justify-content:center;margin-top:12px;background:linear-gradient(135deg, #9b59b6, #8e44ad)">
+        <i class="ri-community-fill"></i> Registrar Corporación
+      </button>
+    </div>
+    
   </div>
+  
   <p style="margin-top:30px;font-size:12px;color:var(--text-muted);position:relative;z-index:2">
     🔒 Bóveda encriptada, encriptacion segura · © 2026 ApiRomWineVault.com
   </p>
@@ -447,6 +504,230 @@ body{font-family:'Inter',sans-serif;background:var(--bg-primary);background-imag
     </button>
     <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-muted)">
       ¿No tienes cuenta? <a style="color:var(--gold);cursor:pointer" onclick="closeModal('loginModal');openRegister('free')">Regístrate</a>
+    </p>
+  </div>
+</div>
+
+<!-- ============ ENTERPRISE REGISTER MODAL ============ -->
+<div class="modal-overlay" id="enterpriseModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <h2><i class="ri-building-2-fill"></i> Registro Enterprise</h2>
+      <button class="modal-close" onclick="closeModal('enterpriseModal')"><i class="ri-close-line"></i></button>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(212,175,55,0.1),rgba(46,204,113,0.05));border:2px solid var(--gold);border-radius:14px;padding:20px;margin-bottom:20px;text-align:center">
+      <div class="payment-box">
+        <div class="pay-plan">💎 PLAN ENTERPRISE</div>
+        <div class="pay-amount">$100<span style="font-size:16px;color:var(--text-secondary)">/mes</span></div>
+        <div class="pay-period">o $1,000/año (ahorra 17%)</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label><i class="ri-building-fill"></i> Nombre de la Empresa *</label>
+      <input type="text" class="form-input" id="entCompanyName" placeholder="Ej: Mi Empresa S.A.">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label><i class="ri-user-line"></i> Nombre del Contacto *</label>
+        <input type="text" class="form-input" id="entContactName" placeholder="Tu nombre completo">
+      </div>
+      <div class="form-group">
+        <label><i class="ri-briefcase-line"></i> Cargo *</label>
+        <input type="text" class="form-input" id="entPosition" placeholder="CEO, Director...">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label><i class="ri-mail-line"></i> Email Corporativo *</label>
+        <input type="email" class="form-input" id="entEmail" placeholder="contacto@empresa.com">
+      </div>
+      <div class="form-group">
+        <label><i class="ri-phone-line"></i> Teléfono *</label>
+        <input type="tel" class="form-input" id="entPhone" placeholder="+1 234 567 8900">
+      </div>
+    </div>
+    <div class="form-group">
+      <label><i class="ri-global-line"></i> Sitio Web</label>
+      <input type="url" class="form-input" id="entWebsite" placeholder="https://www.empresa.com">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label><i class="ri-group-line"></i> Empleados *</label>
+        <select class="form-input" id="entEmployees">
+          <option value="">Seleccionar...</option>
+          <option value="1-10">1-10 empleados</option>
+          <option value="11-50">11-50 empleados</option>
+          <option value="51-200">51-200 empleados</option>
+          <option value="201-500">201-500 empleados</option>
+          <option value="500+">Más de 500</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label><i class="ri-price-tag-3-line"></i> Industria *</label>
+        <select class="form-input" id="entIndustry">
+          <option value="">Seleccionar...</option>
+          <option value="tecnologia">Tecnología</option>
+          <option value="finanzas">Finanzas</option>
+          <option value="salud">Salud</option>
+          <option value="educacion">Educación</option>
+          <option value="retail">Retail</option>
+          <option value="manufactura">Manufactura</option>
+          <option value="servicios">Servicios</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label><i class="ri-user-add-line"></i> Nombre de Usuario *</label>
+      <input type="text" class="form-input" id="entUsername" placeholder="empresa_usuario">
+    </div>
+    <div class="form-group">
+      <label><i class="ri-lock-line"></i> Contraseña *</label>
+      <input type="password" class="form-input" id="entPassword" placeholder="Mín. 8, mayús, número, símbolo">
+    </div>
+    <div class="form-group">
+      <label><i class="ri-gift-line"></i> Código de Referido *</label>
+      <input type="text" class="form-input" id="entRefCode" placeholder="ROM1234ABCD">
+    </div>
+    <div class="form-group">
+      <label><i class="ri-calendar-line"></i> Período de Facturación *</label>
+      <select class="form-input" id="entBilling">
+        <option value="monthly">Mensual - $100/mes</option>
+        <option value="yearly">Anual - $1,000/año (ahorra 17%)</option>
+      </select>
+    </div>
+    <div class="checkbox-group">
+      <input type="checkbox" id="entAcceptTerms">
+      <label for="entAcceptTerms">Acepto los <a>Términos y Condiciones</a> para empresas</label>
+    </div>
+    <button class="btn-gold" style="width:100%;justify-content:center;padding:16px" onclick="submitEnterpriseRegister()" id="entSubmitBtn">
+      <i class="ri-building-2-fill"></i> Registrar Empresa Enterprise
+    </button>
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-muted)">
+      ¿Eres una organización más grande? <a style="color:var(--gold);cursor:pointer" onclick="closeModal('enterpriseModal');openRegister('corporation')">Registro Corporativo</a>
+    </p>
+  </div>
+</div>
+
+<!-- ============ CORPORATION REGISTER MODAL ============ -->
+<div class="modal-overlay" id="corporationModal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h2><i class="ri-community-fill"></i> Registro Corporativo</h2>
+      <button class="modal-close" onclick="closeModal('corporationModal')"><i class="ri-close-line"></i></button>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(155,89,182,0.1),rgba(46,204,113,0.05));border:2px solid #9b59b6;border-radius:14px;padding:20px;margin-bottom:20px;text-align:center">
+      <div class="payment-box" style="border-color:#9b59b6">
+        <div class="pay-plan" style="background:linear-gradient(135deg, #9b59b6, #8e44ad)">🏛️ PLAN CORPORACIÓN</div>
+        <div class="pay-amount" style="color:#9b59b6">$500<span style="font-size:16px;color:var(--text-secondary)">/mes</span></div>
+        <div class="pay-period">o $5,000/año (ahorra 17%)</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label><i class="ri-community-fill"></i> Nombre de la Organización *</label>
+      <input type="text" class="form-input" id="corpOrgName" placeholder="Ej: Corporación Global S.A. de C.V.">
+    </div>
+    <div class="form-group">
+      <label><i class="ri-file-text-line"></i> Razón Social / Nombre Legal *</label>
+      <input type="text" class="form-input" id="corpLegalName" placeholder="Nombre legal registrado">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label><i class="ri-user-star-line"></i> Administrador Principal *</label>
+        <input type="text" class="form-input" id="corpAdminName" placeholder="Nombre completo">
+      </div>
+      <div class="form-group">
+        <label><i class="ri-briefcase-line"></i> Cargo *</label>
+        <input type="text" class="form-input" id="corpAdminPosition" placeholder="Director General">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label><i class="ri-mail-line"></i> Email Corporativo *</label>
+        <input type="email" class="form-input" id="corpEmail" placeholder="admin@corporacion.com">
+      </div>
+      <div class="form-group">
+        <label><i class="ri-phone-line"></i> Teléfono *</label>
+        <input type="tel" class="form-input" id="corpPhone" placeholder="+1 234 567 8900">
+      </div>
+    </div>
+    <div class="form-group">
+      <label><i class="ri-global-line"></i> Sitio Web *</label>
+      <input type="url" class="form-input" id="corpWebsite" placeholder="https://www.corporacion.com">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label><i class="ri-map-pin-line"></i> País *</label>
+        <input type="text" class="form-input" id="corpCountry" placeholder="México, España...">
+      </div>
+      <div class="form-group">
+        <label><i class="ri-building-line"></i> Ciudad *</label>
+        <input type="text" class="form-input" id="corpCity" placeholder="Ciudad de México">
+      </div>
+    </div>
+    <div class="form-group">
+      <label><i class="ri-map-pin-2-line"></i> Dirección Fiscal *</label>
+      <input type="text" class="form-input" id="corpAddress" placeholder="Dirección completa">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label><i class="ri-file-code-line"></i> ID Fiscal / RFC / NIF *</label>
+        <input type="text" class="form-input" id="corpTaxId" placeholder="XAXX010101000">
+      </div>
+      <div class="form-group">
+        <label><i class="ri-group-line"></i> Miembros Iniciales *</label>
+        <select class="form-input" id="corpMembers">
+          <option value="">Seleccionar...</option>
+          <option value="1-10">1-10 miembros</option>
+          <option value="11-50">11-50 miembros</option>
+          <option value="51-100">51-100 miembros</option>
+          <option value="100+">Más de 100</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label><i class="ri-price-tag-3-line"></i> Industria *</label>
+      <select class="form-input" id="corpIndustry">
+        <option value="">Seleccionar...</option>
+        <option value="tecnologia">Tecnología</option>
+        <option value="finanzas">Finanzas / Banca</option>
+        <option value="salud">Salud</option>
+        <option value="educacion">Educación</option>
+        <option value="gobierno">Gobierno</option>
+        <option value="ong">ONG</option>
+        <option value="manufactura">Manufactura</option>
+        <option value="servicios">Servicios Profesionales</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label><i class="ri-user-add-line"></i> Usuario del Administrador *</label>
+      <input type="text" class="form-input" id="corpUsername" placeholder="admin_corporacion">
+    </div>
+    <div class="form-group">
+      <label><i class="ri-lock-line"></i> Contraseña del Administrador *</label>
+      <input type="password" class="form-input" id="corpPassword" placeholder="Mín. 8, mayús, número, símbolo">
+    </div>
+    <div class="form-group">
+      <label><i class="ri-gift-line"></i> Código de Referido *</label>
+      <input type="text" class="form-input" id="corpRefCode" placeholder="ROM1234ABCD">
+    </div>
+    <div class="form-group">
+      <label><i class="ri-calendar-line"></i> Período de Facturación *</label>
+      <select class="form-input" id="corpBilling">
+        <option value="monthly">Mensual - $500/mes</option>
+        <option value="yearly">Anual - $5,000/año (ahorra 17%)</option>
+      </select>
+    </div>
+    <div class="checkbox-group">
+      <input type="checkbox" id="corpAcceptTerms">
+      <label for="corpAcceptTerms">Acepto los <a>Términos y Condiciones</a> para corporaciones</label>
+    </div>
+    <button class="btn-gold" style="width:100%;justify-content:center;padding:16px;background:linear-gradient(135deg, #9b59b6, #8e44ad)" onclick="submitCorporationRegister()" id="corpSubmitBtn">
+      <i class="ri-community-fill"></i> Registrar Corporación
+    </button>
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-muted)">
+      ¿Eres una empresa más pequeña? <a style="color:var(--gold);cursor:pointer" onclick="closeModal('corporationModal');openRegister('enterprise')">Plan Enterprise</a>
     </p>
   </div>
 </div>
