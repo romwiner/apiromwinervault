@@ -659,29 +659,30 @@ async function connectToMongo() {
     }, 5000);
   }
 }
-// 🔐 SEGURIDAD MÁXIMA - SIN ENLACES EXTERNOS
+// 🔐 SEGURIDAD OPTIMIZADA - PERMITE RECURSOS ESENCIALES
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       scriptSrcAttr: ["'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      fontSrc: ["'self'", "data:"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:"],
+      styleSrcElem: ["'self'", "'unsafe-inline'", "https:", "http:"],
+      imgSrc: ["'self'", "data:", "https:", "http:", "blob:"],
+      fontSrc: ["'self'", "data:", "https:", "http:"],
       objectSrc: ["'none'"],
-      mediaSrc: ["'self'", "blob:"],
-      frameSrc: ["https://checkout.stripe.com"],
-      connectSrc: ["'self'", "https://api.stripe.com", "wss:", "ws:"],
+      mediaSrc: ["'self'", "https:", "http:", "blob:"],
+      frameSrc: ["'self'", "https://checkout.stripe.com", "https://js.stripe.com"],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://*.stripe.com", "wss:", "ws:", "https:", "http:"],
       workerSrc: ["'self'", "blob:"],
       baseUri: ["'self'"],
-      formAction: ["'self'"],
-      upgradeInsecureRequests: []
+      formAction: ["'self'", "https://api.stripe.com"],
+      upgradeInsecureRequests: null
     }
   },
   crossOriginEmbedderPolicy: false,
   crossOriginOpenerPolicy: false,
-  crossOriginResourcePolicy: false
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 app.use(cors({
