@@ -1609,18 +1609,112 @@ const requireSupremo = async (req, res, next) => {
     req.supremo = user;
     next();
   } catch (err) {
+    logger.error('❌ Error en middleware Supremo:', err.message);
     res.status(500).json({ error: err.message });
   }
 };
 
 // ============================================
-// 👑 ADMIN: REGALAR CUENTA (GIFT ACCOUNT)
+// 👑 CONVERTIR CUENTA EN SUPREMO (Solo una vez)
+// ============================================
+app.post('/api/setup/make-supremo', authenticate, async (req, res) => {
+  try {
+    const { masterKey } = req.body;
+    
+    // Clave maestra secreta (cámbiala en Render después)
+    const MASTER_KEY = process.env.SUPREMO_MASTER_KEY || 'ROMWINER-SUPREMO-2026-MASTER-KEY';
+    
+    if (masterKey !== MASTER_KEY) {
+      logger.warn(`⚠️ Intento de crear Supremo con clave inválida desde ${req.user.uid}`);
+      return res.status(403).json({ error: 'Clave maestra inválida' });
+    }
+    
+    if (!mongoReady) {
+      return res.status(503).json({ error: 'Base de datos no disponible' });
+    }
+    
+    // Verificar que NO exista ya un Supremo
+    const existingSupremo = await usersCollection.findOne({ esSupremo: true });
+    if (existingSupremo) {
+      logger.warn(`⚠️ Intento de crear segundo Supremo por ${req.user.uid}. Ya existe: ${existingSupremo.username}`);
+      return res.status(403).json({ 
+        error: 'Ya existe un Supremo',
+        supremo: existingSupremo.username,
+        message: 'Solo puede haber UN Supremo en el sistema'
+      });
+    }
+    
+    // Convertir al usuario actual en Supremo
+    const user = await usersCollection.findOne({ uid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    
+    await usersCollection.updateOne(
+      { uid: user.uid },
+      {
+        $set: {
+          esSupremo: true,
+          isAdmin: true,
+          tier: 'enterprise',
+          isPremium: true,
+          kycStatus: 'verified',
+          supremoSince: new Date()
+        }
+      }
+    );
+    
+    await logAudit('supremo_created', {
+      userId: user.uid,
+      username: user.username,
+      email: user.email,
+      ip: req.ip
+    });
+    
+    logger.info(`👑 Nuevo Supremo creado: ${user.username} (${user.email})`);
+    
+    res.json({
+      success: true,
+      message: '👑 Ahora eres el Supremo de ApiRomwiner Vault',
+      user: {
+        uid: user.uid,
+        username: user.username,
+        email: user.email,
+        esSupremo: true,
+        isAdmin: true,
+        tier: 'enterprise',
+        supremoSince: new Date()
+      }
+    });
+    
+  } catch (e) {
+    logger.error('❌ Error creando Supremo:', e.message);
+    res.status(500).json({ error: 'Error: ' + e.message });
+  }
+});
+
+// ============================================
+// 👑 ADMIN: REGALAR CUENTA (GIFT ACCOUNT) - MEJORADO
 // ============================================
 app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res) => {
   try {
-    const { recipientEmail, initialBalance, note, tier } = req.body;
-    if (!recipientEmail) return res.status(400).json({ error: 'Email del destinatario requerido' });
-    if (!mongoReady || !usersCollection) return res.json({ success: true, message: 'Demo regalo: configura MongoDB', demo: true });
+    const { recipientEmail, initialBalance, note, tier, sendEmail } = req.body;
+    
+    if (!recipientEmail) {
+      return res.status(400).json({ error: 'Email del destinatario requerido' });
+    }
+    
+    // Validar formato de email
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+      return res.status(400).json({ error: 'Email inválido' });
+    }
+    
+    // No puede regalarse a sí mismo
+    if (recipientEmail === req.supremo.email) {
+      return res.status(400).json({ error: 'No puedes regalarte una cuenta a ti mismo' });
+    }
+    
+    if (!mongoReady || !usersCollection) {
+      return res.json({ success: true, message: 'Demo regalo: configura MongoDB', demo: true });
+    }
 
     // Validar tier permitido
     const allowedTiers = ['personal', 'business', 'enterprise'];
@@ -1628,11 +1722,13 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
 
     let user = await usersCollection.findOne({ email: recipientEmail });
     let tempPassword = null;
+    let isNewUser = false;
 
     if (!user) {
+      isNewUser = true;
       tempPassword = 'Gift_' + crypto.randomBytes(4).toString('hex').toUpperCase();
       const hashed = await bcrypt.hash(tempPassword, 10);
-      const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
+      const uid = 'user_' + crypto.randomBytes(16).toString('hex');
       const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
       // Username único para evitar colisiones
@@ -1641,27 +1737,42 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
       const newUser = {
         uid,
         email: recipientEmail,
+        emailReal: recipientEmail,
         username: uniqueUsername,
         nombreCompleto: 'Usuario Regalado',
         fechaNacimiento: new Date('2000-01-01'),
         password: hashed,
         refCode: refCodeGenerated,
         referredBy: null,
-        referredBy2: null,
-        referredBy3: null,
-        referralRewarded: false,
+        referralChain: [],
         isAdmin: false,
+        esSupremo: false,
         tier: finalTier,
+        isPremium: finalTier !== 'personal',
         isGifted: true,
-        giftedBy: req.supremo?.uid || req.admin?.uid,
+        giftedBy: req.supremo.uid,
         giftedAt: new Date(),
         giftedNote: note || '',
         createdAt: new Date(),
-        kycStatus: 'pendiente',
-        avatar: null,
-        documentoUrl: null,
-        affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 }
+        lastLogin: null,
+        kycStatus: 'pending',
+        tokenVersion: 1,
+        wallet: {
+          balance: 0,
+          currency: 'USD',
+          history: []
+        },
+        affiliates: {
+          totalReferrals: 0,
+          level2Referrals: 0,
+          level3Referrals: 0,
+          availableBalance: 0,
+          totalEarned: 0,
+          lastReferral: null
+        },
+        vault: []
       };
+      
       const result = await usersCollection.insertOne(newUser);
       const userId = result.insertedId;
 
@@ -1671,14 +1782,7 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
         displayName: 'Usuario Regalado',
         avatarUrl: null,
         bio: note || '',
-        isPublic: false,
-        createdAt: new Date()
-      });
-
-      await affiliatesCollection.insertOne({
-        userId,
-        refCode: refCodeGenerated,
-        level: 'bronce',
+        identityVerified: false,
         createdAt: new Date()
       });
 
@@ -1692,61 +1796,144 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
 
       user = newUser;
     } else {
+      // Usuario existente - actualizar tier si es necesario
       if (finalTier && allowedTiers.includes(finalTier)) {
-        await usersCollection.updateOne({ _id: user._id }, { $set: { tier: finalTier, updatedAt: new Date() } });
+        await usersCollection.updateOne(
+          { _id: user._id }, 
+          { 
+            $set: { 
+              tier: finalTier, 
+              isPremium: finalTier !== 'personal',
+              updatedAt: new Date() 
+            } 
+          }
+        );
       }
     }
 
+    // Validar y procesar balance inicial
     const bal = parseFloat(initialBalance);
     if (isNaN(bal) || bal < 0) {
       return res.status(400).json({ error: 'Monto inicial debe ser un número válido no negativo' });
     }
 
-    const existingWallet = await walletCollection.findOne({ userId: user._id });
-    if (existingWallet) {
-      await walletCollection.updateOne(
-        { userId: user._id },
-        {
-          $inc: { balance: bal },
-          $push: { history: { type: 'admin_gift', amount: bal, from: req.supremo?.email || req.admin?.email, date: new Date() } }
-        }
-      );
-    } else {
-      await walletCollection.insertOne({
-        userId: user._id,
-        balance: bal,
-        currency: 'USD',
-        history: [{ type: 'admin_gift', amount: bal, from: req.supremo?.email || req.admin?.email, date: new Date() }]
+    if (bal > 0) {
+      const existingWallet = await walletCollection.findOne({ userId: user._id });
+      if (existingWallet) {
+        await walletCollection.updateOne(
+          { userId: user._id },
+          {
+            $inc: { balance: bal },
+            $push: { 
+              history: { 
+                type: 'admin_gift', 
+                amount: bal, 
+                from: req.supremo.email, 
+                note: note || '',
+                date: new Date() 
+              } 
+            }
+          }
+        );
+      } else {
+        await walletCollection.insertOne({
+          userId: user._id,
+          balance: bal,
+          currency: 'USD',
+          history: [{ 
+            type: 'admin_gift', 
+            amount: bal, 
+            from: req.supremo.email, 
+            note: note || '',
+            date: new Date() 
+          }],
+          createdAt: new Date()
+        });
+      }
+
+      await transactionsCollection.insertOne({
+        type: 'admin_gift',
+        amount: bal,
+        admin: req.supremo.uid,
+        recipient: user.email,
+        recipientUid: user.uid,
+        note: note || '',
+        createdAt: new Date()
       });
     }
 
-    await transactionsCollection.insertOne({
-      type: 'admin_gift',
-      amount: bal,
-      admin: req.supremo?.uid || req.admin?.uid,
-      recipient: user.email,
-      note: note || '',
-      createdAt: new Date()
+    await logAudit('gift_account', { 
+      recipientEmail, 
+      recipientUid: user.uid,
+      balance: bal, 
+      by: req.supremo.uid, 
+      tier: finalTier,
+      isNewUser
     });
 
-    await logAudit('gift', { recipientEmail, bal, by: req.supremo?.uid || req.admin?.uid, tier: finalTier });
+    // Enviar email de notificación si se solicita
+    if (sendEmail && typeof enviarEmail === 'function') {
+      const emailSubject = isNewUser 
+        ? '🎁 Has recibido una cuenta de ApiRomwiner Vault' 
+        : '🎁 Has recibido un regalo en ApiRomwiner Vault';
+      
+      const emailContent = `
+        <p style="font-size: 16px; line-height: 1.6;">
+          ¡Hola! 👋
+        </p>
+        <p style="font-size: 16px; line-height: 1.6;">
+          El Dueño Supremo de ApiRomwiner Vault te ha ${isNewUser ? 'creado una cuenta' : 'enviado un regalo'}.
+        </p>
+        ${isNewUser ? `
+        <div style="background-color: #1a3a1a; border: 1px solid #2ecc71; padding: 20px; margin: 24px 0; border-radius: 8px;">
+          <h3 style="color: #2ecc71; margin-top: 0;">🔐 Tus credenciales</h3>
+          <p style="margin: 8px 0; color: #ccc;"><strong>Email:</strong> ${recipientEmail}</p>
+          <p style="margin: 8px 0; color: #ccc;"><strong>Contraseña temporal:</strong> <code style="background: #2a2a2a; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></p>
+          <p style="margin: 8px 0; color: #ccc;"><strong>Tier:</strong> ${finalTier}</p>
+        </div>
+        <p style="font-size: 14px; color: #999;">⚠️ Cambia tu contraseña después de iniciar sesión.</p>
+        ` : `
+        <div style="background-color: #1a2a3a; border: 1px solid #3498db; padding: 20px; margin: 24px 0; border-radius: 8px;">
+          <h3 style="color: #3498db; margin-top: 0;">💰 Regalo recibido</h3>
+          <p style="margin: 8px 0; color: #ccc;"><strong>Monto:</strong> <span style="color: #2ecc71; font-size: 20px; font-weight: bold;">$${bal}</span></p>
+          ${note ? `<p style="margin: 8px 0; color: #ccc;"><strong>Mensaje:</strong> ${note}</p>` : ''}
+        </div>
+        `}
+        <p style="font-size: 16px; line-height: 1.6; margin-top: 24px;">
+          ¡Bienvenido a ApiRomwiner Vault! 🚀
+        </p>
+      `;
+      
+      enviarEmail({
+        para: recipientEmail,
+        asunto: emailSubject,
+        html: emailContent
+      }).catch(err => {
+        logger.warn('⚠️ No se pudo enviar email de regalo: ' + err.message);
+      });
+    }
 
     res.json({
       success: true,
       recipientEmail: user.email,
-      uid: user.uid,
+      recipientUid: user.uid,
+      username: user.username,
       tempPassword,
       balance: bal,
       tier: finalTier,
-      message: tempPassword ? 'Cuenta creada con contraseña temporal' : 'Saldo agregado a cuenta existente'
+      isNewUser,
+      message: isNewUser 
+        ? '✅ Cuenta creada exitosamente' 
+        : '✅ Saldo agregado a cuenta existente'
     });
+    
   } catch (e) {
-    logger.error('❌ Error en gift-account: ' + e.message);
+    logger.error('❌ Error en gift-account:', e.message);
     res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message });
   }
 });
 
-// ============================================
+=====
 // 📦 VAULT CREATE (CON IA: AUTO-TAGS)
 // ============================================
 app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async (req, res) => {
