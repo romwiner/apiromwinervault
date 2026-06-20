@@ -2654,6 +2654,343 @@ app.post('/api/ai/analyze', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Error en análisis IA: ' + e.message });
   }
 });
+// ============================================
+// 💰 CONFIGURACIÓN ECONÓMICA GLOBAL
+// ============================================
+const DISTRIBUTION = {
+  seller: 0.75,
+  affiliates: 0.08,
+  company: 0.17,
+  adsPool: 0.15,
+  walletFee: 0.02,
+  affiliateLevels: [0.05, 0.02, 0.01]
+};
+
+function aplicarComisionManejo(monto) {
+  const comision = monto * DISTRIBUTION.walletFee;
+  const neto = monto - comision;
+  return { comision, neto };
+}
+
+// ============================================
+// 🛍️ COMPRA DE PRODUCTO - DISTRIBUCIÓN 75/8/17 + COMISIÓN 2%
+// ============================================
+app.post('/api/marketplace/purchase', authenticate, async (req, res) => {
+  try {
+    const { fileId } = req.body;
+    
+    if (!fileId) return res.status(400).json({ error: 'ID de archivo requerido' });
+    if (!mongoReady) return res.status(503).json({ error: 'Base de datos no disponible' });
+    
+    const buyer = await usersCollection.findOne({ uid: req.user.uid });
+    if (!buyer) return res.status(404).json({ error: 'Comprador no encontrado' });
+    
+    const file = await secretsCollection.findOne({ _id: new ObjectId(fileId), isForSale: true });
+    if (!file) return res.status(404).json({ error: 'Archivo no encontrado o no en venta' });
+    
+    if (file.userUid === buyer.uid) {
+      return res.status(400).json({ error: 'No puedes comprar tu propio archivo' });
+    }
+    
+    const alreadyPurchased = await transactionsCollection.findOne({
+      fileId: file._id, buyer: buyer.uid, status: 'completed'
+    });
+    if (alreadyPurchased) return res.status(400).json({ error: 'Ya compraste este archivo' });
+    
+    const precioBase = file.price;
+    const comisionComprador = precioBase * DISTRIBUTION.walletFee;
+    const totalAPagar = precioBase + comisionComprador;
+    
+    const buyerWallet = await walletCollection.findOne({ userId: buyer._id });
+    if (!buyerWallet || buyerWallet.balance < totalAPagar) {
+      return res.status(400).json({ 
+        error: 'Saldo insuficiente',
+        needed: totalAPagar,
+        available: buyerWallet?.balance || 0
+      });
+    }
+    
+    const seller = await usersCollection.findOne({ uid: file.userUid });
+    if (!seller) return res.status(404).json({ error: 'Vendedor no encontrado' });
+    
+    // 💰 DISTRIBUIR EL PAGO
+    const sellerAmount = precioBase * DISTRIBUTION.seller;
+    const companyAmount = precioBase * DISTRIBUTION.company;
+    const adsPoolAmount = companyAmount * DISTRIBUTION.adsPool;
+    const companyNet = companyAmount - adsPoolAmount;
+    
+    // 1️⃣ DESCONTAR DEL COMPRADOR
+    await walletCollection.updateOne(
+      { userId: buyer._id },
+      {
+        $inc: { balance: -totalAPagar },
+        $push: {
+          history: {
+            type: 'purchase', amount: -totalAPagar,
+            fileId: file._id, fileTitle: file.titulo,
+            seller: seller.uid, date: new Date()
+          }
+        }
+      }
+    );
+    
+    await db.collection('system_wallets').updateOne(
+      { _id: 'company_revenue' },
+      {
+        $inc: { balance: comisionComprador },
+        $push: {
+          history: {
+            type: 'wallet_fee', amount: comisionComprador,
+            from: buyer.uid, concept: 'compra', date: new Date()
+          }
+        }
+      },
+      { upsert: true }
+    );
+    
+    // 2️⃣ PAGAR AL VENDEDOR (75% - 2% comisión)
+    const sellerNeto = aplicarComisionManejo(sellerAmount);
+    
+    await walletCollection.updateOne(
+      { userId: seller._id },
+      {
+        $inc: { balance: sellerNeto.neto },
+        $push: {
+          history: {
+            type: 'sale', amount: sellerNeto.neto,
+            fileId: file._id, fileTitle: file.titulo,
+            buyer: buyer.uid, date: new Date()
+          }
+        }
+      },
+      { upsert: true }
+    );
+    
+    await db.collection('system_wallets').updateOne(
+      { _id: 'company_revenue' },
+      {
+        $inc: { balance: sellerNeto.comision },
+        $push: {
+          history: {
+            type: 'wallet_fee', amount: sellerNeto.comision,
+            from: seller.uid, concept: 'venta', date: new Date()
+          }
+        }
+      },
+      { upsert: true }
+    );
+    
+    // 3️⃣ PAGAR A AFILIADOS (8% en 3 niveles)
+    let affiliateDistributions = [];
+    
+    if (buyer.referredBy) {
+      const ref1 = await usersCollection.findOne({ uid: buyer.referredBy });
+      if (ref1) {
+        const amount1 = precioBase * DISTRIBUTION.affiliateLevels[0];
+        const ref1Neto = aplicarComisionManejo(amount1);
+        
+        await walletCollection.updateOne(
+          { userId: ref1._id },
+          {
+            $inc: { balance: ref1Neto.neto },
+            $push: {
+              history: {
+                type: 'affiliate_commission', amount: ref1Neto.neto,
+                level: 1, from: buyer.uid, date: new Date()
+              }
+            }
+          },
+          { upsert: true }
+        );
+        
+        await db.collection('system_wallets').updateOne(
+          { _id: 'company_revenue' },
+          {
+            $inc: { balance: ref1Neto.comision },
+            $push: {
+              history: {
+                type: 'wallet_fee', amount: ref1Neto.comision,
+                from: ref1.uid, concept: 'afiliado_nivel_1', date: new Date()
+              }
+            }
+          },
+          { upsert: true }
+        );
+        
+        affiliateDistributions.push({ level: 1, user: ref1.uid, amount: ref1Neto.neto });
+        
+        if (ref1.referredBy) {
+          const ref2 = await usersCollection.findOne({ uid: ref1.referredBy });
+          if (ref2) {
+            const amount2 = precioBase * DISTRIBUTION.affiliateLevels[1];
+            const ref2Neto = aplicarComisionManejo(amount2);
+            
+            await walletCollection.updateOne(
+              { userId: ref2._id },
+              {
+                $inc: { balance: ref2Neto.neto },
+                $push: {
+                  history: {
+                    type: 'affiliate_commission', amount: ref2Neto.neto,
+                    level: 2, from: buyer.uid, date: new Date()
+                  }
+                }
+              },
+              { upsert: true }
+            );
+            
+            await db.collection('system_wallets').updateOne(
+              { _id: 'company_revenue' },
+              {
+                $inc: { balance: ref2Neto.comision },
+                $push: {
+                  history: {
+                    type: 'wallet_fee', amount: ref2Neto.comision,
+                    from: ref2.uid, concept: 'afiliado_nivel_2', date: new Date()
+                  }
+                }
+              },
+              { upsert: true }
+            );
+            
+            affiliateDistributions.push({ level: 2, user: ref2.uid, amount: ref2Neto.neto });
+            
+            if (ref2.referredBy) {
+              const ref3 = await usersCollection.findOne({ uid: ref2.referredBy });
+              if (ref3) {
+                const amount3 = precioBase * DISTRIBUTION.affiliateLevels[2];
+                const ref3Neto = aplicarComisionManejo(amount3);
+                
+                await walletCollection.updateOne(
+                  { userId: ref3._id },
+                  {
+                    $inc: { balance: ref3Neto.neto },
+                    $push: {
+                      history: {
+                        type: 'affiliate_commission', amount: ref3Neto.neto,
+                        level: 3, from: buyer.uid, date: new Date()
+                      }
+                    }
+                  },
+                  { upsert: true }
+                );
+                
+                await db.collection('system_wallets').updateOne(
+                  { _id: 'company_revenue' },
+                  {
+                    $inc: { balance: ref3Neto.comision },
+                    $push: {
+                      history: {
+                        type: 'wallet_fee', amount: ref3Neto.comision,
+                        from: ref3.uid, concept: 'afiliado_nivel_3', date: new Date()
+                      }
+                    }
+                  },
+                  { upsert: true }
+                );
+                
+                affiliateDistributions.push({ level: 3, user: ref3.uid, amount: ref3Neto.neto });
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // 4️⃣ PAGAR A LA COMPAÑÍA (17%)
+    await db.collection('system_wallets').updateOne(
+      { _id: 'company_revenue' },
+      {
+        $inc: { balance: companyNet },
+        $push: {
+          history: {
+            type: 'company_revenue', amount: companyNet,
+            fromSale: file._id, buyer: buyer.uid, seller: seller.uid, date: new Date()
+          }
+        }
+      },
+      { upsert: true }
+    );
+    
+    await db.collection('system_wallets').updateOne(
+      { _id: 'ads_pool' },
+      {
+        $inc: { balance: adsPoolAmount },
+        $push: {
+          history: {
+            type: 'ads_pool_contribution', amount: adsPoolAmount,
+            fromSale: file._id, date: new Date()
+          }
+        }
+      },
+      { upsert: true }
+    );
+    
+    // 5️⃣ REGISTRAR TRANSACCIÓN
+    await transactionsCollection.insertOne({
+      type: 'sale',
+      fileId: file._id,
+      fileTitle: file.titulo,
+      buyer: buyer.uid,
+      seller: seller.uid,
+      amount: precioBase,
+      totalPaid: totalAPagar,
+      distribution: {
+        seller: sellerNeto.neto,
+        affiliates: affiliateDistributions,
+        company: companyNet,
+        adsPool: adsPoolAmount
+      },
+      status: 'completed',
+      createdAt: new Date()
+    });
+    
+    await secretsCollection.updateOne(
+      { _id: file._id },
+      { $inc: { sales: 1 } }
+    );
+    
+    if (typeof addXP === 'function') {
+      await addXP(buyer._id, 20, null);
+      await addXP(seller._id, 30, null);
+    }
+    
+    await logAudit('product_purchased', {
+      buyer: buyer.uid, seller: seller.uid,
+      fileId: file._id, amount: precioBase, totalPaid: totalAPagar
+    });
+    
+    if (typeof enviarNotificacionVenta === 'function') {
+      enviarNotificacionVenta(
+        seller.emailReal || seller.email, seller.username,
+        file.titulo, sellerNeto.neto.toFixed(2)
+      ).catch(err => logger.warn('⚠️ Email venta: ' + err.message));
+    }
+    
+    res.json({
+      success: true,
+      message: '✅ Compra realizada exitosamente',
+      purchase: {
+        file: file.titulo,
+        precioBase,
+        comisionManejo: comisionComprador,
+        totalPaid: totalAPagar,
+        distribution: {
+          seller: { amount: sellerNeto.neto, percentage: '75%' },
+          affiliates: { total: precioBase * DISTRIBUTION.affiliates, percentage: '8%' },
+          company: { amount: companyNet, percentage: '14.45%' },
+          adsPool: { amount: adsPoolAmount, percentage: '2.55%' }
+        }
+      },
+      newBalance: buyerWallet.balance - totalAPagar
+    });
+    
+  } catch (e) {
+    logger.error('❌ Error en compra:', e.message);
+    res.status(500).json({ error: 'Error procesando compra: ' + e.message });
+  }
+});
+
 
 // ============================================
 // 💎 SELLER PREMIUM (SUSCRIPCIÓN)
