@@ -6282,58 +6282,235 @@ app.get('/api/stats', authenticate, async (req, res) => {
 });
 
 // ============================================
-// 🚀 REGISTRO PREMIUM (ÚNICO Y CORREGIDO)
+// 🔧 FUNCIONES AUXILIARES MEJORADAS
 // ============================================
+function validarTelefono(telefono) {
+  if (!telefono) return true;
+  const regex = /^(\+\d{1,3}\s?)?(\(?\d{1,4}\)?[\s-]?)?\d{3,4}[\s-]?\d{3,4}$/;
+  return regex.test(telefono.replace(/\s/g, ''));
+}
+
+function validarURL(url) {
+  if (!url) return true;
+  try { new URL(url); return true; } catch { return false; }
+}
+
+async function construirCadenaReferidos(referrerUid) {
+  const chain = [referrerUid];
+  const referrer2 = await usersCollection.findOne({ uid: referrerUid });
+  if (referrer2?.referredBy) {
+    chain.push(referrer2.referredBy);
+    const referrer3 = await usersCollection.findOne({ uid: referrer2.referredBy });
+    if (referrer3?.referredBy) chain.push(referrer3.referredBy);
+  }
+  return chain;
+}
+
+async function actualizarContadoresReferidos(referralChain) {
+  if (!referralChain || referralChain.length === 0) return;
+  await usersCollection.updateOne(
+    { uid: referralChain[0] },
+    { $inc: { 'affiliates.totalReferrals': 1 }, $set: { 'affiliates.lastReferral': new Date() } }
+  );
+  if (referralChain[1]) {
+    await usersCollection.updateOne({ uid: referralChain[1] }, { $inc: { 'affiliates.level2Referrals': 1 } });
+  }
+  if (referralChain[2]) {
+    await usersCollection.updateOne({ uid: referralChain[2] }, { $inc: { 'affiliates.level3Referrals': 1 } });
+  }
+}
+
+async function notificarReferidor(referrerUid, nuevoUsuario) {
+  try {
+    const referrer = await usersCollection.findOne({ uid: referrerUid });
+    if (!referrer) return;
+    if (referrer.emailReal && typeof enviarNotificacionNuevoSeguidor === 'function') {
+      await enviarNotificacionNuevoSeguidor(
+        referrer.emailReal,
+        referrer.username,
+        nuevoUsuario.username || nuevoUsuario.nombreCompleto
+      ).catch(err => logger.warn('⚠️ No se pudo notificar al referidor: ' + err.message));
+    }
+  } catch (err) {
+    logger.warn('⚠️ Error notificando referidor: ' + err.message);
+  }
+}
+
+// ============================================
+// 🚀 REGISTRO PREMIUM (MEJORADO Y CORREGIDO)
+// ============================================
+// ✅ SIN bono de $5 (no regalamos dinero)
+// ✅ Código de referido obligatorio
+// ✅ Cadena de referidos 3 niveles
+// ✅ Validación 18+
+// ✅ Email de bienvenida
+// ✅ Notificación al referidor
 app.post('/api/register/premium', async (req, res) => {
   try {
-    const { nombre, email, password, telefono, avatarBase64, firmaBase64 } = req.body;
+    const { nombre, email, password, telefono, avatarBase64, firmaBase64, refCode, fechaNacimiento } = req.body;
 
-    if (!nombre || nombre.trim().length < 3) return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'Email inválido' });
+    // Validaciones básicas
+    if (!nombre || nombre.trim().length < 3) {
+      return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
+    }
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ error: 'Email inválido' });
+    }
     if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
       return res.status(400).json({ error: 'Contraseña débil. Requiere: 8+ caracteres, 1 mayúscula, 1 número, 1 símbolo' });
     }
 
+    // Validación de teléfono
+    if (telefono && !validarTelefono(telefono)) {
+      return res.status(400).json({ error: 'Formato de teléfono inválido' });
+    }
+
+    // 🔒 VALIDACIÓN OBLIGATORIA: Código de referido
+    if (!refCode || refCode.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Código de referido obligatorio',
+        message: 'Para registrarte como Premium necesitas un código de referido de otro usuario'
+      });
+    }
+
+    // 🔒 VALIDACIÓN: Mayoría de edad (18+)
+    if (!fechaNacimiento) {
+      return res.status(400).json({ error: 'Fecha de nacimiento requerida' });
+    }
+    const birthDate = new Date(fechaNacimiento);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
+    if (age < 18) {
+      return res.status(400).json({ error: 'Debes ser mayor de 18 años para registrarte' });
+    }
+
+    // Modo demo
     if (!mongoReady) {
       return res.status(201).json({
         success: true,
         message: '✅ Registro Premium completado (modo demo)',
         demo: true,
-        user: { uid: 'demo_' + Date.now(), email, nombre: nombre.trim(), tier: 'premium', avatar: avatarBase64 || 'generado', firma: firmaBase64 ? 'capturada' : 'pendiente' }
+        user: { 
+          uid: 'demo_' + Date.now(), 
+          email, 
+          nombre: nombre.trim(), 
+          tier: 'premium',
+          isPremium: true,
+          accountType: 'premium'
+        }
       });
     }
 
-    const existe = await usersCollection.findOne({ email: email.toLowerCase() });
-    if (existe) return res.status(400).json({ error: 'Este email ya está registrado. Inicia sesión.' });
+    // 🛡️ VERIFICAR QUE NO SEA EL SUPREMO
+    const supremoExistente = await usersCollection.findOne({ esSupremo: true });
+    if (supremoExistente && supremoExistente.emailReal === email.toLowerCase()) {
+      return res.status(403).json({ error: 'El Supremo no puede registrarse como Premium' });
+    }
 
+    // Verificar si el email ya existe
+    const existe = await usersCollection.findOne({ 
+      $or: [
+        { emailReal: email.toLowerCase() },
+        { email: email.toLowerCase() }
+      ]
+    });
+    if (existe) {
+      return res.status(400).json({ error: 'Este email ya está registrado. Inicia sesión.' });
+    }
+
+    // 🔒 VALIDAR CÓDIGO DE REFERIDO
+    const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
+    if (!referrer) {
+      return res.status(400).json({ error: 'Código de referido inválido' });
+    }
+
+    // 🛡️ NO PUEDE REFERIRSE A SÍ MISMO
+    if (referrer.emailReal === email.toLowerCase()) {
+      return res.status(400).json({ error: 'No puedes usar tu propio código de referido' });
+    }
+
+    // Generar credenciales únicas
     const hashed = await bcrypt.hash(password, 10);
-    const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
-    const refCode = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const uid = 'user_' + crypto.randomBytes(16).toString('hex');
+    const userRefCode = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    
+    // Username único basado en email (no en nombre)
+    const usernameBase = email.split('@')[0].toLowerCase().replace(/[^a-z0-9._]/g, '');
+    let username = usernameBase;
+    let counter = 1;
+    while (await usersCollection.findOne({ username })) {
+      username = usernameBase + '_' + counter;
+      counter++;
+    }
 
+    // 🔗 CONSTRUIR CADENA DE REFERIDOS (3 niveles)
+    const referralChain = await construirCadenaReferidos(referrer.uid);
+
+    // Crear usuario Premium
     const newUser = {
       uid,
-      email: email.toLowerCase(),
-      username: nombre.trim().toLowerCase().replace(/\s/g, '_'), // username basado en nombre
-      nombre: nombre.trim(),
+      email: `${username}@apiromwinervault.com`,
+      emailReal: email.toLowerCase(),
+      username,
+      nombreCompleto: nombre.trim(),
+      fechaNacimiento: birthDate,
       telefono: telefono || null,
       password: hashed,
-      refCode,
-      tier: 'premium',
+      refCode: userRefCode,
+      referredBy: referrer.uid,
+      referralChain,
+      tier: 'personal',
       isPremium: true,
       premiumSince: new Date(),
+      subscriptionPlan: 'premium',
+      subscriptionPeriod: 'monthly',
+      subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       avatar: avatarBase64 || null,
       firmaDigital: firmaBase64 || null,
       firmaHash: firmaBase64 ? crypto.createHash('sha256').update(firmaBase64).digest('hex') : null,
       webauthnRegistered: false,
       isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()),
+      esSupremo: false,
+      accountType: 'premium',
+      kycStatus: 'pending',
       createdAt: new Date(),
       lastLogin: new Date(),
-      affiliates: { level: 'plata', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 },
-      metadata: { registrationMethod: 'premium_auto', userAgent: req.headers['user-agent'] || 'unknown', ip: req.ip }
+      tokenVersion: 1,
+      wallet: { balance: 0, currency: 'USD', history: [] },
+      affiliates: {
+        totalReferrals: 0,
+        level2Referrals: 0,
+        level3Referrals: 0,
+        availableBalance: 0,
+        totalEarned: 0,
+        lastReferral: null
+      },
+      vault: [],
+      metadata: { 
+        registrationMethod: 'premium_auto', 
+        userAgent: req.headers['user-agent'] || 'unknown', 
+        ip: req.ip,
+        registeredAt: new Date(),
+        hasAvatar: !!avatarBase64,
+        hasFirma: !!firmaBase64,
+        hasTelefono: !!telefono
+      }
     };
 
     const result = await usersCollection.insertOne(newUser);
 
+    // Crear wallet (SIN bono de $5)
+    await walletCollection.insertOne({
+      userId: result.insertedId,
+      balance: 0,
+      currency: 'USD',
+      history: [],
+      createdAt: new Date()
+    });
+
+    // Crear perfil
     await profilesCollection.insertOne({
       userId: result.insertedId,
       uid,
@@ -6341,31 +6518,67 @@ app.post('/api/register/premium', async (req, res) => {
       avatarUrl: avatarBase64 || null,
       bio: 'Usuario Premium de ApiRomwiner Vault',
       isPublic: true,
-      identityVerified: true,
+      identityVerified: false,
       sellerPremium: true,
       premiumSince: new Date(),
       createdAt: new Date()
     });
 
-    await walletCollection.insertOne({
-      userId: result.insertedId,
-      balance: 5.00,
-      currency: 'USD',
-      history: [{ type: 'welcome_bonus', amount: 5.00, message: '🎁 Bono de bienvenida Premium', date: new Date() }],
-      createdAt: new Date()
-    });
-
+    // Crear registro de afiliado
     await affiliatesCollection.insertOne({
       userId: result.insertedId,
-      refCode,
+      refCode: userRefCode,
       level: 'plata',
       createdAt: new Date()
     });
 
-    const token = jwt.sign({ uid, email: email.toLowerCase(), isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()), tier: 'premium' }, JWT_SECRET, { expiresIn: '7d' });
+    // 📊 ACTUALIZAR CONTADORES DEL REFERIDOR
+    await actualizarContadoresReferidos(referralChain);
 
-    await logAudit('premium_register', { uid, email: email.toLowerCase(), nombre: nombre.trim(), hasAvatar: !!avatarBase64, hasFirma: !!firmaBase64 });
-    logger.info(`🎉 Nuevo usuario Premium registrado: ${email}`);
+    // 🎁 DAR XP DE BIENVENIDA (100 XP, NO dinero)
+    if (typeof addXP === 'function') {
+      await addXP(result.insertedId, 100, null);
+    }
+
+    // 📧 ENVIAR EMAIL DE BIENVENIDA
+    if (typeof enviarBienvenida === 'function') {
+      enviarBienvenida(email.toLowerCase(), username).catch(err => {
+        logger.warn('⚠️ No se pudo enviar email de bienvenida Premium: ' + err.message);
+      });
+    }
+
+    // 📧 NOTIFICAR AL REFERIDOR
+    await notificarReferidor(referrer.uid, newUser);
+
+    // Generar token JWT
+    const token = jwt.sign(
+      { 
+        uid, 
+        email: newUser.email, 
+        emailReal: email.toLowerCase(),
+        username,
+        isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()), 
+        tier: 'personal',
+        isPremium: true,
+        accountType: 'premium'
+      }, 
+      JWT_SECRET, 
+      { expiresIn: '7d' }
+    );
+
+    // Log de auditoría
+    await logAudit('premium_register', { 
+      uid, 
+      email: email.toLowerCase(), 
+      nombre: nombre.trim(), 
+      referredBy: referrer.uid,
+      referralChain,
+      hasAvatar: !!avatarBase64, 
+      hasFirma: !!firmaBase64,
+      ip: req.ip
+    });
+    
+    logger.info(`🎉 Nuevo usuario Premium registrado: ${email} (referido por ${referrer.username})`);
 
     res.status(201).json({
       success: true,
@@ -6373,19 +6586,616 @@ app.post('/api/register/premium', async (req, res) => {
       token,
       user: {
         uid,
-        email: email.toLowerCase(),
-        nombre: nombre.trim(),
-        tier: 'premium',
+        email: newUser.email,
+        emailReal: email.toLowerCase(),
+        username,
+        nombreCompleto: nombre.trim(),
+        tier: 'personal',
+        isPremium: true,
+        accountType: 'premium',
         avatar: avatarBase64 || null,
         firmaDigital: !!firmaBase64,
-        refCode,
-        welcomeBonus: 5.00
+        refCode: userRefCode,
+        referredBy: referrer.uid,
+        subscriptionPlan: 'premium',
+        subscriptionExpiresAt: newUser.subscriptionExpiresAt
       },
-      nextSteps: ['📱 Registra tu huella digital para máxima seguridad', '🔐 Activa la multifirma para acciones críticas', '📤 Sube tu primer archivo al Vault']
+      nextSteps: [
+        '📱 Registra tu huella digital para máxima seguridad',
+        '🔐 Activa la multifirma para acciones críticas',
+        '📤 Sube tu primer archivo al Vault'
+      ]
     });
   } catch (e) {
     logger.error('❌ Premium register error: ' + e.message);
     res.status(500).json({ error: 'Error en registro Premium: ' + e.message });
+  }
+});
+
+// ============================================
+// 💎 REGISTRO ENTERPRISE (EMPRESAS)
+// ============================================
+// ✅ Código de referido obligatorio
+// ✅ Cadena de referidos 3 niveles
+// ✅ Email de bienvenida
+// ✅ 500 XP de bienvenida
+// ✅ Notificación al referidor
+app.post('/api/register/enterprise', async (req, res) => {
+  try {
+    const {
+      companyName, contactName, position, email, phone, website,
+      employees, industry, username, password, refCode, billingPeriod
+    } = req.body;
+
+    // Validaciones básicas
+    if (!companyName || companyName.trim().length < 3) {
+      return res.status(400).json({ error: 'Nombre de empresa inválido (mín. 3 caracteres)' });
+    }
+    if (!contactName || contactName.trim().length < 3) {
+      return res.status(400).json({ error: 'Nombre de contacto inválido (mín. 3 caracteres)' });
+    }
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ error: 'Email corporativo inválido' });
+    }
+    if (!username || !/^[a-z0-9._]{3,30}$/.test(username)) {
+      return res.status(400).json({ error: 'Usuario inválido (solo minúsculas, números, . y _, 3-30 caracteres)' });
+    }
+    if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Contraseña débil. Requiere: 8+ caracteres, 1 mayúscula, 1 número, 1 símbolo' });
+    }
+
+    // Validación de teléfono
+    if (phone && !validarTelefono(phone)) {
+      return res.status(400).json({ error: 'Formato de teléfono inválido' });
+    }
+
+    // Validación de URL
+    if (website && !validarURL(website)) {
+      return res.status(400).json({ error: 'URL del sitio web inválida' });
+    }
+
+    // 🔒 VALIDACIÓN OBLIGATORIA: Código de referido
+    if (!refCode || refCode.trim() === '') {
+      return res.status(400).json({ error: 'Código de referido obligatorio' });
+    }
+
+    // Modo demo
+    if (!mongoReady) {
+      return res.status(201).json({
+        success: true,
+        message: '✅ Registro Enterprise completado (modo demo)',
+        demo: true,
+        user: {
+          uid: 'demo_ent_' + Date.now(),
+          email,
+          companyName: companyName.trim(),
+          tier: 'enterprise',
+          isPremium: true,
+          accountType: 'enterprise'
+        }
+      });
+    }
+
+    // 🛡️ VERIFICAR QUE NO SEA EL SUPREMO
+    const supremoExistente = await usersCollection.findOne({ esSupremo: true });
+    if (supremoExistente && supremoExistente.emailReal === email.toLowerCase()) {
+      return res.status(403).json({ error: 'El Supremo no puede registrarse como Enterprise' });
+    }
+
+    // Verificar si el email o username ya existen
+    const existeEmail = await usersCollection.findOne({ 
+      $or: [
+        { emailReal: email.toLowerCase() },
+        { email: email.toLowerCase() }
+      ]
+    });
+    if (existeEmail) {
+      return res.status(400).json({ error: 'Este email ya está registrado' });
+    }
+    const existeUsername = await usersCollection.findOne({ username });
+    if (existeUsername) {
+      return res.status(400).json({ error: 'Nombre de usuario no disponible' });
+    }
+
+    // 🔒 VALIDAR CÓDIGO DE REFERIDO
+    const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
+    if (!referrer) {
+      return res.status(400).json({ error: 'Código de referido inválido' });
+    }
+
+    // 🛡️ NO PUEDE REFERIRSE A SÍ MISMO
+    if (referrer.emailReal === email.toLowerCase() || referrer.username === username) {
+      return res.status(400).json({ error: 'No puedes usar tu propio código de referido' });
+    }
+
+    // Generar credenciales únicas
+    const hashed = await bcrypt.hash(password, 10);
+    const uid = 'ent_' + crypto.randomBytes(16).toString('hex');
+    const userRefCode = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    // 🔗 CONSTRUIR CADENA DE REFERIDOS (3 niveles)
+    const referralChain = await construirCadenaReferidos(referrer.uid);
+
+    // Crear usuario Enterprise
+    const newUser = {
+      uid,
+      email: `${username}@apiromwinervault.com`,
+      emailReal: email.toLowerCase(),
+      username,
+      nombreCompleto: contactName.trim(),
+      fechaNacimiento: new Date('1990-01-01'),
+      telefono: phone || null,
+      password: hashed,
+      refCode: userRefCode,
+      referredBy: referrer.uid,
+      referralChain,
+      tier: 'enterprise',
+      isPremium: true,
+      premiumSince: new Date(),
+      subscriptionPlan: 'enterprise',
+      subscriptionPeriod: billingPeriod || 'monthly',
+      subscriptionExpiresAt: new Date(Date.now() + (billingPeriod === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000),
+      isAdmin: false,
+      esSupremo: false,
+      accountType: 'enterprise',
+      kycStatus: 'pending',
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      tokenVersion: 1,
+      companyInfo: {
+        companyName: companyName.trim(),
+        contactName: contactName.trim(),
+        position: position || '',
+        phone: phone || '',
+        website: website || '',
+        employees: employees || '',
+        industry: industry || '',
+        billingPeriod: billingPeriod || 'monthly',
+        registeredAt: new Date()
+      },
+      wallet: { balance: 0, currency: 'USD', history: [] },
+      affiliates: {
+        totalReferrals: 0,
+        level2Referrals: 0,
+        level3Referrals: 0,
+        availableBalance: 0,
+        totalEarned: 0,
+        lastReferral: null
+      },
+      vault: [],
+      metadata: {
+        registrationMethod: 'enterprise',
+        userAgent: req.headers['user-agent'] || 'unknown',
+        ip: req.ip,
+        registeredAt: new Date(),
+        hasPhone: !!phone,
+        hasWebsite: !!website
+      }
+    };
+
+    const result = await usersCollection.insertOne(newUser);
+
+    // Crear wallet
+    await walletCollection.insertOne({
+      userId: result.insertedId,
+      balance: 0,
+      currency: 'USD',
+      history: [],
+      createdAt: new Date()
+    });
+
+    // Crear perfil
+    await profilesCollection.insertOne({
+      userId: result.insertedId,
+      uid,
+      displayName: companyName.trim(),
+      avatarUrl: null,
+      bio: `Empresa Enterprise - ${industry || 'Sin especificar'}`,
+      isPublic: true,
+      identityVerified: false,
+      sellerPremium: true,
+      premiumSince: new Date(),
+      createdAt: new Date()
+    });
+
+    // Crear registro de afiliado
+    await affiliatesCollection.insertOne({
+      userId: result.insertedId,
+      refCode: userRefCode,
+      level: 'oro',
+      createdAt: new Date()
+    });
+
+    // 📊 ACTUALIZAR CONTADORES DEL REFERIDOR
+    await actualizarContadoresReferidos(referralChain);
+
+    // 🎁 DAR XP DE BIENVENIDA (500 XP)
+    if (typeof addXP === 'function') {
+      await addXP(result.insertedId, 500, null);
+    }
+
+    // 📧 ENVIAR EMAIL DE BIENVENIDA
+    if (typeof enviarBienvenida === 'function') {
+      enviarBienvenida(email.toLowerCase(), username).catch(err => {
+        logger.warn('⚠️ No se pudo enviar email de bienvenida Enterprise: ' + err.message);
+      });
+    }
+
+    // 📧 NOTIFICAR AL REFERIDOR
+    await notificarReferidor(referrer.uid, newUser);
+
+    // Generar token JWT
+    const token = jwt.sign(
+      {
+        uid,
+        email: newUser.email,
+        emailReal: email.toLowerCase(),
+        username,
+        isAdmin: false,
+        tier: 'enterprise',
+        isPremium: true,
+        accountType: 'enterprise'
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Log de auditoría
+    await logAudit('enterprise_register', {
+      uid,
+      email: email.toLowerCase(),
+      companyName: companyName.trim(),
+      referredBy: referrer.uid,
+      referralChain,
+      ip: req.ip
+    });
+
+    logger.info(`💎 Nueva empresa Enterprise registrada: ${companyName} (${email}) - Referido por: ${referrer.username}`);
+
+    res.status(201).json({
+      success: true,
+      message: '✅ ¡Bienvenido a ApiRomwiner Enterprise!',
+      token,
+      user: {
+        uid,
+        email: newUser.email,
+        emailReal: email.toLowerCase(),
+        username,
+        nombreCompleto: contactName.trim(),
+        companyName: companyName.trim(),
+        tier: 'enterprise',
+        isPremium: true,
+        accountType: 'enterprise',
+        refCode: userRefCode,
+        referredBy: referrer.uid,
+        subscriptionPlan: 'enterprise',
+        subscriptionExpiresAt: newUser.subscriptionExpiresAt
+      },
+      nextSteps: [
+        '🏢 Configura tu perfil de empresa',
+        '👥 Invita a tus empleados',
+        '📤 Sube tus primeros archivos al Vault'
+      ]
+    });
+  } catch (e) {
+    logger.error('❌ Enterprise register error: ' + e.message);
+    res.status(500).json({ error: 'Error en registro Enterprise: ' + e.message });
+  }
+});
+
+// ============================================
+// 🏛️ REGISTRO CORPORACIÓN (ORGANIZACIONES)
+// ============================================
+// ✅ Código de referido obligatorio
+// ✅ Cadena de referidos 3 niveles
+// ✅ Email de bienvenida
+// ✅ 1000 XP de bienvenida
+// ✅ Creación de organización
+// ✅ Notificación al referidor
+app.post('/api/register/corporation', async (req, res) => {
+  try {
+    const {
+      organizationName, legalName, adminName, adminPosition, email, phone,
+      website, country, city, address, taxId, members, industry,
+      username, password, refCode, billingPeriod, notes
+    } = req.body;
+
+    // Validaciones básicas
+    if (!organizationName || organizationName.trim().length < 3) {
+      return res.status(400).json({ error: 'Nombre de organización inválido (mín. 3 caracteres)' });
+    }
+    if (!legalName || legalName.trim().length < 3) {
+      return res.status(400).json({ error: 'Razón social inválida (mín. 3 caracteres)' });
+    }
+    if (!adminName || adminName.trim().length < 3) {
+      return res.status(400).json({ error: 'Nombre del administrador inválido (mín. 3 caracteres)' });
+    }
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ error: 'Email corporativo inválido' });
+    }
+    if (!username || !/^[a-z0-9._]{3,30}$/.test(username)) {
+      return res.status(400).json({ error: 'Usuario inválido (solo minúsculas, números, . y _, 3-30 caracteres)' });
+    }
+    if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Contraseña débil. Requiere: 8+ caracteres, 1 mayúscula, 1 número, 1 símbolo' });
+    }
+
+    // Validación de teléfono
+    if (phone && !validarTelefono(phone)) {
+      return res.status(400).json({ error: 'Formato de teléfono inválido' });
+    }
+
+    // Validación de URL
+    if (website && !validarURL(website)) {
+      return res.status(400).json({ error: 'URL del sitio web inválida' });
+    }
+
+    // Validación de país y ciudad
+    if (!country || country.trim().length < 2) {
+      return res.status(400).json({ error: 'País requerido' });
+    }
+    if (!city || city.trim().length < 2) {
+      return res.status(400).json({ error: 'Ciudad requerida' });
+    }
+
+    // 🔒 VALIDACIÓN OBLIGATORIA: Código de referido
+    if (!refCode || refCode.trim() === '') {
+      return res.status(400).json({ error: 'Código de referido obligatorio' });
+    }
+
+    // Modo demo
+    if (!mongoReady) {
+      return res.status(201).json({
+        success: true,
+        message: '✅ Registro Corporación completado (modo demo)',
+        demo: true,
+        user: {
+          uid: 'demo_corp_' + Date.now(),
+          email,
+          organizationName: organizationName.trim(),
+          tier: 'enterprise',
+          isPremium: true,
+          accountType: 'corporation'
+        }
+      });
+    }
+
+    // 🛡️ VERIFICAR QUE NO SEA EL SUPREMO
+    const supremoExistente = await usersCollection.findOne({ esSupremo: true });
+    if (supremoExistente && supremoExistente.emailReal === email.toLowerCase()) {
+      return res.status(403).json({ error: 'El Supremo no puede registrarse como Corporación' });
+    }
+
+    // Verificar si el email o username ya existen
+    const existeEmail = await usersCollection.findOne({ 
+      $or: [
+        { emailReal: email.toLowerCase() },
+        { email: email.toLowerCase() }
+      ]
+    });
+    if (existeEmail) {
+      return res.status(400).json({ error: 'Este email ya está registrado' });
+    }
+    const existeUsername = await usersCollection.findOne({ username });
+    if (existeUsername) {
+      return res.status(400).json({ error: 'Nombre de usuario no disponible' });
+    }
+
+    // 🔒 VALIDAR CÓDIGO DE REFERIDO
+    const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
+    if (!referrer) {
+      return res.status(400).json({ error: 'Código de referido inválido' });
+    }
+
+    // 🛡️ NO PUEDE REFERIRSE A SÍ MISMO
+    if (referrer.emailReal === email.toLowerCase() || referrer.username === username) {
+      return res.status(400).json({ error: 'No puedes usar tu propio código de referido' });
+    }
+
+    // Generar credenciales únicas
+    const hashed = await bcrypt.hash(password, 10);
+    const uid = 'corp_' + crypto.randomBytes(16).toString('hex');
+    const userRefCode = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const orgId = 'org_' + crypto.randomBytes(16).toString('hex');
+
+    // 🔗 CONSTRUIR CADENA DE REFERIDOS (3 niveles)
+    const referralChain = await construirCadenaReferidos(referrer.uid);
+
+    // Crear usuario administrador de la corporación
+    const newUser = {
+      uid,
+      email: `${username}@apiromwinervault.com`,
+      emailReal: email.toLowerCase(),
+      username,
+      nombreCompleto: adminName.trim(),
+      fechaNacimiento: new Date('1990-01-01'),
+      telefono: phone || null,
+      password: hashed,
+      refCode: userRefCode,
+      referredBy: referrer.uid,
+      referralChain,
+      tier: 'enterprise',
+      isPremium: true,
+      premiumSince: new Date(),
+      subscriptionPlan: 'corporation',
+      subscriptionPeriod: billingPeriod || 'monthly',
+      subscriptionExpiresAt: new Date(Date.now() + (billingPeriod === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000),
+      isAdmin: false,
+      esSupremo: false,
+      accountType: 'corporation',
+      kycStatus: 'pending',
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      tokenVersion: 1,
+      corporationInfo: {
+        organizationId: orgId,
+        organizationName: organizationName.trim(),
+        legalName: legalName.trim(),
+        adminName: adminName.trim(),
+        adminPosition: adminPosition || '',
+        phone: phone || '',
+        website: website || '',
+        country: country.trim(),
+        city: city.trim(),
+        address: address || '',
+        taxId: taxId || '',
+        members: members || '',
+        industry: industry || '',
+        billingPeriod: billingPeriod || 'monthly',
+        notes: notes || '',
+        registeredAt: new Date(),
+        status: 'active'
+      },
+      wallet: { balance: 0, currency: 'USD', history: [] },
+      affiliates: {
+        totalReferrals: 0,
+        level2Referrals: 0,
+        level3Referrals: 0,
+        availableBalance: 0,
+        totalEarned: 0,
+        lastReferral: null
+      },
+      vault: [],
+      metadata: {
+        registrationMethod: 'corporation',
+        userAgent: req.headers['user-agent'] || 'unknown',
+        ip: req.ip,
+        registeredAt: new Date(),
+        hasPhone: !!phone,
+        hasWebsite: !!website,
+        hasTaxId: !!taxId
+      }
+    };
+
+    const result = await usersCollection.insertOne(newUser);
+
+    // Crear wallet
+    await walletCollection.insertOne({
+      userId: result.insertedId,
+      balance: 0,
+      currency: 'USD',
+      history: [],
+      createdAt: new Date()
+    });
+
+    // Crear perfil
+    await profilesCollection.insertOne({
+      userId: result.insertedId,
+      uid,
+      displayName: organizationName.trim(),
+      avatarUrl: null,
+      bio: `Corporación - ${industry || 'Sin especificar'} - ${country || 'Sin especificar'}`,
+      isPublic: true,
+      identityVerified: false,
+      sellerPremium: true,
+      premiumSince: new Date(),
+      createdAt: new Date()
+    });
+
+    // Crear registro de afiliado
+    await affiliatesCollection.insertOne({
+      userId: result.insertedId,
+      refCode: userRefCode,
+      level: 'diamante',
+      createdAt: new Date()
+    });
+
+    // Crear registro de la organización
+    await db.collection('organizations').insertOne({
+      orgId,
+      name: organizationName.trim(),
+      legalName: legalName.trim(),
+      adminUid: uid,
+      adminEmail: email.toLowerCase(),
+      country: country.trim(),
+      city: city.trim(),
+      taxId: taxId || '',
+      industry: industry || '',
+      members: [],
+      maxMembers: parseInt(members) || 100,
+      status: 'active',
+      billingPeriod: billingPeriod || 'monthly',
+      createdAt: new Date()
+    });
+
+    // 📊 ACTUALIZAR CONTADORES DEL REFERIDOR
+    await actualizarContadoresReferidos(referralChain);
+
+    // 🎁 DAR XP DE BIENVENIDA (1000 XP)
+    if (typeof addXP === 'function') {
+      await addXP(result.insertedId, 1000, null);
+    }
+
+    // 📧 ENVIAR EMAIL DE BIENVENIDA
+    if (typeof enviarBienvenida === 'function') {
+      enviarBienvenida(email.toLowerCase(), username).catch(err => {
+        logger.warn('⚠️ No se pudo enviar email de bienvenida Corporación: ' + err.message);
+      });
+    }
+
+    // 📧 NOTIFICAR AL REFERIDOR
+    await notificarReferidor(referrer.uid, newUser);
+
+    // Generar token JWT
+    const token = jwt.sign(
+      {
+        uid,
+        email: newUser.email,
+        emailReal: email.toLowerCase(),
+        username,
+        isAdmin: false,
+        tier: 'enterprise',
+        isPremium: true,
+        accountType: 'corporation'
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Log de auditoría
+    await logAudit('corporation_register', {
+      uid,
+      orgId,
+      email: email.toLowerCase(),
+      organizationName: organizationName.trim(),
+      referredBy: referrer.uid,
+      referralChain,
+      country: country.trim(),
+      ip: req.ip
+    });
+
+    logger.info(`🏛️ Nueva corporación registrada: ${organizationName} (${email}) - País: ${country} - Referido por: ${referrer.username}`);
+
+    res.status(201).json({
+      success: true,
+      message: '✅ ¡Bienvenido a ApiRomwiner Corporación!',
+      token,
+      user: {
+        uid,
+        email: newUser.email,
+        emailReal: email.toLowerCase(),
+        username,
+        nombreCompleto: adminName.trim(),
+        organizationName: organizationName.trim(),
+        orgId,
+        tier: 'enterprise',
+        isPremium: true,
+        accountType: 'corporation',
+        refCode: userRefCode,
+        referredBy: referrer.uid,
+        subscriptionPlan: 'corporation',
+        subscriptionExpiresAt: newUser.subscriptionExpiresAt
+      },
+      nextSteps: [
+        '🏢 Configura el perfil de tu organización',
+        '👥 Invita a los primeros miembros',
+        '🔐 Configura permisos y roles',
+        '📤 Sube los primeros archivos corporativos'
+      ]
+    });
+  } catch (e) {
+    logger.error('❌ Corporation register error: ' + e.message);
+    res.status(500).json({ error: 'Error en registro Corporación: ' + e.message });
   }
 });
 
