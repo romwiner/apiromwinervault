@@ -44,5 +44,6 @@
   },
   "engines": {
     "node": "20.x"
+    "natural": "^6.10.0" 
   }
 }
