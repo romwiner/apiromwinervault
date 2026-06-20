@@ -1024,10 +1024,10 @@ app.post('/api/ai/command', authenticate, async(req, res) => {
     res.status(500).json({ error: 'Error procesando comando: ' + e.message });
   }
 });
-// 🔐 REGISTER - Solo con dominio @apiromwinervault.com, sin email externo (con cadena de referidos 3 niveles)
+// 🔐 REGISTER - Con email real opcional para notificaciones (con cadena de referidos 3 niveles)
 app.post('/register', async(req, res) => {
   try {
-    let { username, password, nombreCompleto, fechaNacimiento, refCode } = req.body;
+    let { username, password, nombreCompleto, fechaNacimiento, refCode, emailReal } = req.body;
     
     // Validaciones estrictas
     if (!username || !password || !nombreCompleto || !fechaNacimiento) {
@@ -1042,6 +1042,11 @@ app.post('/register', async(req, res) => {
     // Validar contraseña fuerte
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
       return res.status(400).json({ error: 'Contraseña débil (mín. 8 caracteres, mayúscula, número, símbolo)' });
+    }
+    
+    // Validar email real si se proporciona
+    if (emailReal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailReal)) {
+      return res.status(400).json({ error: 'Email real inválido' });
     }
     
     // Validar mayoría de edad (18+)
@@ -1070,6 +1075,181 @@ app.post('/register', async(req, res) => {
     if (existingUsername) {
       return res.status(400).json({ error: 'Nombre de usuario no disponible' });
     }
+    
+    // Verificar email real si se proporcionó
+    if (emailReal) {
+      const existingRealEmail = await usersCollection.findOne({ emailReal });
+      if (existingRealEmail) {
+        return res.status(400).json({ error: 'Ese email ya está registrado en otra cuenta' });
+      }
+    }
+    
+    // Hash de contraseña
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Generar UID único
+    const uid = 'user_' + require('crypto').randomBytes(16).toString('hex');
+    
+    // Generar código de referido único
+    const userRefCode = 'ROM' + require('crypto').randomBytes(4).toString('hex').toUpperCase();
+    
+    // Procesar cadena de referidos (3 niveles)
+    let referredBy = null;
+    let referralChain = [];
+    
+    if (refCode) {
+      const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
+      if (referrer) {
+        referredBy = referrer.uid;
+        referralChain.push(referrer.uid);
+        
+        // Nivel 2: Referido del referidor
+        if (referrer.referredBy) {
+          const referrer2 = await usersCollection.findOne({ uid: referrer.referredBy });
+          if (referrer2) {
+            referralChain.push(referrer2.uid);
+            
+            // Nivel 3: Referido del nivel 2
+            if (referrer2.referredBy) {
+              const referrer3 = await usersCollection.findOne({ uid: referrer2.referredBy });
+              if (referrer3) {
+                referralChain.push(referrer3.uid);
+              }
+            }
+          }
+        }
+        
+        // Actualizar contadores de referidos
+        await usersCollection.updateOne(
+          { uid: referrer.uid },
+          { 
+            $inc: { 'affiliates.totalReferrals': 1 },
+            $set: { 'affiliates.lastReferral': new Date() }
+          }
+        );
+        
+        // Actualizar nivel 2
+        if (referralChain[1]) {
+          await usersCollection.updateOne(
+            { uid: referralChain[1] },
+            { $inc: { 'affiliates.level2Referrals': 1 } }
+          );
+        }
+        
+        // Actualizar nivel 3
+        if (referralChain[2]) {
+          await usersCollection.updateOne(
+            { uid: referralChain[2] },
+            { $inc: { 'affiliates.level3Referrals': 1 } }
+          );
+        }
+      }
+    }
+    
+    // Crear usuario
+    const newUser = {
+      uid,
+      email,
+      emailReal: emailReal || null,
+      username,
+      nombreCompleto,
+      fechaNacimiento,
+      password: hashedPassword,
+      refCode: userRefCode,
+      referredBy,
+      referralChain,
+      tier: 'personal',
+      isPremium: false,
+      isAdmin: false,
+      esSupremo: false,
+      kycStatus: 'pending',
+      wallet: {
+        balance: 0,
+        currency: 'USD',
+        history: []
+      },
+      affiliates: {
+        totalReferrals: 0,
+        level2Referrals: 0,
+        level3Referrals: 0,
+        availableBalance: 0,
+        totalEarned: 0,
+        lastReferral: null
+      },
+      vault: [],
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      tokenVersion: 1
+    };
+    
+    const result = await usersCollection.insertOne(newUser);
+    
+    // Crear wallet
+    await walletCollection.insertOne({
+      userId: result.insertedId,
+      balance: 0,
+      currency: 'USD',
+      history: []
+    });
+    
+    // Crear perfil
+    await profilesCollection.insertOne({
+      userId: result.insertedId,
+      displayName: nombreCompleto,
+      avatarUrl: null,
+      bio: null,
+      identityVerified: false,
+      createdAt: new Date()
+    });
+    
+    // Dar XP de bienvenida
+    if (typeof addXP === 'function') {
+      await addXP(result.insertedId, 50, null);
+    }
+    
+    // Log de auditoría
+    await logAudit('user_registered', { 
+      userId: uid, 
+      email, 
+      username,
+      referredBy,
+      hasRealEmail: !!emailReal
+    });
+    
+    // 📧 Enviar email de bienvenida al email real (si se proporcionó)
+    if (emailReal) {
+      enviarBienvenida(emailReal, username).catch(err => {
+        logger.warn('⚠️ No se pudo enviar email de bienvenida: ' + err.message);
+      });
+    }
+    
+    // Generar token JWT
+    const token = jwt.sign(
+      { uid: newUser.uid, email: newUser.email, username: newUser.username },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    res.status(201).json({
+      success: true,
+      message: 'Usuario registrado exitosamente',
+      token,
+      user: {
+        uid: newUser.uid,
+        email: newUser.email,
+        emailReal: newUser.emailReal,
+        username: newUser.username,
+        nombreCompleto: newUser.nombreCompleto,
+        refCode: newUser.refCode,
+        tier: newUser.tier
+      }
+    });
+    
+  } catch (error) {
+    logger.error('❌ Error en registro:', error.message);
+    res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
+  }
+});
     
     // =====================================================
     // CADENA DE REFERIDOS (3 niveles)
