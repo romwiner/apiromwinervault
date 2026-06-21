@@ -1756,8 +1756,6 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
     res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message });
   }
 });
-
-=====
 // 📦 VAULT CREATE (CON IA: AUTO-TAGS)
 // ============================================
 app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async (req, res) => {
