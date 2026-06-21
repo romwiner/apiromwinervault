@@ -1024,247 +1024,29 @@ app.post('/api/ai/command', authenticate, async(req, res) => {
     res.status(500).json({ error: 'Error procesando comando: ' + e.message });
   }
 });
-// 🔐 REGISTER - Con email real opcional para notificaciones (con cadena de referidos 3 niveles)
-app.post('/register', async(req, res) => {
-  try {
-    let { username, password, nombreCompleto, fechaNacimiento, refCode, emailReal } = req.body;
-    
-    // Validaciones estrictas
-    if (!username || !password || !nombreCompleto || !fechaNacimiento) {
-      return res.status(400).json({ error: 'Usuario, contraseña, nombre real y fecha de nacimiento son obligatorios' });
-    }
-    
-    // Validar nombre de usuario
-    if (!/^[a-z0-9._]{3,30}$/.test(username)) {
-      return res.status(400).json({ error: 'Usuario inválido (solo minúsculas, números, . y _, 3-30 caracteres)' });
-    }
-    
-    // Validar contraseña fuerte
-    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
-      return res.status(400).json({ error: 'Contraseña débil (mín. 8 caracteres, mayúscula, número, símbolo)' });
-    }
-    
-    // Validar email real si se proporciona
-    if (emailReal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailReal)) {
-      return res.status(400).json({ error: 'Email real inválido' });
-    }
-    
-    // Validar mayoría de edad (18+)
-    const birthDate = new Date(fechaNacimiento);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
-    if (age < 18) {
-      return res.status(400).json({ error: 'Debes ser mayor de 18 años para registrarte' });
-    }
-    
-    // Generar email con dominio propio
-    const email = `${username}@apiromwinervault.com`;
-    
-    if (!mongoReady) {
-      return res.status(201).json({ success: true, message: 'Registrado (demo)', demo: true, user: { email, username } });
-    }
-    
-    // Verificar si el email o username ya existen
-    const existingEmail = await usersCollection.findOne({ email });
-    if (existingEmail) {
-      return res.status(400).json({ error: 'El nombre de usuario ya está registrado' });
-    }
-    const existingUsername = await usersCollection.findOne({ username });
-    if (existingUsername) {
-      return res.status(400).json({ error: 'Nombre de usuario no disponible' });
-    }
-    
-    // Verificar email real si se proporcionó
-    if (emailReal) {
-      const existingRealEmail = await usersCollection.findOne({ emailReal });
-      if (existingRealEmail) {
-        return res.status(400).json({ error: 'Ese email ya está registrado en otra cuenta' });
-      }
-    }
-    
-    // Hash de contraseña
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Generar UID único
-    const uid = 'user_' + require('crypto').randomBytes(16).toString('hex');
-    
-    // Generar código de referido único
-    const userRefCode = 'ROM' + require('crypto').randomBytes(4).toString('hex').toUpperCase();
-    
-    // Procesar cadena de referidos (3 niveles)
-    let referredBy = null;
-    let referralChain = [];
-    
-    if (refCode) {
-      const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
-      if (referrer) {
-        referredBy = referrer.uid;
-        referralChain.push(referrer.uid);
-        
-        // Nivel 2: Referido del referidor
-        if (referrer.referredBy) {
-          const referrer2 = await usersCollection.findOne({ uid: referrer.referredBy });
-          if (referrer2) {
-            referralChain.push(referrer2.uid);
-            
-            // Nivel 3: Referido del nivel 2
-            if (referrer2.referredBy) {
-              const referrer3 = await usersCollection.findOne({ uid: referrer2.referredBy });
-              if (referrer3) {
-                referralChain.push(referrer3.uid);
-              }
-            }
-          }
-        }
-        
-        // Actualizar contadores de referidos
-        await usersCollection.updateOne(
-          { uid: referrer.uid },
-          { 
-            $inc: { 'affiliates.totalReferrals': 1 },
-            $set: { 'affiliates.lastReferral': new Date() }
-          }
-        );
-        
-        // Actualizar nivel 2
-        if (referralChain[1]) {
-          await usersCollection.updateOne(
-            { uid: referralChain[1] },
-            { $inc: { 'affiliates.level2Referrals': 1 } }
-          );
-        }
-        
-        // Actualizar nivel 3
-        if (referralChain[2]) {
-          await usersCollection.updateOne(
-            { uid: referralChain[2] },
-            { $inc: { 'affiliates.level3Referrals': 1 } }
-          );
-        }
-      }
-    }
-    
-    // Crear usuario
-    const newUser = {
-      uid,
-      email,
-      emailReal: emailReal || null,
-      username,
-      nombreCompleto,
-      fechaNacimiento,
-      password: hashedPassword,
-      refCode: userRefCode,
-      referredBy,
-      referralChain,
-      tier: 'personal',
-      isPremium: false,
-      isAdmin: false,
-      esSupremo: false,
-      kycStatus: 'pending',
-      wallet: {
-        balance: 0,
-        currency: 'USD',
-        history: []
-      },
-      affiliates: {
-        totalReferrals: 0,
-        level2Referrals: 0,
-        level3Referrals: 0,
-        availableBalance: 0,
-        totalEarned: 0,
-        lastReferral: null
-      },
-      vault: [],
-      createdAt: new Date(),
-      lastLogin: new Date(),
-      tokenVersion: 1
-    };
-    
-    const result = await usersCollection.insertOne(newUser);
-    
-    // Crear wallet
-    await walletCollection.insertOne({
-      userId: result.insertedId,
-      balance: 0,
-      currency: 'USD',
-      history: []
-    });
-    
-    // Crear perfil
-    await profilesCollection.insertOne({
-      userId: result.insertedId,
-      displayName: nombreCompleto,
-      avatarUrl: null,
-      bio: null,
-      identityVerified: false,
-      createdAt: new Date()
-    });
-    
-    // Dar XP de bienvenida
-    if (typeof addXP === 'function') {
-      await addXP(result.insertedId, 50, null);
-    }
-    
-    // Log de auditoría
-    await logAudit('user_registered', { 
-      userId: uid, 
-      email, 
-      username,
-      referredBy,
-      hasRealEmail: !!emailReal
-    });
-    
-    // 📧 Enviar email de bienvenida al email real (si se proporcionó)
-    if (emailReal) {
-      enviarBienvenida(emailReal, username).catch(err => {
-        logger.warn('⚠️ No se pudo enviar email de bienvenida: ' + err.message);
-      });
-    }
-    
-    // Generar token JWT
-    const token = jwt.sign(
-      { uid: newUser.uid, email: newUser.email, username: newUser.username },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    
-    res.status(201).json({
-      success: true,
-      message: 'Usuario registrado exitosamente',
-      token,
-      user: {
-        uid: newUser.uid,
-        email: newUser.email,
-        emailReal: newUser.emailReal,
-        username: newUser.username,
-        nombreCompleto: newUser.nombreCompleto,
-        refCode: newUser.refCode,
-        tier: newUser.tier
-      }
-    });
-    
-  } catch (error) {
-    logger.error('❌ Error en registro:', error.message);
-    res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
-  }
-});
-    // ============================================
-// 🔐 REGISTRO FREEMIUM (MEJORADO Y COMPLETO)
+// ============================================
+// 🔐 REGISTRO FREEMIUM (FUSIONADO Y SUPER MEJORADO)
 // ============================================
 // ✅ Validaciones estrictas
 // ✅ Código de referido obligatorio
 // ✅ Cadena de referidos 3 niveles
 // ✅ Validación 18+
+// ✅ Protección del Supremo
+// ✅ No auto-referirse
 // ✅ Username único
 // ✅ Email interno generado
-// ✅ XP de bienvenida
+// ✅ Verificar emailReal duplicado
+// ✅ XP de bienvenida (50 XP)
 // ✅ Email de bienvenida
 // ✅ Notificación al referidor
+// ✅ Metadata completa
+// ✅ accountType: 'freemium'
+// ✅ Genera token JWT
+// 💰 COSTO: $0 USD (Gratis)
+// ============================================
 app.post('/register', async (req, res) => {
   try {
-    let { username, password, nombreCompleto, fechaNacimiento, refCode, emailReal } = req.body;
+    const { username, password, nombreCompleto, fechaNacimiento, refCode, emailReal } = req.body;
 
     // 🛡️ VALIDACIONES BÁSICAS
     if (!username || !password || !nombreCompleto || !fechaNacimiento) {
@@ -1312,7 +1094,8 @@ app.post('/register', async (req, res) => {
         demo: true, 
         user: { 
           email: `${username}@apiromwinervault.com`, 
-          username 
+          username,
+          accountType: 'freemium'
         } 
       });
     }
@@ -1334,7 +1117,7 @@ app.post('/register', async (req, res) => {
       ]
     });
     if (existingEmail) {
-      return res.status(400).json({ error: 'El nombre de usuario ya está registrado' });
+      return res.status(400).json({ error: 'El email ya está registrado' });
     }
     
     const existingUsername = await usersCollection.findOne({ username });
@@ -1354,22 +1137,15 @@ app.post('/register', async (req, res) => {
     }
 
     // =====================================================
-    // CADENA DE REFERIDOS (3 niveles)
+    // 🔗 CADENA DE REFERIDOS (3 niveles)
     // =====================================================
-    let referredBy = null;
-    let referredBy2 = null;
-    let referredBy3 = null;
-    let referralChain = [referrer.uid];
-
-    referredBy = referrer.uid;
+    const referralChain = [referrer.uid];
     
     if (referrer.referredBy) {
-      referredBy2 = referrer.referredBy;
       referralChain.push(referrer.referredBy);
       
       const referrer2 = await usersCollection.findOne({ uid: referrer.referredBy });
       if (referrer2 && referrer2.referredBy) {
-        referredBy3 = referrer2.referredBy;
         referralChain.push(referrer2.referredBy);
       }
     }
@@ -1389,9 +1165,7 @@ app.post('/register', async (req, res) => {
       fechaNacimiento: birthDate,
       password: hashed,
       refCode: refCodeGenerated,
-      referredBy,
-      referredBy2,
-      referredBy3,
+      referredBy: referrer.uid,
       referralChain,
       referralRewarded: false,
       isAdmin: ADMIN_EMAILS.includes(emailReal?.toLowerCase()),
@@ -1456,7 +1230,7 @@ app.post('/register', async (req, res) => {
       createdAt: new Date()
     });
 
-    // 📊 ACTUALIZAR CONTADORES DEL REFERIDOR
+    // 📊 ACTUALIZAR CONTADORES DEL REFERIDOR (3 niveles)
     await usersCollection.updateOne(
       { uid: referrer.uid },
       { 
@@ -1465,7 +1239,6 @@ app.post('/register', async (req, res) => {
       }
     );
 
-    // Actualizar nivel 2
     if (referralChain[1]) {
       await usersCollection.updateOne(
         { uid: referralChain[1] },
@@ -1473,7 +1246,6 @@ app.post('/register', async (req, res) => {
       );
     }
 
-    // Actualizar nivel 3
     if (referralChain[2]) {
       await usersCollection.updateOne(
         { uid: referralChain[2] },
@@ -1504,19 +1276,32 @@ app.post('/register', async (req, res) => {
       });
     }
     
-    await logAudit('register', { 
+    // 📝 LOG DE AUDITORÍA
+    await logAudit('register_freemium', { 
       uid, 
       email, 
       username, 
-      referredBy, 
-      referredBy2, 
-      referredBy3,
+      referredBy: referrer.uid,
       referralChain,
       hasEmailReal: !!emailReal,
       ip: req.ip
     });
 
     logger.info(`🎉 Nuevo usuario Freemium registrado: ${username} (referido por ${referrer.username})`);
+
+    // Generar token JWT
+    const token = jwt.sign(
+      { 
+        uid: newUser.uid, 
+        email: newUser.email, 
+        username: newUser.username,
+        isAdmin: newUser.isAdmin,
+        tier: newUser.tier,
+        accountType: newUser.accountType
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
     
     const userData = {
       uid,
@@ -1529,165 +1314,24 @@ app.post('/register', async (req, res) => {
       isPremium: false,
       accountType: 'freemium',
       refCode: refCodeGenerated,
-      referredBy,
+      referredBy: referrer.uid,
       kycStatus: 'pending'
     };
     
     res.status(201).json({ 
       success: true, 
-      message: '✅ Registrado correctamente', 
-      user: userData 
-    });
-  } catch (e) {
-    logger.error('❌ Register error: ' + e.message);
-    res.status(500).json({ error: 'Error interno del servidor: ' + e.message });
-  }
-});
-// 🔐 LOGIN - Acepta email (con dominio propio) o nombre de usuario
-app.post('/login', async(req, res) => {
-  try {
-    const { email, password } = req.body;
-    const identifier = email; // puede ser email o username
-    if (!identifier || !password) return res.status(400).json({ error: 'Credenciales requeridas' });
-    
-    if (!mongoReady) {
-      const t = jwt.sign({ email: identifier }, JWT_SECRET, { expiresIn: '7d' });
-      return res.json({ success: true, token: t, user: { email: identifier, isAdmin: ADMIN_EMAILS.includes(identifier) }, demo: true });
-    }
-    
-    // Buscar primero por email (el email generado)
-    let user = await usersCollection.findOne({ email: identifier });
-    // Si no existe, buscar por nombre de usuario
-    if (!user) {
-      user = await usersCollection.findOne({ username: identifier });
-    }
-    
-    if (!user || !await bcrypt.compare(password, user.password)) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
-    
-    await usersCollection.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
-    
-    const token = jwt.sign(
-      {
-        uid: user.uid,
-        email: user.email,
-        username: user.username,
-        isAdmin: user.isAdmin || ADMIN_EMAILS.includes(user.email),
-        tier: user.tier || 'personal'
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    
-    await logAudit('login', { email: user.email, username: user.username, uid: user.uid });
-    
-    res.json({
-      success: true,
+      message: '✅ Registrado correctamente como Freemium', 
       token,
-      user: {
-        uid: user.uid,
-        email: user.email,
-        username: user.username,
-        isAdmin: user.isAdmin || ADMIN_EMAILS.includes(user.email),
-        refCode: user.refCode,
-        tier: user.tier || 'personal'
-      }
+      user: userData,
+      nextSteps: [
+        '🔐 Inicia sesión para acceder a tu bóveda',
+        '📤 Sube tus primeros archivos cifrados',
+        '👥 Comparte tu código de referido: ' + refCodeGenerated
+      ]
     });
-  } catch (e) {
-    console.error('❌ Login error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
-// 👤 PROFILE - Obtener perfil público (sin datos sensibles)
-app.get('/api/profile', authenticate, async(req, res) => {
-  try {
-    if (!mongoReady) return res.json({ success: true, profile: { displayName: 'Demo', username: 'demo' }, demo: true });
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const p = await profilesCollection.findOne({ userId: user._id });
-    
-    // Datos seguros para mostrar en el frontend
-    const safeProfile = {
-      username: user.username,
-      email: user.email,        // el email es el username@dominio, puede ser público
-      displayName: p?.displayName || user.username,
-      avatarUrl: p?.avatarUrl || null,
-      bio: p?.bio || '',
-      tier: user.tier,
-      isAdmin: user.isAdmin || ADMIN_EMAILS.includes(user.email),
-      kycStatus: user.kycStatus || 'pendiente'  // solo el estado, no los documentos
-    };
-    
-    res.json({ success: true, profile: safeProfile });
-  } catch (e) {
-    console.error('❌ Profile error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
-// ============================================
-// 💰 WALLET Y REFERIDOS - CÓDIGO CORREGIDO Y MEJORADO
-// ============================================
-
-// Consultar saldo de wallet
-app.get('/api/wallet', authenticate, async(req, res) => {
-  try {
-    if (!mongoReady) return res.json({ success: true, wallet: { balance: 0, currency: 'USD' }, demo: true });
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const w = await walletCollection.findOne({ userId: user._id });
-    res.json({ success: true, wallet: w || { balance: 0, currency: 'USD' } });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Depósito con Stripe
-app.post('/api/wallet/deposit', authenticate, async(req, res) => {
-  try {
-    const amount = parseFloat(req.body.amount);
-    if (!amount || amount < 5) return res.status(400).json({ error: 'Mínimo $5 USD para depósito' });
-    if (!STRIPE_SECRET_KEY || STRIPE_SECRET_KEY.includes('placeholder')) {
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(500).json({ error: 'Stripe no configurado. Contacta al administrador.' });
-      }
-      return res.json({ success: true, message: 'Modo demo: configura STRIPE_SECRET_KEY en .env', demo: true, clientSecret: 'demo' });
-    }
-    const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + STRIPE_SECRET_KEY, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ amount: Math.round(amount * 100), currency: 'usd', metadata: JSON.stringify({ uid: req.user.uid, type: 'deposit' }) })
-    });
-    const data = await stripeRes.json();
-    if (!data.client_secret) return res.status(500).json({ error: 'Error de Stripe: ' + ((data.error && data.error.message) || 'Cliente secreto no generado') });
-    res.json({ success: true, clientSecret: data.client_secret, paymentId: data.id });
-  } catch (e) {
-    res.status(500).json({ error: 'Error procesando pago con Stripe: ' + e.message });
-  }
-});
-
-// Auto-suscripción (usar saldo para cambiar de plan)
-app.post('/api/wallet/auto-subscribe', authenticate, async(req, res) => {
-  try {
-    if (!mongoReady || !usersCollection || !walletCollection) {
-      return res.json({ success: true, message: 'Demo: auto-suscripción activada', demo: true });
-    }
-    const user = await usersCollection.findOne({ uid: req.user.uid });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const wallet = await walletCollection.findOne({ userId: user._id });
-    const tierPrice = { personal: 0, business: 9.99, enterprise: 49.99 };
-    const nextTier = req.body.tier || 'business';
-    const price = tierPrice[nextTier] || 0;
-    if (!wallet || wallet.balance < price) {
-      return res.status(400).json({ error: 'Saldo insuficiente', currentBalance: wallet?.balance || 0, required: price, hint: 'Gana saldo viendo anuncios o vendiendo en el Marketplace' });
-    }
-    await walletCollection.updateOne({ userId: user._id }, { $inc: { balance: -price }, $push: { history: { type: 'auto_subscription', amount: -price, tier: nextTier, date: new Date() } } });
-    await usersCollection.updateOne({ _id: user._id }, { $set: { tier: nextTier, autoRenew: true, updatedAt: new Date() } });
-    await logAudit('auto_subscribe', { userId: user.uid, tier: nextTier, amount: price });
-    res.json({ success: true, message: `✅ Suscripción a ${nextTier} activada. Se renovará automáticamente cada mes.`, newTier: nextTier, nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), remainingBalance: (wallet.balance - price).toFixed(2) });
-  } catch (e) {
-    logger.error('❌ Auto-subscribe error: ' + e.message);
-    res.status(500).json({ error: 'Error procesando auto-suscripción: ' + e.message });
+  } catch (error) {
+    logger.error('❌ Register error: ' + error.message);
+    res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 });
 
