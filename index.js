@@ -1250,33 +1250,140 @@ app.post('/register', async(req, res) => {
     res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 });
+    // ============================================
+// 🔐 REGISTRO FREEMIUM (MEJORADO Y COMPLETO)
+// ============================================
+// ✅ Validaciones estrictas
+// ✅ Código de referido obligatorio
+// ✅ Cadena de referidos 3 niveles
+// ✅ Validación 18+
+// ✅ Username único
+// ✅ Email interno generado
+// ✅ XP de bienvenida
+// ✅ Email de bienvenida
+// ✅ Notificación al referidor
+app.post('/register', async (req, res) => {
+  try {
+    let { username, password, nombreCompleto, fechaNacimiento, refCode, emailReal } = req.body;
+
+    // 🛡️ VALIDACIONES BÁSICAS
+    if (!username || !password || !nombreCompleto || !fechaNacimiento) {
+      return res.status(400).json({ error: 'Usuario, contraseña, nombre real y fecha de nacimiento son obligatorios' });
+    }
+
+    // Validar nombre de usuario
+    if (!/^[a-z0-9._]{3,30}$/.test(username)) {
+      return res.status(400).json({ error: 'Usuario inválido (solo minúsculas, números, . y _, 3-30 caracteres)' });
+    }
+
+    // Validar contraseña fuerte
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Contraseña débil. Requiere: 8+ caracteres, 1 mayúscula, 1 número, 1 símbolo' });
+    }
+
+    // Validar email real si se proporciona
+    if (emailReal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailReal)) {
+      return res.status(400).json({ error: 'Email real inválido' });
+    }
+
+    // 🔒 VALIDACIÓN: Mayoría de edad (18+)
+    const birthDate = new Date(fechaNacimiento);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
+    if (age < 18) {
+      return res.status(400).json({ error: 'Debes ser mayor de 18 años para registrarte' });
+    }
+
+    // 🔒 VALIDACIÓN OBLIGATORIA: Código de referido
+    if (!refCode || refCode.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Código de referido obligatorio',
+        message: 'Necesitas un código de referido de otro usuario para registrarte'
+      });
+    }
+
+    // Modo demo
+    if (!mongoReady) {
+      return res.status(201).json({ 
+        success: true, 
+        message: 'Registrado (demo)', 
+        demo: true, 
+        user: { 
+          email: `${username}@apiromwinervault.com`, 
+          username 
+        } 
+      });
+    }
+
+    // Generar email interno
+    const email = `${username}@apiromwinervault.com`;
+
+    // 🛡️ VERIFICAR QUE NO SEA EL SUPREMO
+    const supremoExistente = await usersCollection.findOne({ esSupremo: true });
+    if (supremoExistente && supremoExistente.emailReal === emailReal?.toLowerCase()) {
+      return res.status(403).json({ error: 'El Supremo no puede registrarse como usuario normal' });
+    }
+
+    // Verificar si el email o username ya existen
+    const existingEmail = await usersCollection.findOne({ 
+      $or: [
+        { email },
+        { emailReal: emailReal?.toLowerCase() }
+      ]
+    });
+    if (existingEmail) {
+      return res.status(400).json({ error: 'El nombre de usuario ya está registrado' });
+    }
+    
+    const existingUsername = await usersCollection.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({ error: 'Nombre de usuario no disponible' });
+    }
+
+    // 🔒 VALIDAR CÓDIGO DE REFERIDO
+    const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
+    if (!referrer) {
+      return res.status(400).json({ error: 'Código de referido inválido' });
+    }
+
+    // 🛡️ NO PUEDE REFERIRSE A SÍ MISMO
+    if (referrer.email === email || referrer.username === username) {
+      return res.status(400).json({ error: 'No puedes usar tu propio código de referido' });
+    }
+
     // =====================================================
     // CADENA DE REFERIDOS (3 niveles)
     // =====================================================
     let referredBy = null;
     let referredBy2 = null;
     let referredBy3 = null;
-    if (refCode) {
-      const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
-      if (referrer) {
-        referredBy = referrer.uid;
-        if (referrer.referredBy) {
-          referredBy2 = referrer.referredBy;
-          const referrer2 = await usersCollection.findOne({ uid: referrer.referredBy });
-          if (referrer2 && referrer2.referredBy) {
-            referredBy3 = referrer2.referredBy;
-          }
-        }
+    let referralChain = [referrer.uid];
+
+    referredBy = referrer.uid;
+    
+    if (referrer.referredBy) {
+      referredBy2 = referrer.referredBy;
+      referralChain.push(referrer.referredBy);
+      
+      const referrer2 = await usersCollection.findOne({ uid: referrer.referredBy });
+      if (referrer2 && referrer2.referredBy) {
+        referredBy3 = referrer2.referredBy;
+        referralChain.push(referrer2.referredBy);
       }
     }
 
+    // Hash de contraseña
     const hashed = await bcrypt.hash(password, 10);
-    const uid = 'rom_' + crypto.randomBytes(8).toString('hex');
+    const uid = 'user_' + crypto.randomBytes(16).toString('hex');
     const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
     
+    // Crear usuario
     const newUser = {
       uid,
       email,
+      emailReal: emailReal?.toLowerCase() || null,
       username,
       nombreCompleto,
       fechaNacimiento: birthDate,
@@ -1285,15 +1392,36 @@ app.post('/register', async(req, res) => {
       referredBy,
       referredBy2,
       referredBy3,
-      referralRewarded: false,   // para controlar bono de bienvenida al referidor
-      isAdmin: ADMIN_EMAILS.includes(email),
+      referralChain,
+      referralRewarded: false,
+      isAdmin: ADMIN_EMAILS.includes(emailReal?.toLowerCase()),
+      esSupremo: false,
+      accountType: 'freemium',
       tier: 'personal',
+      isPremium: false,
       createdAt: new Date(),
-      lastLogin: null,
-      kycStatus: 'pendiente',
+      lastLogin: new Date(),
+      tokenVersion: 1,
+      kycStatus: 'pending',
       avatar: null,
       documentoUrl: null,
-      affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0, withdrawnBalance: 0 }
+      wallet: { balance: 0, currency: 'USD', history: [] },
+      affiliates: { 
+        level: 'bronce', 
+        totalReferrals: 0, 
+        level2Referrals: 0,
+        level3Referrals: 0,
+        pendingBalance: 0, 
+        availableBalance: 0, 
+        withdrawnBalance: 0,
+        lastReferral: null
+      },
+      metadata: {
+        registrationMethod: 'freemium',
+        userAgent: req.headers['user-agent'] || 'unknown',
+        ip: req.ip,
+        registeredAt: new Date()
+      }
     };
     
     const result = await usersCollection.insertOne(newUser);
@@ -1307,6 +1435,7 @@ app.post('/register', async(req, res) => {
       avatarUrl: null,
       bio: '',
       isPublic: false,
+      identityVerified: false,
       createdAt: new Date()
     });
     
@@ -1326,26 +1455,94 @@ app.post('/register', async(req, res) => {
       level: 'bronce',
       createdAt: new Date()
     });
+
+    // 📊 ACTUALIZAR CONTADORES DEL REFERIDOR
+    await usersCollection.updateOne(
+      { uid: referrer.uid },
+      { 
+        $inc: { 'affiliates.totalReferrals': 1 },
+        $set: { 'affiliates.lastReferral': new Date() }
+      }
+    );
+
+    // Actualizar nivel 2
+    if (referralChain[1]) {
+      await usersCollection.updateOne(
+        { uid: referralChain[1] },
+        { $inc: { 'affiliates.level2Referrals': 1 } }
+      );
+    }
+
+    // Actualizar nivel 3
+    if (referralChain[2]) {
+      await usersCollection.updateOne(
+        { uid: referralChain[2] },
+        { $inc: { 'affiliates.level3Referrals': 1 } }
+      );
+    }
+
+    // 🎁 DAR XP DE BIENVENIDA (50 XP para Freemium)
+    if (typeof addXP === 'function') {
+      await addXP(userId, 50, null);
+    }
+
+    // 📧 ENVIAR EMAIL DE BIENVENIDA
+    if (emailReal && typeof enviarBienvenida === 'function') {
+      enviarBienvenida(emailReal.toLowerCase(), username).catch(err => {
+        logger.warn('⚠️ No se pudo enviar email de bienvenida: ' + err.message);
+      });
+    }
+
+    // 📧 NOTIFICAR AL REFERIDOR
+    if (referrer.emailReal && typeof enviarNotificacionNuevoSeguidor === 'function') {
+      enviarNotificacionNuevoSeguidor(
+        referrer.emailReal,
+        referrer.username,
+        username
+      ).catch(err => {
+        logger.warn('⚠️ No se pudo notificar al referidor: ' + err.message);
+      });
+    }
     
-    await logAudit('register', { email, uid, username, referredBy, referredBy2, referredBy3 });
+    await logAudit('register', { 
+      uid, 
+      email, 
+      username, 
+      referredBy, 
+      referredBy2, 
+      referredBy3,
+      referralChain,
+      hasEmailReal: !!emailReal,
+      ip: req.ip
+    });
+
+    logger.info(`🎉 Nuevo usuario Freemium registrado: ${username} (referido por ${referrer.username})`);
     
     const userData = {
       uid,
       email,
+      emailReal: emailReal?.toLowerCase() || null,
       username,
+      nombreCompleto,
       isAdmin: newUser.isAdmin,
       tier: newUser.tier,
+      isPremium: false,
+      accountType: 'freemium',
       refCode: refCodeGenerated,
-      kycStatus: 'pendiente'
+      referredBy,
+      kycStatus: 'pending'
     };
     
-    res.status(201).json({ success: true, message: 'Registrado correctamente', user: userData });
+    res.status(201).json({ 
+      success: true, 
+      message: '✅ Registrado correctamente', 
+      user: userData 
+    });
   } catch (e) {
-    console.error('❌ Register error:', e);
-    res.status(500).json({ error: e.message });
+    logger.error('❌ Register error: ' + e.message);
+    res.status(500).json({ error: 'Error interno del servidor: ' + e.message });
   }
 });
-
 // 🔐 LOGIN - Acepta email (con dominio propio) o nombre de usuario
 app.post('/login', async(req, res) => {
   try {
