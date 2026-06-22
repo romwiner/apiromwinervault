@@ -1563,7 +1563,6 @@ const limit = limits[tier] || 10;
 document.getElementById('storageUsed').textContent = limit === -1 ? `${gb} GB / ∞` : `${gb} / ${limit} GB`;
 document.getElementById('storageFill').style.width = limit === -1 ? '5%' : Math.min(100, (totalSize / (limit * 1024**3)) * 100) + '%';
 }
-
 function doLogout() {
 if (!confirm('¿Cerrar sesión?')) return;
 authToken = null; currentUser = null; userData = null; userFiles = [];
