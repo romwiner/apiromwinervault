@@ -1700,7 +1700,6 @@ const app = express();
 // ... otros require que tengas ...
 // ==================== CONFIGURACIÓN SEGURA DE RESEND ====================
 const RESEND_KEY = process.env.RESEND_KEY;
-
 async function enviarCorreo(to, subject, html) {
   if (!RESEND_KEY) {
     console.error("❌ No se encontró la API Key de Resend");
@@ -1769,8 +1768,6 @@ async function enviarRecuperacion(emailUsuario, linkRecuperacion) {
 }   
 
 // ==================== FUNCIÓN PARA ENVIAR CORREOS CON RESEND ====================
-const RESEND_KEY = process.env.RESEND_KEY;
-
 async function enviarEmail({ para, asunto, html }) {
   if (!RESEND_KEY) {
     console.error("❌ No se encontró RESEND_KEY en variables de entorno");
