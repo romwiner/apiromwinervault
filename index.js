@@ -1095,15 +1095,16 @@ app.post('/register', async (req, res) => {
     const uid = 'user_' + crypto.randomBytes(16).toString('hex');
     const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
-    const newUser = {
-      uid, email, emailReal: emailReal?.toLowerCase() || null, username, nombreCompleto,
-      fechaNacimiento: birthDate, password: hashed, refCode: refCodeGenerated,
-      referredBy: referrer.uid, isAdmin: ADMIN_EMAILS.includes(emailReal?.toLowerCase()),
-      esSupremo: false, accountType: 'freemium', tier: 'personal', isPremium: false,
-      createdAt: new Date(), lastLogin: new Date(), tokenVersion: 1, kycStatus: 'pending',
-      wallet: { balance: 0, currency: 'USD', history: [] },
-      affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0 }
-    };
+   const newUser = {
+  uid, email, emailReal: emailReal?.toLowerCase() || null, username, nombreCompleto,
+  emailCorporativo: `${username.toLowerCase().replace(/\s+/g, '')}@apiromwinervault.com`,
+  fechaNacimiento: birthDate, password: hashed, refCode: refCodeGenerated,
+  referredBy: referrer.uid, isAdmin: ADMIN_EMAILS.includes(emailReal?.toLowerCase()),
+  esSupremo: false, accountType: 'freemium', tier: 'personal', isPremium: false,
+  createdAt: new Date(), lastLogin: new Date(), tokenVersion: 1, kycStatus: 'pending',
+  wallet: { balance: 0, currency: 'USD', history: [] },
+  affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0 }
+};
     
     const result = await usersCollection.insertOne(newUser);
     const userId = result.insertedId;
