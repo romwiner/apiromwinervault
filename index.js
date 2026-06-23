@@ -1730,7 +1730,6 @@ async function enviarCorreo(to, subject, html) {
 }
 
 // ==================== FUNCIONES DE CORREO ====================
-
 // 1. Correo de Bienvenida cuando se registra un usuario
 async function enviarBienvenida(emailUsuario, nombreUsuario = "Usuario") {
   const html = `
@@ -1766,10 +1765,9 @@ async function enviarRecuperacion(emailUsuario, linkRecuperacion) {
   `;
   await enviarCorreo(emailUsuario, 'Recupera tu contraseña - Apirom Wine Vault', html);
 }   
-
 // ==================== FUNCIÓN PARA ENVIAR CORREOS CON RESEND ====================
 async function enviarEmail({ para, asunto, html }) {
-  if (!RESEND_KEY) {
+  if (!process.env.RESEND_KEY) {
     console.error("❌ No se encontró RESEND_KEY en variables de entorno");
     return;
   }
@@ -1778,7 +1776,7 @@ async function enviarEmail({ para, asunto, html }) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_KEY}`
+        'Authorization': `Bearer ${process.env.RESEND_KEY}`
       },
       body: JSON.stringify({
         from: 'admin@romwinervault.com',
