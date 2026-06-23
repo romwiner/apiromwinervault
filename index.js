@@ -1030,8 +1030,8 @@ app.post('/api/ai/command', authenticate, async(req, res) => {
 // Este bloque contiene TODOS los registros en un solo lugar:
 // 1. FREEMIUM (gratis) - /register
 // 2. PREMIUM ($25/mes) - /api/register/premium
-// 3. ENTERPRISE ($100/mes) - /api/register/enterprise
-// 4. CORPORATION ($500/mes) - /api/register/corporation
+// 3. ENTERPRISE ($125/mes) - /api/register/enterprise
+// 4. CORPORATION ($750/mes) - /api/register/corporation
 // ============================================
 
 // ============================================
@@ -1199,7 +1199,7 @@ app.post('/api/register/premium', async (req, res) => {
 });
 
 // ============================================
-// 💎 3. REGISTRO ENTERPRISE ($100/mes)
+// 💎 3. REGISTRO ENTERPRISE ($125/mes)
 // ============================================
 app.post('/api/register/enterprise', async (req, res) => {
   try {
@@ -1256,7 +1256,7 @@ app.post('/api/register/enterprise', async (req, res) => {
 });
 
 // ============================================
-// 🏛️ 4. REGISTRO CORPORATION ($500/mes)
+// 🏛️ 4. REGISTRO CORPORATION ($750/mes)
 // ============================================
 app.post('/api/register/corporation', async (req, res) => {
   try {
@@ -1695,6 +1695,118 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
       isNewUser
     });
 
+    const express = require('express');
+const app = express();
+// ... otros require que tengas ...
+// ==================== CONFIGURACIÓN SEGURA DE RESEND ====================
+const RESEND_KEY = process.env.RESEND_KEY;
+
+async function enviarCorreo(to, subject, html) {
+  if (!RESEND_KEY) {
+    console.error("❌ No se encontró la API Key de Resend");
+    return;
+  }
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${RESEND_KEY}`
+      },
+      body: JSON.stringify({
+        from: 'admin@romwinervault.com',
+        to: to,
+        subject: subject,
+        html: html
+      })
+    });
+
+    const data = await response.json();
+    console.log('✅ Correo enviado a:', to);
+    return data;
+  } catch (error) {
+    console.error('❌ Error enviando correo:', error);
+  }
+}
+
+// ==================== FUNCIONES DE CORREO ====================
+
+// 1. Correo de Bienvenida cuando se registra un usuario
+async function enviarBienvenida(emailUsuario, nombreUsuario = "Usuario") {
+  const html = `
+    <h1>¡Bienvenido a Apirom Wine Vault, ${nombreUsuario}!</h1>
+    <p>Gracias por registrarte en nuestra plataforma.</p>
+    <p>Ahora puedes disfrutar de todos nuestros servicios.</p>
+    <p>Si tienes alguna duda, responde este mismo correo.</p>
+  `;
+  await enviarCorreo(emailUsuario, '¡Bienvenido a Apirom Wine Vault!', html);
+}
+
+// 2. Correo de Contacto
+async function enviarContacto(nombre, email, mensaje) {
+  const html = `
+    <h2>Nuevo mensaje de contacto</h2>
+    <p><strong>Nombre:</strong> ${nombre}</p>
+    <p><strong>Email:</strong> ${email}</p>
+    <p><strong>Mensaje:</strong></p>
+    <p>${mensaje}</p>
+  `;
+  await enviarCorreo('admin@romwinervault.com', `Nuevo contacto de ${nombre}`, html);
+}
+
+// 3. Correo de Recuperación de Contraseña
+async function enviarRecuperacion(emailUsuario, linkRecuperacion) {
+  const html = `
+    <h2>Recupera tu contraseña</h2>
+    <p>Hola,</p>
+    <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+    <p><a href="${linkRecuperacion}" style="background-color:#000; color:white; padding:12px 20px; text-decoration:none; border-radius:5px;">Restablecer Contraseña</a></p>
+    <p>Este enlace expirará en 1 hora.</p>
+    <p>Si no solicitaste esto, ignora este correo.</p>
+  `;
+  await enviarCorreo(emailUsuario, 'Recupera tu contraseña - Apirom Wine Vault', html);
+}   
+
+// ==================== FUNCIÓN PARA ENVIAR CORREOS CON RESEND ====================
+const RESEND_KEY = process.env.RESEND_KEY;
+
+async function enviarEmail({ para, asunto, html }) {
+  if (!RESEND_KEY) {
+    console.error("❌ No se encontró RESEND_KEY en variables de entorno");
+    return;
+  }
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${RESEND_KEY}`
+      },
+      body: JSON.stringify({
+        from: 'admin@romwinervault.com',
+        to: para,
+        subject: asunto,
+        html: html
+      })
+    });
+    const data = await response.json();
+    if (response.ok) {
+      console.log(`✅ Correo enviado correctamente a: ${para}`);
+    } else {
+      console.error('❌ Error de Resend:', data);
+    }
+    return data;
+  } catch (error) {
+    console.error('❌ Error enviando correo:', error.message);
+    throw error;
+  }
+}
+
+// =====================================================================================
+// El resto de tu código (rutas, middlewares, etc.) continúa aquí...
+// =====================================================================================
+    
     // Enviar email de notificación si se solicita
     if (sendEmail && typeof enviarEmail === 'function') {
       const emailSubject = isNewUser 
@@ -1756,6 +1868,7 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
     res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message });
   }
 });
+
 // 📦 VAULT CREATE (CON IA: AUTO-TAGS)
 // ============================================
 app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async (req, res) => {
