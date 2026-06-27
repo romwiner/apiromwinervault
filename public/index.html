@@ -1242,21 +1242,52 @@ let avatarData = null;
 
 // ============ API HELPER ============
 async function api(endpoint, options = {}) {
-const headers = { ...(options.headers || {}) };
-if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-if (!(options.body instanceof FormData) && options.body && typeof options.body === 'object') {
-headers['Content-Type'] = 'application/json';
-options.body = JSON.stringify(options.body);
+  const headers = { ...(options.headers || {}) };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  if (!(options.body instanceof FormData) && options.body && typeof options.body === 'object') {
+    headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(options.body);
+  }
+  try {
+    const res = await fetch(API_URL + endpoint, { ...options, headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error(`API ${endpoint}:`, err);
+    throw err;
+  }
 }
-try {
-const res = await fetch(API_URL + endpoint, { ...options, headers });
-const data = await res.json().catch(() => ({}));
-if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
-return data;
-} catch (err) {
-console.error(`API ${endpoint}:`, err);
-throw err;
-}
+
+// ============ NOTIFICATION ============
+function showNotification(type, title, message) {
+  const notif = document.getElementById('notification');
+  const icon = document.getElementById('notifIcon');
+  const titleEl = document.getElementById('notifTitle');
+  const msgEl = document.getElementById('notifMsg');
+  
+  if (!notif) return;
+  
+  const icons = {
+    success: 'ri-check-line',
+    error: 'ri-error-warning-line',
+    warning: 'ri-alert-line',
+    info: 'ri-information-line'
+  };
+  
+  icon.className = icons[type] || icons.info;
+  icon.style.color = type === 'success' ? 'var(--green-neon)' : 
+                     type === 'error' ? 'var(--danger)' : 
+                     type === 'warning' ? '#f59e0b' : 'var(--gold-bright)';
+  
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+  
+  notif.classList.add('active');
+  
+  setTimeout(() => {
+    notif.classList.remove('active');
+  }, 4000);
 }
 
 // ============ AUTO-LOGIN ============
