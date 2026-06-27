@@ -3,12 +3,9 @@
 
 FROM node:20-alpine
 
-# Variables de entorno requeridas
-ENV NODE_ENV=production \
-    PORT=10000 \
-    MONGODB_URI=required \
-    JWT_SECRET=required \
-    MASTER_KEY=required
+# Solo variables básicas (el resto viene de Railway)
+ENV NODE_ENV=production
+ENV PORT=10000
 
 # Directorio de trabajo
 WORKDIR /app
