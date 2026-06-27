@@ -2244,16 +2244,6 @@ showNotification('info','Sesión cerrada','Has salido de la bóveda');
 
 <script>
 // ============ CONFIGURACIÓN API ============
-let currentUser = null;
-let authToken = localStorage.getItem('authToken');
-let userData = null;
-let userFiles = [];
-let currentViewFile = null;
-let currentSellFile = null;
-let currentReviewItem = null;
-let currentRating = 5;
-let currentFilter = 'all';
-let avatarData = null;
 
 // ============ API HELPER ============
 async function api(endpoint, options = {}) {
