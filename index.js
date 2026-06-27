@@ -24,6 +24,12 @@ REQUIRED_ENV_VARS.forEach(v => {
   console.log(`${v}: ${valor ? '✅ SÍ LLEGA' : '❌ NO LLEGA'}`);
 });
 console.log('================================');
+
+// TRUCO: Si R2_ACCESS_KEY_ID no llega, usar CF_R2_ACCESS_KEY_ID
+if (!process.env.R2_ACCESS_KEY_ID && process.env.CF_R2_ACCESS_KEY_ID) {
+  process.env.R2_ACCESS_KEY_ID = process.env.CF_R2_ACCESS_KEY_ID;
+}
+
 const missingVars = REQUIRED_ENV_VARS.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
