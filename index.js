@@ -702,15 +702,17 @@ app.use(cors({
     // Permitir peticiones sin origen (ej. apps móviles, Postman)
     if (!origin) return callback(null, true);
     
-    const allowedOrigins = [
-      'https://apiromwinervault.onrender.com',
-      'https://api.romwinervault.com',
-      'https://romwinervault.com',
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:10000',
-      'http://127.0.0.1:10000'
-    ];
+  const allowedOrigins = [
+  'https://apiromwinervault.onrender.com',
+  'https://apiromwinervault.com',
+  'https://www.apiromwinervault.com',
+  'https://api.romwinervault.com',
+  'https://romwinervault.com',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:10000',
+  'http://127.0.0.1:10000'
+];
     
     // Verificar si el origen está explícitamente permitido o es subdominio válido
     const isAllowed = allowedOrigins.includes(origin) ||
