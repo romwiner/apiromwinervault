@@ -106,7 +106,22 @@ async function enviarBienvenida(emailDestino, nombreCompleto) {
     html: html
   });
 }
+// ==================== FUNCIÓN DE CONTACTO ====================
+async function enviarContacto(nombre, email, mensaje) {
+  const html = `
+    <h2>Nuevo mensaje de contacto</h2>
+    <p><strong>Nombre:</strong> ${nombre}</p>
+    <p><strong>Email:</strong> ${email}</p>
+    <p><strong>Mensaje:</strong></p>
+    <p>${mensaje}</p>
+  `;
 
+  await enviarEmail({
+    para: 'admin@romwinervault.com',
+    asunto: `Nuevo contacto de ${nombre}`,
+    html: html
+  });
+}
 // ============================================
 // 📝 LOGGER MEJORADO
 // ============================================
