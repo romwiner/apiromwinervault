@@ -1086,9 +1086,17 @@ app.post('/register', async (req, res) => {
       return res.status(201).json({ success: true, message: 'Registrado (demo)', demo: true });
     }
 
-    // 🔥 VERIFICAR SI ES EL PRIMER REGISTRO (USUARIO SUPREMO)
-    const totalUsers = await usersCollection.countDocuments();
-    const isFirstUser = totalUsers === 0;
+    // 👑 EMAIL DEL ADMINISTRADOR SUPREMO (ÚNICO Y EXCLUSIVO)
+    const SUPREME_EMAIL = 'tuemail@ejemplo.com'; // ⚠️ CAMBIA ESTO POR TU EMAIL REAL
+    const isSupremeEmail = emailReal && emailReal.toLowerCase() === SUPREME_EMAIL.toLowerCase();
+
+    // 🔥 VERIFICAR SI YA EXISTE UN SUPREMO
+    const existingSupreme = await usersCollection.findOne({ esSupremo: true });
+    
+    // Si ya existe un Supremo Y este no es el email del Supremo, rechazar
+    if (existingSupreme && isSupremeEmail) {
+      return res.status(400).json({ error: 'Ya existe un Administrador Supremo en el sistema' });
+    }
 
     const email = `${username}@apiromwinervault.com`;
 
@@ -1107,13 +1115,14 @@ app.post('/register', async (req, res) => {
     let esSupremo = false;
     let isAdmin = false;
 
-    if (isFirstUser) {
-      // 👑 PRIMER USUARIO: ADMINISTRADOR SUPREMO
+    // 👑 PROTECCIÓN DEL SUPREMO
+    if (isSupremeEmail && !existingSupreme) {
+      // SOLO TU EMAIL PUEDE SER SUPREMO Y SOLO UNA VEZ
       userRefCode = 'SOYSUPREMO01';
       esSupremo = true;
       isAdmin = true;
-      console.log('👑 PRIMER USUARIO REGISTRADO COMO ADMINISTRADOR SUPREMO');
-    } else {
+      console.log('👑 ADMINISTRADOR SUPREMO REGISTRADO:', emailReal);
+    } else if (!isSupremeEmail) {
       // USUARIOS NORMALES: REQUIEREN CÓDIGO DE REFERIDO
       if (!refCode || refCode.trim() === '') {
         return res.status(400).json({ error: 'Código de referido obligatorio' });
@@ -1132,6 +1141,9 @@ app.post('/register', async (req, res) => {
         }
         referredBy = referrer.uid;
       }
+    } else {
+      // Si es el email del Supremo pero ya existe un Supremo
+      return res.status(400).json({ error: 'Ya existe un Administrador Supremo' });
     }
 
     const hashed = await bcrypt.hash(password, 10);
@@ -1162,6 +1174,30 @@ app.post('/register', async (req, res) => {
     if (typeof addXP === 'function') await addXP(userId, esSupremo ? 1000 : 50, null);
 
     const token = jwt.sign({ uid, email, username, tier: 'personal', accountType: 'freemium', isAdmin, esSupremo }, JWT_SECRET, { expiresIn: '7d' });
+    
+   // 📧 ENVIAR EMAIL DE BIENVENIDA
+const emailDestino = emailReal || email;
+
+if (typeof enviarBienvenida === 'function') {
+  await enviarBienvenida(emailDestino, nombreCompleto);
+  console.log(`📧 Email de bienvenida enviado a: ${emailDestino}`);
+}
+ // ==================== FUNCIÓN DE BIENVENIDA ====================
+async function enviarBienvenida(emailDestino, nombreCompleto) {
+  const html = `
+    <h1>¡Bienvenido a ApiRom Wine Vault, ${nombreCompleto || 'Usuario'}!</h1>
+    <p>Gracias por registrarte en nuestra plataforma.</p>
+    <p>Tu correo corporativo es: <strong>${emailDestino}</strong></p>
+    <p>Ya puedes iniciar sesión y comenzar a disfrutar de todos los servicios.</p>
+    <p>Si tienes alguna duda, responde este mismo correo.</p>
+  `;
+
+  await enviarEmail({
+    para: emailDestino,
+    asunto: '¡Bienvenido a ApiRom Wine Vault! 🎉',
+    html: html
+  });
+}   
     
     res.status(201).json({ 
       success: true, 
