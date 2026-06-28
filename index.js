@@ -57,6 +57,38 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs').promises;
 const fetch = require('node-fetch');
+// ============================================
+// 📧 NODEMAILER + RESEND
+// ============================================
+const nodemailer = require('nodemailer');
+
+// Configuración Nodemailer con Resend
+const transporter = nodemailer.createTransporter({
+  host: 'smtp.resend.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: 'resend',
+    pass: process.env.RESEND_KEY
+  }
+});
+
+// Función principal para enviar correos
+async function enviarEmail({ para, asunto, html }) {
+  try {
+    await transporter.sendMail({
+      from: 'admin@romwinervault.com',
+      to: para,
+      subject: asunto,
+      html: html
+    });
+    console.log(`✅ Correo enviado a: ${para}`);
+    return true;
+  } catch (error) {
+    console.error('❌ Error enviando correo:', error.message);
+    throw error;
+  }
+}
 
 // ============================================
 // 📝 LOGGER MEJORADO
@@ -1060,15 +1092,12 @@ app.post('/register', async (req, res) => {
     if (!username || !password || !nombreCompleto || !fechaNacimiento) {
       return res.status(400).json({ error: 'Usuario, contraseña, nombre real y fecha de nacimiento son obligatorios' });
     }
-
     if (!/^[a-z0-9._]{3,30}$/.test(username)) {
       return res.status(400).json({ error: 'Usuario inválido (solo minúsculas, números, . y _, 3-30 caracteres)' });
     }
-
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
       return res.status(400).json({ error: 'Contraseña débil. Requiere: 8+ caracteres, 1 mayúscula, 1 número, 1 símbolo' });
     }
-
     if (emailReal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailReal)) {
       return res.status(400).json({ error: 'Email real inválido' });
     }
@@ -1086,25 +1115,21 @@ app.post('/register', async (req, res) => {
       return res.status(201).json({ success: true, message: 'Registrado (demo)', demo: true });
     }
 
-    // 👑 EMAIL DEL ADMINISTRADOR SUPREMO (ÚNICO Y EXCLUSIVO)
-    const SUPREME_EMAIL = 'tuemail@ejemplo.com'; // ⚠️ CAMBIA ESTO POR TU EMAIL REAL
+    const SUPREME_EMAIL = 'tuemail@ejemplo.com';
     const isSupremeEmail = emailReal && emailReal.toLowerCase() === SUPREME_EMAIL.toLowerCase();
 
-    // 🔥 VERIFICAR SI YA EXISTE UN SUPREMO
     const existingSupreme = await usersCollection.findOne({ esSupremo: true });
-    
-    // Si ya existe un Supremo Y este no es el email del Supremo, rechazar
+   
     if (existingSupreme && isSupremeEmail) {
       return res.status(400).json({ error: 'Ya existe un Administrador Supremo en el sistema' });
     }
 
     const email = `${username}@apiromwinervault.com`;
-
     const existingEmail = await usersCollection.findOne({ $or: [{ email }, { emailReal: emailReal?.toLowerCase() }] });
     if (existingEmail) {
       return res.status(400).json({ error: 'El email ya está registrado' });
     }
-    
+   
     const existingUsername = await usersCollection.findOne({ username });
     if (existingUsername) {
       return res.status(400).json({ error: 'Nombre de usuario no disponible' });
@@ -1115,20 +1140,15 @@ app.post('/register', async (req, res) => {
     let esSupremo = false;
     let isAdmin = false;
 
-    // 👑 PROTECCIÓN DEL SUPREMO
     if (isSupremeEmail && !existingSupreme) {
-      // SOLO TU EMAIL PUEDE SER SUPREMO Y SOLO UNA VEZ
       userRefCode = 'SOYSUPREMO01';
       esSupremo = true;
       isAdmin = true;
       console.log('👑 ADMINISTRADOR SUPREMO REGISTRADO:', emailReal);
     } else if (!isSupremeEmail) {
-      // USUARIOS NORMALES: REQUIEREN CÓDIGO DE REFERIDO
       if (!refCode || refCode.trim() === '') {
         return res.status(400).json({ error: 'Código de referido obligatorio' });
       }
-
-      // Aceptar el código supremo como válido
       if (refCode.toUpperCase() === 'SOYSUPREMO01') {
         const supremeUser = await usersCollection.findOne({ refCode: 'SOYSUPREMO01' });
         if (supremeUser) {
@@ -1142,7 +1162,6 @@ app.post('/register', async (req, res) => {
         referredBy = referrer.uid;
       }
     } else {
-      // Si es el email del Supremo pero ya existe un Supremo
       return res.status(400).json({ error: 'Ya existe un Administrador Supremo' });
     }
 
@@ -1150,16 +1169,29 @@ app.post('/register', async (req, res) => {
     const uid = 'user_' + crypto.randomBytes(16).toString('hex');
 
     const newUser = {
-      uid, email, emailReal: emailReal?.toLowerCase() || null, username, nombreCompleto,
+      uid, 
+      email, 
+      emailReal: emailReal?.toLowerCase() || null, 
+      username, 
+      nombreCompleto,
       emailCorporativo: `${username.toLowerCase().replace(/\s+/g, '')}@apiromwinervault.com`,
-      fechaNacimiento: birthDate, password: hashed, refCode: userRefCode,
-      referredBy: referredBy, isAdmin: isAdmin, esSupremo: esSupremo,
-      accountType: 'freemium', tier: 'personal', isPremium: false,
-      createdAt: new Date(), lastLogin: new Date(), tokenVersion: 1, kycStatus: 'pending',
+      fechaNacimiento: birthDate, 
+      password: hashed, 
+      refCode: userRefCode,
+      referredBy: referredBy, 
+      isAdmin: isAdmin, 
+      esSupremo: esSupremo,
+      accountType: 'freemium', 
+      tier: 'personal', 
+      isPremium: false,
+      createdAt: new Date(), 
+      lastLogin: new Date(), 
+      tokenVersion: 1, 
+      kycStatus: 'pending',
       wallet: { balance: 0, currency: 'USD', history: [] },
       affiliates: { level: esSupremo ? 'diamante' : 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0 }
     };
-    
+   
     const result = await usersCollection.insertOne(newUser);
     const userId = result.insertedId;
 
@@ -1174,37 +1206,21 @@ app.post('/register', async (req, res) => {
     if (typeof addXP === 'function') await addXP(userId, esSupremo ? 1000 : 50, null);
 
     const token = jwt.sign({ uid, email, username, tier: 'personal', accountType: 'freemium', isAdmin, esSupremo }, JWT_SECRET, { expiresIn: '7d' });
-    
-   // 📧 ENVIAR EMAIL DE BIENVENIDA
-const emailDestino = emailReal || email;
-
-if (typeof enviarBienvenida === 'function') {
-  await enviarBienvenida(emailDestino, nombreCompleto);
-  console.log(`📧 Email de bienvenida enviado a: ${emailDestino}`);
-}
- // ==================== FUNCIÓN DE BIENVENIDA ====================
-async function enviarBienvenida(emailDestino, nombreCompleto) {
-  const html = `
-    <h1>¡Bienvenido a ApiRom Wine Vault, ${nombreCompleto || 'Usuario'}!</h1>
-    <p>Gracias por registrarte en nuestra plataforma.</p>
-    <p>Tu correo corporativo es: <strong>${emailDestino}</strong></p>
-    <p>Ya puedes iniciar sesión y comenzar a disfrutar de todos los servicios.</p>
-    <p>Si tienes alguna duda, responde este mismo correo.</p>
-  `;
-
-  await enviarEmail({
-    para: emailDestino,
-    asunto: '¡Bienvenido a ApiRom Wine Vault! 🎉',
-    html: html
-  });
-}   
-    
-    res.status(201).json({ 
-      success: true, 
-      message: esSupremo ? '✅ ¡Bienvenido Administrador Supremo!' : '✅ Registrado correctamente', 
-      token, 
+   
+    // 📧 ENVIAR EMAIL DE BIENVENIDA
+    const emailDestino = emailReal || email;
+    if (typeof enviarBienvenida === 'function') {
+      await enviarBienvenida(emailDestino, nombreCompleto);
+      console.log(`📧 Email de bienvenida enviado a: ${emailDestino}`);
+    }
+   
+    res.status(201).json({
+      success: true,
+      message: esSupremo ? '✅ ¡Bienvenido Administrador Supremo!' : '✅ Registrado correctamente',
+      token,
       user: { uid, email, username, accountType: 'freemium', esSupremo, isAdmin, refCode: userRefCode }
     });
+
   } catch (error) {
     logger.error('❌ Register error: ' + error.message);
     res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
