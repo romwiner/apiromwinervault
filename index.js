@@ -58,7 +58,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const fetch = require('node-fetch');
 // ============================================
-// 📧 NODEMAILER + RESEND
+// 📧 NODEMAILER + RESEND (TRANSPORTE SMTP)
 // ============================================
 const nodemailer = require('nodemailer');
 
@@ -89,6 +89,7 @@ async function enviarEmail({ para, asunto, html }) {
     throw error;
   }
 }
+
 // ==================== FUNCIÓN DE BIENVENIDA ====================
 async function enviarBienvenida(emailDestino, nombreCompleto) {
   const html = `
@@ -105,11 +106,12 @@ async function enviarBienvenida(emailDestino, nombreCompleto) {
     html: html
   });
 }
+
 // ============================================
 // 📝 LOGGER MEJORADO
 // ============================================
 const pino = require('pino');
-const logger = pino({ 
+const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
   timestamp: () => `,"time":"${new Date().toISOString()}"`,
   base: { service: 'apiromwinervault' }
@@ -120,10 +122,9 @@ const logger = pino({
 // ============================================
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-
 const R2_BUCKET = process.env.R2_BUCKET_NAME || 'apiromwinervault-files';
 
-// Configuración mejorada de R2 con retry y timeout
+// Configuración mejorada de R2
 const r2 = new S3Client({
   region: 'auto',
   endpoint: process.env.R2_ENDPOINT,
@@ -132,10 +133,10 @@ const r2 = new S3Client({
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
   },
   forcePathStyle: true,
-  maxAttempts: 3, // ✅ Reintentar 3 veces si falla
+  maxAttempts: 3,
   requestHandler: {
-    connectionTimeout: 5000, // ✅ 5 segundos timeout de conexión
-    socketTimeout: 30000, // ✅ 30 segundos para operaciones largas
+    connectionTimeout: 5000,
+    socketTimeout: 30000,
   }
 });
 
@@ -145,7 +146,7 @@ const r2 = new S3Client({
 async function uploadToR2(buffer, key, mimeType) {
   try {
     logger.debug({ key, size: buffer.length, mimeType }, '📤 Subiendo archivo a R2');
-    
+   
     await r2.send(new PutObjectCommand({
       Bucket: R2_BUCKET,
       Key: key,
@@ -156,7 +157,7 @@ async function uploadToR2(buffer, key, mimeType) {
         'original-size': buffer.length.toString()
       }
     }));
-    
+   
     logger.info({ key, size: buffer.length }, '✅ Archivo subido a R2');
     return key;
   } catch (e) {
