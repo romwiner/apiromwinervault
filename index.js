@@ -89,7 +89,22 @@ async function enviarEmail({ para, asunto, html }) {
     throw error;
   }
 }
+// ==================== FUNCIÓN DE BIENVENIDA ====================
+async function enviarBienvenida(emailDestino, nombreCompleto) {
+  const html = `
+    <h1>¡Bienvenido a ApiRom Wine Vault, ${nombreCompleto || 'Usuario'}!</h1>
+    <p>Gracias por registrarte en nuestra plataforma.</p>
+    <p>Tu correo corporativo es: <strong>${emailDestino}</strong></p>
+    <p>Ya puedes iniciar sesión y comenzar a disfrutar de todos los servicios.</p>
+    <p>Si tienes alguna duda, responde este mismo correo.</p>
+  `;
 
+  await enviarEmail({
+    para: emailDestino,
+    asunto: '¡Bienvenido a ApiRom Wine Vault! 🎉',
+    html: html
+  });
+}
 // ============================================
 // 📝 LOGGER MEJORADO
 // ============================================
