@@ -106,6 +106,7 @@ async function enviarBienvenida(emailDestino, nombreCompleto) {
     html: html
   });
 }
+
 // ==================== FUNCIÓN DE CONTACTO ====================
 async function enviarContacto(nombre, email, mensaje) {
   const html = `
@@ -612,7 +613,10 @@ async function connectToMongo() {
     // ✅ NUEVAS COLECCIONES: NOTIFICACIONES Y STORIES
     notificationsCollection = db.collection('notifications');
     storiesCollection = db.collection('stories');
-
+    
+   // Colección para Bandeja de Entrada de correos
+    emailsCollection = db.collection('emails');
+    
     logger.info('✅ Colecciones asignadas correctamente');
 
        // ============================================
