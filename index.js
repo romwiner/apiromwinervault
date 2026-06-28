@@ -1264,13 +1264,7 @@ async function enviarContacto(nombre, email, mensaje) {
     html: html
   });
 }
-
-    res.status(201).json({
-      success: true,
-      message: esSupremo ? '✅ ¡Bienvenido Administrador Supremo!' : '✅ Registrado correctamente',
-      token,
-      user: { uid, email, username, accountType: 'freemium', esSupremo, isAdmin, refCode: userRefCode }
-    });  
+ 
     res.status(201).json({
       success: true,
       message: esSupremo ? '✅ ¡Bienvenido Administrador Supremo!' : '✅ Registrado correctamente',
