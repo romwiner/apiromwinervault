@@ -1244,7 +1244,22 @@ app.post('/register', async (req, res) => {
       await enviarBienvenida(emailDestino, nombreCompleto);
       console.log(`📧 Email de bienvenida enviado a: ${emailDestino}`);
     }
-   
+   // ==================== FUNCIÓN DE CONTACTO ====================
+async function enviarContacto(nombre, email, mensaje) {
+  const html = `
+    <h2>Nuevo mensaje de contacto</h2>
+    <p><strong>Nombre:</strong> ${nombre}</p>
+    <p><strong>Email:</strong> ${email}</p>
+    <p><strong>Mensaje:</strong></p>
+    <p>${mensaje}</p>
+  `;
+
+  await enviarEmail({
+    para: 'admin@romwinervault.com',
+    asunto: `Nuevo contacto de ${nombre}`,
+    html: html
+  });
+}
     res.status(201).json({
       success: true,
       message: esSupremo ? '✅ ¡Bienvenido Administrador Supremo!' : '✅ Registrado correctamente',
