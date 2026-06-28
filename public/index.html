@@ -1430,7 +1430,7 @@ method: 'POST',
 body: { nombre: realName, email: email || `${username}@apiromwinervault.com`, password: pwd, avatarBase64: avatarData, refCode: refCode, fechaNacimiento: birthDate }
 });
 } else {
-data = await api('/register', {
+data = await api('/api/register', {
 method: 'POST',
 body: { username, password: pwd, nombreCompleto: realName, fechaNacimiento: birthDate, refCode: refCode, emailReal: email || undefined }
 });
