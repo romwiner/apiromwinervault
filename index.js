@@ -2074,7 +2074,7 @@ app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async (re
       finalTags = suggestedTags;
     }
 
-    // Preparar objeto del vault
+  // Preparar objeto del vault con venta granular
     const data = {
       userId: user._id,
       userUid: user.uid,
@@ -2089,7 +2089,10 @@ app.post('/vault', authenticate, checkQuota, upload.single('archivo'), async (re
       encrypted: null,
       isForSale,
       price: numericPrice,
-      licenseDays: numericLicenseDays,
+      licenseType: req.body.licenseType || 'permanent',   // permanent, days7, days30, days365
+      licenseDays: numericLicenseDays || (req.body.licenseDays ? parseInt(req.body.licenseDays) : null),
+      previewEnabled: req.body.previewEnabled === 'true',
+      previewText: req.body.previewText || null,
       sales: 0,
       buyers: [],
       tags: finalTags,
