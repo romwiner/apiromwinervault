@@ -734,7 +734,9 @@ app.use(cors({
 
 // Elimina esta línea si la tienes (es redundante):
 // app.options('*', cors());
-
+// ✅ Parsear JSON y formularios
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // ✅ Servir archivos estáticos (frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/app', express.static(path.join(__dirname, 'public')));
