@@ -1080,13 +1080,13 @@ app.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Debes ser mayor de 18 años para registrarte' });
     }
 
-    if (!refCode || refCode.trim() === '') {
-      return res.status(400).json({ error: 'Código de referido obligatorio' });
-    }
-
     if (!mongoReady) {
       return res.status(201).json({ success: true, message: 'Registrado (demo)', demo: true });
     }
+
+    // 🔥 VERIFICAR SI ES EL PRIMER REGISTRO (USUARIO SUPREMO)
+    const totalUsers = await usersCollection.countDocuments();
+    const isFirstUser = totalUsers === 0;
 
     const email = `${username}@apiromwinervault.com`;
 
@@ -1100,40 +1100,73 @@ app.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Nombre de usuario no disponible' });
     }
 
-    const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
-    if (!referrer) {
-      return res.status(400).json({ error: 'Código de referido inválido' });
+    let referredBy = null;
+    let userRefCode = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    let esSupremo = false;
+    let isAdmin = false;
+
+    if (isFirstUser) {
+      // 👑 PRIMER USUARIO: ADMINISTRADOR SUPREMO
+      userRefCode = 'SOYSUPREMO01';
+      esSupremo = true;
+      isAdmin = true;
+      console.log('👑 PRIMER USUARIO REGISTRADO COMO ADMINISTRADOR SUPREMO');
+    } else {
+      // USUARIOS NORMALES: REQUIEREN CÓDIGO DE REFERIDO
+      if (!refCode || refCode.trim() === '') {
+        return res.status(400).json({ error: 'Código de referido obligatorio' });
+      }
+
+      // Aceptar el código supremo como válido
+      if (refCode.toUpperCase() === 'SOYSUPREMO01') {
+        const supremeUser = await usersCollection.findOne({ refCode: 'SOYSUPREMO01' });
+        if (supremeUser) {
+          referredBy = supremeUser.uid;
+        }
+      } else {
+        const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
+        if (!referrer) {
+          return res.status(400).json({ error: 'Código de referido inválido' });
+        }
+        referredBy = referrer.uid;
+      }
     }
 
     const hashed = await bcrypt.hash(password, 10);
     const uid = 'user_' + crypto.randomBytes(16).toString('hex');
-    const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
-   const newUser = {
-  uid, email, emailReal: emailReal?.toLowerCase() || null, username, nombreCompleto,
-  emailCorporativo: `${username.toLowerCase().replace(/\s+/g, '')}@apiromwinervault.com`,
-  fechaNacimiento: birthDate, password: hashed, refCode: refCodeGenerated,
-  referredBy: referrer.uid, isAdmin: ADMIN_EMAILS.includes(emailReal?.toLowerCase()),
-  esSupremo: false, accountType: 'freemium', tier: 'personal', isPremium: false,
-  createdAt: new Date(), lastLogin: new Date(), tokenVersion: 1, kycStatus: 'pending',
-  wallet: { balance: 0, currency: 'USD', history: [] },
-  affiliates: { level: 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0 }
-};
+    const newUser = {
+      uid, email, emailReal: emailReal?.toLowerCase() || null, username, nombreCompleto,
+      emailCorporativo: `${username.toLowerCase().replace(/\s+/g, '')}@apiromwinervault.com`,
+      fechaNacimiento: birthDate, password: hashed, refCode: userRefCode,
+      referredBy: referredBy, isAdmin: isAdmin, esSupremo: esSupremo,
+      accountType: 'freemium', tier: 'personal', isPremium: false,
+      createdAt: new Date(), lastLogin: new Date(), tokenVersion: 1, kycStatus: 'pending',
+      wallet: { balance: 0, currency: 'USD', history: [] },
+      affiliates: { level: esSupremo ? 'diamante' : 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0 }
+    };
     
     const result = await usersCollection.insertOne(newUser);
     const userId = result.insertedId;
 
     await walletCollection.insertOne({ userId, balance: 0, currency: 'USD', history: [], createdAt: new Date() });
-    await profilesCollection.insertOne({ userId, uid, displayName: username, avatarUrl: null, bio: '', isPublic: false, createdAt: new Date() });
-    await affiliatesCollection.insertOne({ userId, refCode: refCodeGenerated, level: 'bronce', createdAt: new Date() });
+    await profilesCollection.insertOne({ userId, uid, displayName: username, avatarUrl: null, bio: esSupremo ? 'Administrador Supremo' : '', isPublic: false, createdAt: new Date() });
+    await affiliatesCollection.insertOne({ userId, refCode: userRefCode, level: esSupremo ? 'diamante' : 'bronce', createdAt: new Date() });
 
-    await usersCollection.updateOne({ uid: referrer.uid }, { $inc: { 'affiliates.totalReferrals': 1 } });
+    if (referredBy) {
+      await usersCollection.updateOne({ uid: referredBy }, { $inc: { 'affiliates.totalReferrals': 1 } });
+    }
 
-    if (typeof addXP === 'function') await addXP(userId, 50, null);
+    if (typeof addXP === 'function') await addXP(userId, esSupremo ? 1000 : 50, null);
 
-    const token = jwt.sign({ uid, email, username, tier: 'personal', accountType: 'freemium' }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ uid, email, username, tier: 'personal', accountType: 'freemium', isAdmin, esSupremo }, JWT_SECRET, { expiresIn: '7d' });
     
-    res.status(201).json({ success: true, message: '✅ Registrado correctamente', token, user: { uid, email, username, accountType: 'freemium' } });
+    res.status(201).json({ 
+      success: true, 
+      message: esSupremo ? '✅ ¡Bienvenido Administrador Supremo!' : '✅ Registrado correctamente', 
+      token, 
+      user: { uid, email, username, accountType: 'freemium', esSupremo, isAdmin, refCode: userRefCode }
+    });
   } catch (error) {
     logger.error('❌ Register error: ' + error.message);
     res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
