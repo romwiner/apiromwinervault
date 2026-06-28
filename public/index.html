@@ -1548,7 +1548,7 @@ try {
 const [profile, wallet, files, gam] = await Promise.all([
 api('/api/profile').catch(() => null),
 api('/api/wallet').catch(() => null),
-api('/vault').catch(() => null),
+api('/api/vault').catch(() => null),
 api('/api/gamification/me').catch(() => null)
 ]);
 if (profile?.success) currentUser = profile.profile;
