@@ -63,7 +63,7 @@ const fetch = require('node-fetch');
 const nodemailer = require('nodemailer');
 
 // Configuración Nodemailer con Resend
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTranspor({
   host: 'smtp.resend.com',
   port: 587,
   secure: false,
@@ -74,7 +74,7 @@ const transporter = nodemailer.createTransporter({
 });
 
 // Función principal para enviar correos
-async function enviarEmail({ para, asunto, html }) {
+async function enviarBienvenida(emailDestino, nombreCompleto) {
   try {
     await transporter.sendMail({
       from: 'admin@romwinervault.com',
