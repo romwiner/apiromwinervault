@@ -1346,11 +1346,9 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 // ============================================
 app.post('/login', authLimiter, async (req, res) => {
   try {
-    // ✅ CORREGIDO: Ahora acepta "email" O "username" (lo que envíe el frontend)
     const { email, username, password } = req.body;
     const identificador = email || username;
 
-    // Validaciones mejoradas
     if (!identificador) {
       return res.status(400).json({ error: 'Debes ingresar tu email o usuario' });
     }
@@ -1358,12 +1356,10 @@ app.post('/login', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Debes ingresar tu contraseña' });
     }
 
-    // Modo demo (sin MongoDB)
     if (!mongoReady) {
       return res.status(200).json({ success: true, message: 'Login exitoso (demo)', demo: true });
     }
 
-    // 🔍 Búsqueda mejorada: busca en 3 campos diferentes
     const identificadorLower = identificador.toLowerCase();
     const user = await usersCollection.findOne({
       $or: [
@@ -1373,26 +1369,22 @@ app.post('/login', authLimiter, async (req, res) => {
       ]
     });
 
-    // Usuario no encontrado
     if (!user) {
       console.log(`⚠️ Intento de login fallido: "${identificador}" no existe`);
       return res.status(401).json({ error: 'Usuario o email no registrado' });
     }
 
-    // 🔐 Verificar contraseña
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       console.log(`⚠️ Contraseña incorrecta para: ${user.username}`);
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
 
-    // ✅ Actualizar último login
     await usersCollection.updateOne(
       { uid: user.uid },
       { $set: { lastLogin: new Date() } }
     );
 
-    // 🎫 Generar token JWT con todos los datos del usuario
     const token = jwt.sign(
       {
         uid: user.uid,
@@ -1409,7 +1401,6 @@ app.post('/login', authLimiter, async (req, res) => {
 
     console.log(`✅ Login exitoso: ${user.username} (${user.emailReal || user.email})`);
 
-    // 📤 Enviar respuesta completa al frontend
     res.status(200).json({
       success: true,
       message: user.esSupremo ? '👑 ¡Bienvenido Administrador Supremo!' : '✅ Login exitoso',
@@ -1434,12 +1425,72 @@ app.post('/login', authLimiter, async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor. Intenta más tarde.' });
   }
 });
- 
+
+// ============================================
+// ✅ CIERRE DEL ENDPOINT /register (ESTABA ROTO)
+// ============================================
+app.post('/register', async (req, res) => {
+  try {
+    const { username, password, nombreCompleto, fechaNacimiento, refCode, emailReal } = req.body;
+
+    if (!username || !password || !nombreCompleto || !fechaNacimiento) {
+      return res.status(400).json({ error: 'Usuario, contraseña, nombre real y fecha de nacimiento son obligatorios' });
+    }
+
+    if (!mongoReady) {
+      return res.status(201).json({ success: true, message: 'Registrado (demo)', demo: true });
+    }
+
+    const SUPREME_EMAIL = process.env.SUPREME_EMAIL;
+    const isSupremeEmail = emailReal && SUPREME_EMAIL && emailReal.toLowerCase() === SUPREME_EMAIL.toLowerCase();
+
+    const email = `${username}@apiromwinervault.com`;
+    const hashed = await bcrypt.hash(password, 10);
+    const uid = 'user_' + crypto.randomBytes(16).toString('hex');
+    const userRefCode = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const esSupremo = isSupremeEmail;
+    const isAdmin = isSupremeEmail;
+
+    const newUser = {
+      uid,
+      email,
+      emailReal: emailReal?.toLowerCase() || null,
+      username,
+      nombreCompleto,
+      emailCorporativo: `${username.toLowerCase().replace(/\s+/g, '')}@apiromwinervault.com`,
+      fechaNacimiento: new Date(fechaNacimiento),
+      password: hashed,
+      refCode: isSupremeEmail ? 'SOYSUPREMO01' : userRefCode,
+      isAdmin,
+      esSupremo,
+      accountType: 'freemium',
+      tier: 'personal',
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      tokenVersion: 1,
+      kycStatus: 'pending',
+      wallet: { balance: 0, currency: 'USD', history: [] },
+      affiliates: { level: esSupremo ? 'diamante' : 'bronce', totalReferrals: 0, pendingBalance: 0, availableBalance: 0 }
+    };
+
+    await usersCollection.insertOne(newUser);
+
+    const token = jwt.sign(
+      { uid, email, username, tier: 'personal', accountType: 'freemium', isAdmin, esSupremo },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    const emailDestino = emailReal || email;
+    if (typeof enviarBienvenida === 'function') {
+      await enviarBienvenida(emailDestino, nombreCompleto);
+    }
+
     res.status(201).json({
       success: true,
       message: esSupremo ? '✅ ¡Bienvenido Administrador Supremo!' : '✅ Registrado correctamente',
       token,
-      user: { uid, email, username, accountType: 'freemium', esSupremo, isAdmin, refCode: userRefCode }
+      user: { uid, email, username, accountType: 'freemium', esSupremo, isAdmin, refCode: isSupremeEmail ? 'SOYSUPREMO01' : userRefCode }
     });
 
   } catch (error) {
