@@ -44,7 +44,6 @@ console.log('✅ Variables de entorno verificadas correctamente');
 // ============================================
 // 📦 IMPORTS Y DEPENDENCIAS (Organizados)
 // ============================================
-const express = require('express');
 const cors = require('cors');
 const CryptoJS = require('crypto-js');
 const helmet = require('helmet');
