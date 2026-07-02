@@ -1342,42 +1342,57 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
   }
 });
 // ============================================
-// 🔐 LOGIN DE USUARIOS (ALIAS /login para el frontend)
+// 🔐 LOGIN DE USUARIOS (CORREGIDO Y MEJORADO)
 // ============================================
 app.post('/login', authLimiter, async (req, res) => {
   try {
-    const { username, password } = req.body;
+    // ✅ CORREGIDO: Ahora acepta "email" O "username" (lo que envíe el frontend)
+    const { email, username, password } = req.body;
+    const identificador = email || username;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Usuario y contraseña son obligatorios' });
+    // Validaciones mejoradas
+    if (!identificador) {
+      return res.status(400).json({ error: 'Debes ingresar tu email o usuario' });
+    }
+    if (!password) {
+      return res.status(400).json({ error: 'Debes ingresar tu contraseña' });
     }
 
+    // Modo demo (sin MongoDB)
     if (!mongoReady) {
       return res.status(200).json({ success: true, message: 'Login exitoso (demo)', demo: true });
     }
 
+    // 🔍 Búsqueda mejorada: busca en 3 campos diferentes
+    const identificadorLower = identificador.toLowerCase();
     const user = await usersCollection.findOne({
       $or: [
-        { username: username.toLowerCase() },
-        { email: username.toLowerCase() },
-        { emailReal: username.toLowerCase() }
+        { email: identificadorLower },
+        { emailReal: identificadorLower },
+        { username: identificadorLower }
       ]
     });
 
+    // Usuario no encontrado
     if (!user) {
-      return res.status(401).json({ error: 'Usuario no encontrado' });
+      console.log(`⚠️ Intento de login fallido: "${identificador}" no existe`);
+      return res.status(401).json({ error: 'Usuario o email no registrado' });
     }
 
+    // 🔐 Verificar contraseña
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
+      console.log(`⚠️ Contraseña incorrecta para: ${user.username}`);
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
 
+    // ✅ Actualizar último login
     await usersCollection.updateOne(
       { uid: user.uid },
       { $set: { lastLogin: new Date() } }
     );
 
+    // 🎫 Generar token JWT con todos los datos del usuario
     const token = jwt.sign(
       {
         uid: user.uid,
@@ -1385,18 +1400,19 @@ app.post('/login', authLimiter, async (req, res) => {
         username: user.username,
         tier: user.tier,
         accountType: user.accountType,
-        isAdmin: user.isAdmin,
-        esSupremo: user.esSupremo
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false
       },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    console.log(`✅ Login exitoso: ${user.username}`);
+    console.log(`✅ Login exitoso: ${user.username} (${user.emailReal || user.email})`);
 
+    // 📤 Enviar respuesta completa al frontend
     res.status(200).json({
       success: true,
-      message: '✅ Login exitoso',
+      message: user.esSupremo ? '👑 ¡Bienvenido Administrador Supremo!' : '✅ Login exitoso',
       token,
       user: {
         uid: user.uid,
@@ -1406,15 +1422,16 @@ app.post('/login', authLimiter, async (req, res) => {
         nombreCompleto: user.nombreCompleto,
         accountType: user.accountType,
         tier: user.tier,
-        isAdmin: user.isAdmin,
-        esSupremo: user.esSupremo,
-        refCode: user.refCode
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false,
+        refCode: user.refCode,
+        kycStatus: user.kycStatus || 'pending'
       }
     });
 
   } catch (error) {
     logger.error('❌ Login error: ' + error.message);
-    res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
+    res.status(500).json({ error: 'Error interno del servidor. Intenta más tarde.' });
   }
 });
  
