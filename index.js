@@ -851,7 +851,7 @@ app.use('/api/', globalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 // Ruta compatible con frontend (redirecciona /login a /api/auth/login)
-app.post('/login', async (req, res) => {
+app.post('/login', (req, res) => {
   req.url = '/api/auth/login';
   app._router.handle(req, res, () => {});
 });
