@@ -17,13 +17,6 @@ const REQUIRED_ENV_VARS = [
   'R2_SECRET_ACCESS_KEY',
   'R2_BUCKET_NAME'
 ];
-// LOG TEMPORAL - VER QUÉ VARIABLES LLEGAN
-console.log('=== VARIABLES QUE SÍ LLEGAN ===');
-REQUIRED_ENV_VARS.forEach(v => {
-  const valor = process.env[v];
-  console.log(`${v}: ${valor ? '✅ SÍ LLEGA' : '❌ NO LLEGA'}`);
-});
-console.log('================================');
 
 // TRUCO: Si R2_ACCESS_KEY_ID no llega, usar CF_R2_ACCESS_KEY_ID
 if (!process.env.R2_ACCESS_KEY_ID && process.env.CF_R2_ACCESS_KEY_ID) {
