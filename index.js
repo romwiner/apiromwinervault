@@ -6988,4 +6988,41 @@ startServer().catch(err => {
   process.exit(1);
 });
 
+// ============================================
+// 🔧 ALIAS PARA COMPATIBILIDAD CON FRONTEND
+// ============================================
+// El frontend llama a /api/login pero el backend tiene /login
+app.post('/api/login', authLimiter, async (req, res) => {
+  req.url = '/login';
+  app.handle(req, res);
+});
+
+// El frontend llama a /api/register pero el backend tiene /register
+app.post('/api/register', async (req, res) => {
+  req.url = '/register';
+  app.handle(req, res);
+});
+
+// ============================================
+// 🔍 DIAGNÓSTICO: Ver todas las rutas registradas
+// ============================================
+app.get('/api/debug/routes', (req, res) => {
+  const routes = [];
+  app._router.stack.forEach(middleware => {
+    if (middleware.route) {
+      routes.push({
+        method: Object.keys(middleware.route.methods)[0].toUpperCase(),
+        path: middleware.route.path
+      });
+    }
+  });
+  res.json({
+    success: true,
+    totalRoutes: routes.length,
+    loginRoutes: routes.filter(r => r.path.includes('login')),
+    registerRoutes: routes.filter(r => r.path.includes('register')),
+    allRoutes: routes.slice(0, 20)
+  });
+});
+
 // === FIN: index.js ===
