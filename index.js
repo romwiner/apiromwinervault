@@ -1908,22 +1908,21 @@ app.post('/api/setup/make-supremo', authenticate, async (req, res) => {
 });
 
 // ============================================
-// 👑 ADMIN: REGALAR CUENTA (GIFT ACCOUNT) - MEJORADO
+// 👑 ADMIN: REGALAR CUENTA (GIFT ACCOUNT) - VERSIÓN FINAL PERFECCIONADA
 // ============================================
 app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res) => {
   try {
     const { recipientEmail, initialBalance, note, tier, sendEmail } = req.body;
     
-    if (!recipientEmail) {
+    // ✅ VALIDACIONES MEJORADAS
+    if (!recipientEmail || typeof recipientEmail !== 'string') {
       return res.status(400).json({ error: 'Email del destinatario requerido' });
     }
     
-    // Validar formato de email
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
       return res.status(400).json({ error: 'Email inválido' });
     }
     
-    // No puede regalarse a sí mismo
     if (recipientEmail === req.supremo.email) {
       return res.status(400).json({ error: 'No puedes regalarte una cuenta a ti mismo' });
     }
@@ -1932,28 +1931,45 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
       return res.json({ success: true, message: 'Demo regalo: configura MongoDB', demo: true });
     }
 
-    // Validar tier permitido
+    // ✅ VALIDACIÓN DE TIER MÁS ESTRICTA
     const allowedTiers = ['personal', 'business', 'enterprise'];
     const finalTier = tier && allowedTiers.includes(tier) ? tier : 'personal';
 
-    let user = await usersCollection.findOne({ email: recipientEmail });
+    // ✅ VALIDACIÓN DE BALANCE INICIAL (ANTES DE PROCESAR)
+    const bal = parseFloat(initialBalance);
+    if (isNaN(bal) || bal < 0) {
+      return res.status(400).json({ error: 'Monto inicial debe ser un número válido no negativo' });
+    }
+    
+    if (bal > 1000000) {
+      return res.status(400).json({ error: 'Monto máximo permitido: $1,000,000 USD' });
+    }
+
+    // ✅ BUSCAR USUARIO EXISTENTE
+    let user = await usersCollection.findOne({ 
+      $or: [
+        { email: recipientEmail.toLowerCase() },
+        { emailReal: recipientEmail.toLowerCase() }
+      ]
+    });
+    
     let tempPassword = null;
     let isNewUser = false;
+    let userId = null;
 
+    // ✅ CREAR NUEVO USUARIO SI NO EXISTE
     if (!user) {
       isNewUser = true;
       tempPassword = 'Gift_' + crypto.randomBytes(4).toString('hex').toUpperCase();
       const hashed = await bcrypt.hash(tempPassword, 10);
       const uid = 'user_' + crypto.randomBytes(16).toString('hex');
       const refCodeGenerated = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
-
-      // Username único para evitar colisiones
       const uniqueUsername = 'gifted_' + uid.slice(-8);
 
       const newUser = {
         uid,
-        email: recipientEmail,
-        emailReal: recipientEmail,
+        email: recipientEmail.toLowerCase(),
+        emailReal: recipientEmail.toLowerCase(),
         username: uniqueUsername,
         nombreCompleto: 'Usuario Regalado',
         fechaNacimiento: new Date('2000-01-01'),
@@ -1973,46 +1989,60 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
         lastLogin: null,
         kycStatus: 'pending',
         tokenVersion: 1,
-        wallet: {
-          balance: 0,
-          currency: 'USD',
-          history: []
+        wallet: { balance: 0, currency: 'USD', history: [] },
+        affiliates: { 
+          level: 'bronce',
+          totalReferrals: 0, 
+          level2Referrals: 0, 
+          level3Referrals: 0, 
+          availableBalance: 0, 
+          totalEarned: 0, 
+          lastReferral: null 
         },
-        affiliates: {
-          totalReferrals: 0,
-          level2Referrals: 0,
-          level3Referrals: 0,
-          availableBalance: 0,
-          totalEarned: 0,
-          lastReferral: null
-        },
-        vault: []
+        vault: [],
+        xp: 0,
+        level: 1,
+        badges: [],
+        subscriptionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       };
       
       const result = await usersCollection.insertOne(newUser);
-      const userId = result.insertedId;
+      userId = result.insertedId;
 
+      // ✅ CREAR PERFIL
       await profilesCollection.insertOne({
-        userId,
-        uid,
-        displayName: 'Usuario Regalado',
+        userId, 
+        uid, 
+        displayName: 'Usuario Regalado', 
         avatarUrl: null,
-        bio: note || '',
-        identityVerified: false,
+        bio: note || '', 
+        identityVerified: false, 
+        isPublic: false,
         createdAt: new Date()
       });
 
+      // ✅ CREAR WALLET
       await walletCollection.insertOne({
-        userId,
-        balance: 0,
-        currency: 'USD',
-        history: [],
+        userId, 
+        balance: 0, 
+        currency: 'USD', 
+        history: [], 
         createdAt: new Date()
       });
 
-      user = newUser;
+      // ✅ CREAR AFILIATES
+      await affiliatesCollection.insertOne({
+        userId,
+        refCode: refCodeGenerated,
+        level: 'bronce',
+        createdAt: new Date()
+      });
+
+      user = { ...newUser, _id: userId };
     } else {
-      // Usuario existente - actualizar tier si es necesario
+      userId = user._id;
+      
+      // ✅ ACTUALIZAR TIER SI ES NECESARIO
       if (finalTier && allowedTiers.includes(finalTier)) {
         await usersCollection.updateOne(
           { _id: user._id }, 
@@ -2027,17 +2057,13 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
       }
     }
 
-    // Validar y procesar balance inicial
-    const bal = parseFloat(initialBalance);
-    if (isNaN(bal) || bal < 0) {
-      return res.status(400).json({ error: 'Monto inicial debe ser un número válido no negativo' });
-    }
-
+    // ✅ PROCESAR BALANCE INICIAL
     if (bal > 0) {
-      const existingWallet = await walletCollection.findOne({ userId: user._id });
+      const existingWallet = await walletCollection.findOne({ userId });
+      
       if (existingWallet) {
         await walletCollection.updateOne(
-          { userId: user._id },
+          { userId },
           {
             $inc: { balance: bal },
             $push: { 
@@ -2053,7 +2079,7 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
         );
       } else {
         await walletCollection.insertOne({
-          userId: user._id,
+          userId,
           balance: bal,
           currency: 'USD',
           history: [{ 
@@ -2067,191 +2093,154 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
         });
       }
 
+      // ✅ REGISTRAR TRANSACCIÓN
       await transactionsCollection.insertOne({
         type: 'admin_gift',
         amount: bal,
         admin: req.supremo.uid,
+        adminEmail: req.supremo.email,
         recipient: user.email,
         recipientUid: user.uid,
+        recipientUsername: user.username,
         note: note || '',
-        createdAt: new Date()
+        tier: finalTier,
+        status: 'completed',
+        createdAt: new Date(),
+        processedAt: new Date()
       });
     }
 
-      await logAudit('gift_account', { 
-      recipientEmail, 
+    // ✅ AUDITORÍA MEJORADA
+    await logAudit('gift_account', {
+      action: isNewUser ? 'create_and_gift' : 'add_balance',
+      recipientEmail: recipientEmail.toLowerCase(),
       recipientUid: user.uid,
-      balance: bal, 
-      by: req.supremo.uid, 
+      recipientUsername: user.username,
+      balance: bal,
+      currency: 'USD',
+      by: req.supremo.uid,
+      byEmail: req.supremo.email,
       tier: finalTier,
-      isNewUser
+      isNewUser,
+      ip: req.ip,
+      timestamp: new Date().toISOString()
     });
 
-    // Enviar email de notificación si se solicita
-    if (sendEmail && typeof enviarEmail === 'function') {
-// ==================== CONFIGURACIÓN SEGURA DE RESEND ====================
-const RESEND_KEY = process.env.RESEND_KEY;
-async function enviarCorreo(to, subject, html) {
-  if (!RESEND_KEY) {
-    console.error("❌ No se encontró la API Key de Resend");
-    return;
-  }
-
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_KEY}`
-      },
-      body: JSON.stringify({
-        from: 'admin@romwinervault.com',
-        to: to,
-        subject: subject,
-        html: html
-      })
-    });
-
-    const data = await response.json();
-    console.log('✅ Correo enviado a:', to);
-    return data;
-  } catch (error) {
-    console.error('❌ Error enviando correo:', error);
-  }
-}
-
-// ==================== FUNCIONES DE CORREO ====================
-// 1. Correo de Bienvenida cuando se registra un usuario
-async function enviarBienvenida(emailUsuario, nombreUsuario = "Usuario") {
-  const html = `
-    <h1>¡Bienvenido a Apirom Wine Vault, ${nombreUsuario}!</h1>
-    <p>Gracias por registrarte en nuestra plataforma.</p>
-    <p>Ahora puedes disfrutar de todos nuestros servicios.</p>
-    <p>Si tienes alguna duda, responde este mismo correo.</p>
-  `;
-  await enviarCorreo(emailUsuario, '¡Bienvenido a Apirom Wine Vault!', html);
-}
-
-// 2. Correo de Contacto
-async function enviarContacto(nombre, email, mensaje) {
-  const html = `
-    <h2>Nuevo mensaje de contacto</h2>
-    <p><strong>Nombre:</strong> ${nombre}</p>
-    <p><strong>Email:</strong> ${email}</p>
-    <p><strong>Mensaje:</strong></p>
-    <p>${mensaje}</p>
-  `;
-  await enviarCorreo('admin@romwinervault.com', `Nuevo contacto de ${nombre}`, html);
-}
-
-// 3. Correo de Recuperación de Contraseña
-async function enviarRecuperacion(emailUsuario, linkRecuperacion) {
-  const html = `
-    <h2>Recupera tu contraseña</h2>
-    <p>Hola,</p>
-    <p>Recibimos una solicitud para restablecer tu contraseña.</p>
-    <p><a href="${linkRecuperacion}" style="background-color:#000; color:white; padding:12px 20px; text-decoration:none; border-radius:5px;">Restablecer Contraseña</a></p>
-    <p>Este enlace expirará en 1 hora.</p>
-    <p>Si no solicitaste esto, ignora este correo.</p>
-  `;
-  await enviarCorreo(emailUsuario, 'Recupera tu contraseña - Apirom Wine Vault', html);
-}   
-// ==================== FUNCIÓN PARA ENVIAR CORREOS CON RESEND ====================
-async function enviarEmail({ para, asunto, html }) {
-  if (!process.env.RESEND_KEY) {
-    console.error("❌ No se encontró RESEND_KEY en variables de entorno");
-    return;
-  }
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.RESEND_KEY}`
-      },
-      body: JSON.stringify({
-        from: 'admin@romwinervault.com',
-        to: para,
-        subject: asunto,
-        html: html
-      })
-    });
-    const data = await response.json();
-    if (response.ok) {
-      console.log(`✅ Correo enviado correctamente a: ${para}`);
-    } else {
-      console.error('❌ Error de Resend:', data);
-    }
-    return data;
-  } catch (error) {
-    console.error('❌ Error enviando correo:', error.message);
-    throw error;
-  }
-}
-
-// =====================================================================================
-// El resto de tu código (rutas, middlewares, etc.) continúa aquí...
-// =====================================================================================
-    
-    // Enviar email de notificación si se solicita
+    // ✅ ENVIAR EMAIL DE NOTIFICACIÓN (MEJORADO)
     if (sendEmail && typeof enviarEmail === 'function') {
       const emailSubject = isNewUser 
         ? '🎁 Has recibido una cuenta de ApiRomwiner Vault' 
         : '🎁 Has recibido un regalo en ApiRomwiner Vault';
       
       const emailContent = `
-        <p style="font-size: 16px; line-height: 1.6;">
-          ¡Hola! 👋
-        </p>
-        <p style="font-size: 16px; line-height: 1.6;">
-          El Dueño Supremo de ApiRomwiner Vault te ha ${isNewUser ? 'creado una cuenta' : 'enviado un regalo'}.
-        </p>
-        ${isNewUser ? `
-        <div style="background-color: #1a3a1a; border: 1px solid #2ecc71; padding: 20px; margin: 24px 0; border-radius: 8px;">
-          <h3 style="color: #2ecc71; margin-top: 0;">🔐 Tus credenciales</h3>
-          <p style="margin: 8px 0; color: #ccc;"><strong>Email:</strong> ${recipientEmail}</p>
-          <p style="margin: 8px 0; color: #ccc;"><strong>Contraseña temporal:</strong> <code style="background: #2a2a2a; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></p>
-          <p style="margin: 8px 0; color: #ccc;"><strong>Tier:</strong> ${finalTier}</p>
-        </div>
-        <p style="font-size: 14px; color: #999;">⚠️ Cambia tu contraseña después de iniciar sesión.</p>
-        ` : `
-        <div style="background-color: #1a2a3a; border: 1px solid #3498db; padding: 20px; margin: 24px 0; border-radius: 8px;">
-          <h3 style="color: #3498db; margin-top: 0;">💰 Regalo recibido</h3>
-          <p style="margin: 8px 0; color: #ccc;"><strong>Monto:</strong> <span style="color: #2ecc71; font-size: 20px; font-weight: bold;">$${bal}</span></p>
-          ${note ? `<p style="margin: 8px 0; color: #ccc;"><strong>Mensaje:</strong> ${note}</p>` : ''}
-        </div>
-        `}
-        <p style="font-size: 16px; line-height: 1.6; margin-top: 24px;">
-          ¡Bienvenido a ApiRomwiner Vault! 🚀
-        </p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: #2a2a2a; border-radius: 12px; padding: 30px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .header h1 { color: #2ecc71; margin: 0; font-size: 28px; }
+            .info-box { background: #1a3a1a; border: 1px solid #2ecc71; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .info-box.blue { background: #1a2a3a; border-color: #3498db; }
+            .info-box h3 { margin-top: 0; color: #2ecc71; }
+            .info-box.blue h3 { color: #3498db; }
+            .info-box p { margin: 8px 0; color: #ccc; }
+            .info-box code { background: #2a2a2a; padding: 4px 8px; border-radius: 4px; color: #2ecc71; font-family: monospace; }
+            .amount { color: #2ecc71; font-size: 24px; font-weight: bold; }
+            .warning { background: #3a2a1a; border: 1px solid #f39c12; padding: 15px; border-radius: 8px; margin: 20px 0; }
+            .warning p { margin: 0; color: #f39c12; }
+            .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; color: #888; font-size: 14px; }
+            .button { display: inline-block; background: #2ecc71; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .button:hover { background: #27ae60; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🎁 ApiRomwiner Vault</h1>
+              <p style="color: #ccc;">¡Hola! 👋</p>
+            </div>
+            
+            <p style="font-size: 16px; line-height: 1.6;">
+              El <strong>Dueño Supremo</strong> de ApiRomwiner Vault te ha ${isNewUser ? '<strong>creado una cuenta</strong>' : '<strong>enviado un regalo</strong>'}.
+            </p>
+
+            ${isNewUser ? `
+            <div class="info-box">
+              <h3>🔐 Tus credenciales</h3>
+              <p><strong>Email:</strong> ${recipientEmail}</p>
+              <p><strong>Contraseña temporal:</strong> <code>${tempPassword}</code></p>
+              <p><strong>Tier:</strong> ${finalTier}</p>
+            </div>
+            <div class="warning">
+              <p>⚠️ <strong>Importante:</strong> Cambia tu contraseña después de iniciar sesión por primera vez.</p>
+            </div>
+            ` : `
+            <div class="info-box blue">
+              <h3>💰 Regalo recibido</h3>
+              <p><strong>Monto:</strong> <span class="amount">$${bal.toFixed(2)} USD</span></p>
+              ${note ? `<p><strong>Mensaje del Supremo:</strong> ${note}</p>` : ''}
+            </div>
+            `}
+
+            <div style="text-align: center;">
+              <a href="${process.env.APP_URL || 'https://apiromwinervault.com'}" class="button">
+                Entrar a mi Bóveda
+              </a>
+            </div>
+
+            <p style="font-size: 16px; line-height: 1.6; margin-top: 24px; text-align: center;">
+              ¡Bienvenido a ApiRomwiner Vault! 🚀
+            </p>
+
+            <div class="footer">
+              <p>Este es un correo automático, no respondas a este mensaje.</p>
+              <p>© ${new Date().getFullYear()} ApiRomwiner Vault - Todos los derechos reservados</p>
+            </div>
+          </div>
+        </body>
+        </html>
       `;
       
+      // ✅ ENVIAR EMAIL DE FORMA ASÍNCRONA CON MANEJO DE ERRORES
       enviarEmail({
         para: recipientEmail,
         asunto: emailSubject,
         html: emailContent
+      }).then(() => {
+        logger.info(`📧 Email de regalo enviado a: ${recipientEmail}`);
       }).catch(err => {
-        logger.warn('⚠️ No se pudo enviar email de regalo: ' + err.message);
+        logger.warn(`⚠️ No se pudo enviar email de regalo a ${recipientEmail}: ${err.message}`);
       });
     }
 
+    // ✅ RESPUESTA MEJORADA
     res.json({
       success: true,
+      message: isNewUser 
+        ? `✅ Cuenta creada exitosamente para ${recipientEmail}` 
+        : `✅ $${bal.toFixed(2)} USD agregados a la cuenta de ${recipientEmail}`,
       recipientEmail: user.email,
       recipientUid: user.uid,
       username: user.username,
-      tempPassword,
+      tempPassword: isNewUser ? tempPassword : undefined,
       balance: bal,
       tier: finalTier,
       isNewUser,
-      message: isNewUser 
-        ? '✅ Cuenta creada exitosamente' 
-        : '✅ Saldo agregado a cuenta existente'
+      emailSent: sendEmail === true,
+      processedAt: new Date().toISOString()
     });
     
   } catch (e) {
     logger.error('❌ Error en gift-account:', e.message);
-    res.status(500).json({ error: 'Error al regalar cuenta: ' + e.message });
+    logger.error('Stack trace:', e.stack);
+    res.status(500).json({ 
+      error: 'Error al regalar cuenta',
+      details: process.env.NODE_ENV === 'development' ? e.message : 'Error interno del servidor'
+    });
   }
 });
 
