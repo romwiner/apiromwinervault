@@ -1258,7 +1258,7 @@ app.post('/register', async (req, res) => {
 // ✅ FIN DEL ENDPOINT /REGISTER
 
 // ============================================
-// 🔐 LOGIN DE USUARIOS (NUEVO - AGREGADO)
+// 🔐 LOGIN DE USUARIOS
 // ============================================
 app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
@@ -1272,6 +1272,46 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       return res.status(200).json({ success: true, message: 'Login exitoso (demo)', demo: true });
     }
 
+    const user = await usersCollection.findOne({ username: username.toLowerCase() });
+    if (!user) {
+      return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+    }
+
+    // Actualizar último login
+    await usersCollection.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
+
+    const token = jwt.sign({
+      uid: user.uid,
+      email: user.email,
+      username: user.username,
+      tier: user.tier,
+      isAdmin: user.isAdmin || false,
+      esSupremo: user.esSupremo || false
+    }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        uid: user.uid,
+        username: user.username,
+        email: user.email,
+        tier: user.tier,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false
+      }
+    });
+
+  } catch (error) {
+    logger.error('❌ Login error: ' + error.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
     const user = await usersCollection.findOne({
       $or: [
         { username: username.toLowerCase() },
