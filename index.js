@@ -2078,7 +2078,7 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
       });
     }
 
-    await logAudit('gift_account', { 
+      await logAudit('gift_account', { 
       recipientEmail, 
       recipientUid: user.uid,
       balance: bal, 
@@ -2087,9 +2087,8 @@ app.post('/api/admin/gift-account', authenticate, requireSupremo, async(req, res
       isNewUser
     });
 
-    const express = require('express');
-const app = express();
-// ... otros require que tengas ...
+    // Enviar email de notificación si se solicita
+    if (sendEmail && typeof enviarEmail === 'function') {
 // ==================== CONFIGURACIÓN SEGURA DE RESEND ====================
 const RESEND_KEY = process.env.RESEND_KEY;
 async function enviarCorreo(to, subject, html) {
