@@ -850,8 +850,11 @@ const authLimiter = rateLimit({
 app.use('/api/', globalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
-// Ruta compatible con frontend (redirecciona /login a /api/auth/login)
-app.post('/login', (req, res) => {
+// Ruta de login compatible con frontend
+app.post('/login', async (req, res) => {
+  // Copia los datos
+  const { username, password } = req.body;
+  req.body = { username, password };
   req.url = '/api/auth/login';
   app._router.handle(req, res, () => {});
 });
