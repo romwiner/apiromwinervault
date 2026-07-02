@@ -63,7 +63,7 @@ const fetch = require('node-fetch');
 const nodemailer = require('nodemailer');
 
 // Configuración Nodemailer con Resend
-const transporter = nodemailer.createTranspor({
+const transporter = nodemailer.createTransport({
   host: 'smtp.resend.com',
   port: 587,
   secure: false,
