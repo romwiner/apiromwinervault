@@ -57,6 +57,7 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs').promises;
 const fetch = require('node-fetch');
+
 // ============================================
 // 📧 NODEMAILER + RESEND (TRANSPORTE SMTP)
 // ============================================
@@ -73,8 +74,8 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Función principal para enviar correos
-async function enviarBienvenida(emailDestino, nombreCompleto) {
+// Función principal para enviar correos (GENÉRICA)
+async function enviarEmail({ para, asunto, html }) {
   try {
     await transporter.sendMail({
       from: 'admin@romwinervault.com',
