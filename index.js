@@ -1377,7 +1377,8 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 // ============================================
 // 🔐 LOGIN DE USUARIOS (CORREGIDO Y MEJORADO)
 // ============================================
-app.post('/login', authLimiter, async (req, res) => {
+app.all('/login', authLimiter, async (req, res) => {
+  console.log('🚨 [LOGIN] Petición recibida - Método:', req.method, 'Body:', req.body);
   try {
     const { email, username, password } = req.body;
     const identificador = email || username;
