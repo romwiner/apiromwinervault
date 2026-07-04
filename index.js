@@ -797,6 +797,96 @@ app.use(cors({
 // ✅ Parsear JSON y formularios
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ============================================
+// 🔐 LOGIN DE USUARIOS (CORREGIDO Y MEJORADO)
+// ============================================
+app.all('/login', authLimiter, async (req, res) => {
+  console.log('🚨 [LOGIN] Petición recibida - Método:', req.method, 'Body:', req.body);
+  try {
+    const { email, username, password } = req.body;
+    const identificador = email || username;
+
+    if (!identificador) {
+      return res.status(400).json({ error: 'Debes ingresar tu email o usuario' });
+    }
+    if (!password) {
+      return res.status(400).json({ error: 'Debes ingresar tu contraseña' });
+    }
+
+    if (!mongoReady) {
+      return res.status(200).json({ success: true, message: 'Login exitoso (demo)', demo: true });
+    }
+
+    const identificadorLower = identificador.toLowerCase();
+    const user = await usersCollection.findOne({
+      $or: [
+        { email: identificadorLower },
+        { emailReal: identificadorLower },
+        { username: identificadorLower }
+      ]
+    });
+
+    if (!user) {
+      console.log(`⚠️ Intento de login fallido: "${identificador}" no existe`);
+      return res.status(401).json({ error: 'Usuario o email no registrado' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      console.log(`⚠️ Contraseña incorrecta para: ${user.username}`);
+      return res.status(401).json({ error: 'Contraseña incorrecta' });
+    }
+
+    await usersCollection.updateOne(
+      { uid: user.uid },
+      { $set: { lastLogin: new Date() } }
+    );
+
+    const token = jwt.sign(
+      {
+        uid: user.uid,
+        email: user.email,
+        username: user.username,
+        tier: user.tier,
+        accountType: user.accountType,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    console.log(`✅ Login exitoso: ${user.username} (${user.emailReal || user.email})`);
+
+    res.status(200).json({
+      success: true,
+      message: user.esSupremo ? '👑 ¡Bienvenido Administrador Supremo!' : '✅ Login exitoso',
+      token,
+      user: {
+        uid: user.uid,
+        email: user.email,
+        emailReal: user.emailReal,
+        username: user.username,
+        nombreCompleto: user.nombreCompleto,
+        accountType: user.accountType,
+        tier: user.tier,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false,
+        refCode: user.refCode,
+        kycStatus: user.kycStatus || 'pending'
+      }
+    });
+
+  } catch (error) {
+    logger.error('❌ Login error: ' + error.message);
+    res.status(500).json({ error: 'Error interno del servidor. Intenta más tarde.' });
+  }
+});
+
+// ✅ Servir archivos estáticos (frontend)
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/app', express.static(path.join(__dirname, 'public')));
 // ✅ Servir archivos estáticos (frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/app', express.static(path.join(__dirname, 'public')));
@@ -1257,123 +1347,6 @@ app.post('/register', async (req, res) => {
   }
 });
 // ✅ FIN DEL ENDPOINT /REGISTER
-
-// ============================================
-// 🔐 LOGIN DE USUARIOS
-// ============================================
-app.post('/api/auth/login', authLimiter, async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Usuario y contraseña son obligatorios' });
-    }
-
-    if (!mongoReady) {
-      return res.status(200).json({ success: true, message: 'Login exitoso (demo)', demo: true });
-    }
-
-    const user = await usersCollection.findOne({ username: username.toLowerCase() });
-    if (!user) {
-      return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
-    }
-
-    // Actualizar último login
-    await usersCollection.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
-
-    const token = jwt.sign({
-      uid: user.uid,
-      email: user.email,
-      username: user.username,
-      tier: user.tier,
-      isAdmin: user.isAdmin || false,
-      esSupremo: user.esSupremo || false
-    }, JWT_SECRET, { expiresIn: '7d' });
-
-    res.json({
-      success: true,
-      token,
-      user: {
-        uid: user.uid,
-        username: user.username,
-        email: user.email,
-        tier: user.tier,
-        isAdmin: user.isAdmin || false,
-        esSupremo: user.esSupremo || false
-      }
-    });
-
-  } catch (error) {
-    logger.error('❌ Login error: ' + error.message);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
-    const user = await usersCollection.findOne({
-      $or: [
-        { username: username.toLowerCase() },
-        { email: username.toLowerCase() },
-        { emailReal: username.toLowerCase() }
-      ]
-    });
-
-    if (!user) {
-      return res.status(401).json({ error: 'Usuario no encontrado' });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Contraseña incorrecta' });
-    }
-
-    await usersCollection.updateOne(
-      { uid: user.uid },
-      { $set: { lastLogin: new Date() } }
-    );
-
-    const token = jwt.sign(
-      {
-        uid: user.uid,
-        email: user.email,
-        username: user.username,
-        tier: user.tier,
-        accountType: user.accountType,
-        isAdmin: user.isAdmin,
-        esSupremo: user.esSupremo
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    console.log(`✅ Login exitoso: ${user.username}`);
-
-    res.status(200).json({
-      success: true,
-      message: '✅ Login exitoso',
-      token,
-      user: {
-        uid: user.uid,
-        email: user.email,
-        emailReal: user.emailReal,
-        username: user.username,
-        nombreCompleto: user.nombreCompleto,
-        accountType: user.accountType,
-        tier: user.tier,
-        isAdmin: user.isAdmin,
-        esSupremo: user.esSupremo,
-        refCode: user.refCode
-      }
-    });
-
-  } catch (error) {
-    logger.error('❌ Login error: ' + error.message);
-    res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
-  }
-});
 // ============================================
 // 🔐 LOGIN DE USUARIOS (CORREGIDO Y MEJORADO)
 // ============================================
