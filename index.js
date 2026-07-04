@@ -7027,6 +7027,165 @@ startServer().catch(err => {
   logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
   process.exit(1);
 });
+// ============================================
+// 🔐 ENDPOINT /login (EL QUE USA EL FRONTEND)
+// ============================================
+app.post('/login', authLimiter, async (req, res) => {
+  try {
+    const { email, username, password } = req.body;
+    const identificador = email || username;
+
+    if (!identificador) {
+      return res.status(400).json({ error: 'Debes ingresar tu email o usuario' });
+    }
+    if (!password) {
+      return res.status(400).json({ error: 'Debes ingresar tu contraseña' });
+    }
+
+    if (!mongoReady) {
+      return res.status(200).json({ success: true, message: 'Login exitoso (demo)', demo: true });
+    }
+
+    const identificadorLower = identificador.toLowerCase().trim();
+    const user = await usersCollection.findOne({
+      $or: [
+        { email: identificadorLower },
+        { emailReal: identificadorLower },
+        { username: identificadorLower }
+      ]
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    await usersCollection.updateOne(
+      { uid: user.uid },
+      { $set: { lastLogin: new Date() } }
+    );
+
+    const token = jwt.sign(
+      {
+        uid: user.uid,
+        email: user.email,
+        username: user.username,
+        tier: user.tier,
+        accountType: user.accountType,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: user.esSupremo ? '👑 ¡Bienvenido Administrador Supremo!' : '✅ Login exitoso',
+      token,
+      user: {
+        uid: user.uid,
+        email: user.email,
+        emailReal: user.emailReal,
+        username: user.username,
+        nombreCompleto: user.nombreCompleto,
+        accountType: user.accountType,
+        tier: user.tier,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false,
+        refCode: user.refCode,
+        kycStatus: user.kycStatus || 'pending'
+      }
+    });
+  } catch (error) {
+    logger.error('❌ Login error: ' + error.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ============================================
+// 🔐 ENDPOINT /login (EL QUE USA EL FRONTEND)
+// ============================================
+app.post('/login', authLimiter, async (req, res) => {
+  try {
+    const { email, username, password } = req.body;
+    const identificador = email || username;
+
+    if (!identificador) {
+      return res.status(400).json({ error: 'Debes ingresar tu email o usuario' });
+    }
+    if (!password) {
+      return res.status(400).json({ error: 'Debes ingresar tu contraseña' });
+    }
+
+    if (!mongoReady) {
+      return res.status(200).json({ success: true, message: 'Login exitoso (demo)', demo: true });
+    }
+
+    const identificadorLower = identificador.toLowerCase().trim();
+    const user = await usersCollection.findOne({
+      $or: [
+        { email: identificadorLower },
+        { emailReal: identificadorLower },
+        { username: identificadorLower }
+      ]
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    await usersCollection.updateOne(
+      { uid: user.uid },
+      { $set: { lastLogin: new Date() } }
+    );
+
+    const token = jwt.sign(
+      {
+        uid: user.uid,
+        email: user.email,
+        username: user.username,
+        tier: user.tier,
+        accountType: user.accountType,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: user.esSupremo ? '👑 ¡Bienvenido Administrador Supremo!' : '✅ Login exitoso',
+      token,
+      user: {
+        uid: user.uid,
+        email: user.email,
+        emailReal: user.emailReal,
+        username: user.username,
+        nombreCompleto: user.nombreCompleto,
+        accountType: user.accountType,
+        tier: user.tier,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false,
+        refCode: user.refCode,
+        kycStatus: user.kycStatus || 'pending'
+      }
+    });
+  } catch (error) {
+    logger.error('❌ Login error: ' + error.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 
 // ============================================
 // 🔧 ALIAS /api/login Y /api/register (COMPATIBILIDAD FRONTEND)
