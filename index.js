@@ -851,7 +851,9 @@ app.use('/api/', globalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
-// Ruta de login compatible con frontend (CORREGIDA)
+// ============================================
+// 🔐 RUTA DE LOGIN (PARA FRONTEND)
+// ============================================
 app.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, username, password } = req.body;
