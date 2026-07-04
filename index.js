@@ -7029,39 +7029,588 @@ startServer().catch(err => {
 });
 
 // ============================================
-// 🔧 ALIAS PARA COMPATIBILIDAD CON FRONTEND
+// 🔧 ALIAS /api/login Y /api/register (COMPATIBILIDAD FRONTEND)
 // ============================================
-// El frontend llama a /api/login pero el backend tiene /login
+// ✅ VERSIÓN FINAL PERFECCIONADA - SIN app.handle() (que no funciona)
+
+// ============================================
+// 🔐 ALIAS /api/login (LOGIN COMPLETO Y SEGURO)
+// ============================================
 app.post('/api/login', authLimiter, async (req, res) => {
-  req.url = '/login';
-  app.handle(req, res);
-});
+  const startTime = Date.now();
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || req.ip;
+  
+  try {
+    const { email, username, password, rememberMe } = req.body;
+    const identificador = email || username;
 
-// El frontend llama a /api/register pero el backend tiene /register
-app.post('/api/register', async (req, res) => {
-  req.url = '/register';
-  app.handle(req, res);
-});
-
-// ============================================
-// 🔍 DIAGNÓSTICO: Ver todas las rutas registradas
-// ============================================
-app.get('/api/debug/routes', (req, res) => {
-  const routes = [];
-  app._router.stack.forEach(middleware => {
-    if (middleware.route) {
-      routes.push({
-        method: Object.keys(middleware.route.methods)[0].toUpperCase(),
-        path: middleware.route.path
+    // ✅ VALIDACIONES ROBUSTAS
+    if (!identificador || typeof identificador !== 'string') {
+      return res.status(400).json({ 
+        error: 'Debes ingresar tu email o usuario',
+        code: 'MISSING_IDENTIFIER'
       });
     }
-  });
+    
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ 
+        error: 'Debes ingresar tu contraseña',
+        code: 'MISSING_PASSWORD'
+      });
+    }
+    
+    // Validar longitud mínima de contraseña
+    if (password.length < 8) {
+      return res.status(400).json({ 
+        error: 'Contraseña inválida',
+        code: 'INVALID_PASSWORD_LENGTH'
+      });
+    }
+    
+    // Validar formato de email si se proporciona email
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ 
+        error: 'Formato de email inválido',
+        code: 'INVALID_EMAIL_FORMAT'
+      });
+    }
+
+    // ✅ MODO DEMO
+    if (!mongoReady) {
+      logger.warn('⚠️ Login en modo demo - MongoDB no disponible');
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Login exitoso (modo demo)', 
+        demo: true,
+        token: 'demo_token_' + Date.now(),
+        user: {
+          uid: 'demo_user',
+          email: identificador,
+          username: 'demo',
+          tier: 'personal',
+          isAdmin: false,
+          esSupremo: false
+        }
+      });
+    }
+
+    // ✅ BÚSQUEDA DE USUARIO (normalizar entrada)
+    const identificadorLower = identificador.toLowerCase().trim();
+    const user = await usersCollection.findOne({
+      $or: [
+        { email: identificadorLower },
+        { emailReal: identificadorLower },
+        { username: identificadorLower }
+      ]
+    });
+
+    // ✅ VERIFICAR USUARIO
+    if (!user) {
+      // Log de seguridad: intento de login con usuario inexistente
+      logger.warn(`⚠️ Intento de login fallido: usuario "${identificadorLower}" no existe (IP: ${clientIp})`);
+      await logAudit('login_failed', { 
+        identifier: identificadorLower, 
+        reason: 'user_not_found',
+        ip: clientIp,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Respuesta genérica para no revelar si el usuario existe
+      return res.status(401).json({ 
+        error: 'Credenciales inválidas',
+        code: 'INVALID_CREDENTIALS'
+      });
+    }
+
+    // ✅ VERIFICAR CONTRASEÑA
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      // Log de seguridad: contraseña incorrecta
+      logger.warn(`⚠️ Contraseña incorrecta para usuario: ${user.username} (IP: ${clientIp})`);
+      
+      // Incrementar contador de intentos fallidos
+      await usersCollection.updateOne(
+        { uid: user.uid },
+        { 
+          $inc: { failedLoginAttempts: 1 },
+          $set: { lastFailedLogin: new Date() }
+        }
+      );
+      
+      // Bloquear cuenta si hay muchos intentos fallidos
+      const failedAttempts = (user.failedLoginAttempts || 0) + 1;
+      if (failedAttempts >= 5) {
+        await usersCollection.updateOne(
+          { uid: user.uid },
+          { $set: { accountLocked: true, lockedUntil: new Date(Date.now() + 15 * 60 * 1000) } }
+        );
+        logger.warn(`🔒 Cuenta bloqueada por múltiples intentos fallidos: ${user.username}`);
+        return res.status(429).json({ 
+          error: 'Cuenta bloqueada temporalmente por seguridad. Intenta en 15 minutos.',
+          code: 'ACCOUNT_LOCKED'
+        });
+      }
+      
+      await logAudit('login_failed', { 
+        userId: user.uid, 
+        username: user.username,
+        reason: 'wrong_password',
+        attempt: failedAttempts,
+        ip: clientIp,
+        timestamp: new Date().toISOString()
+      });
+      
+      return res.status(401).json({ 
+        error: 'Credenciales inválidas',
+        code: 'INVALID_CREDENTIALS',
+        remainingAttempts: 5 - failedAttempts
+      });
+    }
+
+    // ✅ VERIFICAR SI LA CUENTA ESTÁ BLOQUEADA
+    if (user.accountLocked && user.lockedUntil && new Date() < user.lockedUntil) {
+      const minutesLeft = Math.ceil((user.lockedUntil - new Date()) / 60000);
+      return res.status(429).json({ 
+        error: `Cuenta bloqueada. Intenta en ${minutesLeft} minutos.`,
+        code: 'ACCOUNT_LOCKED'
+      });
+    }
+
+    // ✅ LOGIN EXITOSO - ACTUALIZAR DATOS
+    const updateData = {
+      lastLogin: new Date(),
+      failedLoginAttempts: 0,
+      accountLocked: false,
+      lockedUntil: null,
+      lastLoginIp: clientIp
+    };
+    
+    await usersCollection.updateOne(
+      { uid: user.uid },
+      { $set: updateData }
+    );
+
+    // ✅ GENERAR TOKEN JWT
+    const tokenExpiry = rememberMe ? '30d' : '7d';
+    const token = jwt.sign(
+      {
+        uid: user.uid,
+        email: user.email,
+        username: user.username,
+        tier: user.tier,
+        accountType: user.accountType,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false,
+        tokenVersion: user.tokenVersion || 0
+      },
+      JWT_SECRET,
+      { 
+        expiresIn: tokenExpiry,
+        issuer: 'apiromwinervault',
+        audience: 'apiromwiner-client'
+      }
+    );
+
+    // ✅ LOG DE ÉXITO
+    const duration = Date.now() - startTime;
+    logger.info(`✅ Login exitoso: ${user.username} (${user.emailReal || user.email}) - ${duration}ms`);
+    
+    await logAudit('login_success', { 
+      userId: user.uid, 
+      username: user.username,
+      email: user.email,
+      ip: clientIp,
+      duration,
+      rememberMe: !!rememberMe,
+      timestamp: new Date().toISOString()
+    });
+
+    // ✅ RESPUESTA COMPLETA
+    const responseTime = Date.now() - startTime;
+    res.status(200).json({
+      success: true,
+      message: user.esSupremo ? '👑 ¡Bienvenido Administrador Supremo!' : '✅ Login exitoso',
+      token,
+      expiresIn: tokenExpiry,
+      user: {
+        uid: user.uid,
+        email: user.email,
+        emailReal: user.emailReal,
+        username: user.username,
+        nombreCompleto: user.nombreCompleto,
+        accountType: user.accountType,
+        tier: user.tier,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false,
+        refCode: user.refCode,
+        kycStatus: user.kycStatus || 'pending',
+        avatar: user.avatar || null,
+        lastLogin: user.lastLogin
+      },
+      metrics: {
+        responseTime: responseTime + 'ms',
+        serverTime: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    logger.error(`❌ Login error (${duration}ms): ` + error.message);
+    logger.error('Stack trace:', error.stack);
+    
+    await logAudit('login_error', { 
+      error: error.message,
+      identifier: req.body?.email || req.body?.username || 'unknown',
+      ip: clientIp,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      code: 'INTERNAL_ERROR',
+      hint: 'Intenta nuevamente en unos momentos'
+    });
+  }
+});
+
+// ============================================
+// 📝 ALIAS /api/register (REGISTRO COMPLETO)
+// ============================================
+app.post('/api/register', async (req, res) => {
+  try {
+    const { username, password, nombreCompleto, fechaNacimiento, refCode, emailReal } = req.body;
+    
+    // ✅ VALIDACIONES BÁSICAS
+    if (!username || !password || !nombreCompleto || !fechaNacimiento) {
+      return res.status(400).json({ 
+        error: 'Usuario, contraseña, nombre real y fecha de nacimiento son obligatorios',
+        code: 'MISSING_FIELDS'
+      });
+    }
+    
+    if (!/^[a-z0-9._]{3,30}$/.test(username)) {
+      return res.status(400).json({ 
+        error: 'Usuario inválido (solo minúsculas, números, . y _, 3-30 caracteres)',
+        code: 'INVALID_USERNAME'
+      });
+    }
+    
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+      return res.status(400).json({ 
+        error: 'Contraseña débil. Requiere: 8+ caracteres, 1 mayúscula, 1 número, 1 símbolo',
+        code: 'WEAK_PASSWORD'
+      });
+    }
+    
+    if (emailReal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailReal)) {
+      return res.status(400).json({ 
+        error: 'Email real inválido',
+        code: 'INVALID_EMAIL'
+      });
+    }
+    
+    // Validar edad (18+)
+    const birthDate = new Date(fechaNacimiento);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
+    
+    if (age < 18) {
+      return res.status(400).json({ 
+        error: 'Debes ser mayor de 18 años para registrarte',
+        code: 'UNDERAGE'
+      });
+    }
+    
+    // ✅ MODO DEMO
+    if (!mongoReady) {
+      return res.status(201).json({ 
+        success: true, 
+        message: 'Registrado (modo demo)', 
+        demo: true 
+      });
+    }
+    
+    // ✅ VERIFICAR SUPREMO
+    const SUPREME_EMAIL = process.env.SUPREME_EMAIL;
+    const isSupremeEmail = emailReal && SUPREME_EMAIL && emailReal.toLowerCase() === SUPREME_EMAIL.toLowerCase();
+    const existingSupreme = await usersCollection.findOne({ esSupremo: true });
+    
+    if (existingSupreme && isSupremeEmail) {
+      return res.status(400).json({ 
+        error: 'Ya existe un Administrador Supremo en el sistema',
+        code: 'SUPREME_EXISTS'
+      });
+    }
+    
+    // ✅ VERIFICAR DUPLICADOS
+    const email = `${username}@apiromwinervault.com`;
+    const existingEmail = await usersCollection.findOne({ 
+      $or: [
+        { email }, 
+        { emailReal: emailReal?.toLowerCase() }
+      ] 
+    });
+    
+    if (existingEmail) {
+      return res.status(400).json({ 
+        error: 'El email ya está registrado',
+        code: 'EMAIL_EXISTS'
+      });
+    }
+    
+    const existingUsername = await usersCollection.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({ 
+        error: 'Nombre de usuario no disponible',
+        code: 'USERNAME_EXISTS'
+      });
+    }
+    
+    // ✅ PROCESAR REFERIDO
+    let referredBy = null;
+    let userRefCode = 'ROM' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    let esSupremo = false;
+    let isAdmin = false;
+    
+    if (isSupremeEmail && !existingSupreme) {
+      userRefCode = 'SOYSUPREMO01';
+      esSupremo = true;
+      isAdmin = true;
+      logger.info('👑 ADMINISTRADOR SUPREMO REGISTRADO:', emailReal);
+    } else if (!isSupremeEmail) {
+      if (!refCode || refCode.trim() === '') {
+        return res.status(400).json({ 
+          error: 'Código de referido obligatorio',
+          code: 'MISSING_REFERRAL'
+        });
+      }
+      
+      if (refCode.toUpperCase() === 'SOYSUPREMO01') {
+        const supremeUser = await usersCollection.findOne({ refCode: 'SOYSUPREMO01' });
+        if (supremeUser) {
+          referredBy = supremeUser.uid;
+        }
+      } else {
+        const referrer = await usersCollection.findOne({ refCode: refCode.toUpperCase() });
+        if (!referrer) {
+          return res.status(400).json({ 
+            error: 'Código de referido inválido',
+            code: 'INVALID_REFERRAL'
+          });
+        }
+        referredBy = referrer.uid;
+      }
+    }
+    
+    // ✅ CREAR USUARIO
+    const hashed = await bcrypt.hash(password, 10);
+    const uid = 'user_' + crypto.randomBytes(16).toString('hex');
+    
+    const newUser = {
+      uid,
+      email,
+      emailReal: emailReal?.toLowerCase() || null,
+      username,
+      nombreCompleto,
+      emailCorporativo: `${username.toLowerCase().replace(/\s+/g, '')}@apiromwinervault.com`,
+      fechaNacimiento: birthDate,
+      password: hashed,
+      refCode: userRefCode,
+      referredBy: referredBy,
+      isAdmin: isAdmin,
+      esSupremo: esSupremo,
+      accountType: 'freemium',
+      tier: 'personal',
+      isPremium: false,
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      tokenVersion: 1,
+      kycStatus: 'pending',
+      failedLoginAttempts: 0,
+      wallet: { balance: 0, currency: 'USD', history: [] },
+      affiliates: { 
+        level: esSupremo ? 'diamante' : 'bronce', 
+        totalReferrals: 0, 
+        pendingBalance: 0, 
+        availableBalance: 0 
+      }
+    };
+    
+    const result = await usersCollection.insertOne(newUser);
+    const userId = result.insertedId;
+    
+    // ✅ CREAR COLECCIONES RELACIONADAS
+    await Promise.all([
+      walletCollection.insertOne({ 
+        userId, 
+        balance: 0, 
+        currency: 'USD', 
+        history: [], 
+        createdAt: new Date() 
+      }),
+      profilesCollection.insertOne({ 
+        userId, 
+        uid, 
+        displayName: username, 
+        avatarUrl: null, 
+        bio: esSupremo ? 'Administrador Supremo' : '', 
+        isPublic: false, 
+        createdAt: new Date() 
+      }),
+      affiliatesCollection.insertOne({ 
+        userId, 
+        refCode: userRefCode, 
+        level: esSupremo ? 'diamante' : 'bronce', 
+        createdAt: new Date() 
+      })
+    ]);
+    
+    // ✅ ACTUALIZAR CONTADOR DEL REFERIDOR
+    if (referredBy) {
+      await usersCollection.updateOne(
+        { uid: referredBy }, 
+        { $inc: { 'affiliates.totalReferrals': 1 } }
+      );
+    }
+    
+    // ✅ AGREGAR XP
+    if (typeof addXP === 'function') {
+      await addXP(userId, esSupremo ? 1000 : 50, null);
+    }
+    
+    // ✅ GENERAR TOKEN
+    const token = jwt.sign(
+      { 
+        uid, 
+        email, 
+        username, 
+        tier: 'personal', 
+        accountType: 'freemium', 
+        isAdmin, 
+        esSupremo 
+      }, 
+      JWT_SECRET, 
+      { expiresIn: '7d' }
+    );
+    
+    // ✅ ENVIAR EMAIL DE BIENVENIDA
+    const emailDestino = emailReal || email;
+    if (typeof enviarBienvenida === 'function') {
+      await enviarBienvenida(emailDestino, nombreCompleto);
+      logger.info(`📧 Email de bienvenida enviado a: ${emailDestino}`);
+    }
+    
+    // ✅ AUDITORÍA
+    await logAudit('user_registered', { 
+      userId: uid, 
+      username, 
+      email: emailDestino,
+      isSupreme: esSupremo,
+      referredBy,
+      timestamp: new Date().toISOString()
+    });
+    
+    // ✅ RESPUESTA
+    res.status(201).json({
+      success: true,
+      message: esSupremo ? '✅ ¡Bienvenido Administrador Supremo!' : '✅ Registrado correctamente',
+      token,
+      user: { 
+        uid, 
+        email, 
+        username, 
+        accountType: 'freemium', 
+        esSupremo, 
+        isAdmin, 
+        refCode: userRefCode 
+      }
+    });
+    
+  } catch (error) {
+    logger.error('❌ Register error: ' + error.message);
+    logger.error('Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+// ============================================
+// 🔍 DIAGNÓSTICO: VER TODAS LAS RUTAS REGISTRADAS
+// ============================================
+app.get('/api/debug/routes', (req, res) => {
+  try {
+    const routes = [];
+    
+    if (app._router && app._router.stack) {
+      app._router.stack.forEach(middleware => {
+        if (middleware.route) {
+          routes.push({
+            method: Object.keys(middleware.route.methods)[0].toUpperCase(),
+            path: middleware.route.path,
+            hasAuth: middleware.route.stack.some(h => h.name === 'authenticate')
+          });
+        } else if (middleware.name === 'router' && middleware.handle.stack) {
+          middleware.handle.stack.forEach(handler => {
+            if (handler.route) {
+              routes.push({
+                method: Object.keys(handler.route.methods)[0].toUpperCase(),
+                path: handler.route.path,
+                hasAuth: handler.route.stack.some(h => h.name === 'authenticate')
+              });
+            }
+          });
+        }
+      });
+    }
+    
+    // Filtrar rutas importantes
+    const loginRoutes = routes.filter(r => r.path.includes('login'));
+    const registerRoutes = routes.filter(r => r.path.includes('register'));
+    const adminRoutes = routes.filter(r => r.path.includes('admin'));
+    const vaultRoutes = routes.filter(r => r.path.includes('vault'));
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      totalRoutes: routes.length,
+      summary: {
+        loginRoutes: loginRoutes.length,
+        registerRoutes: registerRoutes.length,
+        adminRoutes: adminRoutes.length,
+        vaultRoutes: vaultRoutes.length
+      },
+      criticalRoutes: {
+        login: loginRoutes,
+        register: registerRoutes
+      },
+      allRoutes: routes.slice(0, 50)
+    });
+  } catch (error) {
+    logger.error('❌ Debug routes error: ' + error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Error obteniendo rutas',
+      code: 'DEBUG_ERROR'
+    });
+  }
+});
+
+// ============================================
+// 🏥 HEALTH CHECK MEJORADO
+// ============================================
+app.get('/api/health', (req, res) => {
   res.json({
-    success: true,
-    totalRoutes: routes.length,
-    loginRoutes: routes.filter(r => r.path.includes('login')),
-    registerRoutes: routes.filter(r => r.path.includes('register')),
-    allRoutes: routes.slice(0, 20)
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'production',
+    database: mongoReady ? 'connected' : 'disconnected',
+    mensaje: 'Backend operativo ✅'
   });
 });
 
