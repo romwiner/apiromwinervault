@@ -850,14 +850,85 @@ const authLimiter = rateLimit({
 app.use('/api/', globalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
-// Ruta de login compatible con frontend
-app.post('/login', async (req, res) => {
-  // Copia los datos
-  const { username, password } = req.body;
-  req.body = { username, password };
-  req.url = '/api/auth/login';
-  app._router.handle(req, res, () => {});
+
+// Ruta de login compatible con frontend (CORREGIDA)
+app.post('/login', authLimiter, async (req, res) => {
+  try {
+    const { email, username, password } = req.body;
+    const identificador = email || username;
+
+    if (!identificador) {
+      return res.status(400).json({ error: 'Debes ingresar tu email o usuario' });
+    }
+    if (!password) {
+      return res.status(400).json({ error: 'Debes ingresar tu contraseña' });
+    }
+
+    if (!mongoReady) {
+      return res.status(200).json({ success: true, message: 'Login exitoso (demo)', demo: true });
+    }
+
+    const identificadorLower = identificador.toLowerCase().trim();
+    const user = await usersCollection.findOne({
+      $or: [
+        { email: identificadorLower },
+        { emailReal: identificadorLower },
+        { username: identificadorLower }
+      ]
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    await usersCollection.updateOne(
+      { uid: user.uid },
+      { $set: { lastLogin: new Date() } }
+    );
+
+    const token = jwt.sign(
+      {
+        uid: user.uid,
+        email: user.email,
+        username: user.username,
+        tier: user.tier,
+        accountType: user.accountType,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: user.esSupremo ? '👑 ¡Bienvenido Administrador Supremo!' : '✅ Login exitoso',
+      token,
+      user: {
+        uid: user.uid,
+        email: user.email,
+        emailReal: user.emailReal,
+        username: user.username,
+        nombreCompleto: user.nombreCompleto,
+        accountType: user.accountType,
+        tier: user.tier,
+        isAdmin: user.isAdmin || false,
+        esSupremo: user.esSupremo || false,
+        refCode: user.refCode,
+        kycStatus: user.kycStatus || 'pending'
+      }
+    });
+  } catch (error) {
+    logger.error('❌ Login error: ' + error.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
+
 // Aplica authLimiter también a otras rutas sensibles (cambio de contraseña, etc.)
 // ==============================================================
 // 🔐 AUTH
