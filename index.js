@@ -917,49 +917,176 @@ app.post('/api/login', authLimiter, async (req, res) => {
   }
 });
 
-// ✅ Servir archivos estáticos (frontend)
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/app', express.static(path.join(__dirname, 'public')));
+// ============================================
+// 🚀 SERVIDOR DE ARCHIVOS ESTÁTICOS (OPTIMIZADO)
+// ============================================
+const staticOptions = {
+  maxAge: '1d',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    } else if (path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
+};
 
-// ✅ Redirigir raíz al frontend
+app.use(express.static(path.join(__dirname, 'public'), staticOptions));
+app.use('/app', express.static(path.join(__dirname, 'public'), staticOptions));
+
+// ============================================
+// 🔄 REDIRECCIONES INTELIGENTES
+// ============================================
 app.get('/', (req, res) => {
   res.redirect('/app');
 });
 
+app.get('/login', (req, res) => {
+  res.redirect('/app');
+});
+
+app.get('/dashboard', (req, res) => {
+  res.redirect('/app');
+});
+
+app.get('/vault', (req, res) => {
+  res.redirect('/app');
+});
+
 // ============================================
-// 📊 ENDPOINT DE ESTADO - MEJORADO
+// 🛡️ MIDDLEWARE DE SEGURIDAD
+// ============================================
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  
+  if (req.path.startsWith('/api/')) {
+    console.log(`📡 ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  }
+  
+  next();
+});
+
+// ============================================
+// 📊 ENDPOINT DE ESTADO (MEJORADO)
 // ============================================
 app.get('/api/status', (req, res) => {
+  const memUsage = process.memoryUsage();
+  
   res.json({
     success: true,
     status: 'online',
     message: 'ApiRomwiner Vault API',
-    version: '2.0',
-    database: mongoReady ? 'MongoDB ✅' : 'MongoDB ❌',
+    version: '2.1.0',
+    environment: process.env.NODE_ENV || 'production',
+    database: {
+      connected: mongoReady,
+      status: mongoReady ? '✅ Conectado' : '❌ Desconectado'
+    },
     endpoints: {
       login: '/api/login',
       health: '/api/health',
-      status: '/api/status'
+      status: '/api/status',
+      vault: '/api/vault',
+      upload: '/api/upload',
+      marketplace: '/api/marketplace'
     },
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    server: {
+      uptime: formatUptime(process.uptime()),
+      uptimeSeconds: Math.floor(process.uptime()),
+      memory: {
+        used: Math.round(memUsage.heapUsed / 1024 / 1024) + ' MB',
+        total: Math.round(memUsage.heapTotal / 1024 / 1024) + ' MB',
+        external: Math.round(memUsage.external / 1024 / 1024) + ' MB',
+        rss: Math.round(memUsage.rss / 1024 / 1024) + ' MB'
+      }
+    },
+    timestamp: new Date().toISOString()
   });
 });
 
 // ============================================
-// 💓 ENDPOINT DE SALUD (HEALTH CHECK)
+// 💓 HEALTH CHECK (MEJORADO)
 // ============================================
 app.get('/api/health', (req, res) => {
-  res.json({
+  const memUsage = process.memoryUsage();
+  const uptime = process.uptime();
+  
+  const health = {
     success: true,
-    status: 'healthy',
-    message: 'Backend operativo ✅',
-    uptime: process.uptime(),
+    status: mongoReady ? 'healthy' : 'degraded',
+    message: mongoReady ? 'Backend operativo ✅' : 'Backend operativo sin base de datos ⚠️',
+    timestamp: new Date().toISOString(),
+    uptime: uptime,
+    uptimeFormatted: formatUptime(uptime),
     memory: {
-      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
-      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
+      used: Math.round(memUsage.heapUsed / 1024 / 1024) + ' MB',
+      total: Math.round(memUsage.heapTotal / 1024 / 1024) + ' MB',
+      external: Math.round(memUsage.external / 1024 / 1024) + ' MB',
+      rss: Math.round(memUsage.rss / 1024 / 1024) + ' MB'
     },
-    database: mongoReady ? 'connected' : 'disconnected',
+    database: {
+      connected: mongoReady,
+      status: mongoReady ? 'connected' : 'disconnected'
+    }
+  };
+  
+  res.status(mongoReady ? 200 : 503).json(health);
+});
+
+// ============================================
+// 🔧 FUNCIÓN AUXILIAR - FORMATEAR UPTIME
+// ============================================
+function formatUptime(seconds) {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  const parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  parts.push(`${secs}s`);
+  
+  return parts.join(' ');
+}
+
+// ============================================
+// 🚫 MANEJO DE RUTAS NO ENCONTRADAS (API)
+// ============================================
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({
+      success: false,
+      error: 'Endpoint no encontrado',
+      path: req.path,
+      method: req.method,
+      timestamp: new Date().toISOString()
+    });
+  }
+  next();
+});
+
+// ============================================
+// ⚠️ MANEJO GLOBAL DE ERRORES
+// ============================================
+app.use((err, req, res, next) => {
+  console.error('❌ Error global:', err);
+  logger.error('Error global: ' + err.message);
+  
+  res.status(err.status || 500).json({
+    success: false,
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Error interno del servidor' 
+      : err.message,
+    path: req.path,
+    method: req.method,
     timestamp: new Date().toISOString()
   });
 });
@@ -967,6 +1094,8 @@ app.get('/api/health', (req, res) => {
 // ========== CONFIGURACIÓN SEGURA DE MULTER (con validación real) ==========
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdir(uploadDir, { recursive: true }).catch(err => logger.warn('⚠️ No se pudo crear uploads/: ' + err.message));
+
+// =========================================================================
 
 // =========================================================================
 
