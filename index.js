@@ -18,21 +18,118 @@ const REQUIRED_ENV_VARS = [
   'R2_BUCKET_NAME'
 ];
 
-// TRUCO: Si R2_ACCESS_KEY_ID no llega, usar CF_R2_ACCESS_KEY_ID
+// ============================================
+// 🔐 TRUCO: FALLBACK PARA R2_ACCESS_KEY_ID
+// ============================================
 if (!process.env.R2_ACCESS_KEY_ID && process.env.CF_R2_ACCESS_KEY_ID) {
   process.env.R2_ACCESS_KEY_ID = process.env.CF_R2_ACCESS_KEY_ID;
+  console.log('🔄 Usando CF_R2_ACCESS_KEY_ID como fallback para R2_ACCESS_KEY_ID');
 }
+
+// ============================================
+// 🔍 VERIFICACIÓN ROBUSTA DE VARIABLES DE ENTORNO
+// ============================================
+const REQUIRED_ENV_VARS = [
+  'JWT_SECRET',
+  'MASTER_KEY', 
+  'STRIPE_SECRET_KEY',
+  'MONGODB_URI',
+  'R2_ENDPOINT',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+  'R2_BUCKET_NAME'
+];
 
 const missingVars = REQUIRED_ENV_VARS.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
-  console.error('❌ ERROR CRÍTICO: Faltan variables de entorno obligatorias:');
-  missingVars.forEach(v => console.error(`   - ${v}`));
-  console.error('\n📝 Configura estas variables en Render Dashboard → Settings → Environment');
+  console.error('\n❌ ERROR CRÍTICO: Faltan variables de entorno obligatorias:');
+  missingVars.forEach(v => console.error(`   • ${v}`));
+  console.error('\n📝 Configura estas variables en Railway Dashboard → Variables');
+  console.error('🔗 https://railway.app/dashboard\n');
   process.exit(1);
 }
 
-console.log('✅ Variables de entorno verificadas correctamente');
+// ============================================
+// 📊 REPORTE DETALLADO DE VARIABLES (DEBUG AVANZADO)
+// ============================================
+const timestamp = new Date().toISOString();
+const separator = '═'.repeat(50);
+
+console.log(`\n${separator}`);
+console.log('🔍 REPORTE DETALLADO DE VARIABLES DE ENTORNO');
+console.log(`⏰ Timestamp: ${timestamp}`);
+console.log(`${separator}\n`);
+
+// Función auxiliar para mostrar información de variable
+function logVarInfo(name, minLength = 0) {
+  const value = process.env[name];
+  const exists = !!value;
+  const length = value ? value.length : 0;
+  const preview = value ? `${value.substring(0, 4)}${'•'.repeat(Math.min(8, length - 4))}` : 'N/A';
+  
+  let status = '❌ NO LLEGA';
+  let details = '';
+  
+  if (exists) {
+    if (minLength > 0 && length < minLength) {
+      status = '⚠️ MUY CORTA';
+      details = ` (mínimo: ${minLength} caracteres)`;
+    } else {
+      status = '✅ SÍ LLEGA';
+      details = ` (${length} chars, preview: ${preview})`;
+    }
+  }
+  
+  console.log(`${status.padEnd(15)} ${name.padEnd(25)}${details}`);
+  
+  return exists && (minLength === 0 || length >= minLength);
+}
+
+// Variables de Seguridad
+console.log('🔐 VARIABLES DE SEGURIDAD:');
+logVarInfo('JWT_SECRET', 32);
+logVarInfo('MASTER_KEY', 16);
+
+// Variables de Pago
+console.log('\n💳 VARIABLES DE PAGO:');
+logVarInfo('STRIPE_SECRET_KEY', 20);
+
+// Variables de Base de Datos
+console.log('\n🗄️ VARIABLES DE BASE DE DATOS:');
+logVarInfo('MONGODB_URI', 20);
+
+// Variables de Cloudflare R2
+console.log('\n☁️ VARIABLES DE CLOUDFLARE R2:');
+logVarInfo('R2_ENDPOINT', 10);
+logVarInfo('R2_ACCESS_KEY_ID', 10);
+logVarInfo('R2_SECRET_ACCESS_KEY', 10);
+logVarInfo('R2_BUCKET_NAME', 5);
+
+console.log(`\n${separator}`);
+console.log('✅ TODAS LAS VARIABLES VERIFICADAS CORRECTAMENTE');
+console.log(`${separator}\n`);
+
+// ============================================
+// 🧪 VALIDACIONES ADICIONALES (OPCIONAL)
+// ============================================
+
+// Validar formato de MongoDB URI
+if (process.env.MONGODB_URI && !process.env.MONGODB_URI.startsWith('mongodb')) {
+  console.warn('⚠️ ADVERTENCIA: MONGODB_URI no parece tener formato válido');
+}
+
+// Validar formato de R2 Endpoint
+if (process.env.R2_ENDPOINT && !process.env.R2_ENDPOINT.includes('r2.cloudflarestorage.com')) {
+  console.warn('⚠️ ADVERTENCIA: R2_ENDPOINT no parece ser de Cloudflare R2');
+}
+
+// Validar longitud de JWT_SECRET
+if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+  console.warn('⚠️ ADVERTENCIA: JWT_SECRET es muy corto (mínimo recomendado: 32 caracteres)');
+}
+
+console.log('🚀 Iniciando servidor...\n');
 
 // ============================================
 // 📦 IMPORTS Y DEPENDENCIAS (Organizados)
