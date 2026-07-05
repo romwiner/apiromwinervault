@@ -1240,8 +1240,11 @@ let currentSellFile = null;
 let currentFilter = 'all';
 let avatarData = null;
 
-// ============ API HELPER ============
+// ============ API HELPER (MEJORADO) ============
 async function api(endpoint, options = {}) {
+  if (!endpoint.startsWith('/api/') && !endpoint.startsWith('/api?')) {
+    endpoint = '/api' + (endpoint.startsWith('/') ? endpoint : '/' + endpoint);
+  }
   const headers = { ...(options.headers || {}) };
   if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
   if (!(options.body instanceof FormData) && options.body && typeof options.body === 'object') {
@@ -1258,7 +1261,6 @@ async function api(endpoint, options = {}) {
     throw err;
   }
 }
-
 // ============ NOTIFICATION ============
 function showNotification(type, title, message) {
   const notif = document.getElementById('notification');
@@ -1382,7 +1384,7 @@ if (!user || !pwd) return showNotification('error','Error','Completa todos los c
 btn.disabled = true;
 btn.innerHTML = '<i class="ri-loader-4-line"></i> Entrando...';
 try {
-const data = await api(' /api/login', { method: 'POST', body: { email: user, password: pwd } });
+const data = await api('/api/login', { method: 'POST', body: { email: user, password: pwd } });
 if (data.success && data.token) {
 authToken = data.token;
 localStorage.setItem('authToken', authToken);
@@ -2600,7 +2602,7 @@ btn.disabled = true;
 btn.innerHTML = '<i class="ri-loader-4-line"></i> Entrando...';
 
 try {
-const data = await api(' api/login', { method: 'POST', body: { email: user, password: pwd } });
+const data = await api('/api/login', { method: 'POST', body: { email: user, password: pwd } }); 
 if (data.success && data.token) {
 authToken = data.token;
 localStorage.setItem('authToken', authToken);
@@ -2778,7 +2780,7 @@ async function searchFiles() {
 const q = document.getElementById('fileSearch').value;
 if (!q) { renderFiles(); return; }
 try {
-const data = await api('/vault?q=' + encodeURIComponent(q));
+const data = await api('/api/vault?q=' + encodeURIComponent(q));
 if (data.success) {
 userFiles = data.items || [];
 renderFiles();
@@ -2791,7 +2793,7 @@ navigateTo('viewer');
 const content = document.getElementById('viewerContent');
 content.innerHTML = '<div class="loading"><i class="ri-loader-4-line"></i><p>Cargando archivo...</p></div>';
 try {
-const data = await api('/vault/' + id);
+const data = await api('/api/vault/' + id);
 if (!data.success) throw new Error(data.error);
 const file = data.secret;
 currentViewFile = file;
