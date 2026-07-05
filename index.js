@@ -887,9 +887,6 @@ app.all('/login', authLimiter, async (req, res) => {
 // ✅ Servir archivos estáticos (frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/app', express.static(path.join(__dirname, 'public')));
-// ✅ Servir archivos estáticos (frontend)
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/app', express.static(path.join(__dirname, 'public')));
 
 // ✅ Redirigir raíz al frontend
 app.get('/', (req, res) => {
