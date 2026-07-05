@@ -799,25 +799,43 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ============================================
-// 🔐 LOGIN DE USUARIOS (CORREGIDO Y MEJORADO)
+// 🔐 LOGIN API - ENDPOINT PRINCIPAL
 // ============================================
-app.all('/login', authLimiter, async (req, res) => {
-  console.log('🚨 [LOGIN] Petición recibida - Método:', req.method, 'Body:', req.body);
+app.post('/api/login', authLimiter, async (req, res) => {
+  console.log('🚨 [API LOGIN] Petición recibida - Método:', req.method);
+  console.log('📦 Body recibido:', req.body);
+  
   try {
     const { email, username, password } = req.body;
-    const identificador = email || username;
+    const identificador = (email || username || '').trim();
 
+    // Validaciones básicas
     if (!identificador) {
-      return res.status(400).json({ error: 'Debes ingresar tu email o usuario' });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Debes ingresar tu email o usuario' 
+      });
     }
+    
     if (!password) {
-      return res.status(400).json({ error: 'Debes ingresar tu contraseña' });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Debes ingresar tu contraseña' 
+      });
     }
 
-    if (!mongoReady) {
-      return res.status(200).json({ success: true, message: 'Login exitoso (demo)', demo: true });
+    // Modo demo si MongoDB no está listo
+    if (!mongoReady || !usersCollection) {
+      console.log('⚠️ MongoDB no disponible - modo demo');
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Login exitoso (modo demo)', 
+        demo: true,
+        token: 'demo-token-' + Date.now()
+      });
     }
 
+    // Buscar usuario
     const identificadorLower = identificador.toLowerCase();
     const user = await usersCollection.findOne({
       $or: [
@@ -828,21 +846,30 @@ app.all('/login', authLimiter, async (req, res) => {
     });
 
     if (!user) {
-      console.log(`⚠️ Intento de login fallido: "${identificador}" no existe`);
-      return res.status(401).json({ error: 'Usuario o email no registrado' });
+      console.log(`⚠️ Usuario no encontrado: "${identificador}"`);
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Usuario o email no registrado' 
+      });
     }
 
+    // Verificar contraseña
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       console.log(`⚠️ Contraseña incorrecta para: ${user.username}`);
-      return res.status(401).json({ error: 'Contraseña incorrecta' });
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Contraseña incorrecta' 
+      });
     }
 
+    // Actualizar último login
     await usersCollection.updateOne(
       { uid: user.uid },
       { $set: { lastLogin: new Date() } }
     );
 
+    // Generar token JWT
     const token = jwt.sign(
       {
         uid: user.uid,
@@ -859,6 +886,7 @@ app.all('/login', authLimiter, async (req, res) => {
 
     console.log(`✅ Login exitoso: ${user.username} (${user.emailReal || user.email})`);
 
+    // Respuesta exitosa
     res.status(200).json({
       success: true,
       message: user.esSupremo ? '👑 ¡Bienvenido Administrador Supremo!' : '✅ Login exitoso',
@@ -866,21 +894,26 @@ app.all('/login', authLimiter, async (req, res) => {
       user: {
         uid: user.uid,
         email: user.email,
-        emailReal: user.emailReal,
+        emailReal: user.emailReal || user.email,
         username: user.username,
-        nombreCompleto: user.nombreCompleto,
-        accountType: user.accountType,
-        tier: user.tier,
+        nombreCompleto: user.nombreCompleto || user.username,
+        accountType: user.accountType || 'free',
+        tier: user.tier || 'basic',
         isAdmin: user.isAdmin || false,
         esSupremo: user.esSupremo || false,
-        refCode: user.refCode,
-        kycStatus: user.kycStatus || 'pending'
+        refCode: user.refCode || null,
+        kycStatus: user.kycStatus || 'pending',
+        avatar: user.avatar || null
       }
     });
 
   } catch (error) {
-    logger.error('❌ Login error: ' + error.message);
-    res.status(500).json({ error: 'Error interno del servidor. Intenta más tarde.' });
+    console.error('❌ API Login error:', error.message);
+    logger.error('❌ API Login error: ' + error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error interno del servidor. Intenta más tarde.' 
+    });
   }
 });
 
@@ -893,26 +926,44 @@ app.get('/', (req, res) => {
   res.redirect('/app');
 });
 
-// ✅ Endpoint de estado
+// ============================================
+// 📊 ENDPOINT DE ESTADO - MEJORADO
+// ============================================
 app.get('/api/status', (req, res) => {
   res.json({
     success: true,
     status: 'online',
     message: 'ApiRomwiner Vault API',
-    version: '1.0',
-    database: 'MongoDB',
+    version: '2.0',
+    database: mongoReady ? 'MongoDB ✅' : 'MongoDB ❌',
+    endpoints: {
+      login: '/api/login',
+      health: '/api/health',
+      status: '/api/status'
+    },
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// ============================================
+// 💓 ENDPOINT DE SALUD (HEALTH CHECK)
+// ============================================
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'healthy',
+    message: 'Backend operativo ✅',
+    uptime: process.uptime(),
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
+    },
+    database: mongoReady ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString()
   });
 });
-// Endpoint para que el Agente IA sepa que el backend está vivo
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date(),
-    mensaje: 'Backend operativo ✅'
-  });
-});
+
 // ========== CONFIGURACIÓN SEGURA DE MULTER (con validación real) ==========
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdir(uploadDir, { recursive: true }).catch(err => logger.warn('⚠️ No se pudo crear uploads/: ' + err.message));
