@@ -1382,7 +1382,7 @@ if (!user || !pwd) return showNotification('error','Error','Completa todos los c
 btn.disabled = true;
 btn.innerHTML = '<i class="ri-loader-4-line"></i> Entrando...';
 try {
-const data = await api('/login', { method: 'POST', body: { email: user, password: pwd } });
+const data = await api(' api/login', { method: 'POST', body: { email: user, password: pwd } });
 if (data.success && data.token) {
 authToken = data.token;
 localStorage.setItem('authToken', authToken);
