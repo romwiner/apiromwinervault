@@ -134,6 +134,7 @@ console.log('🚀 Iniciando servidor...\n');
 // ============================================
 // 📦 IMPORTS Y DEPENDENCIAS (Organizados)
 // ============================================
+const express = require('express');
 const cors = require('cors');
 const CryptoJS = require('crypto-js');
 const helmet = require('helmet');
