@@ -976,32 +976,104 @@ app.get('/api/status', (req, res) => {
 });
 
 // ============================================
-// 💓 HEALTH CHECK (MEJORADO)
+// 🏥 HEALTH CHECK - VERSIÓN DEFINITIVA Y SUPER MEJORADA
 // ============================================
 app.get('/api/health', (req, res) => {
   const memUsage = process.memoryUsage();
   const uptime = process.uptime();
+  const isHealthy = mongoReady;
+  
+  // 🧮 Calcular porcentaje de uso de memoria
+  const memoryUsagePercent = ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(2);
+  
+  // 📊 Determinar estado general del sistema
+  let overallStatus = 'healthy';
+  let statusCode = 200;
+  
+  if (!mongoReady) {
+    overallStatus = 'degraded';
+    statusCode = 503;
+  } else if (parseFloat(memoryUsagePercent) > 85) {
+    overallStatus = 'warning';
+    statusCode = 200;
+  }
   
   const health = {
     success: true,
-    status: mongoReady ? 'healthy' : 'degraded',
-    message: mongoReady ? 'Backend operativo ✅' : 'Backend operativo sin base de datos ⚠️',
+    status: overallStatus,
+    message: isHealthy 
+      ? 'Backend operativo ✅' 
+      : 'Backend operativo sin base de datos ⚠️',
+    version: '2.1.0',
+    environment: process.env.NODE_ENV || 'production',
     timestamp: new Date().toISOString(),
-    uptime: uptime,
-    uptimeFormatted: formatUptime(uptime),
+    
+    // 🕐 UPTIME
+    uptime: {
+      seconds: Math.floor(uptime),
+      formatted: formatUptime(uptime),
+      startedAt: new Date(Date.now() - uptime * 1000).toISOString()
+    },
+    
+    // 💾 MEMORIA (de la Versión 1 + mejora)
     memory: {
       used: Math.round(memUsage.heapUsed / 1024 / 1024) + ' MB',
       total: Math.round(memUsage.heapTotal / 1024 / 1024) + ' MB',
       external: Math.round(memUsage.external / 1024 / 1024) + ' MB',
-      rss: Math.round(memUsage.rss / 1024 / 1024) + ' MB'
+      rss: Math.round(memUsage.rss / 1024 / 1024) + ' MB',
+      usagePercent: memoryUsagePercent + '%',
+      status: parseFloat(memoryUsagePercent) > 85 ? '⚠️ HIGH' : '✅ NORMAL'
     },
+    
+    // 🗄️ BASE DE DATOS
     database: {
       connected: mongoReady,
-      status: mongoReady ? 'connected' : 'disconnected'
+      status: mongoReady ? 'connected' : 'disconnected',
+      type: 'MongoDB Atlas',
+      collections: mongoReady ? {
+        users: 'usersCollection',
+        secrets: 'secretsCollection',
+        wallet: 'walletCollection',
+        affiliates: 'affiliatesCollection',
+        audit: 'auditCollection'
+      } : null
+    },
+    
+    // 🌐 SERVIDOR (de la Versión 2 + mejora)
+    server: {
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      pid: process.pid,
+      port: process.env.PORT || 10000
+    },
+    
+    // 📊 MÉTRICAS DE RENDIMIENTO
+    performance: {
+      eventLoopDelay: process.cpuUsage ? 'available' : 'N/A',
+      activeRequests: 'tracked via middleware',
+      uptimeHours: (uptime / 3600).toFixed(2) + 'h'
+    },
+    
+    // 🔗 ENDPOINTS CRÍTICOS
+    endpoints: {
+      login: '/api/login',
+      register: '/api/register',
+      vault: '/api/vault',
+      marketplace: '/api/marketplace',
+      status: '/api/status'
+    },
+    
+    // 🎯 INDICADORES DE SALUD
+    healthIndicators: {
+      database: mongoReady ? '✅' : '❌',
+      memory: parseFloat(memoryUsagePercent) < 85 ? '✅' : '⚠️',
+      uptime: uptime > 3600 ? '✅' : '⚠️',
+      environment: process.env.NODE_ENV === 'production' ? '✅' : '⚠️'
     }
   };
   
-  res.status(mongoReady ? 200 : 503).json(health);
+  res.status(statusCode).json(health);
 });
 
 // ============================================
@@ -7712,21 +7784,6 @@ app.get('/api/debug/routes', (req, res) => {
       code: 'DEBUG_ERROR'
     });
   }
-});
-
-// ============================================
-// 🏥 HEALTH CHECK MEJORADO
-// ============================================
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'production',
-    database: mongoReady ? 'connected' : 'disconnected',
-    mensaje: 'Backend operativo ✅'
-  });
 });
 
 // === FIN: index.js ===
