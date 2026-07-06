@@ -902,22 +902,198 @@ app.use(express.static(path.join(__dirname, 'public'), staticOptions));
 app.use('/app', express.static(path.join(__dirname, 'public'), staticOptions));
 
 // ============================================
-// 🔄 REDIRECCIONES INTELIGENTES
+// 🌐 SERVIR FRONTEND + REDIRECCIONES INTELIGENTES (FUSIONADO Y SUPER MEJORADO)
 // ============================================
+
+// 🏠 RUTA PRINCIPAL - Servir index.html directamente (más rápido que redirigir)
 app.get('/', (req, res) => {
-  res.redirect('/app');
+  // Headers anti-cache para asegurar que siempre se sirva la última versión
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  
+  // Log de acceso (opcional, para analíticas)
+  logger.debug(`🏠 Acceso a raíz desde IP: ${req.ip}`);
+  
+  // Enviar index.html directamente
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/login', (req, res) => {
-  res.redirect('/app');
+// 🔄 REDIRECCIONES INTELIGENTES - Rutas legacy al frontend SPA
+const legacyRoutes = ['/login', '/dashboard', '/vault', '/register', '/marketplace', '/profile'];
+legacyRoutes.forEach(route => {
+  app.get(route, (req, res) => {
+    // Preservar query params si existen (ej: /login?ref=CODE)
+    const queryString = Object.keys(req.query).length > 0 
+      ? '?' + new URLSearchParams(req.query).toString() 
+      : '';
+    
+    logger.debug(`🔄 Redirigiendo ${route}${queryString} → /app${queryString}`);
+    res.redirect(`/app${queryString}`);
+  });
 });
 
-app.get('/dashboard', (req, res) => {
-  res.redirect('/app');
+// 📱 RUTA /app - Servir frontend (SPA)
+app.get('/app', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/vault', (req, res) => {
-  res.redirect('/app');
+// 🔗 RUTA PARA ENLACES COMPARTIDOS (token)
+app.get('/s/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const link = await sharedLinksCollection?.findOne({ token });
+    
+    if (!link) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Enlace no encontrado - ApiRomwiner Vault</title>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; 
+                   display: flex; justify-content: center; align-items: center; 
+                   min-height: 100vh; margin: 0; text-align: center; }
+            .container { max-width: 500px; padding: 40px; background: #2a2a2a; 
+                        border-radius: 12px; border: 1px solid #333; }
+            h1 { color: #e74c3c; margin-top: 0; }
+            p { color: #ccc; line-height: 1.6; }
+            .button { display: inline-block; background: #2ecc71; color: white; 
+                     padding: 12px 30px; text-decoration: none; border-radius: 5px; 
+                     margin-top: 20px; font-weight: bold; }
+            .button:hover { background: #27ae60; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>❌ Enlace no encontrado</h1>
+            <p>Este enlace ha expirado o no existe.</p>
+            <a href="/" class="button">Ir al inicio</a>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+    
+    if (new Date() > link.expiresAt) {
+      return res.status(410).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Enlace expirado - ApiRomwiner Vault</title>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; 
+                   display: flex; justify-content: center; align-items: center; 
+                   min-height: 100vh; margin: 0; text-align: center; }
+            .container { max-width: 500px; padding: 40px; background: #2a2a2a; 
+                        border-radius: 12px; border: 1px solid #333; }
+            h1 { color: #f39c12; margin-top: 0; }
+            p { color: #ccc; line-height: 1.6; }
+            .button { display: inline-block; background: #2ecc71; color: white; 
+                     padding: 12px 30px; text-decoration: none; border-radius: 5px; 
+                     margin-top: 20px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>⏰ Enlace expirado</h1>
+            <p>Este enlace ha expirado. Pide al propietario que genere uno nuevo.</p>
+            <a href="/" class="button">Ir al inicio</a>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+    
+    // Servir página de visualización del contenido compartido
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Contenido compartido - ApiRomwiner Vault</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; 
+                 display: flex; justify-content: center; align-items: center; 
+                 min-height: 100vh; margin: 0; }
+          .container { max-width: 600px; padding: 40px; background: #2a2a2a; 
+                      border-radius: 12px; border: 1px solid #333; text-align: center; }
+          h1 { color: #2ecc71; margin-top: 0; }
+          .info { background: #1a3a1a; padding: 20px; border-radius: 8px; 
+                 margin: 20px 0; border-left: 4px solid #2ecc71; }
+          .button { display: inline-block; background: #2ecc71; color: white; 
+                   padding: 12px 30px; text-decoration: none; border-radius: 5px; 
+                   margin-top: 20px; font-weight: bold; }
+          .button:hover { background: #27ae60; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🔗 Contenido compartido</h1>
+          <div class="info">
+            <p><strong>Token:</strong> ${token}</p>
+            <p><strong>Expira:</strong> ${new Date(link.expiresAt).toLocaleString()}</p>
+          </div>
+          <p>Este contenido ha sido compartido contigo desde ApiRomwiner Vault.</p>
+          <a href="/app?shared=${token}" class="button">Ver contenido</a>
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (e) {
+    logger.error('❌ Error en /s/:token:', e.message);
+    res.status(500).send('Error interno del servidor');
+  }
+});
+
+// 🚫 MANEJO DE RUTAS NO ENCONTRADAS (404 personalizado)
+app.use((req, res, next) => {
+  // Solo para rutas que NO empiecen con /api/
+  if (!req.path.startsWith('/api/')) {
+    logger.warn(`🚫 Ruta no encontrada: ${req.method} ${req.path}`);
+    return res.status(404).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>404 - Página no encontrada | ApiRomwiner Vault</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; 
+                 display: flex; justify-content: center; align-items: center; 
+                 min-height: 100vh; margin: 0; text-align: center; }
+          .container { max-width: 500px; padding: 40px; background: #2a2a2a; 
+                      border-radius: 12px; border: 1px solid #333; }
+          h1 { color: #e74c3c; font-size: 72px; margin: 0; }
+          h2 { color: #fff; margin-top: 10px; }
+          p { color: #ccc; line-height: 1.6; }
+          .button { display: inline-block; background: #2ecc71; color: white; 
+                   padding: 12px 30px; text-decoration: none; border-radius: 5px; 
+                   margin-top: 20px; font-weight: bold; }
+          .button:hover { background: #27ae60; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>404</h1>
+          <h2>Página no encontrada</h2>
+          <p>La ruta <code>${req.path}</code> no existe en nuestro servidor.</p>
+          <a href="/" class="button">Ir al inicio</a>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+  next();
 });
 
 // ============================================
@@ -5745,15 +5921,6 @@ app.post('/api/marketplace/promo/validate', async (req, res) => {
     logger.error('❌ Promo validate error: ' + e.message);
     res.status(500).json({ error: 'Error validando cupón: ' + e.message });
   }
-});
-// ============================================
-// 🌐 SERVIR FRONTEND
-// ============================================
-app.get('/', function(req, res) {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ============================================
