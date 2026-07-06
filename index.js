@@ -883,23 +883,114 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ============================================
-// 🚀 SERVIDOR DE ARCHIVOS ESTÁTICOS (OPTIMIZADO)
+// 🚀 SERVIDOR DE ARCHIVOS ESTÁTICOS (SUPER OPTIMIZADO)
 // ============================================
+const compression = require('compression');
+
+// ✅ COMPRESIÓN GZIP/BROTLI (reduce tamaño de archivos hasta 70%)
+app.use(compression({
+  level: 6, // Balance entre velocidad y compresión
+  threshold: 1024, // Solo comprimir archivos > 1KB
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  }
+}));
+
+// ✅ CONFIGURACIÓN AVANZADA DE CACHE
 const staticOptions = {
   maxAge: '1d',
   etag: true,
   lastModified: true,
-  setHeaders: (res, path) => {
-    if (path.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
-    } else if (path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
+  dotfiles: 'ignore', // Ignorar archivos ocultos (.git, .env, etc.)
+  index: false, // Desactivar index automático (lo manejamos manualmente)
+  redirect: true, // Redirigir /public a /public/
+  setHeaders: (res, filePath, stat) => {
+    const ext = path.extname(filePath).toLowerCase();
+    
+    // ✅ CACHE POR TIPO DE ARCHIVO (más granular)
+    if (filePath.endsWith('.html')) {
+      // HTML: No cachear (siempre servir la última versión)
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+    } else if (['.js', '.mjs'].includes(ext)) {
+      // JavaScript: Cache agresivo con inmutabilidad
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    } else if (ext === '.css') {
+      // CSS: Cache agresivo
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    } else if (['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico'].includes(ext)) {
+      // Imágenes: Cache muy largo
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    } else if (['.woff', '.woff2', '.ttf', '.eot', '.otf'].includes(ext)) {
+      // Fuentes: Cache muy largo
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    } else if (['.mp4', '.webm', '.ogg', '.mp3', '.wav'].includes(ext)) {
+      // Multimedia: Cache largo + soporte para streaming
+      res.setHeader('Cache-Control', 'public, max-age=604800'); // 7 días
+      res.setHeader('Accept-Ranges', 'bytes'); // Soporte para range requests
+    } else if (['.pdf', '.doc', '.docx', '.xls', '.xlsx'].includes(ext)) {
+      // Documentos: Cache medio
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 día
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    } else if (['.json', '.xml', '.csv'].includes(ext)) {
+      // Datos: Cache corto
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hora
+    } else {
+      // Otros: Cache por defecto
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+    
+    // ✅ SECURITY HEADERS PARA TODOS LOS ARCHIVOS
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    // ✅ LOGGING OPCIONAL (solo en desarrollo)
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug(`📦 Sirviendo: ${filePath} (${(stat.size / 1024).toFixed(2)} KB)`);
     }
   }
 };
 
-app.use(express.static(path.join(__dirname, 'public'), staticOptions));
-app.use('/app', express.static(path.join(__dirname, 'public'), staticOptions));
+// ✅ SERVIDOR DE ARCHIVOS ESTÁTICOS (con fallback para SPA)
+const publicPath = path.join(__dirname, 'public');
+
+// Servir archivos estáticos en raíz
+app.use(express.static(publicPath, staticOptions));
+
+// Servir archivos estáticos en /app
+app.use('/app', express.static(publicPath, staticOptions));
+
+// ✅ FALLBACK PARA SPA (Single Page Application)
+// Si la ruta no es un archivo y no empieza con /api/, servir index.html
+app.get('*', (req, res, next) => {
+  // No interceptar rutas de API
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  
+  // No interceptar rutas de archivos estáticos (que ya tienen extensión)
+  if (path.extname(req.path)) {
+    return next();
+  }
+  
+  // Servir index.html para todas las demás rutas (SPA)
+  res.sendFile(path.join(publicPath, 'index.html'), (err) => {
+    if (err) {
+      logger.error(`❌ Error sirviendo index.html: ${err.message}`);
+      res.status(500).send('Error cargando la aplicación');
+    }
+  });
+});
+
+logger.info('📦 Servidor de archivos estáticos configurado con compresión y cache optimizado');
 
 // ============================================
 // 🌐 SERVIR FRONTEND + REDIRECCIONES INTELIGENTES (FUSIONADO Y SUPER MEJORADO)
