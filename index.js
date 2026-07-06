@@ -5,20 +5,6 @@
 require('dotenv').config();
 
 // ============================================
-// 🔐 VALIDACIÓN ESTRICTA DE VARIABLES DE ENTORNO
-// ============================================
-const REQUIRED_ENV_VARS = [
-  'JWT_SECRET',
-  'MASTER_KEY', 
-  'STRIPE_SECRET_KEY',
-  'MONGODB_URI',
-  'R2_ENDPOINT',
-  'R2_ACCESS_KEY_ID',
-  'R2_SECRET_ACCESS_KEY',
-  'R2_BUCKET_NAME'
-];
-
-// ============================================
 // 🔐 TRUCO: FALLBACK PARA R2_ACCESS_KEY_ID
 // ============================================
 if (!process.env.R2_ACCESS_KEY_ID && process.env.CF_R2_ACCESS_KEY_ID) {
