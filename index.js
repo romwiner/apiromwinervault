@@ -7433,47 +7433,6 @@ app.get('/api/analytics', async(req, res) => {
 });
 
 // ============================================
-// 🚀 START SERVER (único)
-// ============================================
-async function startServer() {
-  await connectToMongo();
-  if (mongoReady) {
-    setInterval(() => { KeyRotationService.scheduleRotations().catch(e => logger.warn('⚠️ Scheduled rotation failed: ' + e.message)); }, 24 * 60 * 60 * 1000);
-    logger.info('🔄 Key rotation scheduled every 24h');
-    setInterval(async () => {
-      try {
-        if (sharedLinksCollection) {
-          const result = await sharedLinksCollection.deleteMany({ expiresAt: { $lt: new Date() } });
-          if (result.deletedCount > 0) logger.info(`🧹 Limpiados ${result.deletedCount} enlaces expirados`);
-        }
-      } catch (e) { logger.warn('⚠️ Cleanup expired links failed: ' + e.message); }
-    }, 60 * 60 * 1000);
-    logger.info('🧹 Expired links cleanup scheduled every 1h');
-    setInterval(processAutoRenewals, 24 * 60 * 60 * 1000);
-    logger.info('🔄 Auto-renewals scheduled every 24h');
-  }
-  app.listen(PORT, '0.0.0.0', function () {
-    logger.info('🚀 APIROMWINER en puerto ' + PORT);
-    logger.info('🟢 57 Funciones Reales | 🔐 Zero-Knowledge | 🤖 IA Interna | 🛍️ Marketplace');
-    if (FEATURES.PORTABLE_EXPORT) logger.info('📦 Exportación Portable: ACTIVADA');
-    if (FEATURES.LOCAL_SYNC) logger.info('🔄 Sync Offline: ACTIVADO');
-    if (FEATURES.ZERO_KNOWLEDGE) logger.info('🔐 Zero-Knowledge: ACTIVADO');
-    if (FEATURES.WEB3_LOGIN) logger.info('🔗 Login Web3: ACTIVADO');
-    if (FEATURES.IPFS_BACKUP) logger.info('🌐 Backup IPFS (Helia): ACTIVADO');
-    if (FEATURES.AI_INTERNAL) logger.info('🤖 IA Interna: ACTIVADA');
-    // ✅ NUEVAS COLECCIONES PARA FEED SOCIAL
-socialPostsCollection = db.collection('socialPosts');
-socialCommentsCollection = db.collection('socialComments');
-socialLikesCollection = db.collection('socialLikes');
-  });
-}
-
-startServer().catch(err => {
-  logger.error('❌ Error crítico al iniciar servidor: ' + err.message);
-  process.exit(1);
-});
-
-// ============================================
 // 🔧 ALIAS /api/login Y /api/register (COMPATIBILIDAD FRONTEND)
 // ============================================
 // ✅ VERSIÓN FINAL PERFECCIONADA - SIN app.handle() (que no funciona)
