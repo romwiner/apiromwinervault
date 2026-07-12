@@ -619,7 +619,7 @@ let usersCollection, secretsCollection, affiliatesCollection, identityCollection
 let transactionsCollection, profilesCollection, walletCollection, auditCollection;
 let webhooksCollection, promoCollection, cryptoKeysCollection, verifiedIdentitiesCollection;
 let sharedLinksCollection, thumbnailsCollection, versionsCollection, commentsCollection;
-let reviewsCollection, favoritesCollection, commitsCollection;
+let reviewsCollection, favoritesCollection, commitsCollection, emailsCollection;
 let adsCollection, adImpressionsCollection, organizationsCollection;
 // ✅ Colecciones de negocio y social
 let followsCollection, postLikesCollection;
