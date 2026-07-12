@@ -2003,15 +2003,6 @@ app.post('/api/register', async (req, res) => {
 });
 
 // ============================================
-// 🔐 ALIAS /register (COMPATIBILIDAD CON FRONTEND ANTIGUO)
-// ============================================
-app.post('/register', async (req, res) => {
-  // Redirigir al nuevo endpoint
-  req.url = '/api/register';
-  app.handle(req, res);
-});
-
-// ============================================
 // ⭐ 2. REGISTRO PREMIUM ($25/mes)
 // ============================================
 app.post('/api/register/premium', async (req, res) => {
